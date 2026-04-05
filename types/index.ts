@@ -42,6 +42,7 @@ export interface DailyLog {
   completedSideQuests: string[]
   keptRules: string[]
   totalXP: number
+  dayMode: 'normal' | 'minimum'
   notes?: string
 }
 

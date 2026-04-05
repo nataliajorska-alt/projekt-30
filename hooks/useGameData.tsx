@@ -52,7 +52,7 @@ export function useGameData() {
     unsub2 = onSnapshot(todayRef,
       (snap) => {
         if (snap.exists()) setTodayLog(snap.data() as DailyLog)
-        else setTodayLog({ date: todayKey(), completedRoutine: [], completedDailyQuests: [], completedSideQuests: [], keptRules: [], totalXP: 0 })
+        else setTodayLog({ date: todayKey(), completedRoutine: [], completedDailyQuests: [], completedSideQuests: [], keptRules: [], totalXP: 0, dayMode: 'normal' })
         setLoading(false)
       },
       (err) => { console.error('today error:', err); setLoading(false) }
@@ -196,8 +196,13 @@ export function useGameData() {
     })
   }, [user, stats, statsRef])
 
+  const setDayMode = useCallback(async (mode: 'normal' | 'minimum') => {
+    if (!user || !todayRef || !todayLog) return
+    await setDoc(todayRef, { ...todayLog, dayMode: mode }, { merge: true })
+  }, [user, todayRef, todayLog])
+
   return {
     stats, todayLog, loading,
-    toggleRoutine, toggleDailyQuest, completeSideQuest, toggleRule, logDayStreak,
+    toggleRoutine, toggleDailyQuest, completeSideQuest, toggleRule, logDayStreak, setDayMode,
   }
 }
