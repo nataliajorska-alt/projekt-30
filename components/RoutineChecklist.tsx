@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useGameData } from '@/hooks/useGameData'
 import {
   MORNING_ROUTINE, EVENING_ROUTINE, DAILY_HABITS,
-  MORNING_MINIMUM, EVENING_MINIMUM,
+  MORNING_MINIMUM, EVENING_MINIMUM, getTodayWeeklyHabits,
 } from '@/lib/routineData'
 import { Check, Sun, Moon, Sparkles, BatteryLow, BatteryFull } from 'lucide-react'
 import clsx from 'clsx'
@@ -22,9 +22,13 @@ export default function RoutineChecklist() {
 
   const isMinimum = (todayLog?.dayMode ?? 'normal') === 'minimum'
 
+  const weeklyToday = getTodayWeeklyHabits()
+  const DAY_NAMES = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota']
+  const todayName = DAY_NAMES[new Date().getDay()]
+
   const ITEMS_MAP = {
     morning: isMinimum ? MORNING_MINIMUM : MORNING_ROUTINE,
-    daily:   DAILY_HABITS,
+    daily:   [...DAILY_HABITS, ...weeklyToday],
     evening: isMinimum ? EVENING_MINIMUM : EVENING_ROUTINE,
   }
 
@@ -113,9 +117,21 @@ export default function RoutineChecklist() {
 
       {/* Items */}
       <div className="px-5 py-3 space-y-1">
-        {items.map((item) => {
+        {tab === 'daily' && weeklyToday.length > 0 && (
+          <div className="pb-1">
+            <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest px-3 pb-1">Codzienne</p>
+          </div>
+        )}
+        {items.map((item, idx) => {
+          const isFirstWeekly = tab === 'daily' && weeklyToday.length > 0 && idx === DAILY_HABITS.length
           const done = todayLog?.completedRoutine.includes(item.id) ?? false
           return (
+            <div key={item.id}>
+            {isFirstWeekly && (
+              <div className="pt-2 pb-1">
+                <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest px-3 pb-1">{todayName}</p>
+              </div>
+            )}
             <button
               key={item.id}
               onClick={() => toggleRoutine(item.id, item.xp)}
@@ -149,6 +165,7 @@ export default function RoutineChecklist() {
                 +{item.xp}
               </span>
             </button>
+            </div>
           )
         })}
       </div>

@@ -44,6 +44,61 @@ export const EVENING_MINIMUM: RoutineItem[] = [
   { id: 'em3', text: 'Znak krzyża', type: 'evening', xp: 10 },
 ]
 
+// ─── TYGODNIOWE (dzień tygodnia: 0=nd, 1=pn, 2=wt, 3=śr, 4=cz, 5=pt, 6=sb) ──
+
+export const WEEKLY_HABITS: Record<number, RoutineItem[]> = {
+  0: [ // Niedziela
+    { id: 'w0_1', text: 'Kościół — msza', type: 'daily', xp: 10 },
+  ],
+  1: [ // Poniedziałek
+    { id: 'w1_1', text: 'Ćw. od fizjo', type: 'daily', xp: 10 },
+    { id: 'w1_2', text: 'Leg warm-up', type: 'daily', xp: 10 },
+    { id: 'w1_3', text: 'Duolingo ×3', type: 'daily', xp: 10 },
+    { id: 'w1_4', text: 'Książka — hiszpański', type: 'daily', xp: 10 },
+    { id: 'w1_5', text: 'Dieta — ustalić posiłki na tydzień', type: 'daily', xp: 10 },
+  ],
+  2: [ // Wtorek
+    { id: 'w2_1', text: 'ELSA aplikacja', type: 'daily', xp: 10 },
+    { id: 'w2_2', text: 'Full body stretch', type: 'daily', xp: 10 },
+  ],
+  3: [ // Środa
+    { id: 'w3_1', text: 'Ćw. od fizjo', type: 'daily', xp: 10 },
+    { id: 'w3_2', text: 'Pre-back', type: 'daily', xp: 10 },
+    { id: 'w3_3', text: 'Duolingo ×3', type: 'daily', xp: 10 },
+    { id: 'w3_4', text: 'ELSA aplikacja', type: 'daily', xp: 10 },
+    { id: 'w3_5', text: 'Podlewanie', type: 'daily', xp: 10 },
+  ],
+  4: [ // Czwartek
+    { id: 'w4_1', text: 'Ćw. core', type: 'daily', xp: 10 },
+    { id: 'w4_2', text: 'Post-back', type: 'daily', xp: 10 },
+  ],
+  5: [ // Piątek
+    { id: 'w5_1', text: 'Both minis', type: 'daily', xp: 10 },
+    { id: 'w5_2', text: 'Timesheet', type: 'daily', xp: 10 },
+  ],
+  6: [], // Sobota — brak
+}
+
+// Co drugi wtorek: ćwiczenia na kolana
+export const BIWEEKLY_TUESDAY: RoutineItem = {
+  id: 'w2_knee', text: 'Ćwiczenia na kolana (co drugi wtorek)', type: 'daily', xp: 10,
+}
+
+export function getTodayWeeklyHabits(): RoutineItem[] {
+  const now = new Date()
+  const dow = now.getDay() // 0=nd ... 6=sb
+  const base = WEEKLY_HABITS[dow] ?? []
+
+  if (dow === 2) {
+    // Co drugi wtorek — liczymy tygodnie od startu projektu
+    const start = new Date('2026-04-05')
+    const weeksSinceStart = Math.floor((now.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000))
+    if (weeksSinceStart % 2 === 0) return [...base, BIWEEKLY_TUESDAY]
+  }
+
+  return base
+}
+
 // ─── ZASADY ────────────────────────────────────────────────────
 
 export const NEGATIVE_RULES = [
