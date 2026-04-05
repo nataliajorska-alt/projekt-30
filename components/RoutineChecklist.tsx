@@ -29,13 +29,21 @@ export default function RoutineChecklist() {
   const isWeekday = dow >= 1 && dow <= 5
   const dailyBase = isWeekday ? DAILY_HABITS : []
 
+  // W trybie minimum zakładka Dzień jest ukryta
+  const visibleTabs = isMinimum
+    ? TABS.filter(t => t.id !== 'daily')
+    : TABS
+
+  // Jeśli aktywna zakładka to 'daily' a weszłyśmy w minimum — przełącz na ranek
+  const activeTab = isMinimum && tab === 'daily' ? 'morning' : tab
+
   const ITEMS_MAP = {
     morning: isMinimum ? MORNING_MINIMUM : MORNING_ROUTINE,
     daily:   [...dailyBase, ...weeklyToday],
     evening: isMinimum ? EVENING_MINIMUM : EVENING_ROUTINE,
   }
 
-  const items = ITEMS_MAP[tab]
+  const items = ITEMS_MAP[activeTab]
   const completedCount = items.filter(i => todayLog?.completedRoutine.includes(i.id)).length
   const progress = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0
 
@@ -96,13 +104,13 @@ export default function RoutineChecklist() {
 
       {/* Tabs */}
       <div className="flex border-b border-border mx-5">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            onClick={() => setTab(id)}
+            onClick={() => setTab(id as Tab)}
             className={clsx(
               'flex items-center gap-1.5 px-3 py-2.5 text-xs font-sans transition-all border-b-2 -mb-px',
-              tab === id
+              activeTab === id
                 ? isMinimum
                   ? 'border-forest text-forest font-medium'
                   : 'border-gold text-gold font-medium'
@@ -120,13 +128,13 @@ export default function RoutineChecklist() {
 
       {/* Items */}
       <div className="px-5 py-3 space-y-1">
-        {tab === 'daily' && isWeekday && weeklyToday.length > 0 && (
+        {activeTab === 'daily' && isWeekday && weeklyToday.length > 0 && (
           <div className="pb-1">
             <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest px-3 pb-1">Codzienne</p>
           </div>
         )}
         {items.map((item, idx) => {
-          const isFirstWeekly = tab === 'daily' && weeklyToday.length > 0 && idx === dailyBase.length
+          const isFirstWeekly = activeTab === 'daily' && weeklyToday.length > 0 && idx === dailyBase.length
           const done = todayLog?.completedRoutine.includes(item.id) ?? false
           return (
             <div key={item.id}>

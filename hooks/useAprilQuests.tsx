@@ -4,19 +4,30 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
 import { useGameData } from './useGameData'
-import { XP_VALUES } from '@/lib/gameLogic'
 import type { Pillar } from '@/types'
+
+export interface QuestSkip {
+  questId: string
+  reason: string
+  skippedAt: string
+}
+
+export interface QuestPostpone {
+  questId: string
+  postponedAt: string
+}
 
 interface AprilQuestLog {
   completed: string[]
-  skipped: string[]
+  skips: QuestSkip[]
+  postponed: string[]   // questIds przeniesione na jutro
 }
 
-const DEFAULT_LOG: AprilQuestLog = { completed: [], skipped: [] }
+const DEFAULT_LOG: AprilQuestLog = { completed: [], skips: [], postponed: [] }
 
 export function useAprilQuests() {
   const { user } = useAuth()
-  const { stats, toggleDailyQuest } = useGameData()
+  const { toggleDailyQuest } = useGameData()
   const [log, setLog] = useState<AprilQuestLog>(DEFAULT_LOG)
   const [loading, setLoading] = useState(true)
 
@@ -26,8 +37,21 @@ export function useAprilQuests() {
     if (!user || !logRef) { setLoading(false); return }
     const unsub = onSnapshot(logRef,
       (snap) => {
-        if (snap.exists()) setLog(snap.data() as AprilQuestLog)
-        else setLog(DEFAULT_LOG)
+        if (snap.exists()) {
+          const data = snap.data()
+          // backwards compat: old logs had skipped: string[]
+          if (Array.isArray(data.skipped)) {
+            setLog({ completed: data.completed ?? [], skips: [], postponed: [] })
+          } else {
+            setLog({
+              completed: data.completed ?? [],
+              skips: data.skips ?? [],
+              postponed: data.postponed ?? [],
+            })
+          }
+        } else {
+          setLog(DEFAULT_LOG)
+        }
         setLoading(false)
       },
       () => setLoading(false)
@@ -35,19 +59,27 @@ export function useAprilQuests() {
     return unsub
   }, [user?.uid])
 
-  const completeQuest = useCallback(async (questId: string, pillar: Pillar, xp: number) => {
+  const completeQuest = useCallback(async (questId: string, pillar: Pillar) => {
     if (!user || !logRef || log.completed.includes(questId)) return
     const updated = { ...log, completed: [...log.completed, questId] }
     await setDoc(logRef, updated, { merge: true })
-    // Award XP via the main game data hook (reuse daily quest XP logic)
     await toggleDailyQuest(questId, pillar)
   }, [user, logRef, log, toggleDailyQuest])
 
-  const skipQuest = useCallback(async (questId: string) => {
+  const skipQuest = useCallback(async (questId: string, reason: string) => {
     if (!user || !logRef) return
-    const updated = { ...log, skipped: [...log.skipped, questId] }
+    const skip: QuestSkip = { questId, reason, skippedAt: new Date().toISOString() }
+    const updated = { ...log, skips: [...log.skips, skip] }
     await setDoc(logRef, updated, { merge: true })
   }, [user, logRef, log])
 
-  return { log, loading, completeQuest, skipQuest }
+  const postponeQuest = useCallback(async (questId: string) => {
+    if (!user || !logRef) return
+    const updated = { ...log, postponed: [...log.postponed, questId] }
+    await setDoc(logRef, updated, { merge: true })
+  }, [user, logRef, log])
+
+  const skippedIds = log.skips.map(s => s.questId)
+
+  return { log, skippedIds, loading, completeQuest, skipQuest, postponeQuest }
 }

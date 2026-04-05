@@ -11,6 +11,7 @@ export const MORNING_ROUTINE: RoutineItem[] = [
   { id: 'm6', text: 'Afirmacja', type: 'morning', xp: 10 },
   { id: 'm7', text: 'Zadbanie o twarz', type: 'morning', xp: 10 },
   { id: 'm8', text: 'Umycie zębów + nitkowanie', type: 'morning', xp: 10 },
+  { id: 'm9', text: 'Witaminy + witamina C', type: 'morning', xp: 10 },
 ]
 
 export const EVENING_ROUTINE: RoutineItem[] = [
@@ -20,6 +21,7 @@ export const EVENING_ROUTINE: RoutineItem[] = [
   { id: 'e4', text: '3 rzeczy, z których jestem dumna tego dnia', type: 'evening', xp: 10 },
   { id: 'e5', text: 'Krótka modlitwa wieczorna', type: 'evening', xp: 10 },
   { id: 'e6', text: 'Opcjonalnie: 5 minut czytania', type: 'evening', xp: 10 },
+  { id: 'e7', text: 'Magnez + duloksetyna', type: 'evening', xp: 10 },
 ]
 
 // Tylko dni robocze (pon–pt)

@@ -107,8 +107,10 @@ export function getAprilQuestsForDate(dateKey: string): AprilQuest[] {
 export function getOverdueAprilQuests(
   todayKey: string,
   completedIds: string[],
-  skippedIds: string[]
+  skippedIds: string[],
+  postponedIds: string[]
 ): AprilQuest[] {
+  // Postponed questy z wczoraj wracają jako overdue — więc uwzględniamy je normalnie
   return APRIL_QUESTS.filter(q =>
     q.date < todayKey &&
     !completedIds.includes(q.id) &&
