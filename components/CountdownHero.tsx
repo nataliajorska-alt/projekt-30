@@ -3,6 +3,7 @@ import { getDaysRemaining, getDaysElapsed, getProjectProgress, getLevelFromXP, g
 import { useGameData } from '@/hooks/useGameData'
 import { todayKey } from '@/lib/gameLogic'
 import { getDailySpark } from '@/lib/questData'
+import { APRIL_MOTTO, APRIL_NAME } from '@/lib/aprilData'
 
 export default function CountdownHero() {
   const { stats } = useGameData()
@@ -91,6 +92,14 @@ export default function CountdownHero() {
               <span className="font-sans text-[11px] text-muted-light">{nextLevel.xpRequired.toLocaleString('pl-PL')} XP</span>
             )}
           </div>
+        </div>
+
+        {/* Monthly motto */}
+        <div className="bg-gold/15 rounded-xl px-4 py-3 border border-gold/30 mb-3">
+          <p className="text-[10px] font-sans text-gold uppercase tracking-widest mb-1">
+            Hasło miesiąca · {APRIL_NAME}
+          </p>
+          <p className="font-serif text-sm text-ivory leading-relaxed italic">&ldquo;{APRIL_MOTTO}&rdquo;</p>
         </div>
 
         {/* Spark */}

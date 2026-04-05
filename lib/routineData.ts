@@ -101,12 +101,21 @@ export function getTodayWeeklyHabits(): RoutineItem[] {
 
 // ─── ZASADY ────────────────────────────────────────────────────
 
+// Czego nie robiłam (ochrona pozycji)
 export const NEGATIVE_RULES = [
   { id: 'r1', text: 'Nie napisałam impulsywnie do byłego', xp: 20 },
   { id: 'r2', text: 'Nie analizowałam jego lajków ani sygnałów', xp: 20 },
   { id: 'r3', text: 'Nie wydałam pieniędzy emocjonalnie', xp: 20 },
   { id: 'r4', text: 'Nie robiłam kilku rzeczy naraz bez planu', xp: 20 },
   { id: 'r5', text: 'Nie działałam z lęku ani z braku', xp: 20 },
+]
+
+// Co zrobiłam (budowanie pozycji)
+export const POSITIVE_RULES = [
+  { id: 'p1', text: 'Zrobiłam coś dla swojej przyszłości', xp: 20 },
+  { id: 'p2', text: 'Zadbałam o wygląd i prezencję', xp: 20 },
+  { id: 'p3', text: 'Zrobiłam coś dla pracy lub pieniędzy', xp: 20 },
+  { id: 'p4', text: 'Zrobiłam coś dla jakości swojego świata', xp: 20 },
 ]
 
 // ─── ISKRY DNIA ────────────────────────────────────────────────
