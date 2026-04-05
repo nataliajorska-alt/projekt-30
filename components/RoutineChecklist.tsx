@@ -24,11 +24,14 @@ export default function RoutineChecklist() {
 
   const weeklyToday = getTodayWeeklyHabits()
   const DAY_NAMES = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota']
-  const todayName = DAY_NAMES[new Date().getDay()]
+  const dow = new Date().getDay()
+  const todayName = DAY_NAMES[dow]
+  const isWeekday = dow >= 1 && dow <= 5
+  const dailyBase = isWeekday ? DAILY_HABITS : []
 
   const ITEMS_MAP = {
     morning: isMinimum ? MORNING_MINIMUM : MORNING_ROUTINE,
-    daily:   [...DAILY_HABITS, ...weeklyToday],
+    daily:   [...dailyBase, ...weeklyToday],
     evening: isMinimum ? EVENING_MINIMUM : EVENING_ROUTINE,
   }
 
@@ -117,13 +120,13 @@ export default function RoutineChecklist() {
 
       {/* Items */}
       <div className="px-5 py-3 space-y-1">
-        {tab === 'daily' && weeklyToday.length > 0 && (
+        {tab === 'daily' && isWeekday && weeklyToday.length > 0 && (
           <div className="pb-1">
             <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest px-3 pb-1">Codzienne</p>
           </div>
         )}
         {items.map((item, idx) => {
-          const isFirstWeekly = tab === 'daily' && weeklyToday.length > 0 && idx === DAILY_HABITS.length
+          const isFirstWeekly = tab === 'daily' && weeklyToday.length > 0 && idx === dailyBase.length
           const done = todayLog?.completedRoutine.includes(item.id) ?? false
           return (
             <div key={item.id}>

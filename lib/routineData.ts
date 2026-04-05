@@ -22,10 +22,10 @@ export const EVENING_ROUTINE: RoutineItem[] = [
   { id: 'e6', text: 'Opcjonalnie: 5 minut czytania', type: 'evening', xp: 10 },
 ]
 
+// Tylko dni robocze (pon–pt)
 export const DAILY_HABITS: RoutineItem[] = [
-  { id: 'd1', text: 'Min. 20 min na świeżym powietrzu', type: 'daily', xp: 10 },
-  { id: 'd2', text: 'Czytam min. 15 min', type: 'daily', xp: 10 },
-  { id: 'd3', text: 'Piję odpowiednią ilość wody', type: 'daily', xp: 10 },
+  { id: 'd1', text: '30 minut przy biurku', type: 'daily', xp: 10 },
+  { id: 'd2', text: 'Zadbanie o paznokcie', type: 'daily', xp: 10 },
 ]
 
 // ─── WERSJA MINIMUM ────────────────────────────────────────────
