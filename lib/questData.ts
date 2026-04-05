@@ -49,6 +49,45 @@ export const SIDE_QUESTS: Quest[] = [
   { id: 'sq_mil_3', title: 'Co chcę czuć w relacji?', description: 'Napisz jak chcesz się czuć przy partnerze. Nie co chcesz robić — jak chcesz się CZUĆ. Bezpiecznie, widziana, pożądana...', pillar: 'milosc', type: 'side', xp: 120, difficulty: 'medium', tags: ['emocje', 'wizja'] },
   { id: 'sq_mil_4', title: 'Zrób coś romantycznego dla siebie', description: 'Kolacja dla siebie, kwiaty, perfumy, ulubiony deser. Udowodnij sobie, że nie potrzebujesz drugiej osoby, żeby być traktowana pięknie.', pillar: 'milosc', type: 'side', xp: 120, difficulty: 'easy', tags: ['self-love', 'rytuał'] },
   { id: 'sq_mil_5', title: 'Wyjdź tam gdzie mogą być ciekawi ludzie', description: 'Kawiarnia, event, zajęcia. Wyjdź, wyglądaj pięknie, bądź sobą. Nie z celem — z otwartością.', pillar: 'milosc', type: 'side', xp: 150, difficulty: 'hard', tags: ['obecność', 'otwartość'] },
+
+  // === ACHIEVEMENTY ŻYCIOWE — duże, rzadkie, wyjątkowe ===
+
+  // Ciało i sport
+  { id: 'sq_life_1', title: 'Opanuj pozycję kruka (joga)', description: 'Bakasana — stanie na rękach ze zgiętymi kolanami. Wymaga siły, balansu i cierpliwości. Ćwicz do momentu, aż utrzymasz 5 sekund.', pillar: 'cialo', type: 'side', xp: 280, difficulty: 'hard', tags: ['joga', 'siła', 'ciało'] },
+  { id: 'sq_life_2', title: 'Zrób szpagat', description: 'Pełny szpagat poprzeczny lub podłużny. Nie musi być idealny — musi być prawdziwy. Dokumentujesz zdjęciem.', pillar: 'cialo', type: 'side', xp: 350, difficulty: 'hard', tags: ['elastyczność', 'ciało', 'cel'] },
+  { id: 'sq_life_3', title: 'Odwrócony szpagat na szarfach', description: 'Splits w aerial silk. Wymaga techniki, zaufania i treningu na szarfach. Jeden z trudniejszych questów fizycznych.', pillar: 'cialo', type: 'side', xp: 500, difficulty: 'hard', tags: ['szarfy', 'akrobatyka', 'ciało'] },
+  { id: 'sq_life_4', title: 'Naucz się jeździć na nartach', description: 'Pierwszy raz na nartach lub wyraźne opanowanie zjazdu. Stoki, buty, kijki, zjazd bez wpadki. Liczy się wyjazd i próba.', pillar: 'cialo', type: 'side', xp: 400, difficulty: 'hard', tags: ['narty', 'sport', 'wyjazd'] },
+  { id: 'sq_life_5', title: 'Wyjazd na konie', description: 'Jazda konna — w terenie lub na ujeżdżalni. Minimum godzinna sesja. Elegancki sport z historią.', pillar: 'cialo', type: 'side', xp: 250, difficulty: 'medium', tags: ['konie', 'jeździectwo', 'elegancja'] },
+  { id: 'sq_life_6', title: 'Jazda konna (kolejna)', description: 'Druga lub kolejna sesja jeździecka. Praca nad dosiadem, pewność siebie na siodle.', pillar: 'cialo', type: 'side', xp: 200, difficulty: 'medium', tags: ['konie', 'jeździectwo'] },
+  { id: 'sq_life_7', title: 'Naucz się robić gwiazdę', description: 'Gwiazdka w bok — akrobatyka podstawowa. Trening na trawie, macie lub w sali. Do skutku.', pillar: 'cialo', type: 'side', xp: 220, difficulty: 'medium', tags: ['akrobatyka', 'ciało', 'sprawność'] },
+  { id: 'sq_life_8', title: '2 wieże — skoki', description: 'Skoki z wieży do wody. Odwaga ciała, odwaga głowy. Dokumentujesz.', pillar: 'cialo', type: 'side', xp: 300, difficulty: 'hard', tags: ['odwaga', 'woda', 'lato'] },
+
+  // Kultura i doświadczenia
+  { id: 'sq_life_9',  title: 'Teatr', description: 'Spektakl teatralny — dramat, komedia, musical. Idź dopracowana. Bądź tam naprawdę, nie tylko fizycznie.', pillar: 'tozsamosc', type: 'side', xp: 150, difficulty: 'easy', tags: ['teatr', 'kultura', 'klasa'] },
+  { id: 'sq_life_10', title: 'Opera', description: 'Wieczór w operze. Sukienka, program, skupienie. Jedno z najbardziej klasycznych doświadczeń kulturalnych.', pillar: 'tozsamosc', type: 'side', xp: 250, difficulty: 'medium', tags: ['opera', 'kultura', 'elegancja'] },
+  { id: 'sq_life_11', title: 'Filharmonia', description: 'Koncert symfoniczny w filharmonii. Cisza, muzyka na żywo, obecność w miejscu z historią.', pillar: 'tozsamosc', type: 'side', xp: 200, difficulty: 'medium', tags: ['filharmonia', 'muzyka', 'kultura'] },
+  { id: 'sq_life_12', title: 'Wystawa', description: 'Galeria sztuki, fotografia, instalacje. Minimum godzina, z uwagą. Nie tylko selfie przy eksponatach.', pillar: 'tozsamosc', type: 'side', xp: 120, difficulty: 'easy', tags: ['sztuka', 'galeria', 'kultura'] },
+  { id: 'sq_life_13', title: 'Muzeum', description: 'Muzeum historyczne, przyrodnicze, designu — cokolwiek, ale z pełną uwagą. Jedno muzeum, jedna godzina skupienia.', pillar: 'tozsamosc', type: 'side', xp: 130, difficulty: 'easy', tags: ['muzeum', 'historia', 'kultura'] },
+  { id: 'sq_life_14', title: 'Jazz', description: 'Koncert jazzowy — klub, piwnica, scena. Atmosfera, improwizacja, klasa. Jeden wieczór.', pillar: 'tozsamosc', type: 'side', xp: 160, difficulty: 'easy', tags: ['jazz', 'muzyka', 'klimat'] },
+  { id: 'sq_life_15', title: 'Koncert', description: 'Dowolny koncert na żywo — muzyka, energia, obecność. Idź jako kobieta, która potrafi cieszyć się życiem.', pillar: 'tozsamosc', type: 'side', xp: 150, difficulty: 'easy', tags: ['koncert', 'muzyka', 'energia'] },
+  { id: 'sq_life_16', title: 'Lekcja tańca', description: 'Salsa, tango, bachata, balet — jedna lekcja. Ciało, rytm, uważność. Coś, co buduje kobiecość przez ruch.', pillar: 'tozsamosc', type: 'side', xp: 180, difficulty: 'medium', tags: ['taniec', 'ciało', 'kobiecość'] },
+  { id: 'sq_life_17', title: 'Czytanie książki w parku', description: 'Koc, książka, park. Wolne popołudnie bez agendy. Minimum 1,5 godziny skupionego czytania.', pillar: 'tozsamosc', type: 'side', xp: 100, difficulty: 'easy', tags: ['książki', 'spokój', 'jakość'] },
+  { id: 'sq_life_18', title: 'Oglądanie gry w polo', description: 'Mecz polo — na żywo. Elegancki, niszowy, wyjątkowy. Ubierz się stosownie. Zapamiętasz.', pillar: 'tozsamosc', type: 'side', xp: 300, difficulty: 'medium', tags: ['polo', 'elegancja', 'niszowe'] },
+  { id: 'sq_life_19', title: 'WSET — kurs wina', description: 'Oficjalny kurs degustacji wina (WSET Level 1, 2 lub 3). Wiedza, która zostaje na całe życie i robi wrażenie w każdej rozmowie.', pillar: 'tozsamosc', type: 'side', xp: 600, difficulty: 'hard', tags: ['wino', 'WSET', 'wiedza', 'klasa'] },
+
+  // Sport i lifestyle premium
+  { id: 'sq_life_20', title: 'Golf na polu golfowym', description: 'Pierwsze wyjście na pole golfowe. Swing, cisza, zieleń, klasa. Nie musisz być dobra — musisz być tam.', pillar: 'kapital', type: 'side', xp: 350, difficulty: 'hard', tags: ['golf', 'sport', 'premium', 'networking'] },
+  { id: 'sq_life_21', title: 'Szarfy — występ', description: 'Udział w pokazie lub prezentacji na szarfach (aerial silk). Przygotowany numer, widzowie, scena.', pillar: 'cialo', type: 'side', xp: 500, difficulty: 'hard', tags: ['szarfy', 'występ', 'odwaga'] },
+  { id: 'sq_life_22', title: 'Trip poza Warszawę', description: 'Wyjazd z miasta — weekend, kilka dni, nie ma znaczenia dokąd. Zmiana perspektywy, nowe powietrze, świadome wyjście z rutyny.', pillar: 'kapital', type: 'side', xp: 300, difficulty: 'medium', tags: ['podróż', 'reset', 'przygoda'] },
+
+  // Umysł i wiedza
+  { id: 'sq_life_23', title: 'Naucz się grać w blackjacka', description: 'Zasady, strategia podstawowa, card counting w teorii. Zagraj co najmniej jedną prawdziwą partię (online lub na żywo).', pillar: 'tozsamosc', type: 'side', xp: 180, difficulty: 'medium', tags: ['gra', 'strategia', 'zabawa'] },
+  { id: 'sq_life_24', title: 'Poznaj hipotezę Riemanna', description: 'Jeden z siedmiu Problemów Milenijnych — nikomu jeszcze nie udało się jej udowodnić. Przestudiuj co to jest, dlaczego jest trudna i co oznaczałoby rozwiązanie. Zrób notatkę.', pillar: 'tozsamosc', type: 'side', xp: 250, difficulty: 'hard', tags: ['matematyka', 'wiedza', 'mózg'] },
+  { id: 'sq_life_25', title: 'Wygrana w programie', description: 'Udział i wygrana w jakimkolwiek programie — konkurs, quiz, teleturniej, program TV. Liczy się udział i walka o wynik.', pillar: 'pozycja', type: 'side', xp: 500, difficulty: 'hard', tags: ['wygrana', 'konkurs', 'odwaga'] },
+
+  // Wdzięczność i relacje
+  { id: 'sq_life_26', title: 'Podziękuj fundacji FDNT', description: 'Napisz lub zadzwoń do fundacji FDNT z podziękowaniem. Szczerym, konkretnym. Wdzięczność wyrażona to wdzięczność prawdziwa.', pillar: 'kapital', type: 'side', xp: 200, difficulty: 'easy', tags: ['wdzięczność', 'relacje', 'ważne'] },
+  { id: 'sq_life_27', title: 'Podziękuj terapeutce', description: 'Wyraź wdzięczność swojej terapeutce — za pracę, czas, obecność. Słowa, list, coś symbolicznego. To ważne.', pillar: 'pozycja', type: 'side', xp: 200, difficulty: 'easy', tags: ['wdzięczność', 'terapia', 'ważne'] },
 ]
 
 export const DAILY_QUESTS_POOL: Quest[] = [
