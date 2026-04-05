@@ -5,7 +5,7 @@ import {
   MORNING_ROUTINE, EVENING_ROUTINE, DAILY_HABITS,
   MORNING_MINIMUM, EVENING_MINIMUM, getTodayWeeklyHabits,
 } from '@/lib/routineData'
-import { Check, Sun, Moon, Sparkles, BatteryLow, BatteryFull } from 'lucide-react'
+import { Check, Sun, Moon, Sparkles, BatteryLow } from 'lucide-react'
 import clsx from 'clsx'
 
 type Tab = 'morning' | 'daily' | 'evening'
