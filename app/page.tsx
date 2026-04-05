@@ -1,7 +1,6 @@
 'use client'
 import CountdownHero from '@/components/CountdownHero'
 import RoutineChecklist from '@/components/RoutineChecklist'
-import AprilQuests from '@/components/AprilQuests'
 import DailyQuests from '@/components/DailyQuests'
 import SideQuestPicker from '@/components/SideQuestPicker'
 import NegativeChecklist from '@/components/NegativeChecklist'
@@ -43,7 +42,6 @@ export default function Dashboard() {
       <CountdownHero />
       <DailyXPSummary />
       <RoutineChecklist />
-      <AprilQuests />
       <DailyQuests />
       <SideQuestPicker />
       <NegativeChecklist />
