@@ -131,7 +131,8 @@ function hashCode(str: string): number {
 }
 
 export function getDailySpark(dateKey: string): string {
-  const { DAILY_SPARKS } = require('./routineData')
+  const { DAILY_SPARKS, PINNED_SPARKS } = require('./routineData')
+  if (PINNED_SPARKS[dateKey]) return PINNED_SPARKS[dateKey]
   const seed = dateKey.split('-').reduce((acc: number, n: string) => acc + parseInt(n), 0)
   return DAILY_SPARKS[seed % DAILY_SPARKS.length]
 }

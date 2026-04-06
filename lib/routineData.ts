@@ -111,6 +111,16 @@ export const DAILY_RULES = [
 
 // ─── ISKRY DNIA ────────────────────────────────────────────────
 
+// Przypięte iskry na konkretne daty (YYYY-MM-DD). Mają pierwszeństwo przed pulą.
+export const PINNED_SPARKS: Record<string, string> = {
+  '2026-04-06': 'Nie muszę być już na mecie. Wystarczy, że dziś zrobię jeden krok do siebie.',
+  '2026-04-07': 'To, że jest mi ciężko, nie znaczy, że stoję w miejscu. Ja naprawdę się podnoszę.',
+  '2026-04-08': 'Nie potrzebuję pośpiechu, żeby iść do przodu. Moje małe kroki też się liczą.',
+  '2026-04-09': 'Wybieram siebie nawet wtedy, gdy serce wciąż tęskni za czymś innym.',
+  '2026-04-10': 'Mogę być zmęczona, smutna i nadal iść dalej z godnością.',
+  '2026-04-11': 'Jestem bliżej siebie niż tydzień temu i to naprawdę ma znaczenie.',
+}
+
 export const DAILY_SPARKS = [
   'Nie gonię za tym, co mnie nie chce. Buduję coś, po co będą przychodziły.',
   'Spokój jest moją luksusową cechą, nie słabością.',
