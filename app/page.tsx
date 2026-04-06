@@ -6,17 +6,9 @@ import SideQuestPicker from '@/components/SideQuestPicker'
 import NegativeChecklist from '@/components/NegativeChecklist'
 import DailyXPSummary from '@/components/DailyXPSummary'
 import { useGameData } from '@/hooks/useGameData'
-import { useEffect } from 'react'
 
 export default function Dashboard() {
-  const { loading, logDayStreak, todayLog } = useGameData()
-
-  // Log the day for streak on first load if not yet done
-  useEffect(() => {
-    if (!loading && todayLog && todayLog.completedRoutine.length === 0 && todayLog.completedDailyQuests.length === 0) {
-      // Don't auto-log until user does something — streak tracked on first action
-    }
-  }, [loading, todayLog])
+  const { loading } = useGameData()
 
   if (loading) return (
     <div className="min-h-screen bg-ivory flex items-center justify-center">

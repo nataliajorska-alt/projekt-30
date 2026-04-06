@@ -75,6 +75,7 @@ export function useAprilQuests() {
 
   const postponeQuest = useCallback(async (questId: string) => {
     if (!user || !logRef) return
+    if (log.postponed.includes(questId)) return
     const updated = { ...log, postponed: [...log.postponed, questId] }
     await setDoc(logRef, updated, { merge: true })
   }, [user, logRef, log])

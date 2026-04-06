@@ -2,15 +2,16 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { Home, Sword, Layers, Trophy, BookOpen, LogOut } from 'lucide-react'
+import { Home, Sword, Layers, Trophy, BookOpen, CalendarDays, LogOut } from 'lucide-react'
 import clsx from 'clsx'
 
 const NAV_ITEMS = [
-  { href: '/',             icon: Home,    label: 'Dziś' },
-  { href: '/quests',       icon: Sword,   label: 'Questy' },
-  { href: '/pillars',      icon: Layers,  label: 'Filary' },
-  { href: '/achievements', icon: Trophy,  label: 'Osiągnięcia' },
-  { href: '/review',       icon: BookOpen,label: 'Przegląd' },
+  { href: '/',             icon: Home,         label: 'Dziś' },
+  { href: '/quests',       icon: Sword,        label: 'Questy' },
+  { href: '/pillars',      icon: Layers,       label: 'Filary' },
+  { href: '/timeline',     icon: CalendarDays, label: 'Historia' },
+  { href: '/achievements', icon: Trophy,       label: 'Osiągnięcia' },
+  { href: '/review',       icon: BookOpen,     label: 'Przegląd' },
 ]
 
 export default function Navigation() {
@@ -57,20 +58,21 @@ export default function Navigation() {
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-dark border-t border-forest/50 px-2 py-2 flex items-center justify-around">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-dark border-t border-forest/50 px-1 py-2 flex items-center justify-around">
         {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
           const active = pathname === href
+          const shortLabel = label === 'Osiągnięcia' ? 'Trofea' : label
           return (
             <Link
               key={href}
               href={href}
               className={clsx(
-                'flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all',
+                'flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-xl transition-all flex-1 min-w-0',
                 active ? 'text-gold-light' : 'text-muted-light'
               )}
             >
-              <Icon size={20} strokeWidth={1.5} />
-              <span className="text-[10px] font-sans">{label}</span>
+              <Icon size={18} strokeWidth={1.5} />
+              <span className="text-[9px] font-sans truncate">{shortLabel}</span>
             </Link>
           )
         })}

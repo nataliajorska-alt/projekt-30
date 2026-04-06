@@ -1,4 +1,5 @@
 import type { RoutineItem } from '@/types'
+import { PROJECT_START } from './gameLogic'
 
 // ─── WERSJA NORMALNA ───────────────────────────────────────────
 
@@ -93,8 +94,7 @@ export function getTodayWeeklyHabits(): RoutineItem[] {
 
   if (dow === 2) {
     // Co drugi wtorek — liczymy tygodnie od startu projektu
-    const start = new Date('2026-04-05')
-    const weeksSinceStart = Math.floor((now.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000))
+    const weeksSinceStart = Math.floor((now.getTime() - PROJECT_START.getTime()) / (7 * 24 * 60 * 60 * 1000))
     if (weeksSinceStart % 2 === 0) return [...base, BIWEEKLY_TUESDAY]
   }
 

@@ -66,6 +66,14 @@ export interface UserStats {
   totalRulesKept: number
   pillarXP: Record<Pillar, number>
   unlockedAchievements: string[]
+  lastStreakDate?: string | null
+  reviewedWeeks?: string[]
+  reviewedMonths?: string[]
+  pillarBalanceWeeks?: string[]
+  currentWeekPillars?: {
+    weekKey: string
+    pillars: Pillar[]
+  }
 }
 
 export interface UserProfile {
@@ -90,4 +98,14 @@ export interface WeeklyReview {
   pillarsRated: Record<Pillar, number>
   nextWeekFocus: string
   xpEarned: number
+}
+
+export interface MonthlyReview {
+  month: string
+  highlights: string
+  challenges: string
+  pillarsRated: Record<Pillar, number>
+  intentionNextMonth: string
+  xpEarned: number
+  savedAt: string
 }

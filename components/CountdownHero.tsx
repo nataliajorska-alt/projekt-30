@@ -3,7 +3,7 @@ import { getDaysRemaining, getDaysElapsed, getProjectProgress, getLevelFromXP, g
 import { useGameData } from '@/hooks/useGameData'
 import { todayKey } from '@/lib/gameLogic'
 import { getDailySpark } from '@/lib/questData'
-import { APRIL_MOTTO, APRIL_NAME } from '@/lib/aprilData'
+import { getCurrentMonthData } from '@/lib/monthData'
 
 export default function CountdownHero() {
   const { stats } = useGameData()
@@ -14,6 +14,7 @@ export default function CountdownHero() {
   const nextLevel = getNextLevel(stats.totalXP)
   const lvlProgress = getLevelProgress(stats.totalXP)
   const spark = getDailySpark(todayKey())
+  const month = getCurrentMonthData()
 
   return (
     <div className="bg-dark rounded-2xl p-6 text-ivory mb-6 relative overflow-hidden">
@@ -94,12 +95,33 @@ export default function CountdownHero() {
           </div>
         </div>
 
+        {/* Streak */}
+        <div className="bg-forest/40 rounded-xl px-4 py-2.5 border border-gold/20 mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🔥</span>
+            <span className="text-[10px] font-sans text-gold-light/70 uppercase tracking-widest">Seria</span>
+          </div>
+          <div className="flex items-center gap-4">
+            {stats.currentStreak > 0 ? (
+              <span className="font-serif text-ivory text-sm">
+                <span className="text-gold-light">{stats.currentStreak}</span>
+                <span className="text-muted-light text-xs ml-1">dni</span>
+              </span>
+            ) : (
+              <span className="font-serif text-ivory/70 text-xs italic">Zacznij dziś</span>
+            )}
+            <span className="font-sans text-[11px] text-muted-light">
+              Najlepsza: <span className="text-ivory/80">{stats.longestStreak}</span>
+            </span>
+          </div>
+        </div>
+
         {/* Monthly motto */}
         <div className="bg-gold/15 rounded-xl px-4 py-3 border border-gold/30 mb-3">
           <p className="text-[10px] font-sans text-gold uppercase tracking-widest mb-1">
-            Hasło miesiąca · {APRIL_NAME}
+            Hasło miesiąca · {month.name}
           </p>
-          <p className="font-serif text-sm text-ivory leading-relaxed italic">&ldquo;{APRIL_MOTTO}&rdquo;</p>
+          <p className="font-serif text-sm text-ivory leading-relaxed italic">&ldquo;{month.motto}&rdquo;</p>
         </div>
 
         {/* Spark */}

@@ -47,7 +47,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: '7 dni bez impulsywnego kontaktu z byłym.',
     icon: '🧊',
     xpReward: 300,
-    condition: (s) => s.totalRulesKept >= 35,
+    condition: (s) => s.totalRulesKept >= 21,
   },
   {
     id: 'quests_10',
@@ -84,7 +84,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'all_pillars',
     title: 'Holistyczna',
-    description: 'Zdobyłaś XP w każdym z 7 filarów w jednym tygodniu.',
+    description: 'Zdobyłaś XP w każdym z 7 filarów.',
     icon: '♾️',
     xpReward: 500,
     condition: (s) => Object.values(s.pillarXP).every(xp => xp > 0),
@@ -112,6 +112,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '👑',
     xpReward: 2000,
     condition: (s) => s.totalXP >= 129000,
+  },
+  {
+    id: 'level_30',
+    title: 'Natalia 30',
+    description: 'Finał projektu. Wszystko, czym się stałaś, jest teraz Twoje.',
+    icon: '👸',
+    xpReward: 3000,
+    condition: (s) => s.totalXP >= 140000,
   },
   {
     id: 'routines_100',

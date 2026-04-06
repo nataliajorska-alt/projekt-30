@@ -4,9 +4,12 @@ import { useAprilQuests } from '@/hooks/useAprilQuests'
 import { getAprilQuestsForDate, getOverdueAprilQuests } from '@/lib/aprilData'
 import { getPillar } from '@/lib/pillars'
 import { todayKey } from '@/lib/gameLogic'
-import { Check, Clock, SkipForward, CalendarClock, X } from 'lucide-react'
+import { Check, Clock, SkipForward, CalendarClock, X, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
 import type { AprilQuest } from '@/lib/aprilData'
+
+const APRIL_LAST_DAY = '2026-04-30'
+const APRIL_FIRST_DAY = '2026-04-05'
 
 function SkipModal({ quest, onConfirm, onClose }: {
   quest: AprilQuest
@@ -144,7 +147,31 @@ export default function DailyQuests() {
   // Postponed questy z poprzednich dni wracają w overdue automatycznie
 
   if (loading) return null
-  if (todayQuests.length === 0 && overdueQuests.length === 0) return null
+
+  // Po 30 kwietnia: pokazujemy elegancki placeholder zamiast ukrywać sekcję.
+  if (todayQuests.length === 0 && overdueQuests.length === 0) {
+    if (today > APRIL_LAST_DAY) {
+      return (
+        <div className="bg-white rounded-2xl shadow-elegant overflow-hidden mb-4">
+          <div className="px-5 pt-5 pb-3">
+            <h2 className="font-serif text-dark text-lg">Questy dnia</h2>
+          </div>
+          <div className="px-5 pb-5">
+            <div className="rounded-xl border border-gold/30 bg-gold-pale/60 p-5 text-center">
+              <Sparkles size={20} className="text-gold mx-auto mb-2" strokeWidth={1.5} />
+              <p className="font-serif text-dark text-base mb-1">Nowy rozdział wkrótce</p>
+              <p className="font-sans text-xs text-muted leading-relaxed">
+                Treść na ten miesiąc jest w przygotowaniu. W międzyczasie skup się na rutynie, zasadach i side questach.
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    // Przed startem projektu — ukrywamy sekcję jak dotąd.
+    if (today < APRIL_FIRST_DAY) return null
+    return null
+  }
 
   const handlePostpone = async (quest: AprilQuest) => {
     setPostponedToday(p => [...p, quest.id])
