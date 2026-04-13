@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
-  const { user, loading, signIn, signUp } = useAuth()
+  const { user, loading, error: authError, signIn, signUp } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -15,6 +15,24 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       <div className="text-center">
         <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="text-muted font-sans text-sm">Ładowanie...</p>
+      </div>
+    </div>
+  )
+
+  if (authError) return (
+    <div className="min-h-screen bg-ivory flex items-center justify-center px-4">
+      <div className="text-center max-w-sm">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-4">
+          <span className="text-2xl">⚠️</span>
+        </div>
+        <h2 className="font-serif text-xl text-dark mb-2">Ups, coś nie działa</h2>
+        <p className="text-muted font-sans text-sm mb-6">{authError}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-dark text-ivory font-sans text-sm py-3 px-8 rounded-xl hover:bg-forest transition-colors font-medium"
+        >
+          Odśwież stronę
+        </button>
       </div>
     </div>
   )
