@@ -33,6 +33,7 @@ export interface Quest {
   xp: number
   difficulty: 'easy' | 'medium' | 'hard'
   tags?: string[]
+  steps?: string[]  // opcjonalne etapy dla złożonych questów
 }
 
 export interface DailyLog {
@@ -98,6 +99,18 @@ export interface WeeklyReview {
   pillarsRated: Record<Pillar, number>
   nextWeekFocus: string
   xpEarned: number
+  savedAt?: string
+}
+
+export interface RoutineConfig {
+  disabledItems: string[]
+  customItems: RoutineItem[]
+  itemOrder?: {
+    morning?: string[]
+    evening?: string[]
+    daily?: string[]
+  }
+  updatedAt: string
 }
 
 export interface MonthlyReview {

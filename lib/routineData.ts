@@ -1,5 +1,5 @@
 import type { RoutineItem } from '@/types'
-import { PROJECT_START } from './gameLogic'
+import { PROJECT_START, getISOWeekKey } from './gameLogic'
 
 // ─── WERSJA NORMALNA ───────────────────────────────────────────
 
@@ -59,10 +59,12 @@ export const WEEKLY_HABITS: Record<number, RoutineItem[]> = {
     { id: 'w1_3', text: 'Duolingo ×3', type: 'daily', xp: 10 },
     { id: 'w1_4', text: 'Książka — hiszpański', type: 'daily', xp: 10 },
     { id: 'w1_5', text: 'Dieta — ustalić posiłki na tydzień', type: 'daily', xp: 10 },
+    { id: 'w1_6', text: 'Uporządkuj powiadomienia', type: 'daily', xp: 10 },
   ],
   2: [ // Wtorek
     { id: 'w2_1', text: 'ELSA aplikacja', type: 'daily', xp: 10 },
     { id: 'w2_2', text: 'Full body stretch', type: 'daily', xp: 10 },
+    { id: 'w2_3', text: 'Karteczka do losowania', type: 'daily', xp: 10 },
   ],
   3: [ // Środa
     { id: 'w3_1', text: 'Ćw. od fizjo', type: 'daily', xp: 10 },
@@ -74,10 +76,12 @@ export const WEEKLY_HABITS: Record<number, RoutineItem[]> = {
   4: [ // Czwartek
     { id: 'w4_1', text: 'Ćw. core', type: 'daily', xp: 10 },
     { id: 'w4_2', text: 'Post-back', type: 'daily', xp: 10 },
+    { id: 'w4_3', text: 'Zadaj sobie pytanie', type: 'daily', xp: 10 },
   ],
   5: [ // Piątek
     { id: 'w5_1', text: 'Both minis', type: 'daily', xp: 10 },
     { id: 'w5_2', text: 'Timesheet', type: 'daily', xp: 10 },
+    { id: 'w5_3', text: 'Uporządkuj notatki', type: 'daily', xp: 10 },
   ],
   6: [], // Sobota — brak
 }
@@ -119,6 +123,44 @@ export const PINNED_SPARKS: Record<string, string> = {
   '2026-04-09': 'Wybieram siebie nawet wtedy, gdy serce wciąż tęskni za czymś innym.',
   '2026-04-10': 'Mogę być zmęczona, smutna i nadal iść dalej z godnością.',
   '2026-04-11': 'Jestem bliżej siebie niż tydzień temu i to naprawdę ma znaczenie.',
+  // Tydzień 13–19 kwietnia
+  '2026-04-13': 'Zbieram siebie na nowy tydzień.',
+  '2026-04-14': 'Wracam do rytmu, nie do chaosu.',
+  '2026-04-15': 'Robię swoje, nawet jeśli nie wszystko jest lekkie.',
+  '2026-04-16': 'Wybieram to, co mnie wzmacnia.',
+  '2026-04-17': 'Nie muszę być w idealnym stanie, żeby iść do przodu.',
+  '2026-04-18': 'Daję sobie trochę życia, nie tylko obowiązków.',
+  '2026-04-19': 'Domykam tydzień z czułością i spokojem.',
+}
+
+// ─── TEMAT TYGODNIA (rotacja co 7 dni) ────────────────────────
+// Cykl: Filozofia → Sztuka → Historia → Ekonomia i polityka → od nowa
+
+const WEEKLY_STUDY_TOPICS = [
+  { label: 'Filozofia',           prompt: 'Przeczytaj artykuł, obejrzyj wykład lub odcinek podcastu o filozofii.' },
+  { label: 'Sztuka',              prompt: 'Poczytaj o artyście, obejrzyj film o sztuce lub odwiedź galerię online.' },
+  { label: 'Historia',            prompt: 'Przeczytaj o wydarzeniu historycznym, postaci lub epoce, którą chcesz lepiej zrozumieć.' },
+  { label: 'Ekonomia i polityka', prompt: 'Przeczytaj analizę ekonomiczną, artykuł o polityce lub obejrzyj dokument.' },
+]
+
+export function getWeeklyStudyItem(): RoutineItem {
+  const now = new Date()
+  const weekKey = getISOWeekKey(now)
+  const weeksSinceStart = Math.floor((now.getTime() - PROJECT_START.getTime()) / (7 * 24 * 60 * 60 * 1000))
+  const topic = WEEKLY_STUDY_TOPICS[((weeksSinceStart % WEEKLY_STUDY_TOPICS.length) + WEEKLY_STUDY_TOPICS.length) % WEEKLY_STUDY_TOPICS.length]
+  return {
+    id: `study_${weekKey}`,
+    text: `${topic.label} — ${topic.prompt}`,
+    type: 'daily',
+    xp: 20,
+  }
+}
+
+export function getWeeklyStudyLabel(): string {
+  const now = new Date()
+  const weeksSinceStart = Math.floor((now.getTime() - PROJECT_START.getTime()) / (7 * 24 * 60 * 60 * 1000))
+  const topic = WEEKLY_STUDY_TOPICS[((weeksSinceStart % WEEKLY_STUDY_TOPICS.length) + WEEKLY_STUDY_TOPICS.length) % WEEKLY_STUDY_TOPICS.length]
+  return topic.label
 }
 
 export const DAILY_SPARKS = [

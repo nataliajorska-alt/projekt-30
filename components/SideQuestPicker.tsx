@@ -4,14 +4,15 @@ import { useGameData } from '@/hooks/useGameData'
 import { getRandomSideQuest } from '@/lib/questData'
 import { getPillar } from '@/lib/pillars'
 import type { Quest } from '@/types'
-import { Shuffle, Check, Star } from 'lucide-react'
+import { Shuffle, Check, Star, Undo2 } from 'lucide-react'
+import QuestSteps from './QuestSteps'
 import clsx from 'clsx'
 
 const DIFFICULTY_LABELS = { easy: 'Łatwy', medium: 'Średni', hard: 'Wymagający' }
 const DIFFICULTY_COLORS = { easy: 'text-green-600 bg-green-50', medium: 'text-amber-600 bg-amber-50', hard: 'text-red-600 bg-red-50' }
 
 export default function SideQuestPicker() {
-  const { todayLog, completeSideQuest } = useGameData()
+  const { todayLog, toggleSideQuest } = useGameData()
   const [activeQuest, setActiveQuest] = useState<Quest | null>(null)
   const [completed, setCompleted] = useState(false)
 
@@ -24,7 +25,7 @@ export default function SideQuestPicker() {
 
   const handleComplete = async () => {
     if (!activeQuest) return
-    await completeSideQuest(activeQuest.id, activeQuest.pillar, activeQuest.xp)
+    await toggleSideQuest(activeQuest.id, activeQuest.pillar, activeQuest.xp)
     setCompleted(true)
   }
 
@@ -109,7 +110,11 @@ export default function SideQuestPicker() {
               </div>
             )}
 
-            <div className="flex gap-2">
+            {activeQuest.steps && activeQuest.steps.length > 0 && (
+              <QuestSteps questId={activeQuest.id} steps={activeQuest.steps} />
+            )}
+
+            <div className="flex gap-2 mt-4">
               {!completed ? (
                 <>
                   <button
@@ -132,13 +137,25 @@ export default function SideQuestPicker() {
                   <div className="flex items-center gap-2 text-gold font-serif text-base">
                     ✦ Side quest ukończony — +{activeQuest.xp} XP
                   </div>
-                  <button
-                    onClick={roll}
-                    className="inline-flex items-center gap-2 border border-border text-muted font-sans text-xs px-4 py-2 rounded-xl hover:border-dark hover:text-dark transition-colors"
-                  >
-                    <Shuffle size={12} strokeWidth={1.5} />
-                    Jeszcze jeden
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        await toggleSideQuest(activeQuest.id, activeQuest.pillar, activeQuest.xp)
+                        setCompleted(false)
+                      }}
+                      className="inline-flex items-center gap-2 border border-border text-muted font-sans text-xs px-4 py-2 rounded-xl hover:border-red-300 hover:text-red-500 transition-colors"
+                    >
+                      <Undo2 size={12} strokeWidth={1.5} />
+                      Cofnij
+                    </button>
+                    <button
+                      onClick={roll}
+                      className="inline-flex items-center gap-2 border border-border text-muted font-sans text-xs px-4 py-2 rounded-xl hover:border-dark hover:text-dark transition-colors"
+                    >
+                      <Shuffle size={12} strokeWidth={1.5} />
+                      Jeszcze jeden
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

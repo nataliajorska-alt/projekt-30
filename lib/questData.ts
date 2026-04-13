@@ -53,10 +53,36 @@ export const SIDE_QUESTS: Quest[] = [
   // === ACHIEVEMENTY ŻYCIOWE — duże, rzadkie, wyjątkowe ===
 
   // Ciało i sport
-  { id: 'sq_life_1', title: 'Opanuj pozycję kruka (joga)', description: 'Bakasana — stanie na rękach ze zgiętymi kolanami. Wymaga siły, balansu i cierpliwości. Ćwicz do momentu, aż utrzymasz 5 sekund.', pillar: 'cialo', type: 'side', xp: 280, difficulty: 'hard', tags: ['joga', 'siła', 'ciało'] },
-  { id: 'sq_life_2', title: 'Zrób szpagat', description: 'Pełny szpagat poprzeczny lub podłużny. Nie musi być idealny — musi być prawdziwy. Dokumentujesz zdjęciem.', pillar: 'cialo', type: 'side', xp: 350, difficulty: 'hard', tags: ['elastyczność', 'ciało', 'cel'] },
-  { id: 'sq_life_3', title: 'Odwrócony szpagat na szarfach', description: 'Splits w aerial silk. Wymaga techniki, zaufania i treningu na szarfach. Jeden z trudniejszych questów fizycznych.', pillar: 'cialo', type: 'side', xp: 500, difficulty: 'hard', tags: ['szarfy', 'akrobatyka', 'ciało'] },
-  { id: 'sq_life_4', title: 'Naucz się jeździć na nartach', description: 'Pierwszy raz na nartach lub wyraźne opanowanie zjazdu. Stoki, buty, kijki, zjazd bez wpadki. Liczy się wyjazd i próba.', pillar: 'cialo', type: 'side', xp: 400, difficulty: 'hard', tags: ['narty', 'sport', 'wyjazd'] },
+  { id: 'sq_life_1', title: 'Opanuj pozycję kruka (joga)', description: 'Bakasana — stanie na rękach ze zgiętymi kolanami. Wymaga siły, balansu i cierpliwości. Ćwicz do momentu, aż utrzymasz 5 sekund.', pillar: 'cialo', type: 'side', xp: 280, difficulty: 'hard', tags: ['joga', 'siła', 'ciało'], steps: [
+    'Rozciągnij nadgarstki i ramiona — 5 minut dziennie przez tydzień',
+    'Wzmocnij core: deska, hollow body — 3 razy w tygodniu',
+    'Ćwicz równowagę: stanie na rękach przy ścianie',
+    'Spróbuj bakasany z blokiem pod stopy — sprawdź balans',
+    'Bakasana bez wsparcia — trzymaj 3 sekundy',
+    'Bakasana bez wsparcia — trzymaj 5 sekund i udokumentuj',
+  ] },
+  { id: 'sq_life_2', title: 'Zrób szpagat', description: 'Pełny szpagat poprzeczny lub podłużny. Nie musi być idealny — musi być prawdziwy. Dokumentujesz zdjęciem.', pillar: 'cialo', type: 'side', xp: 350, difficulty: 'hard', tags: ['elastyczność', 'ciało', 'cel'], steps: [
+    'Codzienne rozciąganie bioder i pachwin — minimum 10 minut przez 2 tygodnie',
+    'Ćwicz half-split przy ścianie — trzymaj 60 sekund na każdą stronę',
+    'Pogłębiony half-split z podporem na poduszkach lub blokach',
+    'Szpagat ze wspomaganiem — choćby częściowy',
+    'Pełny szpagat — zrób zdjęcie jako dowód',
+  ] },
+  { id: 'sq_life_3', title: 'Odwrócony szpagat na szarfach', description: 'Splits w aerial silk. Wymaga techniki, zaufania i treningu na szarfach. Jeden z trudniejszych questów fizycznych.', pillar: 'cialo', type: 'side', xp: 500, difficulty: 'hard', tags: ['szarfy', 'akrobatyka', 'ciało'], steps: [
+    'Naucz się robić szpagat na ziemi (patrz: quest „Zrób szpagat")',
+    'Opanuj podstawy szarf: wspinaczka, zawinięcia, stopy',
+    'Naucz się wchodzić w inverted (odwrócenie) na szarfach',
+    'Ćwicz inverted straddle — rozstawianie nóg w górze',
+    'Połącz: inverted + szpagat w powietrzu z asekuracją instruktora',
+    'Samodzielny odwrócony szpagat — udokumentuj',
+  ] },
+  { id: 'sq_life_4', title: 'Naucz się jeździć na nartach', description: 'Pierwszy raz na nartach lub wyraźne opanowanie zjazdu. Stoki, buty, kijki, zjazd bez wpadki. Liczy się wyjazd i próba.', pillar: 'cialo', type: 'side', xp: 400, difficulty: 'hard', tags: ['narty', 'sport', 'wyjazd'], steps: [
+    'Zarezerwuj wyjazd na stok i wypożycz sprzęt',
+    'Obejrzyj 2-3 filmiki dla początkujących (pozycja, hamowanie pługiem)',
+    'Opanuj ślizg płużny i zatrzymywanie się na łagodnym stoku',
+    'Zjedź samodzielnie łagodnym stokiem',
+    'Zjedź stokiem średnim bez upadku',
+  ] },
   { id: 'sq_life_5', title: 'Wyjazd na konie', description: 'Jazda konna — w terenie lub na ujeżdżalni. Minimum godzinna sesja. Elegancki sport z historią.', pillar: 'cialo', type: 'side', xp: 250, difficulty: 'medium', tags: ['konie', 'jeździectwo', 'elegancja'] },
   { id: 'sq_life_6', title: 'Jazda konna (kolejna)', description: 'Druga lub kolejna sesja jeździecka. Praca nad dosiadem, pewność siebie na siodle.', pillar: 'cialo', type: 'side', xp: 200, difficulty: 'medium', tags: ['konie', 'jeździectwo'] },
   { id: 'sq_life_7', title: 'Naucz się robić gwiazdę', description: 'Gwiazdka w bok — akrobatyka podstawowa. Trening na trawie, macie lub w sali. Do skutku.', pillar: 'cialo', type: 'side', xp: 220, difficulty: 'medium', tags: ['akrobatyka', 'ciało', 'sprawność'] },
@@ -73,16 +99,38 @@ export const SIDE_QUESTS: Quest[] = [
   { id: 'sq_life_16', title: 'Lekcja tańca', description: 'Salsa, tango, bachata, balet — jedna lekcja. Ciało, rytm, uważność. Coś, co buduje kobiecość przez ruch.', pillar: 'tozsamosc', type: 'side', xp: 180, difficulty: 'medium', tags: ['taniec', 'ciało', 'kobiecość'] },
   { id: 'sq_life_17', title: 'Czytanie książki w parku', description: 'Koc, książka, park. Wolne popołudnie bez agendy. Minimum 1,5 godziny skupionego czytania.', pillar: 'tozsamosc', type: 'side', xp: 100, difficulty: 'easy', tags: ['książki', 'spokój', 'jakość'] },
   { id: 'sq_life_18', title: 'Oglądanie gry w polo', description: 'Mecz polo — na żywo. Elegancki, niszowy, wyjątkowy. Ubierz się stosownie. Zapamiętasz.', pillar: 'tozsamosc', type: 'side', xp: 300, difficulty: 'medium', tags: ['polo', 'elegancja', 'niszowe'] },
-  { id: 'sq_life_19', title: 'WSET — kurs wina', description: 'Oficjalny kurs degustacji wina (WSET Level 1, 2 lub 3). Wiedza, która zostaje na całe życie i robi wrażenie w każdej rozmowie.', pillar: 'tozsamosc', type: 'side', xp: 600, difficulty: 'hard', tags: ['wino', 'WSET', 'wiedza', 'klasa'] },
+  { id: 'sq_life_19', title: 'WSET — kurs wina', description: 'Oficjalny kurs degustacji wina (WSET Level 1, 2 lub 3). Wiedza, która zostaje na całe życie i robi wrażenie w każdej rozmowie.', pillar: 'tozsamosc', type: 'side', xp: 600, difficulty: 'hard', tags: ['wino', 'WSET', 'wiedza', 'klasa'], steps: [
+    'Znajdź akredytowanego organizatora kursu WSET w Polsce',
+    'Zapisz się na WSET Level 1 lub 2',
+    'Przejdź kurs — zajęcia + degustacje',
+    'Przygotuj się do egzaminu (powtórz notatki, karty win)',
+    'Zdaj egzamin i odbierz certyfikat',
+  ] },
 
   // Sport i lifestyle premium
-  { id: 'sq_life_20', title: 'Golf na polu golfowym', description: 'Pierwsze wyjście na pole golfowe. Swing, cisza, zieleń, klasa. Nie musisz być dobra — musisz być tam.', pillar: 'kapital', type: 'side', xp: 350, difficulty: 'hard', tags: ['golf', 'sport', 'premium', 'networking'] },
+  { id: 'sq_life_20', title: 'Golf na polu golfowym', description: 'Pierwsze wyjście na pole golfowe. Swing, cisza, zieleń, klasa. Nie musisz być dobra — musisz być tam.', pillar: 'kapital', type: 'side', xp: 350, difficulty: 'hard', tags: ['golf', 'sport', 'premium', 'networking'], steps: [
+    'Obejrzyj podstawowe filmiki o chwycie i swingu',
+    'Weź lekcję próbną na driving range',
+    'Poćwicz swing na driving range samodzielnie (min. 2 sesje)',
+    'Wyjdź na pole — choćby 9 dołków',
+  ] },
   { id: 'sq_life_21', title: 'Szarfy — występ', description: 'Udział w pokazie lub prezentacji na szarfach (aerial silk). Przygotowany numer, widzowie, scena.', pillar: 'cialo', type: 'side', xp: 500, difficulty: 'hard', tags: ['szarfy', 'występ', 'odwaga'] },
   { id: 'sq_life_22', title: 'Trip poza Warszawę', description: 'Wyjazd z miasta — weekend, kilka dni, nie ma znaczenia dokąd. Zmiana perspektywy, nowe powietrze, świadome wyjście z rutyny.', pillar: 'kapital', type: 'side', xp: 300, difficulty: 'medium', tags: ['podróż', 'reset', 'przygoda'] },
 
   // Umysł i wiedza
-  { id: 'sq_life_23', title: 'Naucz się grać w blackjacka', description: 'Zasady, strategia podstawowa, card counting w teorii. Zagraj co najmniej jedną prawdziwą partię (online lub na żywo).', pillar: 'tozsamosc', type: 'side', xp: 180, difficulty: 'medium', tags: ['gra', 'strategia', 'zabawa'] },
-  { id: 'sq_life_24', title: 'Poznaj hipotezę Riemanna', description: 'Jeden z siedmiu Problemów Milenijnych — nikomu jeszcze nie udało się jej udowodnić. Przestudiuj co to jest, dlaczego jest trudna i co oznaczałoby rozwiązanie. Zrób notatkę.', pillar: 'tozsamosc', type: 'side', xp: 250, difficulty: 'hard', tags: ['matematyka', 'wiedza', 'mózg'] },
+  { id: 'sq_life_23', title: 'Naucz się grać w blackjacka', description: 'Zasady, strategia podstawowa, card counting w teorii. Zagraj co najmniej jedną prawdziwą partię (online lub na żywo).', pillar: 'tozsamosc', type: 'side', xp: 180, difficulty: 'medium', tags: ['gra', 'strategia', 'zabawa'], steps: [
+    'Przeczytaj zasady blackjacka — wartości kart, cel gry',
+    'Naucz się podstawowej strategii (basic strategy chart)',
+    'Pobaw się online za darmo — min. 30 minut',
+    'Zapoznaj się z teorią card countingu (Hi-Lo system)',
+    'Zagraj prawdziwą partię (kasyno, wieczór planszówkowy lub online za $)',
+  ] },
+  { id: 'sq_life_24', title: 'Poznaj hipotezę Riemanna', description: 'Jeden z siedmiu Problemów Milenijnych — nikomu jeszcze nie udało się jej udowodnić. Przestudiuj co to jest, dlaczego jest trudna i co oznaczałoby rozwiązanie. Zrób notatkę.', pillar: 'tozsamosc', type: 'side', xp: 250, difficulty: 'hard', tags: ['matematyka', 'wiedza', 'mózg'], steps: [
+    'Obejrzyj filmik popularnonaukowy o hipotezie Riemanna (np. 3Blue1Brown)',
+    'Przeczytaj artykuł o liczbach pierwszych i funkcji dzeta',
+    'Zrozum dlaczego hipoteza jest nieudowodniona i co oznaczałoby rozwiązanie',
+    'Napisz własne podsumowanie w 5 zdaniach — zrób notatkę',
+  ] },
   { id: 'sq_life_25', title: 'Wygrana w programie', description: 'Udział i wygrana w jakimkolwiek programie — konkurs, quiz, teleturniej, program TV. Liczy się udział i walka o wynik.', pillar: 'pozycja', type: 'side', xp: 500, difficulty: 'hard', tags: ['wygrana', 'konkurs', 'odwaga'] },
 
   // Wdzięczność i relacje

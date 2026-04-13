@@ -1,9 +1,9 @@
 'use client'
 import { useState } from 'react'
 import { useAprilQuests } from '@/hooks/useAprilQuests'
-import { getAprilQuestsForDate, getOverdueAprilQuests } from '@/lib/aprilData'
+import { getAprilQuestsForDate, getOverdueAprilQuests, getPostponedQuestsForDate } from '@/lib/aprilData'
 import { getPillar } from '@/lib/pillars'
-import { todayKey } from '@/lib/gameLogic'
+import { todayKey, dateKey } from '@/lib/gameLogic'
 import { Check, Clock, SkipForward, CalendarClock, X, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
 import type { AprilQuest } from '@/lib/aprilData'
@@ -138,10 +138,22 @@ function QuestCard({ quest, done, overdue, onComplete, onSkip, onPostpone }: {
 export default function DailyQuests() {
   const { log, skippedIds, loading, completeQuest, skipQuest, postponeQuest } = useAprilQuests()
   const [skipTarget, setSkipTarget] = useState<AprilQuest | null>(null)
-  const [postponedToday, setPostponedToday] = useState<string[]>([])
   const today = todayKey()
 
-  const todayQuests = getAprilQuestsForDate(today)
+  // Questy natywnie przypisane do dziś
+  const nativeToday = getAprilQuestsForDate(today)
+  // Questy przeniesione NA dziś z innych dni
+  const postponedToToday = getPostponedQuestsForDate(today, log.postponed)
+  // ID questów przeniesionych z dziś na później
+  const postponedAwayIds = log.postponed
+    .filter(p => p.targetDate > today)
+    .map(p => p.questId)
+
+  // Dzisiejsze questy = natywne (minus przeniesione dalej) + przeniesione na dziś, bez pominiętych
+  const todayQuests = [
+    ...nativeToday.filter(q => !postponedAwayIds.includes(q.id)),
+    ...postponedToToday.filter(q => !nativeToday.some(n => n.id === q.id)),
+  ].filter(q => !skippedIds.includes(q.id))
   const overdueQuests = getOverdueAprilQuests(today, log.completed, skippedIds, log.postponed)
 
   // Postponed questy z poprzednich dni wracają w overdue automatycznie
@@ -174,8 +186,10 @@ export default function DailyQuests() {
   }
 
   const handlePostpone = async (quest: AprilQuest) => {
-    setPostponedToday(p => [...p, quest.id])
-    await postponeQuest(quest.id)
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const tomorrowKey = dateKey(tomorrow)
+    await postponeQuest(quest.id, quest.date, tomorrowKey)
   }
 
   return (
@@ -221,24 +235,22 @@ export default function DailyQuests() {
           ))}
 
           {/* Dzisiejsze */}
-          {todayQuests
-            .filter(q => !postponedToday.includes(q.id))
-            .map(quest => (
-              <QuestCard
-                key={quest.id}
-                quest={quest}
-                done={log.completed.includes(quest.id)}
-                overdue={false}
-                onComplete={() => completeQuest(quest.id, quest.pillar)}
-                onSkip={() => setSkipTarget(quest)}
-                onPostpone={() => handlePostpone(quest)}
-              />
-            ))}
+          {todayQuests.map(quest => (
+            <QuestCard
+              key={quest.id}
+              quest={quest}
+              done={log.completed.includes(quest.id)}
+              overdue={false}
+              onComplete={() => completeQuest(quest.id, quest.pillar)}
+              onSkip={() => setSkipTarget(quest)}
+              onPostpone={() => handlePostpone(quest)}
+            />
+          ))}
 
           {/* Info o przeniesionych */}
-          {postponedToday.length > 0 && (
+          {postponedAwayIds.length > 0 && (
             <p className="font-sans text-xs text-muted-light text-center pt-1">
-              {postponedToday.length} {postponedToday.length === 1 ? 'quest przeniesiony' : 'questy przeniesione'} na jutro
+              {postponedAwayIds.length} {postponedAwayIds.length === 1 ? 'quest przeniesiony' : 'questy przeniesione'} na jutro
             </p>
           )}
         </div>

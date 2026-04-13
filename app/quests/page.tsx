@@ -4,14 +4,15 @@ import { SIDE_QUESTS } from '@/lib/questData'
 import { PILLARS, getPillar } from '@/lib/pillars'
 import { useGameData } from '@/hooks/useGameData'
 import { Pillar } from '@/types'
-import { Check, Shuffle } from 'lucide-react'
+import { Check, Undo2 } from 'lucide-react'
+import QuestSteps from '@/components/QuestSteps'
 import clsx from 'clsx'
 
 const DIFFICULTY_LABELS = { easy: 'Łatwy', medium: 'Średni', hard: 'Wymagający' }
 type Filter = Pillar | 'all'
 
 export default function QuestsPage() {
-  const { todayLog, completeSideQuest } = useGameData()
+  const { todayLog, toggleSideQuest } = useGameData()
   const [filter, setFilter] = useState<Filter>('all')
   const [completing, setCompleting] = useState<string | null>(null)
 
@@ -23,7 +24,7 @@ export default function QuestsPage() {
 
   const handleComplete = async (questId: string, pillar: Pillar, xp: number) => {
     setCompleting(questId)
-    await completeSideQuest(questId, pillar, xp)
+    await toggleSideQuest(questId, pillar, xp)
     setCompleting(null)
   }
 
@@ -125,11 +126,20 @@ export default function QuestsPage() {
                   </div>
                 )}
 
+                {quest.steps && quest.steps.length > 0 && (
+                  <QuestSteps questId={quest.id} steps={quest.steps} />
+                )}
+
                 {done ? (
-                  <div className="flex items-center gap-2 text-gold font-sans text-xs font-medium">
-                    <Check size={13} strokeWidth={2} />
-                    Ukończone dziś
-                  </div>
+                  <button
+                    onClick={() => handleComplete(quest.id, quest.pillar, quest.xp)}
+                    className="inline-flex items-center gap-2 text-gold font-sans text-xs font-medium mt-3 hover:text-red-400 transition-colors group"
+                  >
+                    <Check size={13} strokeWidth={2} className="group-hover:hidden" />
+                    <Undo2 size={13} strokeWidth={2} className="hidden group-hover:block" />
+                    <span className="group-hover:hidden">Ukończone dziś</span>
+                    <span className="hidden group-hover:block">Cofnij ukończenie</span>
+                  </button>
                 ) : (
                   <button
                     onClick={() => handleComplete(quest.id, quest.pillar, quest.xp)}

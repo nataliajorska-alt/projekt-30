@@ -14,13 +14,15 @@ export interface QuestSkip {
 
 export interface QuestPostpone {
   questId: string
+  originalDate: string
+  targetDate: string
   postponedAt: string
 }
 
 interface AprilQuestLog {
   completed: string[]
   skips: QuestSkip[]
-  postponed: string[]   // questIds przeniesione na jutro
+  postponed: QuestPostpone[]
 }
 
 const DEFAULT_LOG: AprilQuestLog = { completed: [], skips: [], postponed: [] }
@@ -39,16 +41,16 @@ export function useAprilQuests() {
       (snap) => {
         if (snap.exists()) {
           const data = snap.data()
-          // backwards compat: old logs had skipped: string[]
-          if (Array.isArray(data.skipped)) {
-            setLog({ completed: data.completed ?? [], skips: [], postponed: [] })
-          } else {
-            setLog({
-              completed: data.completed ?? [],
-              skips: data.skips ?? [],
-              postponed: data.postponed ?? [],
-            })
-          }
+          // backwards compat: old postponed was string[], migrate to QuestPostpone[]
+          const rawPostponed = data.postponed ?? []
+          const migratedPostponed: QuestPostpone[] = rawPostponed.filter(
+            (p: any) => typeof p === 'object' && p.questId && p.targetDate
+          )
+          setLog({
+            completed: data.completed ?? [],
+            skips: data.skips ?? [],
+            postponed: migratedPostponed,
+          })
         } else {
           setLog(DEFAULT_LOG)
         }
@@ -73,10 +75,16 @@ export function useAprilQuests() {
     await setDoc(logRef, updated, { merge: true })
   }, [user, logRef, log])
 
-  const postponeQuest = useCallback(async (questId: string) => {
+  const postponeQuest = useCallback(async (questId: string, originalDate: string, targetDate: string) => {
     if (!user || !logRef) return
-    if (log.postponed.includes(questId)) return
-    const updated = { ...log, postponed: [...log.postponed, questId] }
+    const filtered = log.postponed.filter(p => p.questId !== questId)
+    const entry: QuestPostpone = {
+      questId,
+      originalDate,
+      targetDate,
+      postponedAt: new Date().toISOString(),
+    }
+    const updated = { ...log, postponed: [...filtered, entry] }
     await setDoc(logRef, updated, { merge: true })
   }, [user, logRef, log])
 

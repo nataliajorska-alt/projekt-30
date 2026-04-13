@@ -1,9 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { useGameData } from '@/hooks/useGameData'
+import { useRoutineConfig } from '@/hooks/useRoutineConfig'
 import {
-  MORNING_ROUTINE, EVENING_ROUTINE, DAILY_HABITS,
-  MORNING_MINIMUM, EVENING_MINIMUM, getTodayWeeklyHabits,
+  getTodayWeeklyHabits,
+  getWeeklyStudyItem, getWeeklyStudyLabel,
 } from '@/lib/routineData'
 import { Check, Sun, Moon, Sparkles, BatteryLow } from 'lucide-react'
 import clsx from 'clsx'
@@ -18,16 +19,18 @@ const TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
 
 export default function RoutineChecklist() {
   const { todayLog, toggleRoutine, setDayMode } = useGameData()
+  const { getEffectiveItems } = useRoutineConfig()
   const [tab, setTab] = useState<Tab>('morning')
 
   const isMinimum = (todayLog?.dayMode ?? 'normal') === 'minimum'
 
   const weeklyToday = getTodayWeeklyHabits()
+  const studyItem = getWeeklyStudyItem()
+  const studyLabel = getWeeklyStudyLabel()
   const DAY_NAMES = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota']
   const dow = new Date().getDay()
   const todayName = DAY_NAMES[dow]
   const isWeekday = dow >= 1 && dow <= 5
-  const dailyBase = isWeekday ? DAILY_HABITS : []
 
   // W trybie minimum zakładka Dzień jest ukryta
   const visibleTabs = isMinimum
@@ -37,10 +40,19 @@ export default function RoutineChecklist() {
   // Jeśli aktywna zakładka to 'daily' a weszłyśmy w minimum — przełącz na ranek
   const activeTab = isMinimum && tab === 'daily' ? 'morning' : tab
 
+  // Extra daily items: weekly habits + study topic (not configurable via settings)
+  const extraDaily = [...weeklyToday, ...([1, 3, 5].includes(dow) ? [studyItem] : [])]
+  // getEffectiveItems includes DAILY_HABITS (filtered by config) + extraDaily + custom items
+  // On weekends, skip DAILY_HABITS by passing them as extra only on weekdays
+  const dailyBase = isWeekday ? getEffectiveItems('daily', isMinimum) : []
+  const allDailyItems = isWeekday
+    ? getEffectiveItems('daily', isMinimum, extraDaily)
+    : [...extraDaily, ...getEffectiveItems('daily', isMinimum).filter(i => i.id.startsWith('custom_'))]
+
   const ITEMS_MAP = {
-    morning: isMinimum ? MORNING_MINIMUM : MORNING_ROUTINE,
-    daily:   [...dailyBase, ...weeklyToday],
-    evening: isMinimum ? EVENING_MINIMUM : EVENING_ROUTINE,
+    morning: getEffectiveItems('morning', isMinimum),
+    daily:   isMinimum ? [] : allDailyItems,
+    evening: getEffectiveItems('evening', isMinimum),
   }
 
   const items = ITEMS_MAP[activeTab]
@@ -135,12 +147,20 @@ export default function RoutineChecklist() {
         )}
         {items.map((item, idx) => {
           const isFirstWeekly = activeTab === 'daily' && weeklyToday.length > 0 && idx === dailyBase.length
+          const isStudyItem = activeTab === 'daily' && item.id === studyItem.id
           const done = todayLog?.completedRoutine.includes(item.id) ?? false
           return (
             <div key={item.id}>
             {isFirstWeekly && (
               <div className="pt-2 pb-1">
                 <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest px-3 pb-1">{todayName}</p>
+              </div>
+            )}
+            {isStudyItem && (
+              <div className="pt-2 pb-1">
+                <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest px-3 pb-1">
+                  Temat tygodnia · {studyLabel}
+                </p>
               </div>
             )}
             <button

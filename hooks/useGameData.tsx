@@ -9,6 +9,7 @@ import type { DailyLog, UserStats } from '@/types'
 import { todayKey, XP_VALUES, getISOWeekKey } from '@/lib/gameLogic'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import { Pillar } from '@/types'
+import { useToast } from '@/components/ToastProvider'
 
 const DEFAULT_STATS: UserStats = {
   totalXP: 0,
@@ -34,6 +35,7 @@ const ALL_PILLARS: Pillar[] = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera',
 
 export function useGameData() {
   const { user } = useAuth()
+  const { addToast } = useToast()
   const [stats, setStats] = useState<UserStats>(DEFAULT_STATS)
   const [todayLog, setTodayLog] = useState<DailyLog | null>(null)
   const [loading, setLoading] = useState(true)
@@ -63,7 +65,7 @@ export function useGameData() {
         if (snap.exists()) setStats({ ...DEFAULT_STATS, ...(snap.data() as UserStats) })
         else setDoc(statsRef, DEFAULT_STATS)
       },
-      (err) => { console.error('stats error:', err); setLoading(false) }
+      (err) => { addToast({ message: 'Błąd ładowania statystyk. Odśwież stronę.', type: 'error' }); setLoading(false) }
     )
 
     unsub2 = onSnapshot(todayRef,
@@ -72,7 +74,7 @@ export function useGameData() {
         else setTodayLog({ date: currentDateKey, completedRoutine: [], completedDailyQuests: [], completedSideQuests: [], keptRules: [], totalXP: 0, dayMode: 'normal' })
         setLoading(false)
       },
-      (err) => { console.error('today error:', err); setLoading(false) }
+      (err) => { addToast({ message: 'Błąd ładowania danych dnia. Odśwież stronę.', type: 'error' }); setLoading(false) }
     )
 
     return () => { unsub1?.(); unsub2?.() }
@@ -207,27 +209,30 @@ export function useGameData() {
     ])
   }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, applyPillarBalanceIfNeeded])
 
-  const completeSideQuest = useCallback(async (questId: string, pillar: Pillar, xp: number) => {
+  const toggleSideQuest = useCallback(async (questId: string, pillar: Pillar, xp: number) => {
     if (!user || !statsRef || !todayRef || !todayLog) return
-    if (todayLog.completedSideQuests.includes(questId)) return
-    const newCompleted = [...todayLog.completedSideQuests, questId]
+    const completed = todayLog.completedSideQuests.includes(questId)
+    const newCompleted = completed
+      ? todayLog.completedSideQuests.filter(id => id !== questId)
+      : [...todayLog.completedSideQuests, questId]
+    const xpDelta = completed ? -xp : xp
 
     const withStreak = await applyStreakIfNeeded(stats)
     let newStats: UserStats = {
       ...withStreak,
-      totalXP: withStreak.totalXP + xp,
-      totalSideQuestsCompleted: withStreak.totalSideQuestsCompleted + 1,
+      totalXP: Math.max(0, withStreak.totalXP + xpDelta),
+      totalSideQuestsCompleted: Math.max(0, withStreak.totalSideQuestsCompleted + (completed ? -1 : 1)),
       pillarXP: {
         ...withStreak.pillarXP,
-        [pillar]: (withStreak.pillarXP[pillar] ?? 0) + xp,
+        [pillar]: Math.max(0, (withStreak.pillarXP[pillar] ?? 0) + xpDelta),
       },
     }
-    newStats = applyPillarBalanceIfNeeded(newStats, pillar)
+    if (!completed) newStats = applyPillarBalanceIfNeeded(newStats, pillar)
     const achUpdates = await checkAchievements(newStats)
     const finalStats = { ...newStats, ...achUpdates }
 
     await Promise.all([
-      setDoc(todayRef, { ...todayLog, completedSideQuests: newCompleted, totalXP: todayLog.totalXP + xp }, { merge: true }),
+      setDoc(todayRef, { ...todayLog, completedSideQuests: newCompleted, totalXP: Math.max(0, todayLog.totalXP + xpDelta) }, { merge: true }),
       setDoc(statsRef, finalStats, { merge: true }),
     ])
   }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, applyPillarBalanceIfNeeded])
@@ -298,7 +303,7 @@ export function useGameData() {
 
   return {
     stats, todayLog, loading,
-    toggleRoutine, toggleDailyQuest, completeSideQuest, toggleRule,
+    toggleRoutine, toggleDailyQuest, toggleSideQuest, toggleRule,
     submitWeeklyReview, submitMonthlyReview, setDayMode,
   }
 }

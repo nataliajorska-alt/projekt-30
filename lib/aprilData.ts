@@ -1,4 +1,5 @@
 import type { Pillar } from '@/types'
+import type { QuestPostpone } from '@/hooks/useAprilQuests'
 
 export interface AprilQuest {
   id: string
@@ -108,12 +109,25 @@ export function getOverdueAprilQuests(
   todayKey: string,
   completedIds: string[],
   skippedIds: string[],
-  postponedIds: string[]
+  postponed: QuestPostpone[]
 ): AprilQuest[] {
-  // Postponed questy z wczoraj wracają jako overdue — więc uwzględniamy je normalnie
-  return APRIL_QUESTS.filter(q =>
-    q.date < todayKey &&
-    !completedIds.includes(q.id) &&
-    !skippedIds.includes(q.id)
-  )
+  return APRIL_QUESTS.filter(q => {
+    if (q.date >= todayKey) return false
+    if (completedIds.includes(q.id)) return false
+    if (skippedIds.includes(q.id)) return false
+    // Jeśli quest przeniesiony na dziś lub później — nie jest overdue
+    const p = postponed.find(pp => pp.questId === q.id)
+    if (p && p.targetDate >= todayKey) return false
+    return true
+  })
+}
+
+export function getPostponedQuestsForDate(
+  dateKey: string,
+  postponed: QuestPostpone[]
+): AprilQuest[] {
+  const questIds = postponed
+    .filter(p => p.targetDate === dateKey)
+    .map(p => p.questId)
+  return APRIL_QUESTS.filter(q => questIds.includes(q.id))
 }

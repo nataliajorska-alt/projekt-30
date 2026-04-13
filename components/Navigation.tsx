@@ -2,16 +2,16 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { Home, Sword, Layers, Trophy, BookOpen, CalendarDays, LogOut } from 'lucide-react'
+import { Home, Sword, Layers, Trophy, BookOpen, CalendarDays, LogOut, Settings } from 'lucide-react'
 import clsx from 'clsx'
 
 const NAV_ITEMS = [
   { href: '/',             icon: Home,         label: 'Dziś' },
   { href: '/quests',       icon: Sword,        label: 'Questy' },
-  { href: '/pillars',      icon: Layers,       label: 'Filary' },
   { href: '/timeline',     icon: CalendarDays, label: 'Historia' },
   { href: '/achievements', icon: Trophy,       label: 'Osiągnięcia' },
   { href: '/review',       icon: BookOpen,     label: 'Przegląd' },
+  { href: '/settings',     icon: Settings,     label: 'Ustawienia' },
 ]
 
 export default function Navigation() {
@@ -35,7 +35,7 @@ export default function Navigation() {
                 key={href}
                 href={href}
                 className={clsx(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl font-sans text-sm transition-all',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl font-sans text-sm transition-all cursor-pointer',
                   active
                     ? 'bg-forest text-gold-light font-medium'
                     : 'text-muted-light hover:text-ivory hover:bg-forest/50'
@@ -67,7 +67,7 @@ export default function Navigation() {
               key={href}
               href={href}
               className={clsx(
-                'flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-xl transition-all flex-1 min-w-0',
+                'flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-xl transition-all flex-1 min-w-0 cursor-pointer',
                 active ? 'text-gold-light' : 'text-muted-light'
               )}
             >

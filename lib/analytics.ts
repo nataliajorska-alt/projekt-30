@@ -1,4 +1,4 @@
-import type { DailyLog } from '@/types'
+import type { DailyLog, Pillar, WeeklyReview, MonthlyReview } from '@/types'
 import { getISOWeekKey, getMonthKey, dateKey } from './gameLogic'
 
 export type LogMap = Record<string, DailyLog>
@@ -163,4 +163,64 @@ export function computeStreaks(logs: LogMap): StreakSummary {
 // Callers can fall back to overall stats.pillarXP.
 export function topPillarOfMonth(_logs: LogMap, _monthKey: string): null {
   return null
+}
+
+// Returns how many times each routine item ID was completed in a given month.
+export function getRoutineItemCounts(logs: LogMap, monthKey: string): Record<string, number> {
+  const counts: Record<string, number> = {}
+  for (const [dayKey, log] of Object.entries(logs)) {
+    if (!dayKey.startsWith(monthKey)) continue
+    for (const id of log.completedRoutine ?? []) {
+      counts[id] = (counts[id] ?? 0) + 1
+    }
+  }
+  return counts
+}
+
+// Returns list of completed side quest IDs with the dates they were completed in a given month.
+export function getCompletedSideQuestDates(
+  logs: LogMap,
+  monthKey: string
+): { questId: string; date: string }[] {
+  const result: { questId: string; date: string }[] = []
+  const sortedKeys = Object.keys(logs)
+    .filter((k) => k.startsWith(monthKey))
+    .sort()
+  for (const dayKey of sortedKeys) {
+    const log = logs[dayKey]
+    for (const questId of log.completedSideQuests ?? []) {
+      result.push({ questId, date: dayKey })
+    }
+  }
+  return result
+}
+
+// Computes pillar rating deltas between consecutive reviews (weekly or monthly).
+// Returns a map of pillar → { current, previous, delta } for the two most recent entries.
+export function computePillarTrends(
+  reviews: (WeeklyReview | MonthlyReview)[]
+): Record<Pillar, { current: number; previous: number; delta: number }> | null {
+  if (reviews.length < 2) return null
+  const current = reviews[0].pillarsRated
+  const previous = reviews[1].pillarsRated
+  const pillars: Pillar[] = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc']
+  const result = {} as Record<Pillar, { current: number; previous: number; delta: number }>
+  for (const p of pillars) {
+    const c = current[p] ?? 0
+    const prev = previous[p] ?? 0
+    result[p] = { current: c, previous: prev, delta: c - prev }
+  }
+  return result
+}
+
+// Returns how many times each rule ID was kept in a given month.
+export function getRuleKeptCounts(logs: LogMap, monthKey: string): Record<string, number> {
+  const counts: Record<string, number> = {}
+  for (const [dayKey, log] of Object.entries(logs)) {
+    if (!dayKey.startsWith(monthKey)) continue
+    for (const id of log.keptRules ?? []) {
+      counts[id] = (counts[id] ?? 0) + 1
+    }
+  }
+  return counts
 }
