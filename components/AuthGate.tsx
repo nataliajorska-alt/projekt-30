@@ -44,13 +44,21 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     setError('')
     setBusy(true)
     try {
-      if (mode === 'login') await signIn(email, password)
-      else await signUp(email, password)
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 10000)
+      )
+      const action = mode === 'login' ? signIn(email, password) : signUp(email, password)
+      await Promise.race([action, timeout])
     } catch (err: any) {
-      setError(err.message?.includes('wrong-password') ? 'Błędne hasło.'
-        : err.message?.includes('user-not-found') ? 'Nie znaleziono konta.'
-        : err.message?.includes('email-already') ? 'E-mail już istnieje.'
-        : 'Coś poszło nie tak. Sprawdź dane.')
+      const msg = err.message || ''
+      setError(
+        msg.includes('timeout') ? 'Serwer nie odpowiada. Sprawdź połączenie z internetem.'
+        : msg.includes('wrong-password') || msg.includes('invalid-credential') ? 'Błędne hasło.'
+        : msg.includes('user-not-found') ? 'Nie znaleziono konta.'
+        : msg.includes('email-already') ? 'E-mail już istnieje.'
+        : msg.includes('auth/unauthorized-domain') ? 'Domena nie jest autoryzowana w Firebase.'
+        : `Coś poszło nie tak. Sprawdź dane. (${msg.slice(0, 80)})`
+      )
     } finally {
       setBusy(false)
     }
