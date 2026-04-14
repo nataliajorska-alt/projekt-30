@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useGameData } from '@/hooks/useGameData'
 import { useRoutineConfig } from '@/hooks/useRoutineConfig'
 import {
@@ -11,6 +11,12 @@ import clsx from 'clsx'
 
 type Tab = 'morning' | 'daily' | 'evening'
 
+function getNextTab(current: Tab, visible: typeof TABS): Tab | null {
+  const ids = visible.map(t => t.id)
+  const idx = ids.indexOf(current)
+  return idx >= 0 && idx < ids.length - 1 ? ids[idx + 1] : null
+}
+
 const TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
   { id: 'morning', label: 'Ranek',  icon: Sun },
   { id: 'daily',   label: 'Dzień',  icon: Sparkles },
@@ -21,6 +27,7 @@ export default function RoutineChecklist() {
   const { todayLog, toggleRoutine, setDayMode } = useGameData()
   const { getEffectiveItems } = useRoutineConfig()
   const [tab, setTab] = useState<Tab>('morning')
+  const prevProgressByTab = useRef<Partial<Record<Tab, number>>>({})
 
   const isMinimum = (todayLog?.dayMode ?? 'normal') === 'minimum'
 
@@ -58,6 +65,18 @@ export default function RoutineChecklist() {
   const items = ITEMS_MAP[activeTab]
   const completedCount = items.filter(i => todayLog?.completedRoutine.includes(i.id)).length
   const progress = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0
+
+  useEffect(() => {
+    const prev = prevProgressByTab.current[activeTab] ?? 0
+    if (prev < 100 && progress === 100) {
+      const next = getNextTab(activeTab, visibleTabs)
+      if (next) {
+        const t = setTimeout(() => setTab(next), 1500)
+        return () => clearTimeout(t)
+      }
+    }
+    prevProgressByTab.current[activeTab] = progress
+  }, [progress, activeTab])
 
   const handleModeToggle = () => {
     setDayMode(isMinimum ? 'normal' : 'minimum')
