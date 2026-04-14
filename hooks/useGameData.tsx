@@ -10,6 +10,7 @@ import { todayKey, XP_VALUES, getISOWeekKey } from '@/lib/gameLogic'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import { Pillar } from '@/types'
 import { useToast } from '@/components/ToastProvider'
+import { useAchievementUnlock } from '@/components/AchievementUnlockModal'
 
 const DEFAULT_STATS: UserStats = {
   totalXP: 0,
@@ -36,6 +37,7 @@ const ALL_PILLARS: Pillar[] = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera',
 export function useGameData() {
   const { user } = useAuth()
   const { addToast } = useToast()
+  const { showAchievementUnlock } = useAchievementUnlock()
   const [stats, setStats] = useState<UserStats>(DEFAULT_STATS)
   const [todayLog, setTodayLog] = useState<DailyLog | null>(null)
   const [loading, setLoading] = useState(true)
@@ -92,13 +94,14 @@ export function useGameData() {
         const a = ACHIEVEMENTS.find(a => a.id === id)
         return acc + (a?.xpReward ?? 0)
       }, 0)
+      showAchievementUnlock(newlyUnlocked)
       return {
         unlockedAchievements: [...newStats.unlockedAchievements, ...newlyUnlocked],
         totalXP: newStats.totalXP + bonusXP,
       }
     }
     return {}
-  }, [])
+  }, [showAchievementUnlock])
 
   // Pillar balance bonus: +30 XP once per ISO week when all 7 pillars were touched.
   // Updates currentWeekPillars rolling tracker and pillarBalanceWeeks ledger.
