@@ -14,6 +14,7 @@ import { SIDE_QUESTS } from '@/lib/questData'
 import { CheckCircle, Check, ChevronLeft, ChevronRight, ChevronDown, Eye, EyeOff } from 'lucide-react'
 import { useReviewHistory } from '@/hooks/useReviewHistory'
 import type { WeeklyReview, MonthlyReview } from '@/types'
+import PillarTrendChart from '@/components/PillarTrendChart'
 import clsx from 'clsx'
 
 type Mode = 'weekly' | 'monthly' | 'summary' | 'progress' | 'historia'
@@ -143,6 +144,10 @@ function WeeklyReviewForm({ user, stats, submitWeeklyReview, lastReview }: Weekl
   })()
 
   const alreadyReviewedThisWeek = (stats.reviewedWeeks ?? []).includes(weekStart)
+
+  const hasAnyContent = highlights.trim().length > 0 || challenges.trim().length > 0 || nextFocus.trim().length > 0
+  const hasNonDefaultRating = Object.values(ratings).some(r => r !== 3)
+  const canSave = hasAnyContent || hasNonDefaultRating
 
   const handleSave = async () => {
     if (!user) return
@@ -275,17 +280,21 @@ function WeeklyReviewForm({ user, stats, submitWeeklyReview, lastReview }: Weekl
         </div>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full bg-dark text-ivory font-sans text-sm py-4 rounded-2xl hover:bg-forest transition-colors disabled:opacity-60 font-medium tracking-wide"
-      >
-        {saving
-          ? 'Zapisuję...'
-          : alreadyReviewedThisWeek
-            ? 'Zapisz zmiany'
-            : `Zapisz przegląd · +${XP_VALUES.weeklyReview} XP`}
-      </button>
+      <div title={!canSave ? 'Oceń przynajmniej jeden filar lub wypełnij jedno pole, żeby zapisać przegląd' : undefined}>
+        <button
+          onClick={handleSave}
+          disabled={saving || !canSave}
+          className="w-full bg-dark text-ivory font-sans text-sm py-4 rounded-2xl hover:bg-forest transition-colors disabled:opacity-40 disabled:cursor-not-allowed font-medium tracking-wide"
+        >
+          {saving
+            ? 'Zapisuję...'
+            : !canSave
+              ? 'Wypełnij przynajmniej jedno pole'
+              : alreadyReviewedThisWeek
+                ? 'Zapisz zmiany'
+                : `Zapisz przegląd · +${XP_VALUES.weeklyReview} XP`}
+        </button>
+      </div>
     </div>
   )
 }
@@ -316,6 +325,10 @@ function MonthlyReviewForm({ user, stats, logs, submitMonthlyReview, lastReview 
 
   const [showContext, setShowContext] = useState(!!lastReview)
   const alreadyReviewed = (stats.reviewedMonths ?? []).includes(monthKey)
+
+  const hasAnyContent = highlights.trim().length > 0 || challenges.trim().length > 0 || intention.trim().length > 0
+  const hasNonDefaultRating = Object.values(ratings).some(r => r !== 3)
+  const canSave = hasAnyContent || hasNonDefaultRating
 
   const handleSave = async () => {
     if (!user) return
@@ -484,14 +497,17 @@ function MonthlyReviewForm({ user, stats, logs, submitMonthlyReview, lastReview 
 
       <button
         onClick={handleSave}
-        disabled={saving}
-        className="w-full bg-dark text-ivory font-sans text-sm py-4 rounded-2xl hover:bg-forest transition-colors disabled:opacity-60 font-medium tracking-wide"
+        disabled={saving || !canSave}
+        className="w-full bg-dark text-ivory font-sans text-sm py-4 rounded-2xl hover:bg-forest transition-colors disabled:opacity-40 disabled:cursor-not-allowed font-medium tracking-wide"
+        title={!canSave ? 'Oceń przynajmniej jeden filar lub wypełnij jedno pole, żeby zapisać przegląd' : undefined}
       >
         {saving
           ? 'Zapisuję...'
-          : alreadyReviewed
-            ? 'Zapisz zmiany'
-            : `Zamknij miesiąc · +${XP_VALUES.monthlyReview} XP`}
+          : !canSave
+            ? 'Wypełnij przynajmniej jedno pole'
+            : alreadyReviewed
+              ? 'Zapisz zmiany'
+              : `Zamknij miesiąc · +${XP_VALUES.monthlyReview} XP`}
       </button>
     </div>
   )
@@ -1324,6 +1340,11 @@ function ReviewHistoryTab({ weeklyReviews, monthlyReviews, loading }: ReviewHist
           <p className="font-sans text-sm text-muted">Brak przeglądów miesięcznych.</p>
           <p className="font-sans text-xs text-muted-light mt-1">Twój pierwszy przegląd pojawi się tutaj.</p>
         </div>
+      )}
+
+      {/* Pillar trend chart */}
+      {subTab === 'weekly' && weeklyReviews.length > 0 && (
+        <PillarTrendChart reviews={weeklyReviews.slice(0, 8)} />
       )}
 
       {/* Weekly reviews list */}

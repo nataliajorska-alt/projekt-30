@@ -1,11 +1,24 @@
 'use client'
 import { useGameData } from '@/hooks/useGameData'
 import { ACHIEVEMENTS } from '@/lib/achievements'
+import { SkeletonAchievementGrid, SkeletonCard } from '@/components/SkeletonCard'
 import { Lock } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function AchievementsPage() {
-  const { stats } = useGameData()
+  const { stats, loading } = useGameData()
+
+  if (loading) return (
+    <div className="max-w-2xl mx-auto px-4 pt-6 pb-8">
+      <div className="mb-6">
+        <div className="bg-cream h-3 w-20 rounded-full mb-2 animate-pulse" />
+        <div className="bg-cream h-7 w-36 rounded-full mb-2 animate-pulse" />
+        <div className="bg-cream h-3 w-28 rounded-full animate-pulse" />
+      </div>
+      <SkeletonCard className="mb-6 h-20" />
+      <SkeletonAchievementGrid count={12} />
+    </div>
+  )
   const unlocked = stats.unlockedAchievements ?? []
   const unlockedCount = unlocked.length
 

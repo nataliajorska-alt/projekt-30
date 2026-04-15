@@ -20,6 +20,62 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// ── Powiadomienia — harmonogram przez postMessage ────────────────
+// Klient wysyła: { type: 'SCHEDULE_REMINDERS', prefs, labels }
+
+let _scheduledTimers = [];
+
+self.addEventListener('message', (event) => {
+  if (!event.data || event.data.type !== 'SCHEDULE_REMINDERS') return;
+
+  const { prefs, labels } = event.data;
+
+  // Anuluj poprzednie timery
+  _scheduledTimers.forEach((id) => clearTimeout(id));
+  _scheduledTimers = [];
+
+  if (!prefs) return;
+
+  const types = ['morning', 'evening', 'quest'];
+  const now = new Date();
+
+  for (const type of types) {
+    const cfg = prefs[type];
+    if (!cfg || !cfg.enabled) continue;
+
+    const target = new Date();
+    target.setHours(cfg.hour, cfg.minute, 0, 0);
+    const msUntil = target.getTime() - now.getTime();
+
+    if (msUntil > 0) {
+      const label = labels?.[type];
+      const timerId = setTimeout(() => {
+        self.registration.showNotification(label?.title ?? 'Projekt 30', {
+          body: label?.body ?? 'Czas na działanie.',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          tag: `projekt30-${type}`,
+          renotify: false,
+        });
+      }, msUntil);
+      _scheduledTimers.push(timerId);
+    }
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus();
+      }
+      return self.clients.openWindow('/');
+    })
+  );
+});
+
+// ── Fetch (cache strategy, bez zmian) ───────────────────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);

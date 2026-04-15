@@ -1,15 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   updatePassword,
 } from 'firebase/auth'
-import { LogOut, Lock, Mail, Download, Printer, Sun, Moon, Sparkles, Plus, X, RotateCcw } from 'lucide-react'
-import { exportLogsAsCSV, printYearSummary } from '@/lib/exportData'
+import { LogOut, Lock, Mail, Download, Printer, Sun, Moon, Sparkles, Plus, X, RotateCcw, Bell } from 'lucide-react'
+import { exportLogsAsCSV, exportQuestsAsCSV, printYearSummary } from '@/lib/exportData'
 import { useRoutineConfig } from '@/hooks/useRoutineConfig'
+import {
+  loadPreferences,
+  savePreferences,
+  requestPermission,
+  getPermissionStatus,
+  scheduleWithTimeout,
+  scheduleRemindersViaSW,
+  DEFAULT_PREFERENCES,
+  type NotificationPreferences,
+  type ReminderType,
+} from '@/lib/notifications'
 import clsx from 'clsx'
 
 export default function SettingsPage() {
@@ -22,6 +33,7 @@ export default function SettingsPage() {
       <div className="space-y-6">
         <AccountSection email={user?.email ?? ''} user={user} logOut={logOut} />
         <ExportSection uid={user?.uid ?? ''} />
+        <NotificationsSection />
         <RoutineEditSection />
       </div>
     </div>
@@ -188,18 +200,31 @@ function AccountSection({
 /* ─── Eksport danych ─── */
 
 function ExportSection({ uid }: { uid: string }) {
-  const [exporting, setExporting] = useState(false)
+  const [exportingLogs, setExportingLogs] = useState(false)
+  const [exportingQuests, setExportingQuests] = useState(false)
   const [error, setError] = useState('')
 
   const handleCSV = async () => {
     setError('')
-    setExporting(true)
+    setExportingLogs(true)
     try {
       await exportLogsAsCSV(uid)
-    } catch (err: any) {
+    } catch {
       setError('Nie udało się wyeksportować danych.')
     } finally {
-      setExporting(false)
+      setExportingLogs(false)
+    }
+  }
+
+  const handleQuestsCSV = async () => {
+    setError('')
+    setExportingQuests(true)
+    try {
+      await exportQuestsAsCSV(uid)
+    } catch {
+      setError('Nie udało się wyeksportować questów.')
+    } finally {
+      setExportingQuests(false)
     }
   }
 
@@ -209,22 +234,43 @@ function ExportSection({ uid }: { uid: string }) {
         <Download size={18} strokeWidth={1.5} className="text-gold" />
         Eksport danych
       </h2>
-      <p className="text-muted font-sans text-xs mb-5">
-        Pobierz swoje logi jako CSV lub wydrukuj podsumowanie roku (przeglądarka pozwala zapisać jako PDF).
+      <p className="text-muted font-sans text-xs mb-1">
+        Pobierz dane do analizy w Google Sheets / Excel lub wydrukuj podsumowanie roku.
       </p>
+      <div className="space-y-1 mb-5">
+        <p className="font-sans text-xs text-muted-light">
+          • <strong>Logi</strong> — każdy dzień: XP, % rutyny, zasady (0/1), XP per filar
+        </p>
+        <p className="font-sans text-xs text-muted-light">
+          • <strong>Questy</strong> — historia ukończonych side questów z datą, filarem i XP
+        </p>
+      </div>
 
       <div className="flex flex-wrap gap-3">
         <button
           onClick={handleCSV}
-          disabled={exporting}
+          disabled={exportingLogs}
           className="flex items-center gap-2 bg-dark text-ivory font-sans text-sm py-3 px-5 rounded-xl hover:bg-forest transition-colors disabled:opacity-60 font-medium"
         >
-          {exporting ? (
+          {exportingLogs ? (
             <div className="w-4 h-4 border-2 border-ivory border-t-transparent rounded-full animate-spin" />
           ) : (
             <Download size={14} strokeWidth={1.5} />
           )}
-          {exporting ? 'Eksportuję...' : 'Pobierz CSV'}
+          {exportingLogs ? 'Eksportuję...' : 'Pobierz logi CSV'}
+        </button>
+
+        <button
+          onClick={handleQuestsCSV}
+          disabled={exportingQuests}
+          className="flex items-center gap-2 border border-border text-dark hover:border-dark rounded-xl px-5 py-3 font-sans text-sm transition-colors disabled:opacity-60 font-medium"
+        >
+          {exportingQuests ? (
+            <div className="w-4 h-4 border-2 border-dark border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Download size={14} strokeWidth={1.5} />
+          )}
+          {exportingQuests ? 'Eksportuję...' : 'Pobierz questy CSV'}
         </button>
 
         <button
@@ -240,6 +286,159 @@ function ExportSection({ uid }: { uid: string }) {
         <p className="text-red-600 text-xs font-sans bg-red-50 px-3 py-2 rounded-lg mt-3">
           {error}
         </p>
+      )}
+    </div>
+  )
+}
+
+/* ─── Przypomnienia ─── */
+
+const REMINDER_DEFS: { type: ReminderType; label: string; desc: string; icon: typeof Sun }[] = [
+  { type: 'morning', label: 'Rutyna poranna', desc: 'Przypomnienie o porannym rytuale', icon: Sun },
+  { type: 'evening', label: 'Rutyna wieczorna', desc: 'Przypomnienie o wieczornym rytuale', icon: Moon },
+  { type: 'quest',   label: 'Quest dnia', desc: 'Przypomnienie o dzisiejszym queście', icon: Sparkles },
+]
+
+function NotificationsSection() {
+  const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFERENCES)
+  const [permission, setPermission] = useState<string>('default')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    setPrefs(loadPreferences())
+    setPermission(getPermissionStatus())
+  }, [])
+
+  const handleToggle = (type: ReminderType, enabled: boolean) => {
+    setPrefs(p => ({ ...p, [type]: { ...p[type], enabled } }))
+    setSaved(false)
+  }
+
+  const handleTime = (type: ReminderType, value: string) => {
+    const [h, m] = value.split(':').map(Number)
+    setPrefs(p => ({ ...p, [type]: { ...p[type], hour: h, minute: m } }))
+    setSaved(false)
+  }
+
+  const handleEnable = async () => {
+    const perm = await requestPermission()
+    setPermission(perm)
+  }
+
+  const handleSave = async () => {
+    savePreferences(prefs)
+    await scheduleRemindersViaSW(prefs)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 3000)
+  }
+
+  const isUnsupported = permission === 'unsupported'
+  const isDenied = permission === 'denied'
+  const isGranted = permission === 'granted'
+
+  return (
+    <div className="bg-white rounded-2xl shadow-elegant p-6">
+      <h2 className="font-serif text-lg text-dark mb-2 flex items-center gap-2">
+        <Bell size={18} strokeWidth={1.5} className="text-gold" />
+        Przypomnienia
+      </h2>
+
+      {isUnsupported && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
+          <p className="font-sans text-xs text-amber-700">
+            Twoja przeglądarka nie obsługuje powiadomień. Spróbuj w Chrome lub Edge.
+          </p>
+        </div>
+      )}
+
+      {isDenied && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
+          <p className="font-sans text-xs text-amber-700">
+            Powiadomienia są zablokowane. Zmień ustawienia w przeglądarce (ikona kłódki przy adresie strony).
+          </p>
+        </div>
+      )}
+
+      {!isGranted && !isDenied && !isUnsupported && (
+        <div className="mb-5">
+          <p className="font-sans text-xs text-muted mb-3">
+            Włącz powiadomienia, żeby otrzymywać przypomnienia o rutynie i questach.
+            Działają gdy karta przeglądarki jest otwarta lub aplikacja jest zainstalowana jako PWA.
+          </p>
+          <button
+            onClick={handleEnable}
+            className="flex items-center gap-2 bg-dark text-ivory font-sans text-sm py-2.5 px-5 rounded-xl hover:bg-forest transition-colors font-medium"
+          >
+            <Bell size={14} strokeWidth={1.5} />
+            Włącz powiadomienia
+          </button>
+        </div>
+      )}
+
+      {isGranted && (
+        <>
+          <p className="font-sans text-xs text-muted mb-5">
+            Ustaw godziny przypomnień. Powiadomienia działają gdy karta jest otwarta lub aplikacja jest zainstalowana jako PWA na ekranie.
+          </p>
+
+          <div className="space-y-4 mb-5">
+            {REMINDER_DEFS.map(({ type, label, desc, icon: Icon }) => {
+              const cfg = prefs[type]
+              const timeStr = `${String(cfg.hour).padStart(2, '0')}:${String(cfg.minute).padStart(2, '0')}`
+              return (
+                <div key={type} className="flex items-center gap-4">
+                  <button
+                    onClick={() => handleToggle(type, !cfg.enabled)}
+                    role="switch"
+                    aria-checked={cfg.enabled}
+                    className={clsx(
+                      'flex-shrink-0 w-9 h-5 rounded-full transition-colors relative',
+                      cfg.enabled ? 'bg-gold' : 'bg-border'
+                    )}
+                  >
+                    <div
+                      className={clsx(
+                        'absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform',
+                        cfg.enabled ? 'left-[18px]' : 'left-0.5'
+                      )}
+                    />
+                  </button>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Icon size={13} strokeWidth={1.5} className="text-muted" />
+                      <span className={clsx('font-sans text-sm', cfg.enabled ? 'text-dark' : 'text-muted')}>
+                        {label}
+                      </span>
+                    </div>
+                    <p className="font-sans text-xs text-muted-light">{desc}</p>
+                  </div>
+                  <input
+                    type="time"
+                    value={timeStr}
+                    onChange={e => handleTime(type, e.target.value)}
+                    disabled={!cfg.enabled}
+                    className="border border-border rounded-lg px-2 py-1.5 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  />
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSave}
+              className="flex items-center gap-2 bg-dark text-ivory font-sans text-sm py-2.5 px-5 rounded-xl hover:bg-forest transition-colors font-medium"
+            >
+              <Bell size={13} strokeWidth={1.5} />
+              Zapisz i zaplanuj
+            </button>
+            {saved && (
+              <p className="font-sans text-xs text-forest animate-fade-in">
+                Zapisano ✓
+              </p>
+            )}
+          </div>
+        </>
       )}
     </div>
   )

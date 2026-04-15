@@ -1,10 +1,23 @@
 'use client'
 import { useGameData } from '@/hooks/useGameData'
 import { PILLARS } from '@/lib/pillars'
+import { SkeletonPillarList, SkeletonCard } from '@/components/SkeletonCard'
 import { Pillar } from '@/types'
 
 export default function PillarsPage() {
-  const { stats } = useGameData()
+  const { stats, loading } = useGameData()
+
+  if (loading) return (
+    <div className="max-w-2xl mx-auto px-4 pt-6 pb-8">
+      <div className="mb-6">
+        <div className="bg-cream h-3 w-16 rounded-full mb-2 animate-pulse" />
+        <div className="bg-cream h-7 w-32 rounded-full mb-2 animate-pulse" />
+        <div className="bg-cream h-3 w-48 rounded-full animate-pulse" />
+      </div>
+      <SkeletonCard className="mb-6 h-48" />
+      <SkeletonPillarList count={7} />
+    </div>
+  )
 
   const pillarData = PILLARS.map(p => ({
     ...p,
