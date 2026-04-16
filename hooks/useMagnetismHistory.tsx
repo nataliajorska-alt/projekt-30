@@ -1,0 +1,39 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { useAuth } from './useAuth'
+import type { DailyLog } from '@/types'
+import { calcMagnetism, MagnetismBreakdown } from '@/lib/magnetism'
+
+export interface MagnetismDay {
+  date: string
+  log: DailyLog
+  score: MagnetismBreakdown
+}
+
+export function useMagnetismHistory(days: number = 7) {
+  const { user } = useAuth()
+  const [history, setHistory] = useState<MagnetismDay[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!user) { setLoading(false); return }
+
+    const logsRef = collection(db, 'users', user.uid, 'logs')
+    const q = query(logsRef, orderBy('date', 'desc'), limit(days))
+
+    getDocs(q).then(snap => {
+      const result: MagnetismDay[] = snap.docs
+        .map(doc => {
+          const log = doc.data() as DailyLog
+          return { date: log.date, log, score: calcMagnetism(log) }
+        })
+        .sort((a, b) => a.date.localeCompare(b.date))
+      setHistory(result)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [user?.uid, days])
+
+  return { history, loading }
+}
