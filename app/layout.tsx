@@ -33,7 +33,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pl">
-      <body className="bg-ivory">
+      <body className="bg-ivory overflow-x-hidden">
         <ServiceWorkerRegistrar />
         <AuthProvider>
           <AchievementUnlockProvider>

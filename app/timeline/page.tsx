@@ -67,7 +67,7 @@ export default function TimelinePage() {
       </div>
 
       {/* Tab switcher */}
-      <div className="flex gap-2 mb-6 flex-wrap">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-4 px-4">
         {([
           { key: 'history' as TimelineMode, label: 'Historia' },
           { key: 'habits' as TimelineMode, label: 'Nawyki' },
@@ -80,7 +80,7 @@ export default function TimelinePage() {
             key={key}
             onClick={() => setMode(key)}
             className={clsx(
-              'flex-1 py-2.5 rounded-xl font-sans text-xs transition-all',
+              'flex-shrink-0 px-4 py-2.5 rounded-xl font-sans text-xs transition-all whitespace-nowrap',
               mode === key
                 ? 'bg-dark text-ivory'
                 : 'bg-white border border-border text-muted hover:bg-cream'
