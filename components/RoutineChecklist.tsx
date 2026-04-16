@@ -23,10 +23,17 @@ const TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
   { id: 'evening', label: 'Wieczór', icon: Moon },
 ]
 
+function getDefaultTab(): Tab {
+  const now = new Date()
+  const totalMinutes = now.getHours() * 60 + now.getMinutes()
+  if (totalMinutes >= 21 * 60 + 30) return 'evening'
+  return 'morning'
+}
+
 export default function RoutineChecklist() {
   const { todayLog, toggleRoutine, setDayMode } = useGameData()
   const { getEffectiveItems } = useRoutineConfig()
-  const [tab, setTab] = useState<Tab>('morning')
+  const [tab, setTab] = useState<Tab>(getDefaultTab)
   const prevProgressByTab = useRef<Partial<Record<Tab, number>>>({})
 
   const isMinimum = (todayLog?.dayMode ?? 'normal') === 'minimum'
