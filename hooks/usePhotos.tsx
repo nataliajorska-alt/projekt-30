@@ -7,20 +7,38 @@ import {
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import { db, storage } from '@/lib/firebase'
 import { useAuth } from './useAuth'
+import { useToast } from '@/components/ToastProvider'
 import { todayKey, getDaysElapsed } from '@/lib/gameLogic'
 import type { PhotoEntry } from '@/types'
 
+function friendlyStorageError(err: unknown): string {
+  const code = (err as any)?.code ?? ''
+  if (code === 'storage/unauthorized')
+    return 'Brak uprawnień. Sprawdź reguły Firebase Storage w konsoli.'
+  if (code === 'storage/unknown' || code === 'storage/bucket-not-found')
+    return 'Firebase Storage nie jest włączone. Włącz je w Firebase Console → Build → Storage.'
+  if (code === 'storage/quota-exceeded')
+    return 'Przekroczono limit miejsca w Firebase Storage.'
+  if (code === 'storage/canceled')
+    return 'Wgrywanie anulowane.'
+  if (code.startsWith('storage/'))
+    return `Błąd Storage: ${code}`
+  return 'Nie udało się wgrać zdjęcia. Sprawdź konsolę po więcej szczegółów.'
+}
+
 export function usePhotos() {
   const { user } = useAuth()
+  const { addToast } = useToast()
   const [photos, setPhotos] = useState<PhotoEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
     try {
-      const ref_ = collection(db, 'users', user.uid, 'photos')
-      const q = query(ref_, orderBy('createdAt', 'desc'))
+      const colRef = collection(db, 'users', user.uid, 'photos')
+      const q = query(colRef, orderBy('createdAt', 'desc'))
       const snap = await getDocs(q)
       setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() } as PhotoEntry)))
     } catch (err) {
@@ -35,15 +53,16 @@ export function usePhotos() {
   const uploadPhoto = useCallback(async (file: File, caption?: string): Promise<PhotoEntry | null> => {
     if (!user) return null
     setUploading(true)
+    setUploadError(null)
+
     try {
-      // Upload to Firebase Storage
       const ext = file.name.split('.').pop() ?? 'jpg'
       const filename = `${Date.now()}.${ext}`
       const storageRef = ref(storage, `users/${user.uid}/photos/${filename}`)
+
       await uploadBytes(storageRef, file)
       const url = await getDownloadURL(storageRef)
 
-      // Save metadata to Firestore
       const colRef = collection(db, 'users', user.uid, 'photos')
       const docRef = await addDoc(colRef, {
         url,
@@ -63,14 +82,19 @@ export function usePhotos() {
         createdAt: new Date().toISOString(),
       }
       setPhotos(prev => [entry, ...prev])
+      addToast({ message: 'Zdjęcie zapisane ✦', type: 'success' })
       return entry
-    } catch (err) {
+
+    } catch (err: unknown) {
       console.error('photo upload error:', err)
+      const msg = friendlyStorageError(err)
+      setUploadError(msg)
+      addToast({ message: msg, type: 'error', duration: 7000 })
       return null
     } finally {
       setUploading(false)
     }
-  }, [user?.uid])
+  }, [user?.uid, addToast])
 
   const deletePhoto = useCallback(async (photo: PhotoEntry & { filename?: string }) => {
     if (!user) return
@@ -78,13 +102,15 @@ export function usePhotos() {
       await deleteDoc(doc(db, 'users', user.uid, 'photos', photo.id))
       if ((photo as any).filename) {
         const storageRef = ref(storage, `users/${user.uid}/photos/${(photo as any).filename}`)
-        await deleteObject(storageRef).catch(() => {}) // graceful — file may already be gone
+        await deleteObject(storageRef).catch(() => {})
       }
       setPhotos(prev => prev.filter(p => p.id !== photo.id))
+      addToast({ message: 'Zdjęcie usunięte', type: 'success' })
     } catch (err) {
       console.error('photo delete error:', err)
+      addToast({ message: 'Nie udało się usunąć zdjęcia.', type: 'error' })
     }
-  }, [user?.uid])
+  }, [user?.uid, addToast])
 
-  return { photos, loading, uploading, uploadPhoto, deletePhoto, reload: load }
+  return { photos, loading, uploading, uploadError, uploadPhoto, deletePhoto, reload: load }
 }

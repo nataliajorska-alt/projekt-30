@@ -32,10 +32,11 @@ function groupByMonth(photos: PhotoEntry[]): { monthKey: string; label: string; 
 interface UploadModalProps {
   onUpload: (file: File, caption?: string) => Promise<unknown>
   uploading: boolean
+  uploadError: string | null
   onClose: () => void
 }
 
-function UploadModal({ onUpload, uploading, onClose }: UploadModalProps) {
+function UploadModal({ onUpload, uploading, uploadError, onClose }: UploadModalProps) {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [caption, setCaption] = useState('')
@@ -119,6 +120,15 @@ function UploadModal({ onUpload, uploading, onClose }: UploadModalProps) {
           className="w-full font-sans text-sm text-dark bg-cream/50 rounded-xl px-4 py-2.5 border border-cream outline-none focus:border-gold/40 mb-4 placeholder:text-muted-light/50 transition-colors"
         />
 
+        {uploadError && (
+          <div className="mb-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
+            <p className="font-sans text-xs text-red-700 leading-relaxed">{uploadError}</p>
+            <p className="font-sans text-[10px] text-red-500 mt-1">
+              Firebase Console → Build → Storage → Utwórz
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-3">
           <button
             onClick={handleSave}
@@ -196,7 +206,7 @@ function Lightbox({ photo, onClose, onDelete }: LightboxProps) {
 }
 
 export default function PhotosPage() {
-  const { photos, loading, uploading, uploadPhoto, deletePhoto } = usePhotos()
+  const { photos, loading, uploading, uploadError, uploadPhoto, deletePhoto } = usePhotos()
   const [showUpload, setShowUpload] = useState(false)
   const [lightbox, setLightbox] = useState<PhotoEntry | null>(null)
 
@@ -279,6 +289,7 @@ export default function PhotosPage() {
         <UploadModal
           onUpload={uploadPhoto}
           uploading={uploading}
+          uploadError={uploadError}
           onClose={() => setShowUpload(false)}
         />
       )}
