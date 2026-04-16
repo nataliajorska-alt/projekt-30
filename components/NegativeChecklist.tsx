@@ -3,6 +3,7 @@ import { useGameData } from '@/hooks/useGameData'
 import { DAILY_RULES } from '@/lib/routineData'
 import { Check } from 'lucide-react'
 import clsx from 'clsx'
+import GhostProtocol from './GhostProtocol'
 
 export default function NegativeChecklist() {
   const { todayLog, toggleRule } = useGameData()
@@ -23,30 +24,32 @@ export default function NegativeChecklist() {
         {DAILY_RULES.map(rule => {
           const done = todayLog?.keptRules.includes(rule.id) ?? false
           return (
-            <button
-              key={rule.id}
-              onClick={() => toggleRule(rule.id)}
-              className={clsx(
-                'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all',
-                done ? 'bg-gold-pale border border-gold/20' : 'bg-cream/50 border border-transparent hover:border-border'
-              )}
-            >
-              <div className={clsx(
-                'flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
-                done ? 'bg-gold border-gold' : 'border-border'
-              )}>
-                {done && <Check size={11} className="text-white" strokeWidth={2.5} />}
-              </div>
-              <p className={clsx(
-                'font-sans text-sm flex-1',
-                done ? 'text-gold-dark font-medium' : 'text-dark'
-              )}>
-                {rule.text}
-              </p>
-              <span className={clsx('font-sans text-[11px] flex-shrink-0', done ? 'text-gold' : 'text-muted-light')}>
-                +{rule.xp}
-              </span>
-            </button>
+            <div key={rule.id}>
+              <button
+                onClick={() => toggleRule(rule.id)}
+                className={clsx(
+                  'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all',
+                  done ? 'bg-gold-pale border border-gold/20' : 'bg-cream/50 border border-transparent hover:border-border'
+                )}
+              >
+                <div className={clsx(
+                  'flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
+                  done ? 'bg-gold border-gold' : 'border-border'
+                )}>
+                  {done && <Check size={11} className="text-white" strokeWidth={2.5} />}
+                </div>
+                <p className={clsx(
+                  'font-sans text-sm flex-1',
+                  done ? 'text-gold-dark font-medium' : 'text-dark'
+                )}>
+                  {rule.text}
+                </p>
+                <span className={clsx('font-sans text-[11px] flex-shrink-0', done ? 'text-gold' : 'text-muted-light')}>
+                  +{rule.xp}
+                </span>
+              </button>
+              {rule.id === 'r1' && <GhostProtocol />}
+            </div>
           )
         })}
       </div>

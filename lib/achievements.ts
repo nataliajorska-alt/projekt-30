@@ -8,6 +8,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🌱',
     xpReward: 100,
     condition: (s) => s.totalDaysLogged >= 1,
+    progress: (s) => ({ current: Math.min(s.totalDaysLogged, 1), target: 1, label: 'dni' }),
   },
   {
     id: 'week_1',
@@ -16,6 +17,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🕯️',
     xpReward: 200,
     condition: (s) => s.currentStreak >= 7,
+    progress: (s) => ({ current: Math.min(s.currentStreak, 7), target: 7, label: 'dni z rzędu' }),
   },
   {
     id: 'month_1',
@@ -24,6 +26,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🌿',
     xpReward: 500,
     condition: (s) => s.totalDaysLogged >= 30,
+    progress: (s) => ({ current: Math.min(s.totalDaysLogged, 30), target: 30, label: 'dni' }),
   },
   {
     id: 'streak_30',
@@ -32,6 +35,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🔥',
     xpReward: 750,
     condition: (s) => s.currentStreak >= 30,
+    progress: (s) => ({ current: Math.min(s.currentStreak, 30), target: 30, label: 'dni z rzędu' }),
   },
   {
     id: 'streak_100',
@@ -40,6 +44,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '💫',
     xpReward: 2000,
     condition: (s) => s.currentStreak >= 100,
+    progress: (s) => ({ current: Math.min(s.currentStreak, 100), target: 100, label: 'dni z rzędu' }),
   },
   {
     id: 'no_impulse_7',
@@ -48,6 +53,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🧊',
     xpReward: 300,
     condition: (s) => s.totalRulesKept >= 21,
+    progress: (s) => ({ current: Math.min(s.totalRulesKept, 21), target: 21, label: 'zasad przestrzeganych' }),
   },
   {
     id: 'quests_10',
@@ -56,6 +62,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '⚔️',
     xpReward: 200,
     condition: (s) => s.totalQuestsCompleted >= 10,
+    progress: (s) => ({ current: Math.min(s.totalQuestsCompleted, 10), target: 10, label: 'questów' }),
   },
   {
     id: 'quests_50',
@@ -64,6 +71,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🏆',
     xpReward: 800,
     condition: (s) => s.totalQuestsCompleted >= 50,
+    progress: (s) => ({ current: Math.min(s.totalQuestsCompleted, 50), target: 50, label: 'questów' }),
   },
   {
     id: 'side_quest_5',
@@ -72,6 +80,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🗺️',
     xpReward: 300,
     condition: (s) => s.totalSideQuestsCompleted >= 5,
+    progress: (s) => ({ current: Math.min(s.totalSideQuestsCompleted, 5), target: 5, label: 'side questów' }),
   },
   {
     id: 'side_quest_20',
@@ -80,6 +89,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🌍',
     xpReward: 800,
     condition: (s) => s.totalSideQuestsCompleted >= 20,
+    progress: (s) => ({ current: Math.min(s.totalSideQuestsCompleted, 20), target: 20, label: 'side questów' }),
   },
   {
     id: 'all_pillars',
@@ -88,6 +98,11 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '♾️',
     xpReward: 500,
     condition: (s) => Object.values(s.pillarXP).every(xp => xp > 0),
+    progress: (s) => ({
+      current: Object.values(s.pillarXP).filter(xp => xp > 0).length,
+      target: 7,
+      label: 'filarów aktywnych',
+    }),
   },
   {
     id: 'level_10',
@@ -96,6 +111,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🪐',
     xpReward: 300,
     condition: (s) => s.totalXP >= 12000,
+    progress: (s) => ({ current: Math.min(s.totalXP, 12000), target: 12000, label: 'XP' }),
   },
   {
     id: 'level_20',
@@ -104,6 +120,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '💎',
     xpReward: 1000,
     condition: (s) => s.totalXP >= 52000,
+    progress: (s) => ({ current: Math.min(s.totalXP, 52000), target: 52000, label: 'XP' }),
   },
   {
     id: 'level_29',
@@ -112,6 +129,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '👑',
     xpReward: 2000,
     condition: (s) => s.totalXP >= 129000,
+    progress: (s) => ({ current: Math.min(s.totalXP, 129000), target: 129000, label: 'XP' }),
   },
   {
     id: 'level_30',
@@ -120,6 +138,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '👸',
     xpReward: 3000,
     condition: (s) => s.totalXP >= 140000,
+    progress: (s) => ({ current: Math.min(s.totalXP, 140000), target: 140000, label: 'XP' }),
   },
   {
     id: 'routines_100',
@@ -128,5 +147,6 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '🌅',
     xpReward: 500,
     condition: (s) => s.totalRoutinesCompleted >= 100,
+    progress: (s) => ({ current: Math.min(s.totalRoutinesCompleted, 100), target: 100, label: 'elementów rutyny' }),
   },
 ]

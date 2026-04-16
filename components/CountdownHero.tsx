@@ -6,7 +6,7 @@ import { getDailySpark } from '@/lib/questData'
 import { getCurrentMonthData } from '@/lib/monthData'
 
 export default function CountdownHero() {
-  const { stats } = useGameData()
+  const { stats, streakFreezeAvailable } = useGameData()
   const daysLeft = getDaysRemaining()
   const daysElapsed = getDaysElapsed()
   const projectProgress = getProjectProgress()
@@ -101,7 +101,7 @@ export default function CountdownHero() {
             <span className="text-base">🔥</span>
             <span className="text-[10px] font-sans text-gold-light/70 uppercase tracking-widest">Seria</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {stats.currentStreak > 0 ? (
               <span className="font-serif text-ivory text-sm">
                 <span className="text-gold-light">{stats.currentStreak}</span>
@@ -112,6 +112,12 @@ export default function CountdownHero() {
             )}
             <span className="font-sans text-[11px] text-muted-light">
               Najlepsza: <span className="text-ivory/80">{stats.longestStreak}</span>
+            </span>
+            <span
+              title={streakFreezeAvailable ? 'Zamrożenie dostępne w tym miesiącu' : 'Zamrożenie użyte w tym miesiącu'}
+              className="text-base leading-none"
+            >
+              {streakFreezeAvailable ? '🛡️' : '🩶'}
             </span>
           </div>
         </div>

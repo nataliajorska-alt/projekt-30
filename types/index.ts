@@ -36,6 +36,22 @@ export interface Quest {
   steps?: string[]  // opcjonalne etapy dla złożonych questów
 }
 
+export type MoodState = 'calm' | 'storm' | 'fog' | 'clarity'
+
+export const MOOD_STATES: { value: MoodState; emoji: string; label: string }[] = [
+  { value: 'calm',    emoji: '🌊', label: 'spokój' },
+  { value: 'storm',   emoji: '🌩️', label: 'burza' },
+  { value: 'fog',     emoji: '🌫️', label: 'mgła' },
+  { value: 'clarity', emoji: '☀️', label: 'klarowność' },
+]
+
+export interface MoodCheckIn {
+  energy: number   // 1-5
+  mood: number     // 1-5
+  state: MoodState
+  timestamp: number
+}
+
 export interface DailyLog {
   date: string
   completedRoutine: string[]
@@ -45,6 +61,10 @@ export interface DailyLog {
   totalXP: number
   dayMode: 'normal' | 'minimum'
   notes?: string
+  socialPresence?: boolean
+  physicalActivity?: boolean
+  ghostProtocolCompleted?: boolean
+  moodCheckIns?: MoodCheckIn[]
 }
 
 export interface Achievement {
@@ -54,6 +74,7 @@ export interface Achievement {
   icon: string
   condition: (stats: UserStats) => boolean
   xpReward: number
+  progress?: (stats: UserStats) => { current: number; target: number; label: string }
 }
 
 export interface UserStats {
@@ -68,6 +89,7 @@ export interface UserStats {
   pillarXP: Record<Pillar, number>
   unlockedAchievements: string[]
   lastStreakDate?: string | null
+  streakFreezeUsedMonths?: string[]
   reviewedWeeks?: string[]
   reviewedMonths?: string[]
   pillarBalanceWeeks?: string[]

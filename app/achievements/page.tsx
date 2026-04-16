@@ -85,27 +85,64 @@ export default function AchievementsPage() {
         ))}
 
         {/* Locked */}
-        {ACHIEVEMENTS.filter(a => !unlocked.includes(a.id)).map(a => (
-          <div key={a.id} className="bg-white rounded-2xl border border-border p-5 flex items-start gap-4 opacity-60">
-            <div className="w-12 h-12 bg-cream rounded-xl flex items-center justify-center text-2xl flex-shrink-0 grayscale">
-              {a.icon}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <Lock size={11} className="text-muted-light" strokeWidth={2} />
-                    <h3 className="font-serif text-dark text-base">{a.title}</h3>
+        {ACHIEVEMENTS.filter(a => !unlocked.includes(a.id)).map(a => {
+          const prog = a.progress?.(stats)
+          const pct = prog ? Math.round((prog.current / prog.target) * 100) : 0
+          const isClose = prog && pct >= 50
+          return (
+            <div key={a.id} className={clsx(
+              'bg-white rounded-2xl border p-5 flex items-start gap-4 transition-all',
+              isClose ? 'border-gold/30 opacity-90' : 'border-border opacity-60'
+            )}>
+              <div className={clsx(
+                'w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0',
+                isClose ? 'bg-gold-pale' : 'bg-cream grayscale'
+              )}>
+                {a.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Lock size={11} className="text-muted-light" strokeWidth={2} />
+                      <h3 className="font-serif text-dark text-base">{a.title}</h3>
+                    </div>
+                    <p className="font-sans text-xs text-muted">{a.description}</p>
                   </div>
-                  <p className="font-sans text-xs text-muted">{a.description}</p>
+                  <span className="font-sans text-xs text-muted-light flex-shrink-0">
+                    +{a.xpReward} XP
+                  </span>
                 </div>
-                <span className="font-sans text-xs text-muted-light flex-shrink-0">
-                  +{a.xpReward} XP
-                </span>
+
+                {/* Progress bar */}
+                {prog && (
+                  <div className="mt-2.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-sans text-[11px] text-muted-light">
+                        {prog.current.toLocaleString('pl-PL')} / {prog.target.toLocaleString('pl-PL')} {prog.label}
+                      </span>
+                      <span className={clsx(
+                        'font-sans text-[11px] font-medium',
+                        isClose ? 'text-gold' : 'text-muted-light'
+                      )}>
+                        {pct}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-cream rounded-full overflow-hidden">
+                      <div
+                        className={clsx(
+                          'h-full rounded-full transition-all duration-700',
+                          isClose ? 'bg-gold' : 'bg-parchment'
+                        )}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

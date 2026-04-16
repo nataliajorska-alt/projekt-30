@@ -5,6 +5,7 @@ import AuthGate from '@/components/AuthGate'
 import Navigation from '@/components/Navigation'
 import { ToastProvider } from '@/components/ToastProvider'
 import { AchievementUnlockProvider } from '@/components/AchievementUnlockModal'
+import { LevelUpProvider } from '@/components/LevelUpModal'
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
 
 export const metadata: Metadata = {
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ServiceWorkerRegistrar />
         <AuthProvider>
           <AchievementUnlockProvider>
+          <LevelUpProvider>
           <ToastProvider>
             <AuthGate>
               <div className="flex min-h-screen">
@@ -47,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </AuthGate>
           </ToastProvider>
+          </LevelUpProvider>
           </AchievementUnlockProvider>
         </AuthProvider>
       </body>

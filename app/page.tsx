@@ -1,15 +1,50 @@
 'use client'
+import { useState, useEffect, useRef } from 'react'
 import CountdownHero from '@/components/CountdownHero'
 import RoutineChecklist from '@/components/RoutineChecklist'
 import DailyQuests from '@/components/DailyQuests'
 import SideQuestPicker from '@/components/SideQuestPicker'
 import NegativeChecklist from '@/components/NegativeChecklist'
 import DailyXPSummary from '@/components/DailyXPSummary'
+import MagnetismMeter from '@/components/MagnetismMeter'
+import MoodCheckInModal from '@/components/MoodCheckInModal'
 import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/SkeletonCard'
 import { useGameData } from '@/hooks/useGameData'
+import { todayKey } from '@/lib/gameLogic'
+import type { MoodState } from '@/types'
+
+// Probability of showing the check-in on any given app open (when < 3 check-ins today).
+const CHECKIN_TRIGGER_PROBABILITY = 0.4
 
 export default function Dashboard() {
-  const { loading } = useGameData()
+  const { loading, todayLog, saveMoodCheckIn } = useGameData()
+  const [showMoodModal, setShowMoodModal] = useState(false)
+  const evaluated = useRef(false)
+
+  // Once todayLog loads, decide randomly whether to show the check-in modal.
+  // Uses sessionStorage to ensure we only evaluate once per page session.
+  useEffect(() => {
+    if (loading || !todayLog || evaluated.current) return
+    evaluated.current = true
+
+    const sessionKey = `moodCheckInShown_${todayKey()}`
+    if (sessionStorage.getItem(sessionKey)) return
+
+    sessionStorage.setItem(sessionKey, '1')
+
+    const checkInsToday = (todayLog.moodCheckIns ?? []).length
+    if (checkInsToday >= 3) return
+
+    if (Math.random() < CHECKIN_TRIGGER_PROBABILITY) {
+      // Small delay so the dashboard renders first
+      setTimeout(() => setShowMoodModal(true), 1200)
+    }
+  }, [loading, todayLog])
+
+  const handleMoodSave = async (data: { energy: number; mood: number; state: MoodState }) => {
+    setShowMoodModal(false)
+    await saveMoodCheckIn(data)
+  }
 
   if (loading) return (
     <div className="max-w-2xl mx-auto px-4 pt-6 pb-8">
@@ -37,11 +72,19 @@ export default function Dashboard() {
       </div>
 
       <CountdownHero />
+      <MagnetismMeter />
       <DailyXPSummary />
       <RoutineChecklist />
       <DailyQuests />
       <SideQuestPicker />
       <NegativeChecklist />
+
+      {showMoodModal && (
+        <MoodCheckInModal
+          onSave={handleMoodSave}
+          onDismiss={() => setShowMoodModal(false)}
+        />
+      )}
     </div>
   )
 }

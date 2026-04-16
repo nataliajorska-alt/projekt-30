@@ -2,6 +2,23 @@ export const PROJECT_START = new Date('2026-04-05T00:00:00')
 export const PROJECT_END = new Date('2027-04-05T00:00:00')
 export const TOTAL_DAYS = 365
 
+// Nowy dzień zaczyna się o tej godzinie (np. 3 = 3:00 w nocy).
+// Dzięki temu wieczorna rutyna po północy nadal liczy się do poprzedniego dnia.
+export const DAY_START_HOUR = 3
+
+/**
+ * Zwraca "efektywną" datę bieżącego momentu.
+ * Jeśli jest przed DAY_START_HOUR, cofamy się o dobę —
+ * czyli np. 1:30 w nocy z czwartku na piątek traktujemy jako czwartek.
+ */
+export function getEffectiveNow(): Date {
+  const now = new Date()
+  if (now.getHours() < DAY_START_HOUR) {
+    now.setDate(now.getDate() - 1)
+  }
+  return now
+}
+
 export const XP_VALUES = {
   routine: 10,
   dailyQuest: 50,
@@ -10,6 +27,7 @@ export const XP_VALUES = {
   weeklyReview: 150,
   monthlyReview: 300,
   pillarBalance: 30,
+  moodCheckIn: 5,
 }
 
 export const LEVELS: { level: number; name: string; xpRequired: number }[] = [
@@ -69,13 +87,13 @@ export function getLevelProgress(xp: number): number {
 }
 
 export function getDaysElapsed(): number {
-  const now = new Date()
+  const now = getEffectiveNow()
   const diff = now.getTime() - PROJECT_START.getTime()
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)))
 }
 
 export function getDaysRemaining(): number {
-  const now = new Date()
+  const now = getEffectiveNow()
   const diff = PROJECT_END.getTime() - now.getTime()
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
 }
@@ -92,7 +110,7 @@ export function formatDate(date: Date): string {
 }
 
 export function todayKey(): string {
-  const d = new Date()
+  const d = getEffectiveNow()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
