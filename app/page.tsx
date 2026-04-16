@@ -32,8 +32,13 @@ export default function Dashboard() {
 
     sessionStorage.setItem(sessionKey, '1')
 
-    const checkInsToday = (todayLog.moodCheckIns ?? []).length
-    if (checkInsToday >= 3) return
+    const checkIns = todayLog.moodCheckIns ?? []
+    if (checkIns.length >= 3) return
+
+    // Don't show if last check-in was less than 3 hours ago
+    const lastTs = checkIns.length > 0 ? checkIns[checkIns.length - 1].timestamp : null
+    const COOLDOWN_MS = 3 * 60 * 60 * 1000
+    if (lastTs && Date.now() - lastTs < COOLDOWN_MS) return
 
     if (Math.random() < CHECKIN_TRIGGER_PROBABILITY) {
       // Small delay so the dashboard renders first
