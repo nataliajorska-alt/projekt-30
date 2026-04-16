@@ -7,7 +7,7 @@ import { calcMagnetism, magnetismLabel, magnetismColor } from '@/lib/magnetism'
 import clsx from 'clsx'
 
 const DIMS = [
-  { key: 'morning', label: 'Poranna rutyna', max: 35, icon: '🌅' },
+  { key: 'morning', label: 'Rutyna (ogółem)', max: 35, icon: '🌅' },
   { key: 'cialo',   label: 'Ciało / ruch',   max: 25, icon: '⚡' },
   { key: 'social',  label: 'Obecność',        max: 20, icon: '🌐' },
   { key: 'ghost',   label: 'Ghost Protocol',  max: 10, icon: '🛡️' },
@@ -155,16 +155,16 @@ export default function MagnetismMeter() {
                   key={label}
                   onClick={toggle}
                   className={clsx(
-                    'w-full flex items-center justify-between px-4 py-2.5 rounded-xl border transition-all',
+                    'w-full flex items-start justify-between px-4 py-2.5 rounded-xl border transition-all',
                     flag ? 'bg-gold-pale border-gold/20' : 'bg-cream/50 border-transparent hover:border-border'
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{icon}</span>
+                  <div className="flex items-start gap-2 text-left">
+                    <span className="text-sm mt-0.5 flex-shrink-0">{icon}</span>
                     <span className="font-sans text-sm text-dark">{label}</span>
                   </div>
                   <div className={clsx(
-                    'w-4 h-4 rounded-full border-2 flex-shrink-0 transition-all',
+                    'w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 ml-2 transition-all',
                     flag ? 'bg-gold border-gold' : 'border-border'
                   )} />
                 </button>

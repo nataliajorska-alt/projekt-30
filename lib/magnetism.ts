@@ -1,10 +1,10 @@
 import type { DailyLog } from '@/types'
-import { MORNING_ROUTINE } from './routineData'
+import { MORNING_ROUTINE, EVENING_ROUTINE, DAILY_HABITS } from './routineData'
 import { APRIL_QUESTS } from './aprilData'
 import { SIDE_QUESTS } from './questData'
 
 export interface MagnetismBreakdown {
-  morning: number   // 0–35
+  morning: number   // 0–35  (rutyna ogółem — poranna + dzienna + wieczorna)
   cialo: number     // 0–25
   social: number    // 0–20
   ghost: number     // 0–10
@@ -12,7 +12,8 @@ export interface MagnetismBreakdown {
   total: number     // 0–100
 }
 
-const MORNING_COUNT = MORNING_ROUTINE.length
+// Łączna liczba elementów pełnej rutyny (poranna + dzienna + wieczorna)
+const FULL_ROUTINE_COUNT = MORNING_ROUTINE.length + EVENING_ROUTINE.length + DAILY_HABITS.length
 
 function hasCialoActivity(log: DailyLog): boolean {
   // Ręczny toggle ma priorytet
@@ -25,8 +26,12 @@ function hasCialoActivity(log: DailyLog): boolean {
 }
 
 export function calcMagnetism(log: DailyLog): MagnetismBreakdown {
-  const morningDone = log.completedRoutine.filter(id => id.startsWith('m')).length
-  const morning = Math.round((morningDone / MORNING_COUNT) * 35)
+  // Liczymy wszystkie ukończone elementy rutyny (poranna + dzienna + wieczorna)
+  // Wykluczamy tygodniowe (w*) i custom (custom_*) — zmienne w zależności od dnia
+  const routineDone = log.completedRoutine.filter(
+    id => /^(m|mm|e|em|d)\d/.test(id)
+  ).length
+  const morning = Math.min(35, Math.round((routineDone / FULL_ROUTINE_COUNT) * 35))
 
   const cialo = hasCialoActivity(log) ? 25 : 0
   const social = log.socialPresence ? 20 : 0
