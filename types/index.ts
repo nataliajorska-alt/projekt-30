@@ -36,6 +36,32 @@ export interface Quest {
   steps?: string[]  // opcjonalne etapy dla złożonych questów
 }
 
+export type GhostTriggerTag =
+  | 'samotnosc'
+  | 'nuda'
+  | 'social_media'
+  | 'alkohol'
+  | 'dobry_dzien'
+  | 'zly_dzien'
+
+export const GHOST_TRIGGER_TAGS: { value: GhostTriggerTag; label: string; emoji: string }[] = [
+  { value: 'samotnosc',   label: 'samotność',           emoji: '🌑' },
+  { value: 'nuda',        label: 'nuda',                emoji: '🌀' },
+  { value: 'social_media',label: 'scrollowanie sociali', emoji: '📱' },
+  { value: 'alkohol',     label: 'alkohol',             emoji: '🍷' },
+  { value: 'dobry_dzien', label: 'dobry dzień (relaks)', emoji: '☀️' },
+  { value: 'zly_dzien',   label: 'zły dzień (ból)',     emoji: '🌧️' },
+]
+
+export interface GhostProtocolEntry {
+  timestamp: number
+  hour: number      // 0–23
+  weekday: number   // 0=Pon … 6=Nd
+  dayMode: 'normal' | 'minimum'
+  reasonId: string
+  triggerTag: GhostTriggerTag
+}
+
 export type MoodState = 'calm' | 'storm' | 'fog' | 'clarity'
 
 export const MOOD_STATES: { value: MoodState; emoji: string; label: string }[] = [

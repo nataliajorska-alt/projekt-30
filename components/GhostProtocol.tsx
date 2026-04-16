@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGameData } from '@/hooks/useGameData'
+import { useGhostLog } from '@/hooks/useGhostLog'
+import { GHOST_TRIGGER_TAGS, type GhostTriggerTag } from '@/types'
 
 const TIMER_SECONDS = 5 * 60 // 5 minut
 
@@ -33,7 +35,7 @@ const REASONS = [
   },
 ]
 
-type Phase = 'idle' | 'breathing' | 'question' | 'done'
+type Phase = 'idle' | 'breathing' | 'question' | 'trigger' | 'done'
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0')
@@ -42,7 +44,8 @@ function formatTime(seconds: number) {
 }
 
 export default function GhostProtocol() {
-  const { completeGhostProtocol } = useGameData()
+  const { completeGhostProtocol, todayLog } = useGameData()
+  const { saveEntry } = useGhostLog()
   const router = useRouter()
   const [phase, setPhase] = useState<Phase>('idle')
   const [seconds, setSeconds] = useState(TIMER_SECONDS)
@@ -62,7 +65,6 @@ export default function GhostProtocol() {
     setSeconds(TIMER_SECONDS)
     setBreathIn(true)
 
-    // Countdown
     timerRef.current = setInterval(() => {
       setSeconds(prev => {
         if (prev <= 1) {
@@ -74,7 +76,6 @@ export default function GhostProtocol() {
       })
     }, 1000)
 
-    // Breathing cycle: 4s wdech, 4s wydech
     breathRef.current = setInterval(() => {
       setBreathIn(prev => !prev)
     }, 4000)
@@ -89,14 +90,29 @@ export default function GhostProtocol() {
     setXpGranted(false)
   }, [clearTimers])
 
-  const pickReason = useCallback(async (reason: typeof REASONS[0]) => {
+  const pickReason = useCallback((reason: typeof REASONS[0]) => {
     setSelectedReason(reason)
+    setPhase('trigger')
+  }, [])
+
+  const pickTrigger = useCallback(async (tag: GhostTriggerTag) => {
     setPhase('done')
     if (!xpGranted) {
       setXpGranted(true)
       await completeGhostProtocol()
     }
-  }, [completeGhostProtocol, xpGranted])
+
+    const now = new Date()
+    const weekday = (now.getDay() + 6) % 7 // 0=Pon … 6=Nd
+    await saveEntry({
+      timestamp: now.getTime(),
+      hour: now.getHours(),
+      weekday,
+      dayMode: todayLog?.dayMode ?? 'normal',
+      reasonId: selectedReason?.id ?? 'unknown',
+      triggerTag: tag,
+    })
+  }, [completeGhostProtocol, saveEntry, xpGranted, todayLog, selectedReason])
 
   useEffect(() => () => clearTimers(), [clearTimers])
 
@@ -104,7 +120,6 @@ export default function GhostProtocol() {
 
   return (
     <>
-      {/* Trigger button — shown in idle phase only, inline */}
       {phase === 'idle' && (
         <button
           onClick={startBreathing}
@@ -115,7 +130,6 @@ export default function GhostProtocol() {
         </button>
       )}
 
-      {/* Fullscreen overlay for breathing + question + done */}
       {phase !== 'idle' && (
         <div className="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-dark/95 backdrop-blur-md animate-fade-in px-6">
 
@@ -126,9 +140,7 @@ export default function GhostProtocol() {
                 Ghost Protocol
               </p>
 
-              {/* Breathing circle */}
               <div className="relative flex items-center justify-center">
-                {/* Outer ring — progress */}
                 <svg className="absolute" width="200" height="200" style={{ transform: 'rotate(-90deg)' }}>
                   <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(184,150,62,0.15)" strokeWidth="2" />
                   <circle
@@ -143,13 +155,9 @@ export default function GhostProtocol() {
                   />
                 </svg>
 
-                {/* Pulse circle */}
                 <div
                   className="rounded-full bg-forest/60 border border-gold/20 flex items-center justify-center transition-all duration-[4000ms] ease-in-out"
-                  style={{
-                    width: breathIn ? 140 : 100,
-                    height: breathIn ? 140 : 100,
-                  }}
+                  style={{ width: breathIn ? 140 : 100, height: breathIn ? 140 : 100 }}
                 >
                   <span className="font-serif text-ivory/80 text-sm">
                     {breathIn ? 'wdech' : 'wydech'}
@@ -157,7 +165,6 @@ export default function GhostProtocol() {
                 </div>
               </div>
 
-              {/* Countdown */}
               <p className="font-sans text-3xl text-ivory/60 tabular-nums">
                 {formatTime(seconds)}
               </p>
@@ -196,6 +203,41 @@ export default function GhostProtocol() {
                     className="w-full text-left px-5 py-3.5 rounded-xl border border-ivory/10 bg-forest/30 hover:bg-forest/50 hover:border-gold/30 transition-all font-sans text-sm text-ivory/80"
                   >
                     {r.label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={cancel}
+                className="w-full text-center font-sans text-xs text-muted-light hover:text-ivory/60 transition-colors tracking-wide mt-6"
+              >
+                Zamknij
+              </button>
+            </div>
+          )}
+
+          {/* Trigger tag phase */}
+          {phase === 'trigger' && (
+            <div className="w-full max-w-sm animate-fade-in">
+              <p className="font-sans text-[11px] text-gold/70 uppercase tracking-[0.2em] text-center mb-6">
+                Ghost Protocol
+              </p>
+              <h2 className="font-serif text-ivory text-lg text-center leading-snug mb-2">
+                Skąd to przyszło?
+              </h2>
+              <p className="font-sans text-xs text-ivory/40 text-center mb-8 tracking-wide">
+                Dane tylko dla Ciebie. Nie ma złej odpowiedzi.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                {GHOST_TRIGGER_TAGS.map(t => (
+                  <button
+                    key={t.value}
+                    onClick={() => pickTrigger(t.value)}
+                    className="flex flex-col items-center gap-2 px-4 py-4 rounded-xl border border-ivory/10 bg-forest/20 hover:bg-forest/40 hover:border-gold/30 transition-all"
+                  >
+                    <span className="text-2xl">{t.emoji}</span>
+                    <span className="font-sans text-xs text-ivory/70 text-center leading-tight">{t.label}</span>
                   </button>
                 ))}
               </div>

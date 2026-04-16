@@ -3,16 +3,17 @@ import { useMemo, useState } from 'react'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { useGameData } from '@/hooks/useGameData'
 import { useHabitAnalytics, type HabitAnalytics } from '@/hooks/useHabitAnalytics'
+import { useGhostLog } from '@/hooks/useGhostLog'
 import YearHeatmap from '@/components/YearHeatmap'
 import WeeklyXPChart from '@/components/WeeklyXPChart'
 import { computeStreaks, findBestDay, findWorstActiveDay, aggregateXpByMonth } from '@/lib/analytics'
 import { PILLARS } from '@/lib/pillars'
 import { DAILY_RULES } from '@/lib/routineData'
 import { Pillar } from '@/types'
-import { MOOD_STATES, type MoodCheckIn, type MoodState } from '@/types'
+import { MOOD_STATES, GHOST_TRIGGER_TAGS, type MoodCheckIn, type MoodState, type GhostProtocolEntry, type GhostTriggerTag } from '@/types'
 import clsx from 'clsx'
 
-type TimelineMode = 'history' | 'pillars' | 'habits' | 'nastroj'
+type TimelineMode = 'history' | 'pillars' | 'habits' | 'nastroj' | 'protokol'
 
 const PL_MONTH_NAMES = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień']
 
@@ -29,6 +30,7 @@ function formatMonthPL(key: string): string {
 export default function TimelinePage() {
   const { logs, loading } = useTimelineData()
   const { stats } = useGameData()
+  const { entries: ghostEntries, loading: ghostLoading } = useGhostLog()
   const [mode, setMode] = useState<TimelineMode>('history')
   const habitAnalytics = useHabitAnalytics(logs)
 
@@ -55,7 +57,9 @@ export default function TimelinePage() {
               ? 'Gdzie kierujesz energię? Dbaj o równowagę.'
               : mode === 'nastroj'
                 ? 'Dane, które po miesiącu pokazują prawdziwe wzorce.'
-                : 'Konsekwencja buduje tożsamość. Śledź swoje nawyki.'}
+                : mode === 'protokol'
+                  ? 'Kiedy konkretnie jesteś najbardziej narażona. Dane operacyjne.'
+                  : 'Konsekwencja buduje tożsamość. Śledź swoje nawyki.'}
         </p>
       </div>
 
@@ -66,6 +70,7 @@ export default function TimelinePage() {
           { key: 'habits' as TimelineMode, label: 'Nawyki' },
           { key: 'pillars' as TimelineMode, label: 'Filary' },
           { key: 'nastroj' as TimelineMode, label: 'Nastrój' },
+          { key: 'protokol' as TimelineMode, label: 'Protokół' },
         ] as { key: TimelineMode; label: string }[]).map(({ key, label }) => (
           <button
             key={key}
@@ -203,6 +208,8 @@ export default function TimelinePage() {
         <HabitsTab analytics={habitAnalytics} />
       ) : mode === 'nastroj' ? (
         <MoodTab logs={logs} />
+      ) : mode === 'protokol' ? (
+        <GhostProtocolMap entries={ghostEntries} loading={ghostLoading} />
       ) : (
         <PillarsTab stats={stats} />
       )}
@@ -751,6 +758,231 @@ function MoodTab({ logs }: MoodTabProps) {
               Zaplanuj coś dobrego na {worstDay.labelFull.toLowerCase()} — quest, ruch, kontakt z kimś bliskim.
             </p>
           )}
+        </div>
+      )}
+
+    </div>
+  )
+}
+
+// ---------- Ghost Protocol Map ----------
+
+const PL_DAYS_SHORT = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd']
+const PL_DAYS_FULL_GP = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
+
+const TIME_SLOTS = [
+  { label: 'noc',      range: '0–6',   hours: [0,1,2,3,4,5] },
+  { label: 'rano',     range: '7–11',  hours: [6,7,8,9,10,11] },
+  { label: 'południe', range: '12–16', hours: [12,13,14,15,16] },
+  { label: 'wieczór',  range: '17–20', hours: [17,18,19,20] },
+  { label: 'późny w.', range: '21–23', hours: [21,22,23] },
+]
+
+const MIN_FOR_FULL_MAP = 30
+const MIN_FOR_BASIC = 5
+
+interface GhostProtocolMapProps {
+  entries: GhostProtocolEntry[]
+  loading: boolean
+}
+
+function GhostProtocolMap({ entries, loading }: GhostProtocolMapProps) {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl shadow-elegant p-12 text-center">
+        <p className="font-sans text-sm text-muted-light">Wczytuję dane...</p>
+      </div>
+    )
+  }
+
+  const total = entries.length
+
+  if (total === 0) {
+    return (
+      <div className="bg-dark rounded-2xl p-8 text-center">
+        <div className="text-4xl mb-4">🛡️</div>
+        <p className="font-serif text-ivory text-lg mb-2">Brak wpisów</p>
+        <p className="font-sans text-sm text-ivory/50 leading-relaxed">
+          Każde uruchomienie Ghost Protocol jest tu zapisywane.<br />
+          Mapa podatności pojawi się po {MIN_FOR_BASIC} wpisach.
+        </p>
+      </div>
+    )
+  }
+
+  const tagCounts = {} as Record<GhostTriggerTag, number>
+  for (const t of GHOST_TRIGGER_TAGS) tagCounts[t.value] = 0
+  for (const e of entries) tagCounts[e.triggerTag]++
+
+  const topTag = GHOST_TRIGGER_TAGS
+    .map(t => ({ ...t, count: tagCounts[t.value] }))
+    .sort((a, b) => b.count - a.count)[0]
+
+  const grid: number[][] = Array.from({ length: TIME_SLOTS.length }, () => Array(7).fill(0))
+  for (const e of entries) {
+    const slotIdx = TIME_SLOTS.findIndex(s => s.hours.includes(e.hour))
+    if (slotIdx >= 0) grid[slotIdx][e.weekday]++
+  }
+  const maxCell = Math.max(1, ...grid.flat())
+
+  let peakSlot = 0, peakDay = 0
+  for (let s = 0; s < TIME_SLOTS.length; s++) {
+    for (let d = 0; d < 7; d++) {
+      if (grid[s][d] > grid[peakSlot][peakDay]) { peakSlot = s; peakDay = d }
+    }
+  }
+  const hasPeak = grid[peakSlot][peakDay] > 0
+
+  const dayTotals = Array(7).fill(0)
+  for (const e of entries) dayTotals[e.weekday]++
+  const maxDayTotal = Math.max(1, ...dayTotals)
+
+  return (
+    <div className="space-y-6">
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-dark rounded-2xl p-5 text-center">
+          <p className="font-sans text-[10px] text-ivory/40 uppercase tracking-widest mb-2">Uruchomień</p>
+          <p className="font-serif text-ivory text-3xl">{total}</p>
+          {total < MIN_FOR_FULL_MAP && (
+            <p className="font-sans text-[10px] text-ivory/30 mt-1">pełna mapa od {MIN_FOR_FULL_MAP}</p>
+          )}
+        </div>
+        <div className="bg-dark rounded-2xl p-5 text-center">
+          <p className="font-sans text-[10px] text-ivory/40 uppercase tracking-widest mb-2">Główny wyzwalacz</p>
+          <p className="text-2xl mb-1">{topTag.emoji}</p>
+          <p className="font-sans text-xs text-ivory/70">{topTag.label}</p>
+        </div>
+      </div>
+
+      {total >= MIN_FOR_BASIC && (
+        <div className="bg-dark rounded-2xl p-5 sm:p-6">
+          <h2 className="font-serif text-ivory text-base mb-1">Mapa podatności</h2>
+          <p className="font-sans text-xs text-ivory/40 mb-5">
+            Kiedy konkretnie najczęściej uruchamiasz protokół.
+            {total < MIN_FOR_FULL_MAP && ` (dane wstępne — ${MIN_FOR_FULL_MAP - total} wpisów do pełnej mapy)`}
+          </p>
+          <div className="overflow-x-auto">
+            <div className="min-w-[320px]">
+              <div className="flex mb-2 ml-16">
+                {PL_DAYS_SHORT.map(d => (
+                  <div key={d} className="flex-1 text-center font-sans text-[10px] text-ivory/30">{d}</div>
+                ))}
+              </div>
+              {TIME_SLOTS.map((slot, si) => (
+                <div key={slot.label} className="flex items-center mb-1.5">
+                  <div className="w-16 flex-shrink-0">
+                    <p className="font-sans text-[10px] text-ivory/40 leading-tight">{slot.label}</p>
+                    <p className="font-sans text-[9px] text-ivory/20">{slot.range}</p>
+                  </div>
+                  {grid[si].map((count, di) => {
+                    const intensity = count / maxCell
+                    return (
+                      <div key={di} className="flex-1 mx-0.5">
+                        <div
+                          className="h-7 rounded-md"
+                          style={{
+                            backgroundColor: count === 0
+                              ? 'rgba(255,255,255,0.04)'
+                              : `rgba(184,150,62,${0.2 + intensity * 0.8})`,
+                          }}
+                          title={`${PL_DAYS_FULL_GP[di]} ${slot.label}: ${count}×`}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+              <div className="flex items-center gap-2 mt-3 ml-16">
+                <span className="font-sans text-[10px] text-ivory/30">rzadko</span>
+                <div className="flex gap-1">
+                  {[0.2, 0.4, 0.6, 0.8, 1.0].map(o => (
+                    <div key={o} className="w-4 h-3 rounded-sm" style={{ backgroundColor: `rgba(184,150,62,${o})` }} />
+                  ))}
+                </div>
+                <span className="font-sans text-[10px] text-ivory/30">często</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {total >= MIN_FOR_BASIC && (
+        <div className="bg-dark rounded-2xl p-5 sm:p-6">
+          <h2 className="font-serif text-ivory text-base mb-1">Podatność według dnia</h2>
+          <p className="font-sans text-xs text-ivory/40 mb-5">Łączna liczba uruchomień per dzień tygodnia.</p>
+          <div className="space-y-2">
+            {PL_DAYS_SHORT.map((d, i) => {
+              const count = dayTotals[i]
+              const pct = Math.round((count / maxDayTotal) * 100)
+              return (
+                <div key={d} className="flex items-center gap-3">
+                  <span className="font-sans text-[11px] text-ivory/40 w-7 flex-shrink-0">{d}</span>
+                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${pct}%`, backgroundColor: 'rgba(184,150,62,0.7)' }}
+                    />
+                  </div>
+                  <span className="font-sans text-[11px] text-ivory/40 w-4 text-right">{count}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="bg-dark rounded-2xl p-5 sm:p-6">
+        <h2 className="font-serif text-ivory text-base mb-1">Wyzwalacze</h2>
+        <p className="font-sans text-xs text-ivory/40 mb-5">Co najczęściej poprzedza impuls.</p>
+        <div className="space-y-3">
+          {GHOST_TRIGGER_TAGS.map(({ value, emoji, label }) => {
+            const count = tagCounts[value]
+            const pct = total > 0 ? Math.round((count / total) * 100) : 0
+            return (
+              <div key={value}>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span>{emoji}</span>
+                    <span className="font-sans text-sm text-ivory/70">{label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-sans text-xs text-ivory/40">{count}×</span>
+                    <span className="font-sans text-xs text-ivory/50 w-8 text-right">{pct}%</span>
+                  </div>
+                </div>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${pct}%`, backgroundColor: 'rgba(184,150,62,0.6)' }}
+                  />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {total >= MIN_FOR_FULL_MAP && hasPeak && (
+        <div className="bg-gold/10 border border-gold/20 rounded-2xl p-5">
+          <p className="font-sans text-[10px] text-gold/70 uppercase tracking-widest mb-2">Dane operacyjne</p>
+          <p className="font-serif text-ivory text-base leading-relaxed">
+            Najczęściej narażona:{' '}
+            <span className="text-gold">{PL_DAYS_FULL_GP[peakDay].toLowerCase()}</span>{' '}
+            {TIME_SLOTS[peakSlot].label} ({TIME_SLOTS[peakSlot].range}).
+          </p>
+          <p className="font-sans text-xs text-ivory/50 mt-2 leading-relaxed">
+            Zaplanuj konkretne działanie na ten moment — quest, ruch, telefon do kogoś bliskiego.
+            Pasywne czekanie na impuls to stara strategia.
+          </p>
+        </div>
+      )}
+
+      {total < MIN_FOR_FULL_MAP && total >= MIN_FOR_BASIC && (
+        <div className="rounded-2xl p-4 text-center" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <p className="font-sans text-xs text-ivory/30">
+            Pełna analiza wzorców po {MIN_FOR_FULL_MAP} wpisach · teraz masz {total}
+          </p>
         </div>
       )}
 
