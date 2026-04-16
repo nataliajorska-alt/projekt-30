@@ -7,13 +7,14 @@ import { useGhostLog } from '@/hooks/useGhostLog'
 import YearHeatmap from '@/components/YearHeatmap'
 import WeeklyXPChart from '@/components/WeeklyXPChart'
 import { computeStreaks, findBestDay, findWorstActiveDay, aggregateXpByMonth } from '@/lib/analytics'
+import { computeCorrelations, type CorrelationInsight, type ComparisonInsight, type DayOfWeekInsight } from '@/lib/correlations'
 import { PILLARS } from '@/lib/pillars'
 import { DAILY_RULES } from '@/lib/routineData'
 import { Pillar } from '@/types'
-import { MOOD_STATES, GHOST_TRIGGER_TAGS, type MoodCheckIn, type MoodState, type GhostProtocolEntry, type GhostTriggerTag } from '@/types'
+import { MOOD_STATES, GHOST_TRIGGER_TAGS, type DailyLog, type MoodCheckIn, type MoodState, type GhostProtocolEntry, type GhostTriggerTag } from '@/types'
 import clsx from 'clsx'
 
-type TimelineMode = 'history' | 'pillars' | 'habits' | 'nastroj' | 'protokol'
+type TimelineMode = 'history' | 'pillars' | 'habits' | 'nastroj' | 'protokol' | 'wzorce'
 
 const PL_MONTH_NAMES = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień']
 
@@ -59,7 +60,9 @@ export default function TimelinePage() {
                 ? 'Dane, które po miesiącu pokazują prawdziwe wzorce.'
                 : mode === 'protokol'
                   ? 'Kiedy konkretnie jesteś najbardziej narażona. Dane operacyjne.'
-                  : 'Konsekwencja buduje tożsamość. Śledź swoje nawyki.'}
+                  : mode === 'wzorce'
+                    ? 'Nie dane — wnioski. Co naprawdę działa na Twój nastrój i energię.'
+                    : 'Konsekwencja buduje tożsamość. Śledź swoje nawyki.'}
         </p>
       </div>
 
@@ -71,6 +74,7 @@ export default function TimelinePage() {
           { key: 'pillars' as TimelineMode, label: 'Filary' },
           { key: 'nastroj' as TimelineMode, label: 'Nastrój' },
           { key: 'protokol' as TimelineMode, label: 'Protokół' },
+          { key: 'wzorce' as TimelineMode, label: 'Wzorce' },
         ] as { key: TimelineMode; label: string }[]).map(({ key, label }) => (
           <button
             key={key}
@@ -210,6 +214,8 @@ export default function TimelinePage() {
         <MoodTab logs={logs} />
       ) : mode === 'protokol' ? (
         <GhostProtocolMap entries={ghostEntries} loading={ghostLoading} />
+      ) : mode === 'wzorce' ? (
+        <PatternsTab logs={logs} />
       ) : (
         <PillarsTab stats={stats} />
       )}
@@ -986,6 +992,233 @@ function GhostProtocolMap({ entries, loading }: GhostProtocolMapProps) {
         </div>
       )}
 
+    </div>
+  )
+}
+
+// ---------- Patterns Tab ----------
+
+function fmt(v: number | null): string {
+  if (v === null) return '—'
+  return v.toFixed(1)
+}
+
+function pctDiff(a: number | null, b: number | null): string | null {
+  if (a === null || b === null || b === 0) return null
+  const diff = Math.round(((a - b) / b) * 100)
+  if (Math.abs(diff) < 5) return null
+  return diff > 0 ? `+${diff}%` : `${diff}%`
+}
+
+function comparisonNarrative(ins: ComparisonInsight): string {
+  const { withValue, withoutValue, withLabel, metric } = ins
+  if (withValue === null || withoutValue === null) return 'Za mało danych do porównania.'
+  const diff = withValue - withoutValue
+  const metricPL = metric === 'mood' ? 'nastrój' : 'energia'
+  if (Math.abs(diff) < 0.15) return `Nie wykryto znaczącej różnicy w ${metricPL === 'nastrój' ? 'nastroju' : 'energii'} między grupami.`
+  const absPct = Math.round((Math.abs(diff) / Math.max(withoutValue, 0.1)) * 100)
+  const dir = diff > 0 ? 'wyższy' : 'niższy'
+  return `${withLabel}: Twój ${metricPL} jest o ${absPct}% ${dir} niż w pozostałe dni.`
+}
+
+function dowNarrative(ins: DayOfWeekInsight): string {
+  const withData = ins.byDay.filter(d => d.count >= 2 && d.value !== null)
+  if (withData.length < 3) return 'Za mało danych — check-iny z co najmniej 3 różnych dni tygodnia.'
+  const sorted = [...withData].sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
+  const best  = sorted[0]
+  const worst = sorted[sorted.length - 1]
+  const metricPL = ins.metric === 'energy' ? 'energia' : 'nastrój'
+  return `Twoja ${metricPL} jest najwyższa w ${best.full} (śr. ${fmt(best.value)}/5), najniższa w ${worst.full} (śr. ${fmt(worst.value)}/5).`
+}
+
+function ComparisonCard({ ins }: { ins: ComparisonInsight }) {
+  const maxVal = 5
+  const narrative = comparisonNarrative(ins)
+  const delta = ins.withValue !== null && ins.withoutValue !== null
+    ? ins.withValue - ins.withoutValue : null
+  const positive = delta !== null && delta > 0.1
+  const negative = delta !== null && delta < -0.1
+
+  return (
+    <div className="bg-white rounded-2xl shadow-elegant p-5">
+      <div className="flex items-start gap-3 mb-4">
+        <span className="text-2xl leading-none mt-0.5">{ins.icon}</span>
+        <div>
+          <h3 className="font-serif text-dark text-base leading-snug">{ins.title}</h3>
+          <p className="font-sans text-xs text-muted mt-0.5">
+            {ins.metric === 'mood' ? 'nastrój 1–5' : 'energia 1–5'}
+          </p>
+        </div>
+      </div>
+
+      {!ins.hasEnoughData ? (
+        <div className="bg-cream rounded-xl px-4 py-3">
+          <p className="font-sans text-xs text-muted-light leading-relaxed">
+            Za mało danych — potrzeba co najmniej 3 dni w każdej grupie i 7 check-inów nastroju.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="space-y-3 mb-4">
+            {/* With condition */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-sans text-xs text-dark truncate max-w-[70%]">{ins.withLabel}</span>
+                <span className={clsx(
+                  'font-sans text-xs font-semibold',
+                  positive ? 'text-forest' : negative ? 'text-red-400' : 'text-muted'
+                )}>
+                  {fmt(ins.withValue)}
+                  {pctDiff(ins.withValue, ins.withoutValue) && (
+                    <span className="ml-1 text-[10px]">({pctDiff(ins.withValue, ins.withoutValue)})</span>
+                  )}
+                </span>
+              </div>
+              <div className="h-2.5 bg-cream rounded-full overflow-hidden">
+                <div
+                  className={clsx('h-full rounded-full transition-all duration-700', positive ? 'bg-forest' : 'bg-gold')}
+                  style={{ width: `${((ins.withValue ?? 0) / maxVal) * 100}%` }}
+                />
+              </div>
+              <span className="font-sans text-[10px] text-muted-light">{ins.withCount} dni</span>
+            </div>
+
+            {/* Without condition */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-sans text-xs text-muted truncate max-w-[70%]">{ins.withoutLabel}</span>
+                <span className="font-sans text-xs text-muted-light">{fmt(ins.withoutValue)}</span>
+              </div>
+              <div className="h-2.5 bg-cream rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-parchment rounded-full transition-all duration-700"
+                  style={{ width: `${((ins.withoutValue ?? 0) / maxVal) * 100}%` }}
+                />
+              </div>
+              <span className="font-sans text-[10px] text-muted-light">{ins.withoutCount} dni</span>
+            </div>
+          </div>
+
+          {/* Narrative */}
+          <div className={clsx(
+            'rounded-xl px-4 py-3 border',
+            positive ? 'bg-forest/5 border-forest/20' : negative ? 'bg-red-50 border-red-100' : 'bg-cream border-transparent'
+          )}>
+            <p className={clsx(
+              'font-sans text-xs leading-relaxed',
+              positive ? 'text-forest' : negative ? 'text-red-600' : 'text-muted'
+            )}>
+              {narrative}
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function DayOfWeekCard({ ins }: { ins: DayOfWeekInsight }) {
+  const narrative = dowNarrative(ins)
+  const withData = ins.byDay.filter(d => d.value !== null)
+  const maxVal = withData.length > 0 ? Math.max(...withData.map(d => d.value ?? 0)) : 5
+  const minVal = withData.length > 0 ? Math.min(...withData.map(d => d.value ?? 0)) : 0
+
+  return (
+    <div className="bg-white rounded-2xl shadow-elegant p-5">
+      <div className="flex items-start gap-3 mb-4">
+        <span className="text-2xl leading-none mt-0.5">{ins.icon}</span>
+        <div>
+          <h3 className="font-serif text-dark text-base leading-snug">{ins.title}</h3>
+          <p className="font-sans text-xs text-muted mt-0.5">
+            {ins.metric === 'mood' ? 'nastrój 1–5' : 'energia 1–5'}
+          </p>
+        </div>
+      </div>
+
+      {!ins.hasEnoughData ? (
+        <div className="bg-cream rounded-xl px-4 py-3">
+          <p className="font-sans text-xs text-muted-light">Za mało danych — potrzeba co najmniej 7 check-inów nastroju.</p>
+        </div>
+      ) : (
+        <>
+          {/* 7-day bars */}
+          <div className="flex gap-1.5 mb-4 items-end" style={{ height: '72px' }}>
+            {ins.byDay.map(day => {
+              const hasDat = day.value !== null && day.count >= 1
+              const isBest  = hasDat && day.value === maxVal && maxVal > minVal
+              const isWorst = hasDat && day.value === minVal && maxVal > minVal
+              const heightPct = hasDat ? ((day.value! - 0) / 5) * 100 : 8
+
+              return (
+                <div key={day.dow} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full flex items-end" style={{ height: '52px' }}>
+                    <div
+                      className={clsx(
+                        'w-full rounded-md transition-all duration-700',
+                        isBest  ? 'bg-forest' :
+                        isWorst ? 'bg-parchment' :
+                        hasDat  ? 'bg-gold/60' : 'bg-cream'
+                      )}
+                      style={{ height: `${heightPct}%` }}
+                      title={hasDat ? `${day.full}: ${fmt(day.value)}/5 (${day.count} dni)` : day.full}
+                    />
+                  </div>
+                  <span className={clsx(
+                    'font-sans text-[9px]',
+                    isBest ? 'text-forest font-semibold' : isWorst ? 'text-muted' : 'text-muted-light'
+                  )}>
+                    {day.short}
+                  </span>
+                  <span className="font-sans text-[9px] text-muted-light">{fmt(day.value)}</span>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="bg-cream rounded-xl px-4 py-3">
+            <p className="font-sans text-xs text-muted leading-relaxed">{narrative}</p>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function PatternsTab({ logs }: { logs: Record<string, DailyLog> }) {
+  const insights = useMemo(() => computeCorrelations(logs), [logs])
+  const logsWithMood = Object.values(logs).filter(l => l.moodCheckIns && l.moodCheckIns.length > 0)
+  const MIN_TOTAL = 7
+
+  if (logsWithMood.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl shadow-elegant p-12 text-center">
+        <div className="text-4xl mb-4">🔍</div>
+        <p className="font-serif text-dark text-lg mb-2">Wzorce pojawią się z czasem</p>
+        <p className="font-sans text-sm text-muted leading-relaxed max-w-sm mx-auto">
+          Uzupełniaj check-iny nastroju (pojawiają się losowo na dashboardzie) — po kilku tygodniach zobaczysz tu automatyczne wnioski.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header info */}
+      <div className="bg-cream rounded-2xl p-4">
+        <p className="font-sans text-xs text-muted leading-relaxed">
+          Analiza oparta na <span className="font-medium text-dark">{logsWithMood.length} dniach z check-inem nastroju</span>.
+          {logsWithMood.length < MIN_TOTAL
+            ? ` Potrzeba co najmniej ${MIN_TOTAL}, żeby uruchomić pełną analizę.`
+            : ' Wzorce aktualizują się automatycznie wraz z nowymi danymi.'}
+        </p>
+      </div>
+
+      {/* Cards */}
+      {insights.map(ins => (
+        ins.type === 'comparison'
+          ? <ComparisonCard key={ins.id} ins={ins as ComparisonInsight} />
+          : <DayOfWeekCard key={ins.id} ins={ins as DayOfWeekInsight} />
+      ))}
     </div>
   )
 }
