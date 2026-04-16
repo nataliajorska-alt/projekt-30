@@ -8,10 +8,14 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   body {
     @apply bg-ivory text-dark font-sans;
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   * {

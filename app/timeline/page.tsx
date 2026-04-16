@@ -67,7 +67,7 @@ export default function TimelinePage() {
       </div>
 
       {/* Tab switcher */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-4 px-4">
+      <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
         {([
           { key: 'history' as TimelineMode, label: 'Historia' },
           { key: 'habits' as TimelineMode, label: 'Nawyki' },
