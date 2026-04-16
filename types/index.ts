@@ -78,6 +78,30 @@ export interface MoodCheckIn {
   timestamp: number
 }
 
+export interface KeyMoment {
+  title: string       // "Pierwsza randka z sobą", "Awans", "Przełom"
+  note?: string       // krótki opis — max 280 znaków
+  savedAt: number     // timestamp
+}
+
+export interface PhotoEntry {
+  id: string
+  url: string         // Firebase Storage download URL
+  caption?: string
+  dateKey: string     // YYYY-MM-DD
+  dayOfProject: number
+  createdAt: string
+}
+
+export interface AnnualReflection {
+  wordOfTheYear: string           // jedno słowo podsumowujące rok
+  biggestLesson: string           // największa lekcja
+  proudestMoment: string          // z czego jesteś najbardziej dumna
+  whatChanged: string             // co się realnie zmieniło
+  letterToNext: string            // list do Natalii 31
+  savedAt: string
+}
+
 export interface DailyLog {
   date: string
   completedRoutine: string[]
@@ -91,6 +115,7 @@ export interface DailyLog {
   physicalActivity?: boolean
   ghostProtocolCompleted?: boolean
   moodCheckIns?: MoodCheckIn[]
+  keyMoment?: KeyMoment           // oznaczenie dnia jako kluczowego momentu
 }
 
 export interface Achievement {

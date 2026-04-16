@@ -8,6 +8,7 @@ import NegativeChecklist from '@/components/NegativeChecklist'
 import DailyXPSummary from '@/components/DailyXPSummary'
 import MagnetismMeter from '@/components/MagnetismMeter'
 import MoodCheckInModal from '@/components/MoodCheckInModal'
+import KeyMomentCapture from '@/components/KeyMomentCapture'
 import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/SkeletonCard'
 import { useGameData } from '@/hooks/useGameData'
 import { todayKey } from '@/lib/gameLogic'
@@ -82,6 +83,7 @@ export default function Dashboard() {
       <RoutineChecklist />
       <DailyQuests />
       <SideQuestPicker />
+      <KeyMomentCapture />
       <NegativeChecklist />
 
       {showMoodModal && (

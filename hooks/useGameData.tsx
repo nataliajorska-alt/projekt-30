@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
-import type { DailyLog, UserStats, MoodCheckIn } from '@/types'
+import type { DailyLog, UserStats, MoodCheckIn, KeyMoment } from '@/types'
 import { todayKey, XP_VALUES, getISOWeekKey, getLevelFromXP, getMonthKey } from '@/lib/gameLogic'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import { Pillar } from '@/types'
@@ -397,6 +397,21 @@ export function useGameData() {
     ])
   }, [user, todayRef, todayLog, stats, statsRef, applyStreakIfNeeded, checkAchievements, checkLevelUp])
 
+  const saveKeyMoment = useCallback(async (data: { title: string; note?: string }) => {
+    if (!user || !todayRef || !todayLog) return
+    const keyMoment: KeyMoment = {
+      title: data.title,
+      note: data.note,
+      savedAt: Date.now(),
+    }
+    await setDoc(todayRef, { keyMoment }, { merge: true })
+  }, [user, todayRef, todayLog])
+
+  const clearKeyMoment = useCallback(async () => {
+    if (!user || !todayRef) return
+    await setDoc(todayRef, { keyMoment: null }, { merge: true })
+  }, [user, todayRef])
+
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(getMonthKey(new Date()))
 
   return {
@@ -405,5 +420,7 @@ export function useGameData() {
     submitWeeklyReview, submitMonthlyReview, setDayMode,
     streakFreezeAvailable, completeGhostProtocol, toggleSocialPresence, togglePhysicalActivity,
     saveMoodCheckIn,
+    saveKeyMoment,
+    clearKeyMoment,
   }
 }

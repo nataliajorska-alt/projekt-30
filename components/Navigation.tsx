@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { Home, Sword, Layers, Trophy, BookOpen, CalendarDays, LogOut, Settings, Lock } from 'lucide-react'
+import { Home, Sword, Layers, Trophy, BookOpen, CalendarDays, LogOut, Settings, Lock, Camera, Scroll } from 'lucide-react'
 import clsx from 'clsx'
 
 const NAV_ITEMS = [
@@ -12,6 +12,8 @@ const NAV_ITEMS = [
   { href: '/achievements', icon: Trophy,       label: 'Osiągnięcia' },
   { href: '/review',       icon: BookOpen,     label: 'Przegląd' },
   { href: '/vault',        icon: Lock,         label: 'Skarbiec' },
+  { href: '/photos',       icon: Camera,       label: 'Zdjęcia' },
+  { href: '/report',       icon: Scroll,       label: 'Raport' },
   { href: '/settings',     icon: Settings,     label: 'Ustawienia' },
 ]
 
