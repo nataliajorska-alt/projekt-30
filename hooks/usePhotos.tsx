@@ -4,27 +4,14 @@ import {
   collection, addDoc, getDocs, deleteDoc, doc,
   query, orderBy, serverTimestamp,
 } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
-import { db, storage } from '@/lib/firebase'
+import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
 import { useToast } from '@/components/ToastProvider'
 import { todayKey, getDaysElapsed } from '@/lib/gameLogic'
 import type { PhotoEntry } from '@/types'
 
-function friendlyStorageError(err: unknown): string {
-  const code = (err as any)?.code ?? ''
-  if (code === 'storage/unauthorized')
-    return 'Brak uprawnień. Sprawdź reguły Firebase Storage w konsoli.'
-  if (code === 'storage/unknown' || code === 'storage/bucket-not-found')
-    return 'Firebase Storage nie jest włączone. Włącz je w Firebase Console → Build → Storage.'
-  if (code === 'storage/quota-exceeded')
-    return 'Przekroczono limit miejsca w Firebase Storage.'
-  if (code === 'storage/canceled')
-    return 'Wgrywanie anulowane.'
-  if (code.startsWith('storage/'))
-    return `Błąd Storage: ${code}`
-  return 'Nie udało się wgrać zdjęcia. Sprawdź konsolę po więcej szczegółów.'
-}
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
 
 export function usePhotos() {
   const { user } = useAuth()
@@ -52,24 +39,46 @@ export function usePhotos() {
 
   const uploadPhoto = useCallback(async (file: File, caption?: string): Promise<PhotoEntry | null> => {
     if (!user) return null
+
+    if (!CLOUD_NAME || !UPLOAD_PRESET) {
+      const msg = 'Brakuje konfiguracji Cloudinary. Dodaj NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME i NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET do zmiennych środowiskowych.'
+      setUploadError(msg)
+      addToast({ message: msg, type: 'error', duration: 8000 })
+      return null
+    }
+
     setUploading(true)
     setUploadError(null)
 
     try {
-      const ext = file.name.split('.').pop() ?? 'jpg'
-      const filename = `${Date.now()}.${ext}`
-      const storageRef = ref(storage, `users/${user.uid}/photos/${filename}`)
+      // Upload do Cloudinary (unsigned preset — bez backendu)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', UPLOAD_PRESET)
+      formData.append('folder', `projekt30/${user.uid}`)
 
-      await uploadBytes(storageRef, file)
-      const url = await getDownloadURL(storageRef)
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+        { method: 'POST', body: formData }
+      )
 
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error?.message ?? `HTTP ${res.status}`)
+      }
+
+      const data = await res.json()
+      const url: string = data.secure_url
+      const publicId: string = data.public_id
+
+      // Zapisz metadane do Firestore
       const colRef = collection(db, 'users', user.uid, 'photos')
       const docRef = await addDoc(colRef, {
         url,
+        publicId,
         caption: caption ?? '',
         dateKey: todayKey(),
         dayOfProject: getDaysElapsed() + 1,
-        filename,
         createdAt: serverTimestamp(),
       })
 
@@ -87,7 +96,7 @@ export function usePhotos() {
 
     } catch (err: unknown) {
       console.error('photo upload error:', err)
-      const msg = friendlyStorageError(err)
+      const msg = `Nie udało się wgrać zdjęcia: ${(err as Error).message ?? 'nieznany błąd'}`
       setUploadError(msg)
       addToast({ message: msg, type: 'error', duration: 7000 })
       return null
@@ -96,14 +105,11 @@ export function usePhotos() {
     }
   }, [user?.uid, addToast])
 
-  const deletePhoto = useCallback(async (photo: PhotoEntry & { filename?: string }) => {
+  const deletePhoto = useCallback(async (photo: PhotoEntry) => {
     if (!user) return
     try {
+      // Usuwamy tylko rekord z Firestore (Cloudinary bez API secret wymaga backendu)
       await deleteDoc(doc(db, 'users', user.uid, 'photos', photo.id))
-      if ((photo as any).filename) {
-        const storageRef = ref(storage, `users/${user.uid}/photos/${(photo as any).filename}`)
-        await deleteObject(storageRef).catch(() => {})
-      }
       setPhotos(prev => prev.filter(p => p.id !== photo.id))
       addToast({ message: 'Zdjęcie usunięte', type: 'success' })
     } catch (err) {
