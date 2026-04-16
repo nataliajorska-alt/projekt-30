@@ -125,6 +125,8 @@ export interface Achievement {
   icon: string
   condition: (stats: UserStats) => boolean
   xpReward: number
+  hidden?: boolean          // ukryte — nie pokazuj tytułu/opisu przed odblokowaniem
+  streakBased?: boolean     // postęp = 1 jednostka / dzień (do mikro-celu)
   progress?: (stats: UserStats) => { current: number; target: number; label: string }
 }
 

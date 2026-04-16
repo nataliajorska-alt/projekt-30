@@ -106,9 +106,18 @@ export function AchievementUnlockProvider({ children }: { children: ReactNode })
 
             <div className="px-8 pt-7 pb-8 text-center">
               {/* Label */}
-              <p className="text-gold text-[10px] font-sans font-semibold tracking-[0.22em] uppercase mb-6">
-                ✦ Osiągnięcie odblokowane ✦
-              </p>
+              {current.hidden ? (
+                <div className="mb-6">
+                  <p className="text-gold text-[10px] font-sans font-semibold tracking-[0.22em] uppercase mb-1">
+                    🎁 Ukryte osiągnięcie
+                  </p>
+                  <p className="text-muted font-sans text-xs">Niespodzianka ✦</p>
+                </div>
+              ) : (
+                <p className="text-gold text-[10px] font-sans font-semibold tracking-[0.22em] uppercase mb-6">
+                  ✦ Osiągnięcie odblokowane ✦
+                </p>
+              )}
 
               {/* Icon */}
               <div
