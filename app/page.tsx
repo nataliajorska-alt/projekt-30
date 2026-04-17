@@ -10,6 +10,7 @@ import MagnetismMeter from '@/components/MagnetismMeter'
 import MoodCheckInModal from '@/components/MoodCheckInModal'
 import KeyMomentCapture from '@/components/KeyMomentCapture'
 import ReturnCeremony from '@/components/ReturnCeremony'
+import DashboardNudges from '@/components/DashboardNudges'
 import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/SkeletonCard'
 import { useGameData } from '@/hooks/useGameData'
 import { todayKey } from '@/lib/gameLogic'
@@ -105,6 +106,7 @@ export default function Dashboard() {
 
       <CountdownHero />
       <MagnetismMeter />
+      <DashboardNudges />
       <DailyXPSummary />
       <RoutineChecklist />
       <DailyQuests />
