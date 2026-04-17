@@ -7,10 +7,10 @@ export default function DailyXPSummary() {
   const todayXP = todayLog?.totalXP ?? 0
 
   const breakdown = [
-    { label: 'Rutyna', count: todayLog?.completedRoutine.length ?? 0, xp: (todayLog?.completedRoutine.length ?? 0) * 10 },
-    { label: 'Questy', count: todayLog?.completedDailyQuests.length ?? 0, xp: (todayLog?.completedDailyQuests.length ?? 0) * 50 },
-    { label: 'Side questy', count: todayLog?.completedSideQuests.length ?? 0, xp: (todayLog?.completedSideQuests.length ?? 0) * 120 },
-    { label: 'Zasady', count: todayLog?.keptRules.length ?? 0, xp: (todayLog?.keptRules.length ?? 0) * 20 },
+    { label: 'Rutyna', count: todayLog?.completedRoutine?.length ?? 0, xp: (todayLog?.completedRoutine?.length ?? 0) * 10 },
+    { label: 'Questy', count: todayLog?.completedDailyQuests?.length ?? 0, xp: (todayLog?.completedDailyQuests?.length ?? 0) * 50 },
+    { label: 'Side questy', count: todayLog?.completedSideQuests?.length ?? 0, xp: (todayLog?.completedSideQuests?.length ?? 0) * 120 },
+    { label: 'Zasady', count: todayLog?.keptRules?.length ?? 0, xp: (todayLog?.keptRules?.length ?? 0) * 20 },
   ].filter(b => b.count > 0)
 
   return (

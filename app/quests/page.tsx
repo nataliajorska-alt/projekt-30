@@ -20,7 +20,7 @@ export default function QuestsPage() {
     ? SIDE_QUESTS
     : SIDE_QUESTS.filter(q => q.pillar === filter)
 
-  const totalCompleted = todayLog?.completedSideQuests.length ?? 0
+  const totalCompleted = todayLog?.completedSideQuests?.length ?? 0
 
   const handleComplete = async (questId: string, pillar: Pillar, xp: number) => {
     setCompleting(questId)
@@ -67,7 +67,7 @@ export default function QuestsPage() {
       {/* Quest list */}
       <div className="space-y-3">
         {filtered.map(quest => {
-          const done = todayLog?.completedSideQuests.includes(quest.id) ?? false
+          const done = todayLog?.completedSideQuests?.includes(quest.id) ?? false
           const pillar = getPillar(quest.pillar)
           const isCompleting = completing === quest.id
 

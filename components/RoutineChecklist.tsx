@@ -70,7 +70,7 @@ export default function RoutineChecklist() {
   }
 
   const items = ITEMS_MAP[activeTab]
-  const completedCount = items.filter(i => todayLog?.completedRoutine.includes(i.id)).length
+  const completedCount = items.filter(i => todayLog?.completedRoutine?.includes(i.id)).length
   const progress = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0
 
   useEffect(() => {
@@ -174,7 +174,7 @@ export default function RoutineChecklist() {
         {items.map((item, idx) => {
           const isFirstWeekly = activeTab === 'daily' && weeklyToday.length > 0 && idx === dailyBase.length
           const isStudyItem = activeTab === 'daily' && item.id === studyItem.id
-          const done = todayLog?.completedRoutine.includes(item.id) ?? false
+          const done = todayLog?.completedRoutine?.includes(item.id) ?? false
           return (
             <div key={item.id}>
             {isFirstWeekly && (

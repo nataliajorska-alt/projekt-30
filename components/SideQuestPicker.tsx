@@ -39,11 +39,11 @@ export default function SideQuestPicker() {
             <h2 className="font-serif text-dark text-lg">Side Quest</h2>
             <p className="font-sans text-xs text-muted mt-0.5">Coś extra. Nie musisz, ale warto.</p>
           </div>
-          {todayLog && todayLog.completedSideQuests.length > 0 && (
+          {todayLog && (todayLog.completedSideQuests?.length ?? 0) > 0 && (
             <div className="flex items-center gap-1 bg-gold-pale px-2.5 py-1 rounded-full">
               <Star size={11} className="text-gold fill-gold" />
               <span className="font-sans text-xs text-gold font-medium">
-                {todayLog.completedSideQuests.length} dziś
+                {todayLog.completedSideQuests?.length ?? 0} dziś
               </span>
             </div>
           )}

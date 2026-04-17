@@ -7,7 +7,7 @@ import GhostProtocol from './GhostProtocol'
 
 export default function NegativeChecklist() {
   const { todayLog, toggleRule } = useGameData()
-  const kept = DAILY_RULES.filter(r => todayLog?.keptRules.includes(r.id)).length
+  const kept = DAILY_RULES.filter(r => todayLog?.keptRules?.includes(r.id)).length
 
   return (
     <div className="bg-white rounded-2xl shadow-elegant overflow-hidden mb-4">
@@ -22,7 +22,7 @@ export default function NegativeChecklist() {
 
       <div className="px-5 pb-5 space-y-2">
         {DAILY_RULES.map(rule => {
-          const done = todayLog?.keptRules.includes(rule.id) ?? false
+          const done = todayLog?.keptRules?.includes(rule.id) ?? false
           return (
             <div key={rule.id}>
               <button
