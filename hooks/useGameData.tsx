@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
 import type { DailyLog, UserStats, MoodCheckIn, KeyMoment } from '@/types'
 import { todayKey, XP_VALUES, getISOWeekKey, getLevelFromXP, getMonthKey } from '@/lib/gameLogic'
+import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import { Pillar } from '@/types'
 import { useToast } from '@/components/ToastProvider'
@@ -32,6 +33,14 @@ const DEFAULT_STATS: UserStats = {
   reviewedWeeks: [],
   reviewedMonths: [],
   pillarBalanceWeeks: [],
+  totalGhostProtocols: 0,
+  consecutiveGhostDays: 0,
+  lastGhostDate: null,
+  highestDayXP: 0,
+  consecutiveNormalDays: 0,
+  lastNormalDay: null,
+  consecutivePerfectMornings: 0,
+  lastPerfectMorningDate: null,
 }
 
 const ALL_PILLARS: Pillar[] = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc']
@@ -221,11 +230,63 @@ export function useGameData() {
     const withStreak = await applyStreakIfNeeded(stats)
     const newTotalXP = Math.max(0, withStreak.totalXP + xpDelta)
     const newRoutinesTotal = withStreak.totalRoutinesCompleted + (completed ? -1 : 1)
+    const today = currentDateKey
+    const isNewDay = stats.lastStreakDate !== withStreak.lastStreakDate
+
+    // ── Behavioral tracking ──────────────────────────────────────
+    // 1. Highest daily XP
+    const newHighest = Math.max(withStreak.highestDayXP ?? 0, newTodayXP)
+
+    // 2. Consecutive normal-mode days (tracked once per new day)
+    let newConsecNormal = withStreak.consecutiveNormalDays ?? 0
+    let newLastNormalDay = withStreak.lastNormalDay ?? null
+    if (isNewDay) {
+      if (todayLog.dayMode !== 'minimum') {
+        newConsecNormal = newConsecNormal + 1
+        newLastNormalDay = today
+      } else {
+        newConsecNormal = 0
+        newLastNormalDay = today
+      }
+    }
+
+    // 3. Perfect morning: all morning items (mode-aware) checked off
+    const morningIds = todayLog.dayMode === 'minimum'
+      ? MORNING_MINIMUM.map(i => i.id)
+      : MORNING_ROUTINE.map(i => i.id)
+    const allMorningDone = morningIds.every(id => newCompleted.includes(id))
+    const prevAllMorningDone = morningIds.every(id => current.includes(id))
+    let newConsecMorning = withStreak.consecutivePerfectMornings ?? 0
+    let newLastPerfectMorning = withStreak.lastPerfectMorningDate ?? null
+    if (allMorningDone && !prevAllMorningDone) {
+      // Just completed the full morning — check if it's a new day from last perfect morning
+      const isConsecutive = newLastPerfectMorning !== null && (() => {
+        const [y, m, d] = today.split('-').map(Number)
+        const todayDate = new Date(y, m - 1, d)
+        const prev = new Date(newLastPerfectMorning + 'T12:00:00')
+        const diff = Math.round((todayDate.getTime() - prev.getTime()) / 86400000)
+        return diff === 1
+      })()
+      newConsecMorning = isConsecutive ? newConsecMorning + 1 : 1
+      newLastPerfectMorning = today
+    } else if (!allMorningDone && prevAllMorningDone) {
+      // Just un-completed — reset streak if this was today's perfect morning
+      if (newLastPerfectMorning === today) {
+        newConsecMorning = Math.max(0, newConsecMorning - 1)
+        newLastPerfectMorning = null
+      }
+    }
+    // ─────────────────────────────────────────────────────────────
 
     const newStats: UserStats = {
       ...withStreak,
       totalXP: newTotalXP,
       totalRoutinesCompleted: Math.max(0, newRoutinesTotal),
+      highestDayXP: newHighest,
+      consecutiveNormalDays: newConsecNormal,
+      lastNormalDay: newLastNormalDay,
+      consecutivePerfectMornings: newConsecMorning,
+      lastPerfectMorningDate: newLastPerfectMorning,
     }
     const achUpdates = await checkAchievements(newStats)
     const finalStats = { ...newStats, ...achUpdates }
@@ -235,7 +296,7 @@ export function useGameData() {
       setDoc(todayRef, { ...todayLog, completedRoutine: newCompleted, totalXP: newTodayXP }, { merge: true }),
       setDoc(statsRef, finalStats, { merge: true }),
     ])
-  }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, checkLevelUp])
+  }, [user, todayLog, stats, statsRef, todayRef, currentDateKey, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
   const toggleDailyQuest = useCallback(async (questId: string, pillar: Pillar) => {
     if (!user || !statsRef || !todayRef || !todayLog) return
@@ -363,12 +424,33 @@ export function useGameData() {
   const setDayMode = useCallback(async (mode: 'normal' | 'minimum') => {
     if (!user || !todayRef || !todayLog) return
     await setDoc(todayRef, { ...todayLog, dayMode: mode }, { merge: true })
-  }, [user, todayRef, todayLog])
+    // Minimum mode resets the no-minimum streak
+    if (mode === 'minimum' && statsRef) {
+      await setDoc(statsRef, { consecutiveNormalDays: 0, lastNormalDay: currentDateKey }, { merge: true })
+    }
+  }, [user, todayRef, todayLog, statsRef, currentDateKey])
 
-  // Ghost Protocol: grants XP + marks today's log
+  // Ghost Protocol: grants XP + marks today's log + tracks behavioral stats
   const completeGhostProtocol = useCallback(async () => {
     if (!user || !statsRef) return
     const withStreak = await applyStreakIfNeeded(stats)
+    const today = currentDateKey
+
+    // Behavioral: GP consecutive days
+    const lastGhost = withStreak.lastGhostDate ?? null
+    const isConsecutiveGhost = lastGhost !== null && (() => {
+      const [y, m, d] = today.split('-').map(Number)
+      const todayDate = new Date(y, m - 1, d)
+      const prev = new Date(lastGhost + 'T12:00:00')
+      const diff = Math.round((todayDate.getTime() - prev.getTime()) / 86400000)
+      return diff <= 1  // same day re-trigger or consecutive day
+    })()
+    const newConsecGhost = lastGhost === today
+      ? (withStreak.consecutiveGhostDays ?? 0)  // same day, no increment
+      : isConsecutiveGhost
+        ? (withStreak.consecutiveGhostDays ?? 0) + 1
+        : 1  // streak broken, reset to 1
+
     let newStats: UserStats = {
       ...withStreak,
       totalXP: withStreak.totalXP + 50,
@@ -376,6 +458,9 @@ export function useGameData() {
         ...withStreak.pillarXP,
         tozsamosc: (withStreak.pillarXP.tozsamosc ?? 0) + 50,
       },
+      totalGhostProtocols: (withStreak.totalGhostProtocols ?? 0) + (lastGhost === today ? 0 : 1),
+      consecutiveGhostDays: newConsecGhost,
+      lastGhostDate: today,
     }
     newStats = applyPillarBalanceIfNeeded(newStats, 'tozsamosc')
     const achUpdates = await checkAchievements(newStats)
@@ -385,7 +470,7 @@ export function useGameData() {
       setDoc(statsRef, finalStats, { merge: true }),
       todayRef ? setDoc(todayRef, { ghostProtocolCompleted: true }, { merge: true }) : Promise.resolve(),
     ])
-  }, [user, stats, statsRef, todayRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
+  }, [user, stats, statsRef, todayRef, currentDateKey, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
 
   const toggleSocialPresence = useCallback(async () => {
     if (!user || !todayRef || !todayLog) return

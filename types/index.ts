@@ -150,6 +150,15 @@ export interface UserStats {
     weekKey: string
     pillars: Pillar[]
   }
+  // Behavioral tracking
+  totalGhostProtocols?: number              // łączna liczba aktywacji GP
+  consecutiveGhostDays?: number             // GP aktywne X dni z rzędu
+  lastGhostDate?: string | null             // ostatni dzień GP
+  highestDayXP?: number                     // rekord XP w jednym dniu
+  consecutiveNormalDays?: number            // dni z rzędu bez trybu minimum
+  lastNormalDay?: string | null             // ostatni dzień w trybie normal
+  consecutivePerfectMornings?: number       // dni z rzędu z pełną rutyną poranną
+  lastPerfectMorningDate?: string | null    // data ostatniego idealnego poranka
 }
 
 export interface UserProfile {
