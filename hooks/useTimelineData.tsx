@@ -15,7 +15,20 @@ export function useTimelineData() {
     try {
       const snap = await getDocs(collection(db, 'users', user.uid, 'logs'))
       const map: Record<string, DailyLog> = {}
-      snap.forEach(doc => { map[doc.id] = doc.data() as DailyLog })
+      snap.forEach(doc => {
+        const data = doc.data() as DailyLog
+        const safeXP = Number.isFinite(data.totalXP) && data.totalXP >= 0 ? data.totalXP : 0
+        map[doc.id] = {
+          completedRoutine: [],
+          completedDailyQuests: [],
+          completedSideQuests: [],
+          keptRules: [],
+          dayMode: 'normal',
+          ...data,
+          date: doc.id,   // zawsze doc.id jako date — source of truth
+          totalXP: safeXP,
+        }
+      })
       setLogs(map)
     } catch (err) {
       console.error('timeline fetch error:', err)
