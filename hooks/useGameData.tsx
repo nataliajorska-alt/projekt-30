@@ -75,8 +75,20 @@ export function useGameData() {
 
     unsub2 = onSnapshot(todayRef,
       (snap) => {
-        if (snap.exists()) setTodayLog(snap.data() as DailyLog)
-        else setTodayLog({ date: currentDateKey, completedRoutine: [], completedDailyQuests: [], completedSideQuests: [], keptRules: [], totalXP: 0, dayMode: 'normal' })
+        if (snap.exists()) {
+          const data = snap.data() as DailyLog
+          setTodayLog({
+            completedRoutine: [],
+            completedDailyQuests: [],
+            completedSideQuests: [],
+            keptRules: [],
+            dayMode: 'normal',
+            ...data,
+            totalXP: Number.isFinite(data.totalXP) ? data.totalXP : 0,
+          })
+        } else {
+          setTodayLog({ date: currentDateKey, completedRoutine: [], completedDailyQuests: [], completedSideQuests: [], keptRules: [], totalXP: 0, dayMode: 'normal' })
+        }
         setLoading(false)
       },
       (err) => { addToast({ message: 'Błąd ładowania danych dnia. Odśwież stronę.', type: 'error' }); setLoading(false) }
