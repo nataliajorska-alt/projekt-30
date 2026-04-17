@@ -199,7 +199,7 @@ export function useGameData() {
       : [...current, itemId]
     const xpDelta = completed ? -xp : xp
 
-    const newTodayXP = todayLog.totalXP + xpDelta
+    const newTodayXP = (todayLog.totalXP ?? 0) + xpDelta
     const withStreak = await applyStreakIfNeeded(stats)
     const newTotalXP = Math.max(0, withStreak.totalXP + xpDelta)
     const newRoutinesTotal = withStreak.totalRoutinesCompleted + (completed ? -1 : 1)
@@ -244,7 +244,7 @@ export function useGameData() {
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
     await Promise.all([
-      setDoc(todayRef, { ...todayLog, completedDailyQuests: newCompleted, totalXP: todayLog.totalXP + xpDelta }, { merge: true }),
+      setDoc(todayRef, { ...todayLog, completedDailyQuests: newCompleted, totalXP: (todayLog.totalXP ?? 0) + xpDelta }, { merge: true }),
       setDoc(statsRef, finalStats, { merge: true }),
     ])
   }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkLevelUp])
@@ -274,7 +274,7 @@ export function useGameData() {
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
     await Promise.all([
-      setDoc(todayRef, { ...todayLog, completedSideQuests: newCompleted, totalXP: Math.max(0, todayLog.totalXP + xpDelta) }, { merge: true }),
+      setDoc(todayRef, { ...todayLog, completedSideQuests: newCompleted, totalXP: Math.max(0, (todayLog.totalXP ?? 0) + xpDelta) }, { merge: true }),
       setDoc(statsRef, finalStats, { merge: true }),
     ])
   }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkLevelUp])
@@ -299,7 +299,7 @@ export function useGameData() {
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
     await Promise.all([
-      setDoc(todayRef, { ...todayLog, keptRules: newKept, totalXP: todayLog.totalXP + xpDelta }, { merge: true }),
+      setDoc(todayRef, { ...todayLog, keptRules: newKept, totalXP: (todayLog.totalXP ?? 0) + xpDelta }, { merge: true }),
       setDoc(statsRef, finalStats, { merge: true }),
     ])
   }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, checkLevelUp])
