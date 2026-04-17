@@ -28,7 +28,7 @@ function hasCialoActivity(log: DailyLog): boolean {
 export function calcMagnetism(log: DailyLog): MagnetismBreakdown {
   // Liczymy wszystkie ukończone elementy rutyny (poranna + dzienna + wieczorna)
   // Wykluczamy tygodniowe (w*) i custom (custom_*) — zmienne w zależności od dnia
-  const routineDone = log.completedRoutine.filter(
+  const routineDone = (log.completedRoutine ?? []).filter(
     id => /^(m|mm|e|em|d)\d/.test(id)
   ).length
   const morning = Math.min(35, Math.round((routineDone / FULL_ROUTINE_COUNT) * 35))

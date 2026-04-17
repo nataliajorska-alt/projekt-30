@@ -22,14 +22,16 @@ function avg(arr: number[]): number | null {
 }
 
 function isMorningDone(log: DailyLog): boolean {
-  const n = MORNING_IDS.filter(id => log.completedRoutine.includes(id)).length
-  const m = MORNING_MIN.filter(id => log.completedRoutine.includes(id)).length
+  const cr = log.completedRoutine ?? []
+  const n = MORNING_IDS.filter(id => cr.includes(id)).length
+  const m = MORNING_MIN.filter(id => cr.includes(id)).length
   return n >= 4 || m >= 2
 }
 
 function isEveningDone(log: DailyLog): boolean {
-  const n = EVENING_IDS.filter(id => log.completedRoutine.includes(id)).length
-  const m = EVENING_MIN.filter(id => log.completedRoutine.includes(id)).length
+  const cr = log.completedRoutine ?? []
+  const n = EVENING_IDS.filter(id => cr.includes(id)).length
+  const m = EVENING_MIN.filter(id => cr.includes(id)).length
   return n >= 3 || m >= 2
 }
 
@@ -201,7 +203,7 @@ export function computeCorrelations(logs: Record<string, DailyLog>): Correlation
   })
 
   // ─ 8. Wysoki XP → nastrój ────────────────────────────────────────────────
-  const allXP = Object.values(logs).map(l => l.totalXP)
+  const allXP = Object.values(logs).map(l => l.totalXP ?? 0)
   const medianXP = allXP.sort((a,b) => a-b)[Math.floor(allXP.length / 2)] ?? 0
   const highXP = withMood.filter(l => l.totalXP > medianXP)
   const lowXP  = withMood.filter(l => l.totalXP <= medianXP)
