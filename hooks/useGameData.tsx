@@ -192,10 +192,11 @@ export function useGameData() {
 
   const toggleRoutine = useCallback(async (itemId: string, xp: number) => {
     if (!user || !statsRef || !todayRef || !todayLog) return
-    const completed = todayLog.completedRoutine.includes(itemId)
+    const current = todayLog.completedRoutine ?? []
+    const completed = current.includes(itemId)
     const newCompleted = completed
-      ? todayLog.completedRoutine.filter(id => id !== itemId)
-      : [...todayLog.completedRoutine, itemId]
+      ? current.filter(id => id !== itemId)
+      : [...current, itemId]
     const xpDelta = completed ? -xp : xp
 
     const newTodayXP = todayLog.totalXP + xpDelta
@@ -220,10 +221,11 @@ export function useGameData() {
 
   const toggleDailyQuest = useCallback(async (questId: string, pillar: Pillar) => {
     if (!user || !statsRef || !todayRef || !todayLog) return
-    const completed = todayLog.completedDailyQuests.includes(questId)
+    const currentDQ = todayLog.completedDailyQuests ?? []
+    const completed = currentDQ.includes(questId)
     const newCompleted = completed
-      ? todayLog.completedDailyQuests.filter(id => id !== questId)
-      : [...todayLog.completedDailyQuests, questId]
+      ? currentDQ.filter(id => id !== questId)
+      : [...currentDQ, questId]
     const xpDelta = completed ? -XP_VALUES.dailyQuest : XP_VALUES.dailyQuest
 
     const withStreak = await applyStreakIfNeeded(stats)
@@ -249,10 +251,11 @@ export function useGameData() {
 
   const toggleSideQuest = useCallback(async (questId: string, pillar: Pillar, xp: number) => {
     if (!user || !statsRef || !todayRef || !todayLog) return
-    const completed = todayLog.completedSideQuests.includes(questId)
+    const currentSQ = todayLog.completedSideQuests ?? []
+    const completed = currentSQ.includes(questId)
     const newCompleted = completed
-      ? todayLog.completedSideQuests.filter(id => id !== questId)
-      : [...todayLog.completedSideQuests, questId]
+      ? currentSQ.filter(id => id !== questId)
+      : [...currentSQ, questId]
     const xpDelta = completed ? -xp : xp
 
     const withStreak = await applyStreakIfNeeded(stats)
@@ -278,10 +281,11 @@ export function useGameData() {
 
   const toggleRule = useCallback(async (ruleId: string) => {
     if (!user || !statsRef || !todayRef || !todayLog) return
-    const kept = todayLog.keptRules.includes(ruleId)
+    const currentRules = todayLog.keptRules ?? []
+    const kept = currentRules.includes(ruleId)
     const newKept = kept
-      ? todayLog.keptRules.filter(id => id !== ruleId)
-      : [...todayLog.keptRules, ruleId]
+      ? currentRules.filter(id => id !== ruleId)
+      : [...currentRules, ruleId]
     const xpDelta = kept ? -XP_VALUES.rulekept : XP_VALUES.rulekept
 
     const withStreak = await applyStreakIfNeeded(stats)
