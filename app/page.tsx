@@ -9,6 +9,7 @@ import DailyXPSummary from '@/components/DailyXPSummary'
 import MagnetismMeter from '@/components/MagnetismMeter'
 import MoodCheckInModal from '@/components/MoodCheckInModal'
 import KeyMomentCapture from '@/components/KeyMomentCapture'
+import ReturnCeremony from '@/components/ReturnCeremony'
 import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/SkeletonCard'
 import { useGameData } from '@/hooks/useGameData'
 import { todayKey } from '@/lib/gameLogic'
@@ -17,10 +18,19 @@ import type { MoodState } from '@/types'
 // Probability of showing the check-in on any given app open (when < 3 check-ins today).
 const CHECKIN_TRIGGER_PROBABILITY = 0.4
 
+function daysBetween(a: string, b: string): number {
+  const [ay, am, ad] = a.split('-').map(Number)
+  const [by, bm, bd] = b.split('-').map(Number)
+  return Math.round((new Date(by, bm - 1, bd).getTime() - new Date(ay, am - 1, ad).getTime()) / 86400000)
+}
+
 export default function Dashboard() {
-  const { loading, todayLog, saveMoodCheckIn } = useGameData()
+  const { loading, todayLog, stats, saveMoodCheckIn, completeReturnCeremony } = useGameData()
   const [showMoodModal, setShowMoodModal] = useState(false)
+  const [showReturn, setShowReturn] = useState(false)
+  const [daysMissed, setDaysMissed] = useState(0)
   const evaluated = useRef(false)
+  const returnEvaluated = useRef(false)
 
   // Once todayLog loads, decide randomly whether to show the check-in modal.
   // Uses sessionStorage to ensure we only evaluate once per page session.
@@ -46,6 +56,22 @@ export default function Dashboard() {
       setTimeout(() => setShowMoodModal(true), 1200)
     }
   }, [loading, todayLog])
+
+  // Detect gap > 2 days → show Return Ceremony (once per return)
+  useEffect(() => {
+    if (loading || returnEvaluated.current) return
+    if (!stats.lastStreakDate || stats.totalDaysLogged === 0) return
+    returnEvaluated.current = true
+
+    const today = todayKey()
+    if (stats.lastReturnCeremonyDate === today) return  // already shown today
+
+    const gap = daysBetween(stats.lastStreakDate, today)
+    if (gap > 2) {
+      setDaysMissed(gap)
+      setShowReturn(true)
+    }
+  }, [loading, stats])
 
   const handleMoodSave = async (data: { energy: number; mood: number; state: MoodState }) => {
     setShowMoodModal(false)
@@ -90,6 +116,14 @@ export default function Dashboard() {
         <MoodCheckInModal
           onSave={handleMoodSave}
           onDismiss={() => setShowMoodModal(false)}
+        />
+      )}
+
+      {showReturn && (
+        <ReturnCeremony
+          daysMissed={daysMissed}
+          onComplete={async () => { await completeReturnCeremony() }}
+          onDismiss={() => setShowReturn(false)}
         />
       )}
     </div>

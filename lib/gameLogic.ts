@@ -28,6 +28,7 @@ export const XP_VALUES = {
   monthlyReview: 300,
   pillarBalance: 30,
   moodCheckIn: 5,
+  returnCeremony: 200,
 }
 
 export const LEVELS: { level: number; name: string; xpRequired: number }[] = [

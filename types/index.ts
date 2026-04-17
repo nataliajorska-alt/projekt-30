@@ -159,6 +159,7 @@ export interface UserStats {
   lastNormalDay?: string | null             // ostatni dzień w trybie normal
   consecutivePerfectMornings?: number       // dni z rzędu z pełną rutyną poranną
   lastPerfectMorningDate?: string | null    // data ostatniego idealnego poranka
+  lastReturnCeremonyDate?: string | null    // kiedy ostatnio pokazano Return Ceremony
 }
 
 export interface UserProfile {

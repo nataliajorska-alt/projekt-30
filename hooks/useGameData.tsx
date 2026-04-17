@@ -41,6 +41,7 @@ const DEFAULT_STATS: UserStats = {
   lastNormalDay: null,
   consecutivePerfectMornings: 0,
   lastPerfectMorningDate: null,
+  lastReturnCeremonyDate: null,
 }
 
 const ALL_PILLARS: Pillar[] = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc']
@@ -519,6 +520,19 @@ export function useGameData() {
     await setDoc(todayRef, { keyMoment: null }, { merge: true })
   }, [user, todayRef])
 
+  const completeReturnCeremony = useCallback(async () => {
+    if (!user || !statsRef) return
+    const newStats: UserStats = {
+      ...stats,
+      totalXP: stats.totalXP + XP_VALUES.returnCeremony,
+      lastReturnCeremonyDate: currentDateKey,
+    }
+    const achUpdates = await checkAchievements(newStats)
+    const finalStats = { ...newStats, ...achUpdates }
+    checkLevelUp(stats.totalXP, finalStats.totalXP)
+    await setDoc(statsRef, finalStats, { merge: true })
+  }, [user, stats, statsRef, currentDateKey, checkAchievements, checkLevelUp])
+
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(getMonthKey(new Date()))
 
   return {
@@ -526,8 +540,6 @@ export function useGameData() {
     toggleRoutine, toggleDailyQuest, toggleSideQuest, toggleRule,
     submitWeeklyReview, submitMonthlyReview, setDayMode,
     streakFreezeAvailable, completeGhostProtocol, toggleSocialPresence, togglePhysicalActivity,
-    saveMoodCheckIn,
-    saveKeyMoment,
-    clearKeyMoment,
+    saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
   }
 }
