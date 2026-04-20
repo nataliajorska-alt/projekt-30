@@ -3,7 +3,7 @@ import { useGameData } from '@/hooks/useGameData'
 import { DAILY_RULES } from '@/lib/routineData'
 import { Check } from 'lucide-react'
 import clsx from 'clsx'
-import GhostProtocol from './GhostProtocol'
+import GhostProtocolV2 from './GhostProtocolV2'
 
 export default function NegativeChecklist() {
   const { todayLog, toggleRule } = useGameData()
@@ -48,7 +48,7 @@ export default function NegativeChecklist() {
                   +{rule.xp}
                 </span>
               </button>
-              {rule.id === 'r1' && <GhostProtocol />}
+              {rule.id === 'r1' && <GhostProtocolV2 />}
             </div>
           )
         })}

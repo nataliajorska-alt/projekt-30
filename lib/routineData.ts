@@ -131,6 +131,14 @@ export const PINNED_SPARKS: Record<string, string> = {
   '2026-04-17': 'Nie muszę być w idealnym stanie, żeby iść do przodu.',
   '2026-04-18': 'Daję sobie trochę życia, nie tylko obowiązków.',
   '2026-04-19': 'Domykam tydzień z czułością i spokojem.',
+  // Tydzień 20–26 kwietnia
+  '2026-04-20': 'Nie muszę dziś być silna przez cały czas. Wystarczy, że będę po swojej stronie.',
+  '2026-04-21': 'Mój ból jest prawdziwy, ale nie musi prowadzić całego mojego dnia.',
+  '2026-04-22': 'Nawet mały krok w stronę siebie dalej jest krokiem do przodu.',
+  '2026-04-23': 'Mogę tęsknić i jednocześnie wybierać to, co mnie chroni.',
+  '2026-04-24': 'Nie porzucam siebie tylko dlatego, że jest mi trudno.',
+  '2026-04-25': 'Daję sobie dziś więcej czułości, mniej presji i mniej walki ze sobą.',
+  '2026-04-26': 'Przetrwałam kolejny tydzień i nadal mogę łagodnie wracać do siebie.',
 }
 
 // ─── TEMAT TYGODNIA (rotacja co 7 dni) ────────────────────────

@@ -62,6 +62,46 @@ export interface GhostProtocolEntry {
   triggerTag: GhostTriggerTag
 }
 
+// Ghost Protocol V2 — nowy system kategorii
+export type GhostCategory =
+  | 'social_slady'
+  | 'zycie_rownolegla'
+  | 'flashback'
+  | 'brak_gestu'
+  | 'proximity'
+  | 'kontakt_zewnetrzny'
+  | 'chce_podzielic'
+  | 'stan_wewnetrzny'
+
+export type GhostOutcome = 'better' | 'same' | 'worse'
+
+export interface GhostLogEntryV2 {
+  version: 2
+  timestamp: number
+  hour: number
+  weekday: number
+  dayMode: 'normal' | 'minimum'
+  category: GhostCategory
+  subcategory: string
+  intensity: number       // 1–5
+  outcome?: GhostOutcome
+  hadContact: boolean
+  xpEarned: number
+}
+
+export interface HonestFailureEntry {
+  timestamp: number
+  hour: number
+  weekday: number
+  category: GhostCategory
+  subcategory: string
+  intensity: number
+  whatWouldHaveStoppedYou: string
+  howYouFeelNow: string
+  planForNextTime: string
+  xpEarned: number
+}
+
 export type MoodState = 'calm' | 'storm' | 'fog' | 'clarity'
 
 export const MOOD_STATES: { value: MoodState; emoji: string; label: string }[] = [
@@ -196,6 +236,18 @@ export interface RoutineConfig {
     daily?: string[]
   }
   updatedAt: string
+}
+
+export interface NominatedContact {
+  name: string
+  phone: string
+}
+
+export interface SafeHoursWindow {
+  dayOfWeek: number   // 0=Pon … 6=Nd
+  hourStart: number   // 0-23 (2-godzinny bucket)
+  score: number
+  label: string       // np. "Wt 22:00"
 }
 
 export interface MonthlyReview {

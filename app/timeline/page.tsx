@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { useGameData } from '@/hooks/useGameData'
 import { useHabitAnalytics, type HabitAnalytics } from '@/hooks/useHabitAnalytics'
-import { useGhostLog } from '@/hooks/useGhostLog'
+import { useGhostV2 } from '@/hooks/useGhostV2'
 import YearHeatmap from '@/components/YearHeatmap'
 import WeeklyXPChart from '@/components/WeeklyXPChart'
 import { computeStreaks, findBestDay, findWorstActiveDay, aggregateXpByMonth } from '@/lib/analytics'
@@ -11,7 +11,8 @@ import { computeCorrelations, type CorrelationInsight, type ComparisonInsight, t
 import { PILLARS } from '@/lib/pillars'
 import { DAILY_RULES } from '@/lib/routineData'
 import { Pillar } from '@/types'
-import { MOOD_STATES, GHOST_TRIGGER_TAGS, type DailyLog, type MoodCheckIn, type MoodState, type GhostProtocolEntry, type GhostTriggerTag } from '@/types'
+import { MOOD_STATES, type DailyLog, type MoodCheckIn, type MoodState, type GhostLogEntryV2, type HonestFailureEntry } from '@/types'
+import { GHOST_CATEGORIES } from '@/lib/ghost-data'
 import clsx from 'clsx'
 
 type TimelineMode = 'history' | 'pillars' | 'habits' | 'nastroj' | 'protokol' | 'wzorce'
@@ -31,7 +32,7 @@ function formatMonthPL(key: string): string {
 export default function TimelinePage() {
   const { logs, loading } = useTimelineData()
   const { stats } = useGameData()
-  const { entries: ghostEntries, loading: ghostLoading } = useGhostLog()
+  const { entries: ghostEntries, failures: ghostFailures, loading: ghostLoading } = useGhostV2()
   const [mode, setMode] = useState<TimelineMode>('history')
   const habitAnalytics = useHabitAnalytics(logs)
 
@@ -213,7 +214,7 @@ export default function TimelinePage() {
       ) : mode === 'nastroj' ? (
         <MoodTab logs={logs} />
       ) : mode === 'protokol' ? (
-        <GhostProtocolMap entries={ghostEntries} loading={ghostLoading} />
+        <GhostProtocolMap entries={ghostEntries} failures={ghostFailures} loading={ghostLoading} />
       ) : mode === 'wzorce' ? (
         <PatternsTab logs={logs} />
       ) : (
@@ -788,11 +789,12 @@ const MIN_FOR_FULL_MAP = 30
 const MIN_FOR_BASIC = 5
 
 interface GhostProtocolMapProps {
-  entries: GhostProtocolEntry[]
+  entries: GhostLogEntryV2[]
+  failures: HonestFailureEntry[]
   loading: boolean
 }
 
-function GhostProtocolMap({ entries, loading }: GhostProtocolMapProps) {
+function GhostProtocolMap({ entries, failures, loading }: GhostProtocolMapProps) {
   if (loading) {
     return (
       <div className="bg-white rounded-2xl shadow-elegant p-12 text-center">
@@ -816,14 +818,23 @@ function GhostProtocolMap({ entries, loading }: GhostProtocolMapProps) {
     )
   }
 
-  const tagCounts = {} as Record<GhostTriggerTag, number>
-  for (const t of GHOST_TRIGGER_TAGS) tagCounts[t.value] = 0
-  for (const e of entries) tagCounts[e.triggerTag]++
-
-  const topTag = GHOST_TRIGGER_TAGS
-    .map(t => ({ ...t, count: tagCounts[t.value] }))
+  // Kategorie
+  const catCounts: Record<string, number> = {}
+  for (const c of GHOST_CATEGORIES) catCounts[c.id] = 0
+  for (const e of entries) catCounts[e.category] = (catCounts[e.category] ?? 0) + 1
+  const topCat = GHOST_CATEGORIES
+    .map(c => ({ ...c, count: catCounts[c.id] }))
     .sort((a, b) => b.count - a.count)[0]
 
+  // Średnia intensywność
+  const avgIntensity = entries.length
+    ? (entries.reduce((s, e) => s + e.intensity, 0) / entries.length).toFixed(1)
+    : '—'
+
+  // Wyniki: bez kontaktu / był kontakt
+  const noContactCount = entries.filter(e => !e.hadContact).length
+
+  // Heatmapa
   const grid: number[][] = Array.from({ length: TIME_SLOTS.length }, () => Array(7).fill(0))
   for (const e of entries) {
     const slotIdx = TIME_SLOTS.findIndex(s => s.hours.includes(e.hour))
@@ -846,21 +857,35 @@ function GhostProtocolMap({ entries, loading }: GhostProtocolMapProps) {
   return (
     <div className="space-y-6">
 
+      {/* Stats grid */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-dark rounded-2xl p-5 text-center">
-          <p className="font-sans text-[10px] text-ivory/40 uppercase tracking-widest mb-2">Uruchomień</p>
+          <p className="font-sans text-[10px] text-ivory/40 uppercase tracking-widest mb-2">Impulsy</p>
           <p className="font-serif text-ivory text-3xl">{total}</p>
           {total < MIN_FOR_FULL_MAP && (
             <p className="font-sans text-[10px] text-ivory/30 mt-1">pełna mapa od {MIN_FOR_FULL_MAP}</p>
           )}
         </div>
         <div className="bg-dark rounded-2xl p-5 text-center">
-          <p className="font-sans text-[10px] text-ivory/40 uppercase tracking-widest mb-2">Główny wyzwalacz</p>
-          <p className="text-2xl mb-1">{topTag.emoji}</p>
-          <p className="font-sans text-xs text-ivory/70">{topTag.label}</p>
+          <p className="font-sans text-[10px] text-ivory/40 uppercase tracking-widest mb-2">Główna kategoria</p>
+          <p className="text-2xl mb-1">{topCat.icon}</p>
+          <p className="font-sans text-xs text-ivory/70">{topCat.label}</p>
+        </div>
+        <div className="bg-dark rounded-2xl p-5 text-center">
+          <p className="font-sans text-[10px] text-ivory/40 uppercase tracking-widest mb-2">Bez kontaktu</p>
+          <p className="font-serif text-ivory text-3xl">{noContactCount}</p>
+          <p className="font-sans text-[10px] text-ivory/30 mt-1">
+            {total > 0 ? Math.round((noContactCount / total) * 100) : 0}% wytrwałości
+          </p>
+        </div>
+        <div className="bg-dark rounded-2xl p-5 text-center">
+          <p className="font-sans text-[10px] text-ivory/40 uppercase tracking-widest mb-2">Śr. intensywność</p>
+          <p className="font-serif text-ivory text-3xl">{avgIntensity}</p>
+          <p className="font-sans text-[10px] text-ivory/30 mt-1">skala 1–5</p>
         </div>
       </div>
 
+      {/* Heatmapa */}
       {total >= MIN_FOR_BASIC && (
         <div className="bg-dark rounded-2xl p-5 sm:p-6">
           <h2 className="font-serif text-ivory text-base mb-1">Mapa podatności</h2>
@@ -913,10 +938,11 @@ function GhostProtocolMap({ entries, loading }: GhostProtocolMapProps) {
         </div>
       )}
 
+      {/* Podatność per dzień */}
       {total >= MIN_FOR_BASIC && (
         <div className="bg-dark rounded-2xl p-5 sm:p-6">
           <h2 className="font-serif text-ivory text-base mb-1">Podatność według dnia</h2>
-          <p className="font-sans text-xs text-ivory/40 mb-5">Łączna liczba uruchomień per dzień tygodnia.</p>
+          <p className="font-sans text-xs text-ivory/40 mb-5">Łączna liczba impulsów per dzień tygodnia.</p>
           <div className="space-y-2">
             {PL_DAYS_SHORT.map((d, i) => {
               const count = dayTotals[i]
@@ -938,19 +964,21 @@ function GhostProtocolMap({ entries, loading }: GhostProtocolMapProps) {
         </div>
       )}
 
+      {/* Kategorie */}
       <div className="bg-dark rounded-2xl p-5 sm:p-6">
-        <h2 className="font-serif text-ivory text-base mb-1">Wyzwalacze</h2>
+        <h2 className="font-serif text-ivory text-base mb-1">Kategorie impulsów</h2>
         <p className="font-sans text-xs text-ivory/40 mb-5">Co najczęściej poprzedza impuls.</p>
         <div className="space-y-3">
-          {GHOST_TRIGGER_TAGS.map(({ value, emoji, label }) => {
-            const count = tagCounts[value]
+          {GHOST_CATEGORIES.map(cat => {
+            const count = catCounts[cat.id] ?? 0
             const pct = total > 0 ? Math.round((count / total) * 100) : 0
+            if (count === 0) return null
             return (
-              <div key={value}>
+              <div key={cat.id}>
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <span>{emoji}</span>
-                    <span className="font-sans text-sm text-ivory/70">{label}</span>
+                    <span>{cat.icon}</span>
+                    <span className="font-sans text-sm text-ivory/70">{cat.label}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-sans text-xs text-ivory/40">{count}×</span>
@@ -969,6 +997,29 @@ function GhostProtocolMap({ entries, loading }: GhostProtocolMapProps) {
         </div>
       </div>
 
+      {/* Honest Failure Log */}
+      {failures.length > 0 && (
+        <div className="bg-dark rounded-2xl p-5 sm:p-6">
+          <h2 className="font-serif text-ivory text-base mb-1">Uczciwy Log</h2>
+          <p className="font-sans text-xs text-ivory/40 mb-4">Odwaga przyznania się jest też danymi.</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="text-center">
+              <p className="font-serif text-ivory text-2xl">{failures.length}</p>
+              <p className="font-sans text-[10px] text-ivory/40 mt-1">uczciwe logi</p>
+            </div>
+            <div className="text-center">
+              <p className="font-serif text-ivory text-2xl">
+                {total + failures.length > 0
+                  ? Math.round((failures.length / (total + failures.length)) * 100)
+                  : 0}%
+              </p>
+              <p className="font-sans text-[10px] text-ivory/40 mt-1">udział trudnych chwil</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Szczyt podatności */}
       {total >= MIN_FOR_FULL_MAP && hasPeak && (
         <div className="bg-gold/10 border border-gold/20 rounded-2xl p-5">
           <p className="font-sans text-[10px] text-gold/70 uppercase tracking-widest mb-2">Dane operacyjne</p>

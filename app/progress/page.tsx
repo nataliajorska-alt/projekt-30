@@ -4,7 +4,7 @@ import { LEVELS, getLevelFromXP } from '@/lib/gameLogic'
 import { Check } from 'lucide-react'
 import clsx from 'clsx'
 
-const TOTAL_XP = 140_000
+const TOTAL_XP = 200_000
 
 // ────────────────────────────────────────────────────────────
 // Garden stages — which botanical scene we're in

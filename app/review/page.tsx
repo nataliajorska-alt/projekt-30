@@ -134,6 +134,7 @@ function WeeklyReviewForm({ user, stats, submitWeeklyReview, lastReview }: Weekl
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [xpGranted, setXpGranted] = useState(false)
+  const [showContext, setShowContext] = useState(!!lastReview)
 
   const weekStart = (() => {
     const now = new Date()
@@ -184,8 +185,6 @@ function WeeklyReviewForm({ user, stats, submitWeeklyReview, lastReview }: Weekl
       </div>
     )
   }
-
-  const [showContext, setShowContext] = useState(!!lastReview)
 
   return (
     <div className="space-y-5">
@@ -925,7 +924,7 @@ function MonthlySummaryTab({ logs }: SummaryProps) {
 
 // ---------- Progress tab (ogród transformacji) ----------
 
-const TOTAL_XP = 140_000
+const TOTAL_XP = 200_000
 
 interface GardenStage {
   emoji: string

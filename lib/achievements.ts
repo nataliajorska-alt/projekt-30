@@ -137,8 +137,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: 'Finał projektu. Wszystko, czym się stałaś, jest teraz Twoje.',
     icon: '👸',
     xpReward: 3000,
-    condition: (s) => s.totalXP >= 140000,
-    progress: (s) => ({ current: Math.min(s.totalXP, 140000), target: 140000, label: 'XP' }),
+    condition: (s) => s.totalXP >= 200000,
+    progress: (s) => ({ current: Math.min(s.totalXP, 200000), target: 200000, label: 'XP' }),
   },
   {
     id: 'routines_100',

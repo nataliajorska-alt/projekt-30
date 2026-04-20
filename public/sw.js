@@ -26,40 +26,71 @@ self.addEventListener('activate', (event) => {
 let _scheduledTimers = [];
 
 self.addEventListener('message', (event) => {
-  if (!event.data || event.data.type !== 'SCHEDULE_REMINDERS') return;
+  if (!event.data) return;
 
-  const { prefs, labels } = event.data;
+  // ── Standardowe przypomnienia ────────────────────────────────────
+  if (event.data.type === 'SCHEDULE_REMINDERS') {
+    const { prefs, labels } = event.data;
 
-  // Anuluj poprzednie timery
-  _scheduledTimers.forEach((id) => clearTimeout(id));
-  _scheduledTimers = [];
+    _scheduledTimers.forEach((id) => clearTimeout(id));
+    _scheduledTimers = [];
 
-  if (!prefs) return;
+    if (!prefs) return;
 
-  const types = ['morning', 'evening', 'quest'];
-  const now = new Date();
+    const types = ['morning', 'evening', 'quest'];
+    const now = new Date();
 
-  for (const type of types) {
-    const cfg = prefs[type];
-    if (!cfg || !cfg.enabled) continue;
+    for (const type of types) {
+      const cfg = prefs[type];
+      if (!cfg || !cfg.enabled) continue;
 
-    const target = new Date();
-    target.setHours(cfg.hour, cfg.minute, 0, 0);
-    const msUntil = target.getTime() - now.getTime();
+      const target = new Date();
+      target.setHours(cfg.hour, cfg.minute, 0, 0);
+      const msUntil = target.getTime() - now.getTime();
 
-    if (msUntil > 0) {
-      const label = labels?.[type];
-      const timerId = setTimeout(() => {
-        self.registration.showNotification(label?.title ?? 'Projekt 30', {
-          body: label?.body ?? 'Czas na działanie.',
-          icon: '/icon-192.png',
-          badge: '/icon-192.png',
-          tag: `projekt30-${type}`,
-          renotify: false,
-        });
-      }, msUntil);
-      _scheduledTimers.push(timerId);
+      if (msUntil > 0) {
+        const label = labels?.[type];
+        const timerId = setTimeout(() => {
+          self.registration.showNotification(label?.title ?? 'Projekt 30', {
+            body: label?.body ?? 'Czas na działanie.',
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            tag: `projekt30-${type}`,
+            renotify: false,
+          });
+        }, msUntil);
+        _scheduledTimers.push(timerId);
+      }
     }
+    return;
+  }
+
+  // ── Safe Hours — ostrzeżenia prewencyjne ─────────────────────────
+  if (event.data.type === 'SCHEDULE_SAFE_HOURS') {
+    const { windows } = event.data;
+    if (!windows || !windows.length) return;
+
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    for (const w of windows) {
+      const targetMinutes = w.hourStart * 60 - 30;   // 30 min przed oknem
+      const msUntil = (targetMinutes - nowMinutes) * 60 * 1000;
+
+      if (msUntil > 0) {
+        const timerId = setTimeout(() => {
+          self.registration.showNotification('🕯️ Safe Hours', {
+            body: 'Za pół godziny zaczyna się Twoja trudna pora. Masz plan?',
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            tag: `projekt30-safehours-${w.hourStart}`,
+            renotify: true,
+          });
+        }, msUntil);
+        _scheduledTimers.push(timerId);
+      }
+    }
+    return;
   }
 });
 

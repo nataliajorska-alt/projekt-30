@@ -1,6 +1,8 @@
 // Zarządzanie przypomnieniami przez Web Notifications API + Service Worker.
 // Preferencje są zapisywane w localStorage (dane urządzenia, nie Firestore).
 
+import type { SafeHoursWindow } from '@/types'
+
 export type ReminderType = 'morning' | 'evening' | 'quest'
 
 export interface ReminderConfig {
@@ -112,6 +114,40 @@ export function scheduleWithTimeout(prefs: NotificationPreferences): void {
           new Notification(title, { body, icon: '/icon-192.png', badge: '/icon-192.png' })
         }
       }, msUntil)
+    }
+  }
+}
+
+// ── Safe Hours — powiadomienia prewencyjne ───────────────────────────────────
+// Planuje powiadomienie 30 min przed każdym oknem ryzyka z dnia bieżącego.
+
+export async function scheduleSafeHoursNotifications(windows: SafeHoursWindow[]): Promise<void> {
+  if (typeof window === 'undefined' || Notification.permission !== 'granted') return
+  if (!windows.length) return
+
+  const today = (new Date().getDay() + 6) % 7   // 0=Pon
+  const todayWindows = windows.filter(w => w.dayOfWeek === today)
+  if (!todayWindows.length) return
+
+  const sw = await getActiveSW()
+  if (sw) {
+    sw.postMessage({ type: 'SCHEDULE_SAFE_HOURS', windows: todayWindows })
+  } else {
+    // Fallback setTimeout
+    const now = new Date()
+    const nowMinutes = now.getHours() * 60 + now.getMinutes()
+    for (const w of todayWindows) {
+      const targetMinutes = w.hourStart * 60 - 30   // 30 min before
+      const msUntil = (targetMinutes - nowMinutes) * 60 * 1000
+      if (msUntil > 0 && Notification.permission === 'granted') {
+        setTimeout(() => {
+          new Notification('🕯️ Safe Hours', {
+            body: `Za pół godziny zaczyna się Twoja trudna pora. Masz plan?`,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+          })
+        }, msUntil)
+      }
     }
   }
 }

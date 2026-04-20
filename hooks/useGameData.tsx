@@ -533,6 +533,55 @@ export function useGameData() {
     await setDoc(statsRef, finalStats, { merge: true })
   }, [user, stats, statsRef, currentDateKey, checkAchievements, checkLevelUp])
 
+  // Ghost Protocol V2: +10 za zalogowanie impulsu, +30 bonus jeśli bez kontaktu
+  const recordGhostImpulseV2 = useCallback(async (hadContact: boolean) => {
+    if (!user || !statsRef) return
+    const xp = hadContact ? 10 : 40
+    const today = currentDateKey
+    const withStreak = await applyStreakIfNeeded(stats)
+
+    const lastGhost = withStreak.lastGhostDate ?? null
+    const isNewImpulseToday = lastGhost !== today
+    const newTotal = (withStreak.totalGhostProtocols ?? 0) + (isNewImpulseToday ? 1 : 0)
+
+    let newStats: UserStats = {
+      ...withStreak,
+      totalXP: withStreak.totalXP + xp,
+      pillarXP: {
+        ...withStreak.pillarXP,
+        pozycja: (withStreak.pillarXP.pozycja ?? 0) + xp,
+      },
+      totalGhostProtocols: newTotal,
+      lastGhostDate: today,
+    }
+    newStats = applyPillarBalanceIfNeeded(newStats, 'pozycja')
+    const achUpdates = await checkAchievements(newStats)
+    const finalStats = { ...newStats, ...achUpdates }
+    checkLevelUp(stats.totalXP, finalStats.totalXP)
+    await Promise.all([
+      setDoc(statsRef, finalStats, { merge: true }),
+      todayRef ? setDoc(todayRef, { ghostProtocolCompleted: true }, { merge: true }) : Promise.resolve(),
+    ])
+  }, [user, stats, statsRef, todayRef, currentDateKey, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
+
+  // Honest Failure Log: +15 XP za uczciwość
+  const recordHonestFailure = useCallback(async () => {
+    if (!user || !statsRef) return
+    const withStreak = await applyStreakIfNeeded(stats)
+    const newStats: UserStats = {
+      ...withStreak,
+      totalXP: withStreak.totalXP + 15,
+      pillarXP: {
+        ...withStreak.pillarXP,
+        pozycja: (withStreak.pillarXP.pozycja ?? 0) + 15,
+      },
+    }
+    const achUpdates = await checkAchievements(newStats)
+    const finalStats = { ...newStats, ...achUpdates }
+    checkLevelUp(stats.totalXP, finalStats.totalXP)
+    await setDoc(statsRef, finalStats, { merge: true })
+  }, [user, stats, statsRef, applyStreakIfNeeded, checkAchievements, checkLevelUp])
+
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(getMonthKey(new Date()))
 
   return {
@@ -541,5 +590,6 @@ export function useGameData() {
     submitWeeklyReview, submitMonthlyReview, setDayMode,
     streakFreezeAvailable, completeGhostProtocol, toggleSocialPresence, togglePhysicalActivity,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
+    recordGhostImpulseV2, recordHonestFailure,
   }
 }

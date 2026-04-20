@@ -19,7 +19,7 @@ function hasCialoActivity(log: DailyLog): boolean {
   // Ręczny toggle ma priorytet
   if (log.physicalActivity) return true
   // Fallback: quest z filarem ciało
-  const ids = [...log.completedDailyQuests, ...log.completedSideQuests]
+  const ids = [...(log.completedDailyQuests ?? []), ...(log.completedSideQuests ?? [])]
   if (ids.length === 0) return false
   const all = [...APRIL_QUESTS, ...SIDE_QUESTS]
   return ids.some(id => all.find(q => q.id === id)?.pillar === 'cialo')
@@ -36,8 +36,8 @@ export function calcMagnetism(log: DailyLog): MagnetismBreakdown {
   const cialo = hasCialoActivity(log) ? 25 : 0
   const social = log.socialPresence ? 20 : 0
   // Ghost: 10 pkt za samo nie napisanie (r1 kept), niezależnie od użycia Ghost Protocol
-  const ghost = log.keptRules.includes('r1') ? 10 : 0
-  const style = log.keptRules.includes('r3') ? 10 : 0
+  const ghost = (log.keptRules ?? []).includes('r1') ? 10 : 0
+  const style = (log.keptRules ?? []).includes('r3') ? 10 : 0
 
   return { morning, cialo, social, ghost, style, total: morning + cialo + social + ghost + style }
 }
