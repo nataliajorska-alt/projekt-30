@@ -13,6 +13,7 @@ import { DAILY_RULES } from '@/lib/routineData'
 import { Pillar } from '@/types'
 import { MOOD_STATES, type DailyLog, type MoodCheckIn, type MoodState, type GhostLogEntryV2, type HonestFailureEntry } from '@/types'
 import { GHOST_CATEGORIES } from '@/lib/ghost-data'
+import RedirectEnergyWidget from '@/components/RedirectEnergyWidget'
 import clsx from 'clsx'
 
 type TimelineMode = 'history' | 'pillars' | 'habits' | 'nastroj' | 'protokol' | 'wzorce'
@@ -496,6 +497,7 @@ function PillarsTab({ stats }: PillarsTabProps) {
                     </span>
                   )}
                 </div>
+                {p.id === 'milosc' && <RedirectEnergyWidget />}
               </div>
             </div>
           )
