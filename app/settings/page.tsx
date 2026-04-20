@@ -10,7 +10,7 @@ import {
 import { LogOut, Lock, Mail, Download, Printer, Sun, Moon, Sparkles, Plus, X, RotateCcw, Bell, Phone } from 'lucide-react'
 import { useNominatedContacts } from '@/hooks/useNominatedContacts'
 import type { NominatedContact } from '@/types'
-import { exportLogsAsCSV, exportQuestsAsCSV, printYearSummary } from '@/lib/exportData'
+import { exportLogsAsCSV, exportQuestsAsCSV, exportReviewsAsCSV, printYearSummary } from '@/lib/exportData'
 import { useRoutineConfig } from '@/hooks/useRoutineConfig'
 import {
   loadPreferences,
@@ -205,6 +205,7 @@ function AccountSection({
 function ExportSection({ uid }: { uid: string }) {
   const [exportingLogs, setExportingLogs] = useState(false)
   const [exportingQuests, setExportingQuests] = useState(false)
+  const [exportingReviews, setExportingReviews] = useState(false)
   const [error, setError] = useState('')
 
   const handleCSV = async () => {
@@ -231,6 +232,18 @@ function ExportSection({ uid }: { uid: string }) {
     }
   }
 
+  const handleReviewsCSV = async () => {
+    setError('')
+    setExportingReviews(true)
+    try {
+      await exportReviewsAsCSV(uid)
+    } catch {
+      setError('Nie udało się wyeksportować przeglądów.')
+    } finally {
+      setExportingReviews(false)
+    }
+  }
+
   return (
     <div className="bg-white rounded-2xl shadow-elegant p-6">
       <h2 className="font-serif text-lg text-dark mb-3 flex items-center gap-2">
@@ -242,10 +255,13 @@ function ExportSection({ uid }: { uid: string }) {
       </p>
       <div className="space-y-1 mb-5">
         <p className="font-sans text-xs text-muted-light">
-          • <strong>Logi</strong> — każdy dzień: XP, % rutyny, zasady (0/1), XP per filar
+          • <strong>Logi</strong> — każdy dzień: XP, rutyna, zasady, nastrój, notatki, XP per filar
         </p>
         <p className="font-sans text-xs text-muted-light">
-          • <strong>Questy</strong> — historia ukończonych side questów z datą, filarem i XP
+          • <strong>Questy</strong> — historia side questów i questów dziennych z tytułem, filarem i XP
+        </p>
+        <p className="font-sans text-xs text-muted-light">
+          • <strong>Przeglądy</strong> — tygodniowe i miesięczne: oceny filarów, refleksje, intencje
         </p>
       </div>
 
@@ -274,6 +290,19 @@ function ExportSection({ uid }: { uid: string }) {
             <Download size={14} strokeWidth={1.5} />
           )}
           {exportingQuests ? 'Eksportuję...' : 'Pobierz questy CSV'}
+        </button>
+
+        <button
+          onClick={handleReviewsCSV}
+          disabled={exportingReviews}
+          className="flex items-center gap-2 border border-border text-dark hover:border-dark rounded-xl px-5 py-3 font-sans text-sm transition-colors disabled:opacity-60 font-medium"
+        >
+          {exportingReviews ? (
+            <div className="w-4 h-4 border-2 border-dark border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Download size={14} strokeWidth={1.5} />
+          )}
+          {exportingReviews ? 'Eksportuję...' : 'Pobierz przeglądy CSV'}
         </button>
 
         <button
