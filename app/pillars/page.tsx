@@ -3,6 +3,7 @@ import { useGameData } from '@/hooks/useGameData'
 import { PILLARS } from '@/lib/pillars'
 import { SkeletonPillarList, SkeletonCard } from '@/components/SkeletonCard'
 import { Pillar } from '@/types'
+import RedirectEnergyWidget from '@/components/RedirectEnergyWidget'
 
 export default function PillarsPage() {
   const { stats, loading } = useGameData()
@@ -113,6 +114,7 @@ export default function PillarsPage() {
                     </span>
                   )}
                 </div>
+                {p.id === 'milosc' && <RedirectEnergyWidget />}
               </div>
             </div>
           )

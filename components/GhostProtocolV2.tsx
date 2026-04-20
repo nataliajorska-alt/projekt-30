@@ -6,6 +6,7 @@ import { useGhostV2 } from '@/hooks/useGhostV2'
 import { GHOST_CATEGORIES, INTENSITY_LABELS } from '@/lib/ghost-data'
 import type { GhostCategory, GhostLogEntryV2, HonestFailureEntry, GhostOutcome } from '@/types'
 import EmergencyLock from './EmergencyLock'
+import RedirectEnergyWidget from './RedirectEnergyWidget'
 import clsx from 'clsx'
 
 // ─── Flow types ───────────────────────────────────────────────────────────────
@@ -365,17 +366,22 @@ export default function GhostProtocolV2() {
               ))}
             </div>
 
+            <RedirectEnergyWidget compact />
+
             {selectedIntensity >= 4 && (
               <button
                 onClick={() => setShowEmergencyLock(true)}
-                className="w-full py-3.5 rounded-xl bg-gold/15 border border-gold/40 font-sans text-sm text-ivory hover:bg-gold/25 transition-all mb-3"
+                className="w-full py-3.5 rounded-xl bg-gold/15 border border-gold/40 font-sans text-sm text-ivory hover:bg-gold/25 transition-all mb-3 mt-6"
               >
                 🛡️ Emergency Lock
               </button>
             )}
             <button
               onClick={finishIntervention}
-              className="w-full py-3.5 rounded-xl bg-forest/50 border border-ivory/10 font-sans text-sm text-ivory hover:bg-forest/70 transition-all mb-3"
+              className={clsx(
+                'w-full py-3.5 rounded-xl bg-forest/50 border border-ivory/10 font-sans text-sm text-ivory hover:bg-forest/70 transition-all mb-3',
+                selectedIntensity < 4 && 'mt-6'
+              )}
             >
               Gotowe — poczekałam
             </button>
