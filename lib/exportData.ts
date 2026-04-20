@@ -26,6 +26,12 @@ function escapeCSV(value: string | number): string {
   return str
 }
 
+function inRange(date: string, from: string | null, to: string | null): boolean {
+  if (from && date < from) return false
+  if (to && date > to) return false
+  return true
+}
+
 function findQuestTitle(questId: string, dateKey: string): string {
   const side = SIDE_QUESTS.find(q => q.id === questId)
   if (side) return side.title
@@ -36,8 +42,13 @@ function findQuestTitle(questId: string, dateKey: string): string {
   return questId
 }
 
+export interface DateRange {
+  from: string | null  // YYYY-MM-DD
+  to: string | null
+}
+
 // ── Główny eksport logów ─────────────────────────────────────────
-export async function exportLogsAsCSV(uid: string) {
+export async function exportLogsAsCSV(uid: string, range: DateRange = { from: null, to: null }) {
   const snap = await getDocs(query(
     collection(db, 'users', uid, 'logs'),
     orderBy('date', 'asc')
@@ -68,6 +79,8 @@ export async function exportLogsAsCSV(uid: string) {
 
   snap.forEach((docSnap) => {
     const d = docSnap.data() as DailyLog & { pillarXP?: Record<string, number> }
+    if (!inRange(d.date, range.from, range.to)) return
+
     const keptRules = d.keptRules ?? []
     const ruleFlags = DAILY_RULES.map(r => keptRules.includes(r.id) ? '1' : '0')
     const pillarXPValues = PILLAR_KEYS.map(p => String((d as any).pillarXP?.[p] ?? 0))
@@ -100,12 +113,13 @@ export async function exportLogsAsCSV(uid: string) {
     ])
   })
 
+  const suffix = range.from ? `${range.from}_${range.to ?? 'dziś'}` : new Date().toISOString().slice(0, 10)
   const csv = rows.map(r => r.map(escapeCSV).join(',')).join('\n')
-  downloadCSV(csv, `projekt30-logi-${new Date().toISOString().slice(0, 10)}.csv`)
+  downloadCSV(csv, `projekt30-logi-${suffix}.csv`)
 }
 
 // ── Eksport ukończonych questów ──────────────────────────────────
-export async function exportQuestsAsCSV(uid: string) {
+export async function exportQuestsAsCSV(uid: string, range: DateRange = { from: null, to: null }) {
   const snap = await getDocs(query(
     collection(db, 'users', uid, 'logs'),
     orderBy('date', 'asc')
@@ -116,6 +130,7 @@ export async function exportQuestsAsCSV(uid: string) {
 
   snap.forEach((docSnap) => {
     const d = docSnap.data() as DailyLog
+    if (!inRange(d.date, range.from, range.to)) return
     const date = d.date
 
     for (const questId of d.completedSideQuests ?? []) {
@@ -141,25 +156,25 @@ export async function exportQuestsAsCSV(uid: string) {
     rows.push(['Brak ukończonych questów w historii', '', '', '', ''])
   }
 
+  const suffix = range.from ? `${range.from}_${range.to ?? 'dziś'}` : new Date().toISOString().slice(0, 10)
   const csv = rows.map(r => r.map(escapeCSV).join(',')).join('\n')
-  downloadCSV(csv, `projekt30-questy-${new Date().toISOString().slice(0, 10)}.csv`)
+  downloadCSV(csv, `projekt30-questy-${suffix}.csv`)
 }
 
 // ── Eksport przeglądów tygodniowych i miesięcznych ───────────────
-export async function exportReviewsAsCSV(uid: string) {
+export async function exportReviewsAsCSV(uid: string, range: DateRange = { from: null, to: null }) {
   const [weeklySnap, monthlySnap] = await Promise.all([
     getDocs(query(collection(db, 'users', uid, 'weeklyReviews'), orderBy('weekStart', 'asc'))),
     getDocs(query(collection(db, 'users', uid, 'monthlyReviews'), orderBy('month', 'asc'))),
   ])
 
   const pillarCols = PILLAR_LABELS.map(p => `Ocena: ${p}`)
-
-  // Weekly
   const weeklyHeaders = ['Typ', 'Okres', 'XP za przegląd', ...pillarCols, 'Highlights', 'Wyzwania', 'Focus na następny tydzień']
   const rows: string[][] = [weeklyHeaders]
 
   weeklySnap.forEach((docSnap) => {
     const r = docSnap.data() as WeeklyReview
+    if (!inRange(r.weekStart, range.from, range.to)) return
     const pillarRatings = PILLAR_KEYS.map(p => String(r.pillarsRated?.[p] ?? ''))
     rows.push([
       'tygodniowy',
@@ -174,6 +189,7 @@ export async function exportReviewsAsCSV(uid: string) {
 
   monthlySnap.forEach((docSnap) => {
     const r = docSnap.data() as MonthlyReview
+    if (!inRange(r.month, range.from, range.to)) return
     const pillarRatings = PILLAR_KEYS.map(p => String(r.pillarsRated?.[p] ?? ''))
     rows.push([
       'miesięczny',
@@ -190,10 +206,7 @@ export async function exportReviewsAsCSV(uid: string) {
     rows.push(['Brak zapisanych przeglądów', '', '', ...PILLAR_KEYS.map(() => ''), '', '', ''])
   }
 
+  const suffix = range.from ? `${range.from}_${range.to ?? 'dziś'}` : new Date().toISOString().slice(0, 10)
   const csv = rows.map(r => r.map(escapeCSV).join(',')).join('\n')
-  downloadCSV(csv, `projekt30-przeglady-${new Date().toISOString().slice(0, 10)}.csv`)
-}
-
-export function printYearSummary() {
-  window.print()
+  downloadCSV(csv, `projekt30-przeglady-${suffix}.csv`)
 }
