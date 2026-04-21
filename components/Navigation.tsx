@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   Home, Sword, Trophy, BookOpen, CalendarDays,
   LogOut, Settings, Lock, Camera, Scroll,
-  TrendingUp, Archive, ChevronRight,
+  TrendingUp, Archive, ChevronRight, Moon,
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -51,6 +51,7 @@ const NAV: NavItem[] = [
       { href: '/timeline',     icon: CalendarDays, label: 'Historia' },
       { href: '/achievements', icon: Trophy,       label: 'Osiągnięcia' },
       { href: '/review',       icon: BookOpen,     label: 'Przegląd' },
+      { href: '/cycle',        icon: Moon,         label: 'Rytm' },
     ],
   },
   {

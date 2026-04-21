@@ -12,6 +12,7 @@ import KeyMomentCapture from '@/components/KeyMomentCapture'
 import ReturnCeremony from '@/components/ReturnCeremony'
 import DashboardNudges from '@/components/DashboardNudges'
 import SafeHoursBanner from '@/components/SafeHoursBanner'
+import CyclePhaseWidget from '@/components/CyclePhaseWidget'
 import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/SkeletonCard'
 import { useGameData } from '@/hooks/useGameData'
 import { todayKey } from '@/lib/gameLogic'
@@ -106,6 +107,7 @@ export default function Dashboard() {
       </div>
 
       <CountdownHero />
+      <CyclePhaseWidget />
       <MagnetismMeter />
       <SafeHoursBanner />
       <DashboardNudges />
