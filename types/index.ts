@@ -142,11 +142,19 @@ export interface AnnualReflection {
   savedAt: string
 }
 
+export interface CustomSideQuestEntry {
+  id: string
+  title: string
+  pillar: Pillar
+  xp: number
+}
+
 export interface DailyLog {
   date: string
   completedRoutine: string[]
   completedDailyQuests: string[]
   completedSideQuests: string[]
+  customSideQuests?: CustomSideQuestEntry[]
   keptRules: string[]
   totalXP: number
   dayMode: 'normal' | 'minimum'
@@ -155,7 +163,7 @@ export interface DailyLog {
   physicalActivity?: boolean
   ghostProtocolCompleted?: boolean
   moodCheckIns?: MoodCheckIn[]
-  keyMoment?: KeyMoment           // oznaczenie dnia jako kluczowego momentu
+  keyMoment?: KeyMoment
 }
 
 export interface Achievement {

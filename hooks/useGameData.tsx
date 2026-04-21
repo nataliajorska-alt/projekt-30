@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
-import type { DailyLog, UserStats, MoodCheckIn, KeyMoment } from '@/types'
+import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry, Pillar } from '@/types'
 import { todayKey, XP_VALUES, getISOWeekKey, getLevelFromXP, getMonthKey } from '@/lib/gameLogic'
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
 import { ACHIEVEMENTS } from '@/lib/achievements'
@@ -564,6 +564,27 @@ export function useGameData() {
     ])
   }, [user, stats, statsRef, todayRef, currentDateKey, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
 
+  const logCustomSideQuest = useCallback(async (title: string, pillar: Pillar, xp: number) => {
+    if (!user || !statsRef || !todayRef || !todayLog) return
+    const entry: CustomSideQuestEntry = { id: `csq_${Date.now()}`, title, pillar, xp }
+    const current = todayLog.customSideQuests ?? []
+    const withStreak = await applyStreakIfNeeded(stats)
+    let newStats: UserStats = {
+      ...withStreak,
+      totalXP: withStreak.totalXP + xp,
+      totalSideQuestsCompleted: withStreak.totalSideQuestsCompleted + 1,
+      pillarXP: { ...withStreak.pillarXP, [pillar]: (withStreak.pillarXP[pillar] ?? 0) + xp },
+    }
+    newStats = applyPillarBalanceIfNeeded(newStats, pillar)
+    const achUpdates = await checkAchievements(newStats)
+    const finalStats = { ...newStats, ...achUpdates }
+    checkLevelUp(stats.totalXP, finalStats.totalXP)
+    await Promise.all([
+      setDoc(todayRef, { ...todayLog, customSideQuests: [...current, entry], totalXP: (todayLog.totalXP ?? 0) + xp }, { merge: true }),
+      setDoc(statsRef, finalStats, { merge: true }),
+    ])
+  }, [user, todayLog, stats, statsRef, todayRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
+
   // Honest Failure Log: +15 XP za uczciwość
   const recordHonestFailure = useCallback(async () => {
     if (!user || !statsRef) return
@@ -590,6 +611,6 @@ export function useGameData() {
     submitWeeklyReview, submitMonthlyReview, setDayMode,
     streakFreezeAvailable, completeGhostProtocol, toggleSocialPresence, togglePhysicalActivity,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
-    recordGhostImpulseV2, recordHonestFailure,
+    recordGhostImpulseV2, recordHonestFailure, logCustomSideQuest,
   }
 }
