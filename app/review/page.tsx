@@ -192,7 +192,7 @@ function WeeklyReviewForm({ user, stats, submitWeeklyReview, lastReview }: Weekl
         <ContinuityBanner
           show={showContext}
           onToggle={() => setShowContext(v => !v)}
-          label="Z poprzedniego tygodnia"
+          label={`Tydzień ${formatWeekRange(lastReview.weekStart)}`}
           focusLabel="Twój focus"
           focusText={lastReview.nextWeekFocus}
           pillarsRated={lastReview.pillarsRated}
