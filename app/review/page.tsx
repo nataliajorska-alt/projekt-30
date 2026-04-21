@@ -141,6 +141,8 @@ function WeeklyReviewForm({ user, stats, submitWeeklyReview, lastReview }: Weekl
     const day = now.getDay()
     const diff = now.getDate() - day + (day === 0 ? -6 : 1)
     const monday = new Date(now.getFullYear(), now.getMonth(), diff)
+    // W poniedziałek recenzujemy ubiegły tydzień, nie nowy
+    if (day === 1) monday.setDate(monday.getDate() - 7)
     return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`
   })()
 

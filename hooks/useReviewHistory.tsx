@@ -48,8 +48,8 @@ export function useReviewHistory() {
   const currentMonth = useMemo(() => getMonthKey(new Date()), [])
 
   const lastWeeklyReview = useMemo(() => {
-    return weeklyReviews.find(r => r.weekStart < currentWeekStart) ?? null
-  }, [weeklyReviews, currentWeekStart])
+    return weeklyReviews[0] ?? null
+  }, [weeklyReviews])
 
   const lastMonthlyReview = useMemo(() => {
     return monthlyReviews.find(r => r.month < currentMonth) ?? null
