@@ -83,6 +83,26 @@ export const CYCLE_PHASES: CyclePhase[] = [
   },
 ]
 
+export interface CycleSettings {
+  cycleLength: number   // długość cyklu w dniach (domyślnie 28)
+  periodLength: number  // długość okresu w dniach (domyślnie 5)
+}
+
+export const DEFAULT_CYCLE_SETTINGS: CycleSettings = {
+  cycleLength: 28,
+  periodLength: 5,
+}
+
+export function computePhaseRanges(s: CycleSettings): Record<CyclePhase['id'], [number, number]> {
+  const ovulation = Math.max(s.periodLength + 3, s.cycleLength - 14)
+  return {
+    menstruacja: [1, s.periodLength],
+    folikularna: [s.periodLength + 1, Math.max(s.periodLength + 1, ovulation - 2)],
+    owulacyjna:  [Math.max(s.periodLength + 2, ovulation - 1), ovulation + 2],
+    lutealna:    [ovulation + 3, s.cycleLength],
+  }
+}
+
 export interface CycleLog {
   id: string
   startDate: string  // YYYY-MM-DD
@@ -97,25 +117,34 @@ export function getCycleDay(startDate: string, today?: string): number {
   return diff + 1  // dzień 1 = pierwszy dzień
 }
 
-export function getPhaseForDay(cycleDay: number): CyclePhase {
+export function getPhaseForDay(cycleDay: number, settings?: CycleSettings): CyclePhase {
+  const s = settings ?? DEFAULT_CYCLE_SETTINGS
+  const ranges = computePhaseRanges(s)
   for (const phase of CYCLE_PHASES) {
-    if (cycleDay >= phase.days[0] && cycleDay <= phase.days[1]) return phase
+    const [from, to] = ranges[phase.id]
+    if (cycleDay >= from && cycleDay <= to) return phase
   }
-  // Po dniu 28 — wróć do lutealnej (przedłużony cykl)
   return CYCLE_PHASES[3]
 }
 
-export function getPhaseForDate(startDate: string, date?: string): { phase: CyclePhase; cycleDay: number } | null {
+export function getPhaseForDate(
+  startDate: string,
+  date?: string,
+  settings?: CycleSettings
+): { phase: CyclePhase; cycleDay: number } | null {
   const day = getCycleDay(startDate, date)
-  if (day < 1 || day > 35) return null  // za stary wpis lub za długo
-  return { phase: getPhaseForDay(day), cycleDay: day }
+  if (day < 1 || day > (settings?.cycleLength ?? 28) + 7) return null
+  return { phase: getPhaseForDay(day, settings), cycleDay: day }
 }
 
-export function getPhaseIdForDate(cycleLogs: CycleLog[], dateKey: string): CyclePhase['id'] | null {
-  // Znajdź najnowszy cykl który zaczął się przed lub w tej dacie
+export function getPhaseIdForDate(
+  cycleLogs: CycleLog[],
+  dateKey: string,
+  settings?: CycleSettings
+): CyclePhase['id'] | null {
   const sorted = [...cycleLogs].sort((a, b) => b.startDate.localeCompare(a.startDate))
   const active = sorted.find(c => c.startDate <= dateKey)
   if (!active) return null
-  const result = getPhaseForDate(active.startDate, dateKey)
+  const result = getPhaseForDate(active.startDate, dateKey, settings)
   return result?.phase.id ?? null
 }

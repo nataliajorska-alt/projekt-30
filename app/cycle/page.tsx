@@ -1,10 +1,11 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { useCycleData } from '@/hooks/useCycleData'
+import { useCycleSettings } from '@/hooks/useCycleSettings'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import {
-  CYCLE_PHASES, getPhaseForDate, getPhaseIdForDate,
-  type CyclePhase,
+  CYCLE_PHASES, getPhaseForDate, getPhaseIdForDate, computePhaseRanges,
+  type CyclePhase, type CycleSettings,
 } from '@/lib/cycle-data'
 import { PILLARS } from '@/lib/pillars'
 import clsx from 'clsx'
@@ -18,7 +19,8 @@ function todayKey() {
 
 // ── Karta fazy ───────────────────────────────────────────────────
 
-function PhaseCard({ phase, cycleDay }: { phase: CyclePhase; cycleDay: number }) {
+function PhaseCard({ phase, cycleDay, settings }: { phase: CyclePhase; cycleDay: number; settings: CycleSettings }) {
+  const ranges = computePhaseRanges(settings)
   return (
     <div
       className="rounded-2xl p-6 mb-4"
@@ -36,7 +38,7 @@ function PhaseCard({ phase, cycleDay }: { phase: CyclePhase; cycleDay: number })
         <div className="text-right">
           <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-1">Faza</p>
           <p className="font-sans text-xs font-medium" style={{ color: phase.color }}>
-            {phase.days[0]}–{phase.days[1]} dzień
+            {ranges[phase.id][0]}–{ranges[phase.id][1]} dzień
           </p>
         </div>
       </div>
@@ -72,14 +74,16 @@ function PhaseCard({ phase, cycleDay }: { phase: CyclePhase; cycleDay: number })
 
 // ── Oś cyklu ────────────────────────────────────────────────────
 
-function CycleTimeline({ cycleDay }: { cycleDay: number }) {
-  const clampedDay = Math.min(cycleDay, 28)
+function CycleTimeline({ cycleDay, settings }: { cycleDay: number; settings: CycleSettings }) {
+  const clampedDay = Math.min(cycleDay, settings.cycleLength)
+  const ranges = computePhaseRanges(settings)
   return (
     <div className="bg-white rounded-2xl shadow-elegant p-5 mb-4">
       <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-3">Gdzie jesteś w cyklu</p>
       <div className="relative h-3 rounded-full overflow-hidden flex mb-2">
         {CYCLE_PHASES.map(p => {
-          const width = ((p.days[1] - p.days[0] + 1) / 28) * 100
+          const [from, to] = ranges[p.id]
+          const width = ((to - from + 1) / settings.cycleLength) * 100
           return (
             <div
               key={p.id}
@@ -91,7 +95,7 @@ function CycleTimeline({ cycleDay }: { cycleDay: number }) {
         {/* Marker */}
         <div
           className="absolute top-0 bottom-0 w-0.5 bg-dark rounded-full"
-          style={{ left: `${Math.min((clampedDay / 28) * 100, 98)}%` }}
+          style={{ left: `${Math.min((clampedDay / settings.cycleLength) * 100, 98)}%` }}
         />
       </div>
       <div className="flex justify-between">
@@ -149,9 +153,10 @@ function LogForm({ onLog }: { onLog: (date: string) => Promise<void> }) {
 
 // ── Insights ─────────────────────────────────────────────────────
 
-function Insights({ logs, dailyLogs }: {
+function Insights({ logs, dailyLogs, settings }: {
   logs: ReturnType<typeof useCycleData>['logs']
   dailyLogs: Record<string, any>
+  settings: CycleSettings
 }) {
   const insights = useMemo(() => {
     if (logs.length < 2) return null
@@ -164,7 +169,7 @@ function Insights({ logs, dailyLogs }: {
     }
 
     for (const [dateKey, log] of Object.entries(dailyLogs)) {
-      const phaseId = getPhaseIdForDate(logs, dateKey)
+      const phaseId = getPhaseIdForDate(logs, dateKey, settings)
       if (!phaseId) continue
       const stat = phaseStats[phaseId]
       stat.count++
@@ -276,6 +281,114 @@ function Insights({ logs, dailyLogs }: {
   )
 }
 
+// ── Ustawienia cyklu ──────────────────────────────────────────────
+
+function CycleSettingsForm({
+  settings,
+  saving,
+  onSave,
+}: {
+  settings: CycleSettings
+  saving: boolean
+  onSave: (s: CycleSettings) => Promise<void>
+}) {
+  const [cycleLength, setCycleLength] = useState(settings.cycleLength)
+  const [periodLength, setPeriodLength] = useState(settings.periodLength)
+  const [saved, setSaved] = useState(false)
+
+  // Sync gdy settings załadowane z Firestore
+  useMemo(() => {
+    setCycleLength(settings.cycleLength)
+    setPeriodLength(settings.periodLength)
+  }, [settings.cycleLength, settings.periodLength])
+
+  const handleSave = async () => {
+    await onSave({ cycleLength, periodLength })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  const ranges = computePhaseRanges({ cycleLength, periodLength })
+
+  return (
+    <div className="bg-white rounded-2xl shadow-elegant p-5 mt-4">
+      <h3 className="font-serif text-dark text-base mb-1">Mój cykl</h3>
+      <p className="font-sans text-xs text-muted mb-5">
+        Te dane pozwalają dokładniej obliczać fazy. Możesz je zmienić kiedy chcesz.
+      </p>
+
+      <div className="space-y-5 mb-5">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="font-sans text-xs text-dark">Długość cyklu</label>
+            <span className="font-serif text-dark text-lg">{cycleLength} dni</span>
+          </div>
+          <input
+            type="range"
+            min={21} max={35} step={1}
+            value={cycleLength}
+            onChange={e => setCycleLength(Number(e.target.value))}
+            className="w-full accent-gold"
+          />
+          <div className="flex justify-between mt-1">
+            <span className="font-sans text-[10px] text-muted-light">21</span>
+            <span className="font-sans text-[10px] text-muted-light">35</span>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="font-sans text-xs text-dark">Długość okresu</label>
+            <span className="font-serif text-dark text-lg">{periodLength} dni</span>
+          </div>
+          <input
+            type="range"
+            min={2} max={8} step={1}
+            value={periodLength}
+            onChange={e => setPeriodLength(Number(e.target.value))}
+            className="w-full accent-gold"
+          />
+          <div className="flex justify-between mt-1">
+            <span className="font-sans text-[10px] text-muted-light">2</span>
+            <span className="font-sans text-[10px] text-muted-light">8</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Podgląd faz */}
+      <div className="bg-cream rounded-xl p-4 mb-5 space-y-1.5">
+        <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-2">Twoje fazy</p>
+        {CYCLE_PHASES.map(p => {
+          const [from, to] = ranges[p.id]
+          if (from > to) return null
+          return (
+            <div key={p.id} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs">{p.emoji}</span>
+                <span className="font-sans text-xs text-dark">{p.name}</span>
+              </div>
+              <span className="font-sans text-xs text-muted">
+                dzień {from}–{to} <span className="text-muted-light">({to - from + 1} dni)</span>
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 bg-dark text-ivory font-sans text-sm py-2.5 px-5 rounded-xl hover:bg-forest transition-colors disabled:opacity-60 font-medium"
+        >
+          {saving ? '...' : 'Zapisz'}
+        </button>
+        {saved && <p className="font-sans text-xs text-forest animate-fade-in">Zapisano ✓</p>}
+      </div>
+    </div>
+  )
+}
+
 // ── Historia cykli ────────────────────────────────────────────────
 
 function CycleHistory({
@@ -368,13 +481,14 @@ type Tab = 'faza' | 'insights'
 
 export default function CyclePage() {
   const { logs, loading, logCycleStart, deleteCycleLog } = useCycleData()
+  const { settings, loading: settingsLoading, saving: settingsSaving, saveSettings } = useCycleSettings()
   const { logs: dailyLogs, loading: logsLoading } = useTimelineData()
   const [tab, setTab] = useState<Tab>('faza')
   const [showLogForm, setShowLogForm] = useState(false)
 
   const today = todayKey()
   const currentCycle = logs[0] ?? null
-  const currentData = currentCycle ? getPhaseForDate(currentCycle.startDate, today) : null
+  const currentData = currentCycle ? getPhaseForDate(currentCycle.startDate, today, settings) : null
 
   const handleLog = async (date: string) => {
     await logCycleStart(date)
@@ -450,16 +564,20 @@ export default function CyclePage() {
 
           {tab === 'faza' && (
             <>
-              <PhaseCard phase={currentData.phase} cycleDay={currentData.cycleDay} />
-              <CycleTimeline cycleDay={currentData.cycleDay} />
+              <PhaseCard phase={currentData.phase} cycleDay={currentData.cycleDay} settings={settings} />
+              <CycleTimeline cycleDay={currentData.cycleDay} settings={settings} />
               <CycleHistory logs={logs} onDelete={deleteCycleLog} />
             </>
           )}
 
           {tab === 'insights' && (
-            <Insights logs={logs} dailyLogs={dailyLogs} />
+            <Insights logs={logs} dailyLogs={dailyLogs} settings={settings} />
           )}
         </>
+      )}
+
+      {!settingsLoading && (
+        <CycleSettingsForm settings={settings} saving={settingsSaving} onSave={saveSettings} />
       )}
     </div>
   )
