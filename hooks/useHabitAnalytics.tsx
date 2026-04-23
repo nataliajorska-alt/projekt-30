@@ -14,6 +14,7 @@ export interface WeekHabitData {
   avgCompletionRate: number   // 0-100
   totalRulesKept: number
   activeDays: number
+  activityDays: number
 }
 
 export interface MonthHabitData {
@@ -37,6 +38,7 @@ export interface HabitAnalytics {
   ruleStats: RuleStat[]
   totalDaysLogged: number
   overallAvgCompletion: number
+  totalActivityDays: number
 }
 
 function parseKey(key: string): Date {
@@ -54,7 +56,7 @@ export function useHabitAnalytics(logs: LogMap): HabitAnalytics {
     // Per-day completion rates
     const dayRates: number[] = []
     const weekMap: Record<string, {
-      rateSum: number; count: number; rulesKept: number; activeDays: number
+      rateSum: number; count: number; rulesKept: number; activeDays: number; activityDays: number
     }> = {}
     const monthMap: Record<string, {
       rateSum: number; count: number; rulesKept: number; activeDays: number
@@ -62,6 +64,7 @@ export function useHabitAnalytics(logs: LogMap): HabitAnalytics {
     }> = {}
     const ruleCounts: Record<string, number> = {}
     let activeDaysTotal = 0
+    let activityDaysTotal = 0
 
     for (const key of sortedKeys) {
       const log = logs[key]
@@ -71,17 +74,20 @@ export function useHabitAnalytics(logs: LogMap): HabitAnalytics {
       const rate = Math.min(100, Math.round((completed / max) * 100))
       const rulesKept = log.keptRules?.length ?? 0
       const isActive = (log.totalXP ?? 0) > 0
+      const hasActivity = log.physicalActivity === true
       if (isActive) activeDaysTotal += 1
+      if (hasActivity) activityDaysTotal += 1
 
       dayRates.push(rate)
 
       // Week aggregate
       const weekKey = getISOWeekKey(parseKey(key))
-      if (!weekMap[weekKey]) weekMap[weekKey] = { rateSum: 0, count: 0, rulesKept: 0, activeDays: 0 }
+      if (!weekMap[weekKey]) weekMap[weekKey] = { rateSum: 0, count: 0, rulesKept: 0, activeDays: 0, activityDays: 0 }
       weekMap[weekKey].rateSum += rate
       weekMap[weekKey].count += 1
       weekMap[weekKey].rulesKept += rulesKept
       if (isActive) weekMap[weekKey].activeDays += 1
+      if (hasActivity) weekMap[weekKey].activityDays += 1
 
       // Month aggregate
       const monthKey = getMonthKey(parseKey(key))
@@ -105,6 +111,7 @@ export function useHabitAnalytics(logs: LogMap): HabitAnalytics {
         avgCompletionRate: Math.round(w.rateSum / Math.max(1, w.count)),
         totalRulesKept: w.rulesKept,
         activeDays: w.activeDays,
+        activityDays: w.activityDays,
       }))
       .sort((a, b) => a.weekKey.localeCompare(b.weekKey))
 
@@ -135,6 +142,7 @@ export function useHabitAnalytics(logs: LogMap): HabitAnalytics {
       ruleStats,
       totalDaysLogged: sortedKeys.length,
       overallAvgCompletion,
+      totalActivityDays: activityDaysTotal,
     }
   }, [logs])
 }

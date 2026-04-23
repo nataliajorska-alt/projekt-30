@@ -242,7 +242,7 @@ function rateColor(rate: number): string {
 }
 
 function HabitsTab({ analytics }: { analytics: HabitAnalytics }) {
-  const { byWeek, byMonth, ruleStats, totalDaysLogged, overallAvgCompletion } = analytics
+  const { byWeek, byMonth, ruleStats, totalDaysLogged, overallAvgCompletion, totalActivityDays } = analytics
 
   const recentWeeks = byWeek.slice(-12)  // ostatnie 12 tygodni
 
@@ -393,6 +393,63 @@ function HabitsTab({ analytics }: { analytics: HabitAnalytics }) {
               )
             })}
           </div>
+        )}
+      </div>
+
+      {/* Aktywność fizyczna */}
+      <div className="bg-white rounded-2xl shadow-elegant p-5 sm:p-6">
+        <h2 className="font-serif text-dark text-base mb-1">Aktywność fizyczna</h2>
+        <p className="font-sans text-xs text-muted mb-5">
+          Dane z zaznaczenia "Ćwiczyłam dziś" w Skali Magnetyzmu.
+        </p>
+
+        {totalActivityDays === 0 ? (
+          <p className="font-sans text-xs text-muted-light text-center py-4">
+            Zaznaczaj aktywność w Skali Magnetyzmu — pojawi się tu częstotliwość.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <div className="bg-cream rounded-xl p-4 text-center">
+                <p className="font-serif text-dark text-2xl">{totalActivityDays}</p>
+                <p className="font-sans text-[10px] text-muted uppercase tracking-wide mt-1">dni aktywnych</p>
+              </div>
+              <div className="bg-cream rounded-xl p-4 text-center">
+                <p className="font-serif text-dark text-2xl">
+                  {totalDaysLogged > 0 ? Math.round((totalActivityDays / totalDaysLogged) * 100) : 0}%
+                </p>
+                <p className="font-sans text-[10px] text-muted uppercase tracking-wide mt-1">zalogowanych dni</p>
+              </div>
+            </div>
+
+            {/* Tygodnie */}
+            {byWeek.length > 0 && (
+              <div className="space-y-2">
+                <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-3">Per tydzień</p>
+                {byWeek.slice(-8).map(w => {
+                  const pct = w.activeDays > 0 ? Math.round((w.activityDays / w.activeDays) * 100) : 0
+                  const label = w.weekKey.replace(/\d{4}-W/, 'T')
+                  return (
+                    <div key={w.weekKey} className="flex items-center gap-3">
+                      <span className="font-sans text-[11px] text-muted w-8 flex-shrink-0">{label}</span>
+                      <div className="flex-1 h-5 bg-cream rounded-lg overflow-hidden">
+                        <div
+                          className="h-full rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
+                          style={{
+                            width: `${Math.max(w.activityDays > 0 ? 8 : 0, pct)}%`,
+                            backgroundColor: pct >= 60 ? '#2C3B35' : pct >= 30 ? '#B8963E' : '#D4AF6B',
+                          }}
+                        />
+                      </div>
+                      <span className="font-sans text-xs text-muted w-14 text-right shrink-0">
+                        {w.activityDays}/{w.activeDays} dni
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
