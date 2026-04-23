@@ -16,7 +16,7 @@ import { GHOST_CATEGORIES } from '@/lib/ghost-data'
 import RedirectEnergyWidget from '@/components/RedirectEnergyWidget'
 import clsx from 'clsx'
 
-type TimelineMode = 'history' | 'pillars' | 'habits' | 'nastroj' | 'protokol' | 'wzorce'
+type TimelineMode = 'calendar' | 'habits' | 'pillars' | 'insights' | 'protokol'
 
 const PL_MONTH_NAMES = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień']
 
@@ -34,7 +34,7 @@ export default function TimelinePage() {
   const { logs, loading } = useTimelineData()
   const { stats } = useGameData()
   const { entries: ghostEntries, failures: ghostFailures, loading: ghostLoading } = useGhostV2()
-  const [mode, setMode] = useState<TimelineMode>('history')
+  const [mode, setMode] = useState<TimelineMode>('calendar')
   const habitAnalytics = useHabitAnalytics(logs)
 
   const analytics = useMemo(() => {
@@ -54,29 +54,26 @@ export default function TimelinePage() {
         <p className="font-sans text-xs text-muted uppercase tracking-widest mb-1">Twój rok</p>
         <h1 className="font-serif text-dark text-2xl mb-1">Historia</h1>
         <p className="font-sans text-sm text-muted">
-          {mode === 'history'
+          {mode === 'calendar'
             ? 'Cały projekt w jednym kadrze. Każdy dzień się liczy.'
             : mode === 'pillars'
               ? 'Gdzie kierujesz energię? Dbaj o równowagę.'
-              : mode === 'nastroj'
+              : mode === 'insights'
                 ? 'Dane, które po miesiącu pokazują prawdziwe wzorce.'
                 : mode === 'protokol'
                   ? 'Kiedy konkretnie jesteś najbardziej narażona. Dane operacyjne.'
-                  : mode === 'wzorce'
-                    ? 'Nie dane — wnioski. Co naprawdę działa na Twój nastrój i energię.'
-                    : 'Konsekwencja buduje tożsamość. Śledź swoje nawyki.'}
+                  : 'Konsekwencja buduje tożsamość. Śledź swoje nawyki.'}
         </p>
       </div>
 
       {/* Tab switcher */}
       <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
         {([
-          { key: 'history' as TimelineMode, label: 'Historia' },
-          { key: 'habits' as TimelineMode, label: 'Nawyki' },
-          { key: 'pillars' as TimelineMode, label: 'Filary' },
-          { key: 'nastroj' as TimelineMode, label: 'Nastrój' },
+          { key: 'calendar' as TimelineMode, label: 'Kalendarz' },
+          { key: 'habits'   as TimelineMode, label: 'Nawyki' },
+          { key: 'pillars'  as TimelineMode, label: 'Filary' },
+          { key: 'insights' as TimelineMode, label: 'Nastrój' },
           { key: 'protokol' as TimelineMode, label: 'Protokół' },
-          { key: 'wzorce' as TimelineMode, label: 'Wzorce' },
         ] as { key: TimelineMode; label: string }[]).map(({ key, label }) => (
           <button
             key={key}
@@ -97,7 +94,7 @@ export default function TimelinePage() {
         <div className="bg-white rounded-2xl shadow-elegant p-12 text-center">
           <p className="font-sans text-sm text-muted-light">Wczytuję dane...</p>
         </div>
-      ) : mode === 'history' ? (
+      ) : mode === 'calendar' ? (
         <div className="space-y-6">
           {/* Heatmap */}
           <div className="bg-white rounded-2xl shadow-elegant p-5 sm:p-6 overflow-x-auto">
@@ -212,12 +209,10 @@ export default function TimelinePage() {
         </div>
       ) : mode === 'habits' ? (
         <HabitsTab analytics={habitAnalytics} />
-      ) : mode === 'nastroj' ? (
-        <MoodTab logs={logs} />
+      ) : mode === 'insights' ? (
+        <InsightsTab logs={logs} />
       ) : mode === 'protokol' ? (
         <GhostProtocolMap entries={ghostEntries} failures={ghostFailures} loading={ghostLoading} />
-      ) : mode === 'wzorce' ? (
-        <PatternsTab logs={logs} />
       ) : (
         <PillarsTab stats={stats} />
       )}
@@ -513,6 +508,40 @@ function PillarsTab({ stats }: PillarsTabProps) {
           nie ignorujesz żadnego obszaru przez zbyt długi czas.
         </p>
       </div>
+    </div>
+  )
+}
+
+// ---------- Insights Tab (Nastrój + Wzorce) ----------
+
+type InsightsSub = 'nastroj' | 'wzorce'
+
+function InsightsTab({ logs }: { logs: Record<string, import('@/types').DailyLog> }) {
+  const [sub, setSub] = useState<InsightsSub>('nastroj')
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        {([
+          { key: 'nastroj' as const, label: 'Nastrój' },
+          { key: 'wzorce'  as const, label: 'Wzorce' },
+        ]).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setSub(key)}
+            className={clsx(
+              'flex-1 py-2 rounded-xl font-sans text-xs transition-all',
+              sub === key
+                ? 'bg-dark text-ivory'
+                : 'bg-white border border-border text-muted hover:bg-cream'
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {sub === 'nastroj'  && <MoodTab logs={logs} />}
+      {sub === 'wzorce'   && <PatternsTab logs={logs} />}
     </div>
   )
 }

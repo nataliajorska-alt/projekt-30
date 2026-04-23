@@ -17,7 +17,7 @@ import type { WeeklyReview, MonthlyReview } from '@/types'
 import PillarTrendChart from '@/components/PillarTrendChart'
 import clsx from 'clsx'
 
-type Mode = 'weekly' | 'monthly' | 'summary' | 'progress' | 'historia'
+type Mode = 'weekly' | 'monthly' | 'archive'
 
 const PL_MONTH_NAMES = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień']
 
@@ -46,11 +46,9 @@ export default function ReviewPage() {
       {/* Mode switcher */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
         {([
-          { key: 'weekly', label: 'Tygodniowy' },
+          { key: 'weekly',  label: 'Tygodniowy' },
           { key: 'monthly', label: 'Miesięczny' },
-          { key: 'summary', label: 'Podsumowanie' },
-          { key: 'progress', label: 'Postęp' },
-          { key: 'historia', label: 'Historia' },
+          { key: 'archive', label: 'Archiwum' },
         ] as { key: Mode; label: string }[]).map(({ key, label }) => (
           <button
             key={key}
@@ -98,14 +96,9 @@ export default function ReviewPage() {
           lastReview={lastMonthlyReview}
         />
       )}
-      {mode === 'summary' && (
-        <MonthlySummaryTab logs={logs} />
-      )}
-      {mode === 'progress' && (
-        <ProgressTab stats={stats} />
-      )}
-      {mode === 'historia' && (
-        <ReviewHistoryTab
+      {mode === 'archive' && (
+        <ArchiveTab
+          logs={logs}
           weeklyReviews={weeklyReviews}
           monthlyReviews={monthlyReviews}
           loading={historyLoading}
@@ -569,6 +562,54 @@ function ContinuityBanner({ show, onToggle, label, focusLabel, focusText, pillar
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ---------- Archive tab (Podsumowanie + Historia przeglądów) ----------
+
+type ArchiveSubTab = 'przeglądy' | 'statystyki'
+
+interface ArchiveTabProps {
+  logs: ReturnType<typeof useTimelineData>['logs']
+  weeklyReviews: WeeklyReview[]
+  monthlyReviews: MonthlyReview[]
+  loading: boolean
+}
+
+function ArchiveTab({ logs, weeklyReviews, monthlyReviews, loading }: ArchiveTabProps) {
+  const [sub, setSub] = useState<ArchiveSubTab>('przeglądy')
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        {([
+          { key: 'przeglądy' as const, label: 'Przeglądy' },
+          { key: 'statystyki' as const, label: 'Statystyki' },
+        ]).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setSub(key)}
+            className={clsx(
+              'flex-1 py-2 rounded-xl font-sans text-xs transition-all',
+              sub === key
+                ? 'bg-dark text-ivory'
+                : 'bg-white border border-border text-muted hover:bg-cream'
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {sub === 'przeglądy' && (
+        <ReviewHistoryTab
+          weeklyReviews={weeklyReviews}
+          monthlyReviews={monthlyReviews}
+          loading={loading}
+        />
+      )}
+      {sub === 'statystyki' && <MonthlySummaryTab logs={logs} />}
     </div>
   )
 }
