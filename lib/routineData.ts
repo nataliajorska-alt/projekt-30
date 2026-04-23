@@ -92,8 +92,8 @@ export const BIWEEKLY_TUESDAY: RoutineItem = {
   id: 'w2_knee', text: 'Ćwiczenia na kolana (co drugi wtorek)', type: 'daily', xp: 10,
 }
 
-export function getTodayWeeklyHabits(): RoutineItem[] {
-  const now = new Date()
+export function getTodayWeeklyHabits(forDate?: Date): RoutineItem[] {
+  const now = forDate ?? new Date()
   const dow = now.getDay() // 0=nd ... 6=sb
   const base = WEEKLY_HABITS[dow] ?? []
 
@@ -152,8 +152,8 @@ const WEEKLY_STUDY_TOPICS = [
   { label: 'Ekonomia i polityka', prompt: 'Przeczytaj analizę ekonomiczną, artykuł o polityce lub obejrzyj dokument.' },
 ]
 
-export function getWeeklyStudyItem(): RoutineItem {
-  const now = new Date()
+export function getWeeklyStudyItem(forDate?: Date): RoutineItem {
+  const now = forDate ?? new Date()
   const weekKey = getISOWeekKey(now)
   const weeksSinceStart = Math.floor((now.getTime() - PROJECT_START.getTime()) / (7 * 24 * 60 * 60 * 1000))
   const topic = WEEKLY_STUDY_TOPICS[((weeksSinceStart % WEEKLY_STUDY_TOPICS.length) + WEEKLY_STUDY_TOPICS.length) % WEEKLY_STUDY_TOPICS.length]
@@ -165,8 +165,8 @@ export function getWeeklyStudyItem(): RoutineItem {
   }
 }
 
-export function getWeeklyStudyLabel(): string {
-  const now = new Date()
+export function getWeeklyStudyLabel(forDate?: Date): string {
+  const now = forDate ?? new Date()
   const weeksSinceStart = Math.floor((now.getTime() - PROJECT_START.getTime()) / (7 * 24 * 60 * 60 * 1000))
   const topic = WEEKLY_STUDY_TOPICS[((weeksSinceStart % WEEKLY_STUDY_TOPICS.length) + WEEKLY_STUDY_TOPICS.length) % WEEKLY_STUDY_TOPICS.length]
   return topic.label

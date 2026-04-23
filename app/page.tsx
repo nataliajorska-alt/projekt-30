@@ -2,7 +2,9 @@
 import { useState, useEffect, useRef } from 'react'
 import CountdownHero from '@/components/CountdownHero'
 import RoutineChecklist from '@/components/RoutineChecklist'
+import TomorrowChecklist from '@/components/TomorrowChecklist'
 import DailyQuests from '@/components/DailyQuests'
+import TomorrowQuests from '@/components/TomorrowQuests'
 import SideQuestPicker from '@/components/SideQuestPicker'
 import NegativeChecklist from '@/components/NegativeChecklist'
 import DailyXPSummary from '@/components/DailyXPSummary'
@@ -15,7 +17,7 @@ import SafeHoursBanner from '@/components/SafeHoursBanner'
 import CyclePhaseWidget from '@/components/CyclePhaseWidget'
 import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/SkeletonCard'
 import { useGameData } from '@/hooks/useGameData'
-import { todayKey } from '@/lib/gameLogic'
+import { todayKey, tomorrowDate } from '@/lib/gameLogic'
 import type { MoodState } from '@/types'
 
 // Probability of showing the check-in on any given app open (when < 3 check-ins today).
@@ -32,6 +34,7 @@ export default function Dashboard() {
   const [showMoodModal, setShowMoodModal] = useState(false)
   const [showReturn, setShowReturn] = useState(false)
   const [daysMissed, setDaysMissed] = useState(0)
+  const [viewingTomorrow, setViewingTomorrow] = useState(false)
   const evaluated = useRef(false)
   const returnEvaluated = useRef(false)
 
@@ -94,16 +97,43 @@ export default function Dashboard() {
     </div>
   )
 
-  const today = new Date().toLocaleDateString('pl-PL', {
-    weekday: 'long', day: 'numeric', month: 'long',
-  })
+  const todayLabel    = new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })
+  const tomorrowLabel = tomorrowDate().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
     <div className="max-w-2xl mx-auto px-4 pt-6 pb-8 animate-fade-in">
-      {/* Date */}
+      {/* Date + switcher */}
       <div className="mb-5">
-        <p className="font-sans text-xs text-muted uppercase tracking-widest mb-1">Dziś</p>
-        <h1 className="font-serif text-dark text-2xl capitalize">{today}</h1>
+        <p className="font-sans text-xs text-muted uppercase tracking-widest mb-1">
+          {viewingTomorrow ? 'Jutro' : 'Dziś'}
+        </p>
+        <div className="flex items-end justify-between gap-3">
+          <h1 className="font-serif text-dark text-2xl capitalize">
+            {viewingTomorrow ? tomorrowLabel : todayLabel}
+          </h1>
+          <div className="flex items-center gap-1 mb-0.5 flex-shrink-0">
+            <button
+              onClick={() => setViewingTomorrow(false)}
+              className={`font-sans text-xs px-3 py-1.5 rounded-full transition-all ${
+                !viewingTomorrow
+                  ? 'bg-dark text-ivory'
+                  : 'text-muted hover:text-dark border border-border'
+              }`}
+            >
+              Dziś
+            </button>
+            <button
+              onClick={() => setViewingTomorrow(true)}
+              className={`font-sans text-xs px-3 py-1.5 rounded-full transition-all ${
+                viewingTomorrow
+                  ? 'bg-dark text-ivory'
+                  : 'text-muted hover:text-dark border border-border'
+              }`}
+            >
+              Jutro →
+            </button>
+          </div>
+        </div>
       </div>
 
       <CountdownHero />
@@ -112,11 +142,21 @@ export default function Dashboard() {
       <SafeHoursBanner />
       <DashboardNudges />
       <DailyXPSummary />
-      <RoutineChecklist />
-      <DailyQuests />
-      <SideQuestPicker />
-      <KeyMomentCapture />
-      <NegativeChecklist />
+
+      {viewingTomorrow ? (
+        <>
+          <TomorrowChecklist />
+          <TomorrowQuests />
+        </>
+      ) : (
+        <>
+          <RoutineChecklist />
+          <DailyQuests />
+          <SideQuestPicker />
+          <KeyMomentCapture />
+          <NegativeChecklist />
+        </>
+      )}
 
       {showMoodModal && (
         <MoodCheckInModal

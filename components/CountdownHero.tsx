@@ -4,16 +4,19 @@ import { useGameData } from '@/hooks/useGameData'
 import { todayKey } from '@/lib/gameLogic'
 import { getDailySpark } from '@/lib/questData'
 import { getCurrentMonthData } from '@/lib/monthData'
+import { useSparkSchedule } from '@/hooks/useSparkSchedule'
 
 export default function CountdownHero() {
   const { stats, streakFreezeAvailable } = useGameData()
+  const { sparks } = useSparkSchedule()
   const daysLeft = getDaysRemaining()
   const daysElapsed = getDaysElapsed()
   const projectProgress = getProjectProgress()
   const level = getLevelFromXP(stats.totalXP)
   const nextLevel = getNextLevel(stats.totalXP)
   const lvlProgress = getLevelProgress(stats.totalXP)
-  const spark = getDailySpark(todayKey())
+  const key = todayKey()
+  const spark = sparks[key] || getDailySpark(key)
   const month = getCurrentMonthData()
 
   return (

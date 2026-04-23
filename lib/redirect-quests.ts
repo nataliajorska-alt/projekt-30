@@ -114,13 +114,16 @@ export const REDIRECT_QUESTS: RedirectQuest[] = [
   },
 ]
 
-export function getDailyRedirectQuests(dateKey: string, count = 4): RedirectQuest[] {
-  const seed = dateKey.split('-').reduce((acc, n) => acc + parseInt(n), 0)
-  const shuffled = [...REDIRECT_QUESTS]
-  // Fisher-Yates z deterministycznym seedem
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = (seed * (i + 1) * 2654435761) % (i + 1)
-    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+function hashCode(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0
   }
-  return shuffled.slice(0, count)
+  return hash
+}
+
+export function getDailyRedirectQuests(dateKey: string, count = 4): RedirectQuest[] {
+  return [...REDIRECT_QUESTS]
+    .sort((a, b) => hashCode(a.id + dateKey) - hashCode(b.id + dateKey))
+    .slice(0, count)
 }
