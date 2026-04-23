@@ -87,6 +87,7 @@ export interface CycleLog {
   id: string
   startDate: string  // YYYY-MM-DD
   savedAt: string
+  docId?: string     // Firestore document ID (do usuwania)
 }
 
 export function getCycleDay(startDate: string, today?: string): number {

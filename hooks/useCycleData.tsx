@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { collection, getDocs, addDoc, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
 import type { CycleLog } from '@/lib/cycle-data'
@@ -17,7 +17,7 @@ export function useCycleData() {
       const snap = await getDocs(
         query(collection(db, 'users', user.uid, 'cycle'), orderBy('startDate', 'desc'))
       )
-      setLogs(snap.docs.map(d => d.data() as CycleLog))
+      setLogs(snap.docs.map(d => ({ ...d.data(), docId: d.id } as CycleLog)))
     } finally {
       setLoading(false)
     }
@@ -27,7 +27,7 @@ export function useCycleData() {
 
   const logCycleStart = useCallback(async (startDate: string) => {
     if (!user) return
-    const entry: Omit<CycleLog, 'id'> & { id: string } = {
+    const entry: Omit<CycleLog, 'id' | 'docId'> & { id: string } = {
       id: `cycle_${startDate}`,
       startDate,
       savedAt: new Date().toISOString(),
@@ -36,5 +36,11 @@ export function useCycleData() {
     await fetchLogs()
   }, [user, fetchLogs])
 
-  return { logs, loading, logCycleStart }
+  const deleteCycleLog = useCallback(async (docId: string) => {
+    if (!user) return
+    await deleteDoc(doc(db, 'users', user.uid, 'cycle', docId))
+    await fetchLogs()
+  }, [user, fetchLogs])
+
+  return { logs, loading, logCycleStart, deleteCycleLog }
 }

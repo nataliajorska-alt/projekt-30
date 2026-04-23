@@ -278,8 +278,25 @@ function Insights({ logs, dailyLogs }: {
 
 // ── Historia cykli ────────────────────────────────────────────────
 
-function CycleHistory({ logs }: { logs: ReturnType<typeof useCycleData>['logs'] }) {
+function CycleHistory({
+  logs,
+  onDelete,
+}: {
+  logs: ReturnType<typeof useCycleData>['logs']
+  onDelete: (docId: string) => Promise<void>
+}) {
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
   if (logs.length === 0) return null
+
+  const handleDelete = async (docId: string) => {
+    setDeleting(true)
+    await onDelete(docId)
+    setConfirmId(null)
+    setDeleting(false)
+  }
+
   return (
     <div className="bg-white rounded-2xl shadow-elegant p-5 mb-4">
       <h3 className="font-serif text-dark text-base mb-3">Historia cykli</h3>
@@ -292,12 +309,51 @@ function CycleHistory({ logs }: { logs: ReturnType<typeof useCycleData>['logs'] 
           const length = prev
             ? Math.round((new Date(log.startDate).getTime() - new Date(prev.startDate).getTime()) / (1000 * 60 * 60 * 24))
             : null
+          const isZero = length !== null && length === 0
+          const docId = log.docId
+
           return (
-            <div key={log.id} className="flex items-center justify-between py-2 border-b border-cream last:border-0">
-              <p className="font-sans text-sm text-dark">{label}</p>
-              {length && (
-                <span className="font-sans text-xs text-muted-light">{length} dni cyklu</span>
-              )}
+            <div key={log.id} className={clsx(
+              'py-2 border-b border-cream last:border-0',
+              isZero && 'bg-red-50/60 rounded-xl px-3 -mx-3'
+            )}>
+              <div className="flex items-center justify-between">
+                <p className={clsx('font-sans text-sm', isZero ? 'text-red-500' : 'text-dark')}>
+                  {label}
+                  {isZero && <span className="ml-2 text-[10px] font-sans bg-red-100 text-red-400 px-2 py-0.5 rounded-full">0 dni — duplikat?</span>}
+                </p>
+                <div className="flex items-center gap-3">
+                  {length !== null && length > 0 && (
+                    <span className="font-sans text-xs text-muted-light">{length} dni</span>
+                  )}
+                  {docId && confirmId !== docId && (
+                    <button
+                      onClick={() => setConfirmId(docId)}
+                      className="font-sans text-[10px] text-muted-light hover:text-red-400 transition-colors"
+                    >
+                      usuń
+                    </button>
+                  )}
+                  {docId && confirmId === docId && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-sans text-[10px] text-muted">Na pewno?</span>
+                      <button
+                        onClick={() => handleDelete(docId)}
+                        disabled={deleting}
+                        className="font-sans text-[10px] text-red-500 font-medium hover:text-red-700 transition-colors disabled:opacity-50"
+                      >
+                        {deleting ? '...' : 'Tak, usuń'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmId(null)}
+                        className="font-sans text-[10px] text-muted hover:text-dark transition-colors"
+                      >
+                        Anuluj
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )
         })}
@@ -311,7 +367,7 @@ function CycleHistory({ logs }: { logs: ReturnType<typeof useCycleData>['logs'] 
 type Tab = 'faza' | 'insights'
 
 export default function CyclePage() {
-  const { logs, loading, logCycleStart } = useCycleData()
+  const { logs, loading, logCycleStart, deleteCycleLog } = useCycleData()
   const { logs: dailyLogs, loading: logsLoading } = useTimelineData()
   const [tab, setTab] = useState<Tab>('faza')
   const [showLogForm, setShowLogForm] = useState(false)
@@ -396,7 +452,7 @@ export default function CyclePage() {
             <>
               <PhaseCard phase={currentData.phase} cycleDay={currentData.cycleDay} />
               <CycleTimeline cycleDay={currentData.cycleDay} />
-              <CycleHistory logs={logs} />
+              <CycleHistory logs={logs} onDelete={deleteCycleLog} />
             </>
           )}
 
