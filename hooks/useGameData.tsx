@@ -9,6 +9,7 @@ import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry,
 import { todayKey, XP_VALUES, getISOWeekKey, getLevelFromXP, getMonthKey } from '@/lib/gameLogic'
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
 import { ACHIEVEMENTS } from '@/lib/achievements'
+import { DAILY_QUESTS_POOL, SIDE_QUESTS } from '@/lib/questData'
 import { Pillar } from '@/types'
 import { useToast } from '@/components/ToastProvider'
 import { useAchievementUnlock } from '@/components/AchievementUnlockModal'
@@ -631,6 +632,11 @@ export function useGameData() {
       .map(d => ({ dateKey: d.id, ...(d.data() as DailyLog) }))
       .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
 
+    // Build quest lookup maps
+    const questPillarMap: Record<string, { pillar: Pillar; xp: number }> = {}
+    for (const q of DAILY_QUESTS_POOL) questPillarMap[q.id] = { pillar: q.pillar as Pillar, xp: XP_VALUES.dailyQuest }
+    for (const q of SIDE_QUESTS) questPillarMap[q.id] = { pillar: q.pillar as Pillar, xp: q.xp }
+
     let fromLogs = 0
     let totalRoutinesCompleted = 0
     let totalQuestsCompleted = 0
@@ -640,6 +646,7 @@ export function useGameData() {
     let highestDayXP = 0
     let consecutiveNormalDays = 0
     let consecutivePerfectMornings = 0
+    const pillarXP: UserStats['pillarXP'] = { pozycja: 0, cialo: 0, styl: 0, kapital: 0, kariera: 0, tozsamosc: 0, milosc: 0 }
 
     for (const log of logEntries) {
       const xp = (Number.isFinite(log.totalXP) && log.totalXP > 0) ? log.totalXP : 0
@@ -652,6 +659,23 @@ export function useGameData() {
       if (log.ghostProtocolCompleted) totalGhostProtocols++
       if (log.dayMode !== 'minimum') consecutiveNormalDays++
       else consecutiveNormalDays = 0
+
+      // Pillar XP from daily quests
+      for (const qid of (log.completedDailyQuests ?? [])) {
+        const q = questPillarMap[qid]
+        if (q) pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
+      }
+      // Pillar XP from side quests
+      for (const qid of (log.completedSideQuests ?? [])) {
+        const q = questPillarMap[qid]
+        if (q) pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
+      }
+      // Pillar XP from custom side quests (pillar + xp stored directly in log)
+      for (const csq of (log.customSideQuests ?? [])) {
+        if (csq.pillar && pillarXP[csq.pillar as Pillar] !== undefined) {
+          pillarXP[csq.pillar as Pillar] = (pillarXP[csq.pillar as Pillar] ?? 0) + (csq.xp ?? 0)
+        }
+      }
     }
 
     // ── Streak computation ──
@@ -710,7 +734,7 @@ export function useGameData() {
       consecutivePerfectMornings,
       reviewedWeeks,
       reviewedMonths,
-      pillarXP: { pozycja: 1, cialo: 1, styl: 1, kapital: 1, kariera: 1, tozsamosc: 1, milosc: 1 },
+      pillarXP,
     }
 
     const unlockedAchievements: string[] = []
