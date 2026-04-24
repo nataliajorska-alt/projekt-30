@@ -637,6 +637,19 @@ export function useGameData() {
     for (const q of DAILY_QUESTS_POOL) questPillarMap[q.id] = { pillar: q.pillar as Pillar, xp: XP_VALUES.dailyQuest }
     for (const q of SIDE_QUESTS) questPillarMap[q.id] = { pillar: q.pillar as Pillar, xp: q.xp }
 
+    // Fallback: guess pillar from ID prefix for quests not in current list
+    const guessPillarFromId = (id: string): { pillar: Pillar; xp: number } | null => {
+      if (id.startsWith('sq_poz') || id.startsWith('dq_1') || id.startsWith('dq_6') || id.startsWith('dq_10')) return { pillar: 'pozycja', xp: 120 }
+      if (id.startsWith('sq_ciao') || id.startsWith('sq_life') || id.startsWith('dq_3')) return { pillar: 'cialo', xp: 120 }
+      if (id.startsWith('sq_styl') || id.startsWith('dq_8')) return { pillar: 'styl', xp: 100 }
+      if (id.startsWith('sq_kap') || id.startsWith('dq_5')) return { pillar: 'kapital', xp: 120 }
+      if (id.startsWith('sq_kar') || id.startsWith('dq_2') || id.startsWith('dq_7')) return { pillar: 'kariera', xp: 120 }
+      if (id.startsWith('sq_toz') || id.startsWith('dq_4')) return { pillar: 'tozsamosc', xp: 100 }
+      if (id.startsWith('sq_mil') || id.startsWith('dq_9')) return { pillar: 'milosc', xp: 120 }
+      if (id.startsWith('rq_')) return { pillar: 'pozycja', xp: 30 }
+      return null
+    }
+
     let fromLogs = 0
     let totalRoutinesCompleted = 0
     let totalQuestsCompleted = 0
@@ -662,12 +675,12 @@ export function useGameData() {
 
       // Pillar XP from daily quests
       for (const qid of (log.completedDailyQuests ?? [])) {
-        const q = questPillarMap[qid]
+        const q = questPillarMap[qid] ?? guessPillarFromId(qid)
         if (q) pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
       }
       // Pillar XP from side quests
       for (const qid of (log.completedSideQuests ?? [])) {
-        const q = questPillarMap[qid]
+        const q = questPillarMap[qid] ?? guessPillarFromId(qid)
         if (q) pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
       }
       // Pillar XP from custom side quests (pillar + xp stored directly in log)
