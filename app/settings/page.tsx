@@ -961,6 +961,7 @@ function NominatedContactsSection() {
 type RecoveryBreakdown = {
   fromLogs: number; fromWeeklyReviews: number; fromMonthlyReviews: number
   fromAchievements: number; total: number; weeklyCount: number; monthlyCount: number; achievementsCount: number
+  unknownSideQuestCount: number; unknownSideQuestXP: number
 }
 
 function XPRecoverySection() {
@@ -1019,6 +1020,11 @@ function XPRecoverySection() {
           <p className="font-sans text-xs text-muted">Przeglądy tygodniowe ({breakdown.weeklyCount} × 150): {breakdown.fromWeeklyReviews}</p>
           <p className="font-sans text-xs text-muted">Przeglądy miesięczne ({breakdown.monthlyCount} × 300): {breakdown.fromMonthlyReviews}</p>
           <p className="font-sans text-xs text-muted">Osiągnięcia ({breakdown.achievementsCount} odblokowanych): {breakdown.fromAchievements}</p>
+          {breakdown.unknownSideQuestCount > 0 && (
+            <p className="font-sans text-xs text-amber-600 mt-1">
+              ⚠ {breakdown.unknownSideQuestCount} side questów z nierozpoznanym ID (łącznie ~{breakdown.unknownSideQuestXP} XP) — XP rozdzielone po równo między filary
+            </p>
+          )}
         </div>
       )}
 

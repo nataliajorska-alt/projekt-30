@@ -660,6 +660,8 @@ export function useGameData() {
     let consecutiveNormalDays = 0
     let consecutivePerfectMornings = 0
     const pillarXP: UserStats['pillarXP'] = { pozycja: 0, cialo: 0, styl: 0, kapital: 0, kariera: 0, tozsamosc: 0, milosc: 0 }
+    let unknownSideQuestCount = 0
+    let unknownSideQuestXP = 0
 
     for (const log of logEntries) {
       const xp = (Number.isFinite(log.totalXP) && log.totalXP > 0) ? log.totalXP : 0
@@ -691,7 +693,9 @@ export function useGameData() {
         if (q) {
           pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
         } else {
-          // Unknown ID — spread equally across all pillars
+          // Unknown ID — track for diagnosis + spread equally across all pillars
+          unknownSideQuestCount++
+          unknownSideQuestXP += 120
           const share = Math.round(120 / 7)
           for (const p of ALL_PILLARS_LIST) pillarXP[p] = (pillarXP[p] ?? 0) + share
         }
@@ -799,6 +803,8 @@ export function useGameData() {
         weeklyCount: reviewedWeeks.length,
         monthlyCount: reviewedMonths.length,
         achievementsCount: unlockedAchievements.length,
+        unknownSideQuestCount,
+        unknownSideQuestXP,
       },
     }
   }, [user, currentDateKey])
