@@ -17,7 +17,7 @@ import type { WeeklyReview, MonthlyReview } from '@/types'
 import PillarTrendChart from '@/components/PillarTrendChart'
 import clsx from 'clsx'
 
-type Mode = 'weekly' | 'monthly' | 'archive'
+type Mode = 'weekly' | 'monthly' | 'archive' | 'progress'
 
 const PL_MONTH_NAMES = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień']
 
@@ -46,9 +46,10 @@ export default function ReviewPage() {
       {/* Mode switcher */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
         {([
-          { key: 'weekly',  label: 'Tygodniowy' },
-          { key: 'monthly', label: 'Miesięczny' },
-          { key: 'archive', label: 'Archiwum' },
+          { key: 'weekly',   label: 'Tygodniowy' },
+          { key: 'monthly',  label: 'Miesięczny' },
+          { key: 'archive',  label: 'Archiwum' },
+          { key: 'progress', label: 'Postęp' },
         ] as { key: Mode; label: string }[]).map(({ key, label }) => (
           <button
             key={key}
@@ -104,6 +105,7 @@ export default function ReviewPage() {
           loading={historyLoading}
         />
       )}
+      {mode === 'progress' && <ProgressTab stats={stats} />}
     </div>
   )
 }
