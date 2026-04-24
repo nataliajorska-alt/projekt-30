@@ -1,7 +1,7 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  doc, setDoc, onSnapshot,
+  doc, setDoc, onSnapshot, collection, getDocs,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
@@ -55,6 +55,7 @@ export function useGameData() {
   const [todayLog, setTodayLog] = useState<DailyLog | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentDateKey, setCurrentDateKey] = useState<string>(todayKey())
+  const statsLoadedRef = useRef(false)
 
   // Refresh currentDateKey when the effective day rolls over (after DAY_START_HOUR).
   useEffect(() => {
@@ -77,8 +78,17 @@ export function useGameData() {
 
     unsub1 = onSnapshot(statsRef,
       (snap) => {
-        if (snap.exists()) setStats({ ...DEFAULT_STATS, ...(snap.data() as UserStats) })
-        else setDoc(statsRef, DEFAULT_STATS)
+        if (snap.exists()) {
+          const data = snap.data() as UserStats
+          const safeXP = Number.isFinite(data.totalXP) && data.totalXP >= 0 ? data.totalXP : 0
+          if (!Number.isFinite(data.totalXP) || data.totalXP < 0) {
+            setDoc(statsRef!, { totalXP: safeXP }, { merge: true })
+          }
+          setStats({ ...DEFAULT_STATS, ...data, totalXP: safeXP })
+          statsLoadedRef.current = true
+        } else {
+          setDoc(statsRef!, DEFAULT_STATS)
+        }
       },
       (err) => { addToast({ message: 'Błąd ładowania statystyk. Odśwież stronę.', type: 'error' }); setLoading(false) }
     )
@@ -219,7 +229,7 @@ export function useGameData() {
   }, [currentDateKey, addToast])
 
   const toggleRoutine = useCallback(async (itemId: string, xp: number) => {
-    if (!user || !statsRef || !todayRef || !todayLog) return
+    if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const current = todayLog.completedRoutine ?? []
     const completed = current.includes(itemId)
     const newCompleted = completed
@@ -300,7 +310,7 @@ export function useGameData() {
   }, [user, todayLog, stats, statsRef, todayRef, currentDateKey, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
   const toggleDailyQuest = useCallback(async (questId: string, pillar: Pillar) => {
-    if (!user || !statsRef || !todayRef || !todayLog) return
+    if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const currentDQ = todayLog.completedDailyQuests ?? []
     const completed = currentDQ.includes(questId)
     const newCompleted = completed
@@ -330,7 +340,7 @@ export function useGameData() {
   }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkLevelUp])
 
   const toggleSideQuest = useCallback(async (questId: string, pillar: Pillar, xp: number) => {
-    if (!user || !statsRef || !todayRef || !todayLog) return
+    if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const currentSQ = todayLog.completedSideQuests ?? []
     const completed = currentSQ.includes(questId)
     const newCompleted = completed
@@ -360,7 +370,7 @@ export function useGameData() {
   }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkLevelUp])
 
   const toggleRule = useCallback(async (ruleId: string) => {
-    if (!user || !statsRef || !todayRef || !todayLog) return
+    if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const currentRules = todayLog.keptRules ?? []
     const kept = currentRules.includes(ruleId)
     const newKept = kept
@@ -385,7 +395,7 @@ export function useGameData() {
   }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
   const submitWeeklyReview = useCallback(async (weekStart: string): Promise<boolean> => {
-    if (!user || !statsRef) return false
+    if (!user || !statsRef || !statsLoadedRef.current) return false
     const reviewed = stats.reviewedWeeks ?? []
     if (reviewed.includes(weekStart)) return false
 
@@ -404,7 +414,7 @@ export function useGameData() {
   }, [user, stats, statsRef, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
   const submitMonthlyReview = useCallback(async (monthKey: string): Promise<boolean> => {
-    if (!user || !statsRef) return false
+    if (!user || !statsRef || !statsLoadedRef.current) return false
     const reviewed = stats.reviewedMonths ?? []
     if (reviewed.includes(monthKey)) return false
 
@@ -433,7 +443,7 @@ export function useGameData() {
 
   // Ghost Protocol: grants XP + marks today's log + tracks behavioral stats
   const completeGhostProtocol = useCallback(async () => {
-    if (!user || !statsRef) return
+    if (!user || !statsRef || !statsLoadedRef.current) return
     const withStreak = await applyStreakIfNeeded(stats)
     const today = currentDateKey
 
@@ -484,7 +494,7 @@ export function useGameData() {
   }, [user, todayRef, todayLog])
 
   const saveMoodCheckIn = useCallback(async (checkin: Omit<MoodCheckIn, 'timestamp'>) => {
-    if (!user || !statsRef || !todayRef || !todayLog) return
+    if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const existing = todayLog.moodCheckIns ?? []
     if (existing.length >= 3) return
     const newCheckIn: MoodCheckIn = { ...checkin, timestamp: Date.now() }
@@ -521,7 +531,7 @@ export function useGameData() {
   }, [user, todayRef])
 
   const completeReturnCeremony = useCallback(async () => {
-    if (!user || !statsRef) return
+    if (!user || !statsRef || !statsLoadedRef.current) return
     const newStats: UserStats = {
       ...stats,
       totalXP: stats.totalXP + XP_VALUES.returnCeremony,
@@ -535,7 +545,7 @@ export function useGameData() {
 
   // Ghost Protocol V2: +10 za zalogowanie impulsu, +30 bonus jeśli bez kontaktu
   const recordGhostImpulseV2 = useCallback(async (hadContact: boolean) => {
-    if (!user || !statsRef) return
+    if (!user || !statsRef || !statsLoadedRef.current) return
     const xp = hadContact ? 10 : 40
     const today = currentDateKey
     const withStreak = await applyStreakIfNeeded(stats)
@@ -565,7 +575,7 @@ export function useGameData() {
   }, [user, stats, statsRef, todayRef, currentDateKey, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
 
   const logCustomSideQuest = useCallback(async (title: string, pillar: Pillar, xp: number) => {
-    if (!user || !statsRef || !todayRef || !todayLog) return
+    if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const entry: CustomSideQuestEntry = { id: `csq_${Date.now()}`, title, pillar, xp }
     const current = todayLog.customSideQuests ?? []
     const withStreak = await applyStreakIfNeeded(stats)
@@ -587,7 +597,7 @@ export function useGameData() {
 
   // Honest Failure Log: +15 XP za uczciwość
   const recordHonestFailure = useCallback(async () => {
-    if (!user || !statsRef) return
+    if (!user || !statsRef || !statsLoadedRef.current) return
     const withStreak = await applyStreakIfNeeded(stats)
     const newStats: UserStats = {
       ...withStreak,
@@ -605,6 +615,31 @@ export function useGameData() {
 
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(getMonthKey(new Date()))
 
+  // Recalculates totalXP by summing all daily logs + reviews + achievements.
+  // Returns the recovered XP value without writing — caller decides whether to apply.
+  const recoverXP = useCallback(async (): Promise<number> => {
+    if (!user) return 0
+    const snap = await getDocs(collection(db, 'users', user.uid, 'logs'))
+    let xpFromLogs = 0
+    snap.forEach(d => {
+      const raw = d.data().totalXP
+      if (Number.isFinite(raw) && raw > 0) xpFromLogs += raw
+    })
+    const reviewXP =
+      (stats.reviewedWeeks?.length ?? 0) * (XP_VALUES.weeklyReview ?? 0) +
+      (stats.reviewedMonths?.length ?? 0) * (XP_VALUES.monthlyReview ?? 0)
+    const achXP = (stats.unlockedAchievements ?? []).reduce((acc, id) => {
+      const a = ACHIEVEMENTS.find(a => a.id === id)
+      return acc + (a?.xpReward ?? 0)
+    }, 0)
+    return xpFromLogs + reviewXP + achXP
+  }, [user, stats])
+
+  const applyRecoveredXP = useCallback(async (recoveredXP: number) => {
+    if (!user || !statsRef) return
+    await setDoc(statsRef, { totalXP: recoveredXP }, { merge: true })
+  }, [user, statsRef])
+
   return {
     stats, todayLog, loading,
     toggleRoutine, toggleDailyQuest, toggleSideQuest, toggleRule,
@@ -612,5 +647,6 @@ export function useGameData() {
     streakFreezeAvailable, completeGhostProtocol, toggleSocialPresence, togglePhysicalActivity,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
     recordGhostImpulseV2, recordHonestFailure, logCustomSideQuest,
+    recoverXP, applyRecoveredXP,
   }
 }

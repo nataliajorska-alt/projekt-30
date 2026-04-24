@@ -8,13 +8,14 @@ import {
   reauthenticateWithCredential,
   updatePassword,
 } from 'firebase/auth'
-import { LogOut, Lock, Mail, Download, Printer, Sun, Moon, Sparkles, Plus, X, RotateCcw, Bell, Phone } from 'lucide-react'
+import { LogOut, Lock, Mail, Download, Printer, Sun, Moon, Sparkles, Plus, X, RotateCcw, Bell, Phone, ShieldAlert } from 'lucide-react'
 import { useNominatedContacts } from '@/hooks/useNominatedContacts'
 import type { NominatedContact } from '@/types'
 import { exportLogsAsCSV, exportQuestsAsCSV, exportReviewsAsCSV } from '@/lib/exportData'
 import type { DateRange } from '@/lib/exportData'
 import { useRoutineConfig } from '@/hooks/useRoutineConfig'
 import { useSparkSchedule } from '@/hooks/useSparkSchedule'
+import { useGameData } from '@/hooks/useGameData'
 import {
   loadPreferences,
   savePreferences,
@@ -42,6 +43,7 @@ export default function SettingsPage() {
         <NotificationsSection />
         <NominatedContactsSection />
         <RoutineEditSection />
+        <XPRecoverySection />
       </div>
     </div>
   )
@@ -950,6 +952,90 @@ function NominatedContactsSection() {
       {saved && (
         <p className="font-sans text-xs text-forest mt-2 animate-fade-in">Zapisano ✓</p>
       )}
+    </div>
+  )
+}
+
+/* ─── Odzyskiwanie XP ─── */
+
+function XPRecoverySection() {
+  const { stats, recoverXP, applyRecoveredXP } = useGameData()
+  const [recovered, setRecovered] = useState<number | null>(null)
+  const [scanning, setScanning] = useState(false)
+  const [applying, setApplying] = useState(false)
+  const [done, setDone] = useState(false)
+
+  const handleScan = async () => {
+    setScanning(true)
+    setRecovered(null)
+    setDone(false)
+    try {
+      const xp = await recoverXP()
+      setRecovered(xp)
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  const handleApply = async () => {
+    if (recovered === null) return
+    setApplying(true)
+    try {
+      await applyRecoveredXP(recovered)
+      setDone(true)
+    } finally {
+      setApplying(false)
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl shadow-elegant p-6">
+      <h2 className="font-serif text-lg text-dark mb-1 flex items-center gap-2">
+        <ShieldAlert size={18} strokeWidth={1.5} className="text-muted" />
+        Odzyskiwanie XP
+      </h2>
+      <p className="font-sans text-xs text-muted mb-4">
+        Jeśli XP zniknęło — użyj tego narzędzia. Przeskanuje wszystkie Twoje wpisy i wyliczy XP od nowa.
+      </p>
+
+      <p className="font-sans text-sm text-dark mb-4">
+        Aktualne XP: <span className="font-semibold text-gold">{stats.totalXP}</span>
+      </p>
+
+      {recovered !== null && !done && (
+        <div className="bg-cream/60 rounded-xl p-4 mb-4">
+          <p className="font-sans text-sm text-dark">
+            Odzyskane XP z logów: <span className="font-semibold text-forest">{recovered}</span>
+          </p>
+          <p className="font-sans text-xs text-muted mt-1">
+            Obejmuje XP z rutyny, questów, zasad, check-inów nastroju, przeglądów i osiągnięć.
+          </p>
+        </div>
+      )}
+
+      {done && (
+        <p className="font-sans text-sm text-forest mb-4">XP zostało przywrócone ✓</p>
+      )}
+
+      <div className="flex gap-3">
+        <button
+          onClick={handleScan}
+          disabled={scanning}
+          className="font-sans text-sm px-4 py-2 rounded-xl border border-muted/30 text-dark hover:bg-cream/60 transition-colors disabled:opacity-50"
+        >
+          {scanning ? 'Skanowanie…' : 'Skanuj logi'}
+        </button>
+
+        {recovered !== null && !done && (
+          <button
+            onClick={handleApply}
+            disabled={applying}
+            className="font-sans text-sm px-4 py-2 rounded-xl bg-forest text-ivory hover:bg-forest/90 transition-colors disabled:opacity-50"
+          >
+            {applying ? 'Przywracam…' : `Przywróć ${recovered} XP`}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

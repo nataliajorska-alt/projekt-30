@@ -50,7 +50,7 @@ export function useHabitAnalytics(logs: LogMap): HabitAnalytics {
   return useMemo(() => {
     const sortedKeys = Object.keys(logs).sort()
     if (sortedKeys.length === 0) {
-      return { byWeek: [], byMonth: [], ruleStats: [], totalDaysLogged: 0, overallAvgCompletion: 0 }
+      return { byWeek: [], byMonth: [], ruleStats: [], totalDaysLogged: 0, overallAvgCompletion: 0, totalActivityDays: 0 }
     }
 
     // Per-day completion rates
