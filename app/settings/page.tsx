@@ -961,7 +961,7 @@ function NominatedContactsSection() {
 type RecoveryBreakdown = {
   fromLogs: number; fromWeeklyReviews: number; fromMonthlyReviews: number
   fromAchievements: number; total: number; weeklyCount: number; monthlyCount: number; achievementsCount: number
-  unknownSideQuestCount: number; unknownSideQuestXP: number
+  unknownQuestIds: Array<{ id: string; count: number; xpEach: number; type: 'daily' | 'side' }>
 }
 
 const PILLAR_NAMES: Record<string, string> = {
@@ -976,11 +976,13 @@ function XPRecoverySection() {
   const [scanning, setScanning] = useState(false)
   const [applying, setApplying] = useState(false)
   const [done, setDone] = useState(false)
+  const [pillarAssignments, setPillarAssignments] = useState<Record<string, string>>({})
 
   const handleScan = async () => {
     setScanning(true)
     setBreakdown(null)
     setRecoveredStats(null)
+    setPillarAssignments({})
     setDone(false)
     try {
       const r = await recoverStats()
@@ -997,7 +999,19 @@ function XPRecoverySection() {
     if (!recoveredStats) return
     setApplying(true)
     try {
-      await applyRecoveredStats(recoveredStats)
+      let finalStats = recoveredStats
+      if (breakdown && Object.keys(pillarAssignments).length > 0) {
+        const patchedPillarXP = { ...finalStats.pillarXP }
+        for (const { id, count, xpEach } of breakdown.unknownQuestIds) {
+          const pillar = pillarAssignments[id]
+          if (pillar && pillar in patchedPillarXP) {
+            (patchedPillarXP as Record<string, number>)[pillar] =
+              ((patchedPillarXP as Record<string, number>)[pillar] ?? 0) + count * xpEach
+          }
+        }
+        finalStats = { ...finalStats, pillarXP: patchedPillarXP }
+      }
+      await applyRecoveredStats(finalStats)
       setDone(true)
     } finally {
       setApplying(false)
@@ -1025,17 +1039,43 @@ function XPRecoverySection() {
           <p className="font-sans text-xs text-muted">Przeglądy tygodniowe ({breakdown.weeklyCount} × 150): {breakdown.fromWeeklyReviews}</p>
           <p className="font-sans text-xs text-muted">Przeglądy miesięczne ({breakdown.monthlyCount} × 300): {breakdown.fromMonthlyReviews}</p>
           <p className="font-sans text-xs text-muted">Osiągnięcia ({breakdown.achievementsCount} odblokowanych): {breakdown.fromAchievements}</p>
-          {breakdown.unknownSideQuestCount > 0 && (
-            <p className="font-sans text-xs text-amber-600 mt-1">
-              ⚠ {breakdown.unknownSideQuestCount} side questów z nierozpoznanym ID (~{breakdown.unknownSideQuestXP} XP) — XP rozdzielone po równo między filary
-            </p>
+          {breakdown.unknownQuestIds.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-amber-200">
+              <p className="font-sans text-xs text-amber-700 font-semibold mb-2">
+                Nierozpoznane ID ({breakdown.unknownQuestIds.length}) — wybierz filar żeby przypisać XP:
+              </p>
+              {breakdown.unknownQuestIds.map(({ id, count, xpEach, type }) => (
+                <div key={id} className="flex items-center gap-2 mb-1.5">
+                  <span className="font-mono text-xs text-muted flex-1 min-w-0 truncate">
+                    {id} ×{count} ({count * xpEach} XP, {type === 'daily' ? 'dzienny' : 'side'})
+                  </span>
+                  <select
+                    value={pillarAssignments[id] ?? ''}
+                    onChange={e => setPillarAssignments(prev => ({ ...prev, [id]: e.target.value }))}
+                    className="font-sans text-xs border border-muted/30 rounded px-1 py-0.5 bg-white shrink-0"
+                  >
+                    <option value="">— filary —</option>
+                    {Object.entries(PILLAR_NAMES).map(([k, v]) => (
+                      <option key={k} value={k}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
           )}
           {recoveredStats && (
             <div className="mt-3 pt-3 border-t border-muted/10">
-              <p className="font-sans text-xs text-muted font-semibold mb-1">Rekonstrukcja pillarXP:</p>
+              <p className="font-sans text-xs text-muted font-semibold mb-1">Rekonstrukcja pillarXP (bez nieprzypisanych):</p>
               {Object.entries(recoveredStats.pillarXP).map(([p, xp]) => (
                 <p key={p} className="font-sans text-xs text-muted">
                   {PILLAR_NAMES[p] ?? p}: <span className="text-dark font-medium">{xp} XP</span>
+                  {pillarAssignments && breakdown?.unknownQuestIds.some(u => pillarAssignments[u.id] === p) && (
+                    <span className="text-forest ml-1">
+                      +{breakdown.unknownQuestIds
+                        .filter(u => pillarAssignments[u.id] === p)
+                        .reduce((s, u) => s + u.count * u.xpEach, 0)} XP (ręcznie)
+                    </span>
+                  )}
                 </p>
               ))}
             </div>
