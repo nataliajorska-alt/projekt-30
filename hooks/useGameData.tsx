@@ -660,8 +660,6 @@ export function useGameData() {
     let consecutiveNormalDays = 0
     let consecutivePerfectMornings = 0
     const pillarXP: UserStats['pillarXP'] = { pozycja: 0, cialo: 0, styl: 0, kapital: 0, kariera: 0, tozsamosc: 0, milosc: 0 }
-    const unknownDailyMap: Record<string, number> = {}
-    const unknownSideMap: Record<string, number> = {}
 
     for (const log of logEntries) {
       const xp = (Number.isFinite(log.totalXP) && log.totalXP > 0) ? log.totalXP : 0
@@ -682,7 +680,8 @@ export function useGameData() {
         if (q) {
           pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
         } else {
-          unknownDailyMap[qid] = (unknownDailyMap[qid] ?? 0) + 1
+          const share = Math.round(XP_VALUES.dailyQuest / 7)
+          for (const p of ALL_PILLARS_LIST) pillarXP[p] = (pillarXP[p] ?? 0) + share
         }
       }
       // Pillar XP from side quests
@@ -691,7 +690,8 @@ export function useGameData() {
         if (q) {
           pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
         } else {
-          unknownSideMap[qid] = (unknownSideMap[qid] ?? 0) + 1
+          const share = Math.round(120 / 7)
+          for (const p of ALL_PILLARS_LIST) pillarXP[p] = (pillarXP[p] ?? 0) + share
         }
       }
       // Pillar XP from custom side quests (pillar + xp stored directly in log)
@@ -786,11 +786,6 @@ export function useGameData() {
       lastStreakDate: logDates[logDates.length - 1] ?? null,
     }
 
-    const unknownQuestIds: Array<{ id: string; count: number; xpEach: number; type: 'daily' | 'side' }> = [
-      ...Object.entries(unknownDailyMap).map(([id, count]) => ({ id, count, xpEach: XP_VALUES.dailyQuest, type: 'daily' as const })),
-      ...Object.entries(unknownSideMap).map(([id, count]) => ({ id, count, xpEach: 120, type: 'side' as const })),
-    ]
-
     return {
       reconstructedStats,
       breakdown: {
@@ -802,7 +797,6 @@ export function useGameData() {
         weeklyCount: reviewedWeeks.length,
         monthlyCount: reviewedMonths.length,
         achievementsCount: unlockedAchievements.length,
-        unknownQuestIds,
       },
     }
   }, [user, currentDateKey])
