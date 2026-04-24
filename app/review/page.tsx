@@ -570,7 +570,7 @@ function ContinuityBanner({ show, onToggle, label, focusLabel, focusText, pillar
 
 // ---------- Archive tab (Podsumowanie + Historia przeglądów) ----------
 
-type ArchiveSubTab = 'przeglądy' | 'statystyki'
+type ArchiveSubTab = 'przeglądy' | 'statystyki' | 'sidequesty'
 
 interface ArchiveTabProps {
   logs: ReturnType<typeof useTimelineData>['logs']
@@ -588,6 +588,7 @@ function ArchiveTab({ logs, weeklyReviews, monthlyReviews, loading }: ArchiveTab
         {([
           { key: 'przeglądy' as const, label: 'Przeglądy' },
           { key: 'statystyki' as const, label: 'Statystyki' },
+          { key: 'sidequesty' as const, label: 'Side questy' },
         ]).map(({ key, label }) => (
           <button
             key={key}
@@ -612,6 +613,72 @@ function ArchiveTab({ logs, weeklyReviews, monthlyReviews, loading }: ArchiveTab
         />
       )}
       {sub === 'statystyki' && <MonthlySummaryTab logs={logs} />}
+      {sub === 'sidequesty' && <SideQuestHistoryTab logs={logs} />}
+    </div>
+  )
+}
+
+// ---------- All-time side quest history ----------
+
+function SideQuestHistoryTab({ logs }: { logs: ReturnType<typeof useTimelineData>['logs'] }) {
+  const questMap = useMemo(
+    () => Object.fromEntries(SIDE_QUESTS.map(q => [q.id, q])),
+    []
+  )
+
+  const allCompleted = useMemo(() => {
+    const result: { questId: string; date: string; title: string; pillar: string; xp: number }[] = []
+    const sorted = Object.keys(logs).sort().reverse()
+    for (const dateKey of sorted) {
+      const log = logs[dateKey]
+      for (const qid of log.completedSideQuests ?? []) {
+        const q = questMap[qid]
+        result.push({
+          questId: qid,
+          date: dateKey,
+          title: q?.title ?? qid,
+          pillar: q?.pillar ?? '—',
+          xp: q?.xp ?? 120,
+        })
+      }
+      for (const csq of log.customSideQuests ?? []) {
+        result.push({
+          questId: csq.id,
+          date: dateKey,
+          title: csq.title,
+          pillar: csq.pillar,
+          xp: csq.xp,
+        })
+      }
+    }
+    return result
+  }, [logs, questMap])
+
+  if (allCompleted.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl shadow-elegant p-6 text-center">
+        <p className="font-sans text-sm text-muted">Brak ukończonych side questów w logach.</p>
+      </div>
+    )
+  }
+
+  const totalXP = allCompleted.reduce((s, q) => s + q.xp, 0)
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-white rounded-2xl shadow-elegant p-4 flex justify-between items-center">
+        <p className="font-sans text-sm text-dark">Łącznie ukończonych: <span className="font-semibold">{allCompleted.length}</span></p>
+        <p className="font-sans text-sm text-gold font-semibold">{totalXP.toLocaleString('pl-PL')} XP</p>
+      </div>
+      {allCompleted.map((entry, i) => (
+        <div key={`${entry.questId}-${entry.date}-${i}`} className="bg-white rounded-xl shadow-elegant px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="font-sans text-sm text-dark truncate">{entry.title}</p>
+            <p className="font-sans text-xs text-muted">{entry.date} · {entry.pillar}</p>
+          </div>
+          <p className="font-sans text-xs text-gold font-semibold shrink-0">+{entry.xp} XP</p>
+        </div>
+      ))}
     </div>
   )
 }
