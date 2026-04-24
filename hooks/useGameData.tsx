@@ -615,10 +615,10 @@ export function useGameData() {
 
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(getMonthKey(new Date()))
 
-  // Recalculates totalXP by reading all daily logs + review docs + achievements.
-  // Returns breakdown so the UI can show what was found.
-  const recoverXP = useCallback(async (): Promise<{ total: number; fromLogs: number; fromWeeklyReviews: number; fromMonthlyReviews: number; weeklyCount: number; monthlyCount: number }> => {
-    if (!user) return { total: 0, fromLogs: 0, fromWeeklyReviews: 0, fromMonthlyReviews: 0, weeklyCount: 0, monthlyCount: 0 }
+  // Full stats reconstruction from Firestore source documents.
+  // Reads daily logs, weekly/monthly review docs, re-evaluates achievement conditions.
+  const recoverStats = useCallback(async () => {
+    if (!user) return null
 
     const [logsSnap, weeklySnap, monthlySnap] = await Promise.all([
       getDocs(collection(db, 'users', user.uid, 'logs')),
@@ -626,25 +626,130 @@ export function useGameData() {
       getDocs(collection(db, 'users', user.uid, 'monthlyReviews')),
     ])
 
+    // ── Reconstruct counters from daily logs ──
+    const logEntries = logsSnap.docs
+      .map(d => ({ dateKey: d.id, ...(d.data() as DailyLog) }))
+      .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+
     let fromLogs = 0
-    logsSnap.forEach(d => {
-      const raw = d.data().totalXP
-      if (Number.isFinite(raw) && raw > 0) fromLogs += raw
-    })
+    let totalRoutinesCompleted = 0
+    let totalQuestsCompleted = 0
+    let totalSideQuestsCompleted = 0
+    let totalRulesKept = 0
+    let totalGhostProtocols = 0
+    let highestDayXP = 0
+    let consecutiveNormalDays = 0
+    let consecutivePerfectMornings = 0
 
-    const weeklyCount = weeklySnap.size
-    const fromWeeklyReviews = weeklyCount * XP_VALUES.weeklyReview
+    for (const log of logEntries) {
+      const xp = (Number.isFinite(log.totalXP) && log.totalXP > 0) ? log.totalXP : 0
+      fromLogs += xp
+      highestDayXP = Math.max(highestDayXP, xp)
+      totalRoutinesCompleted += log.completedRoutine?.length ?? 0
+      totalQuestsCompleted += log.completedDailyQuests?.length ?? 0
+      totalSideQuestsCompleted += (log.completedSideQuests?.length ?? 0) + (log.customSideQuests?.length ?? 0)
+      totalRulesKept += log.keptRules?.length ?? 0
+      if (log.ghostProtocolCompleted) totalGhostProtocols++
+      if (log.dayMode !== 'minimum') consecutiveNormalDays++
+      else consecutiveNormalDays = 0
+    }
 
-    const monthlyCount = monthlySnap.size
-    const fromMonthlyReviews = monthlyCount * XP_VALUES.monthlyReview
+    // ── Streak computation ──
+    const logDates = logEntries.map(l => l.dateKey)
+    let longestStreak = logDates.length > 0 ? 1 : 0
+    let tempStreak = 1
+    for (let i = 1; i < logDates.length; i++) {
+      const diff = Math.round(
+        (new Date(logDates[i]).getTime() - new Date(logDates[i - 1]).getTime()) / 86400000
+      )
+      tempStreak = diff === 1 ? tempStreak + 1 : 1
+      longestStreak = Math.max(longestStreak, tempStreak)
+    }
 
-    const total = fromLogs + fromWeeklyReviews + fromMonthlyReviews
-    return { total, fromLogs, fromWeeklyReviews, fromMonthlyReviews, weeklyCount, monthlyCount }
-  }, [user])
+    // Current streak (backwards from last log)
+    let currentStreak = logDates.length > 0 ? 1 : 0
+    for (let i = logDates.length - 1; i > 0; i--) {
+      const diff = Math.round(
+        (new Date(logDates[i]).getTime() - new Date(logDates[i - 1]).getTime()) / 86400000
+      )
+      if (diff === 1) currentStreak++
+      else break
+    }
+    // Zero streak if last log was more than 1 day ago
+    if (logDates.length > 0) {
+      const [y, m, d] = currentDateKey.split('-').map(Number)
+      const todayDate = new Date(y, m - 1, d)
+      const yDate = new Date(todayDate); yDate.setDate(yDate.getDate() - 1)
+      const yKey = `${yDate.getFullYear()}-${String(yDate.getMonth() + 1).padStart(2, '0')}-${String(yDate.getDate()).padStart(2, '0')}`
+      const last = logDates[logDates.length - 1]
+      if (last !== currentDateKey && last !== yKey) currentStreak = 0
+    }
 
-  const applyRecoveredXP = useCallback(async (recoveredXP: number) => {
+    // ── Reviews ──
+    const reviewedWeeks = weeklySnap.docs.map(d => d.id)
+    const reviewedMonths = monthlySnap.docs.map(d => d.id)
+    const fromWeeklyReviews = reviewedWeeks.length * XP_VALUES.weeklyReview
+    const fromMonthlyReviews = reviewedMonths.length * XP_VALUES.monthlyReview
+
+    // ── Achievement evaluation ──
+    // Use longestStreak for historical streak achievements
+    const baseXP = fromLogs + fromWeeklyReviews + fromMonthlyReviews
+    const statsForEval: UserStats = {
+      ...DEFAULT_STATS,
+      totalXP: baseXP,
+      totalDaysLogged: logEntries.length,
+      totalRoutinesCompleted,
+      totalQuestsCompleted,
+      totalSideQuestsCompleted,
+      totalRulesKept,
+      totalGhostProtocols,
+      highestDayXP,
+      currentStreak: longestStreak,    // use longestStreak to catch historical achievements
+      longestStreak,
+      consecutiveNormalDays,
+      consecutivePerfectMornings,
+      reviewedWeeks,
+      reviewedMonths,
+      pillarXP: { pozycja: 1, cialo: 1, styl: 1, kapital: 1, kariera: 1, tozsamosc: 1, milosc: 1 },
+    }
+
+    const unlockedAchievements: string[] = []
+    let fromAchievements = 0
+    for (const ach of ACHIEVEMENTS) {
+      if (ach.condition(statsForEval)) {
+        unlockedAchievements.push(ach.id)
+        fromAchievements += ach.xpReward ?? 0
+      }
+    }
+
+    const totalXP = baseXP + fromAchievements
+
+    const reconstructedStats: UserStats = {
+      ...statsForEval,
+      currentStreak,    // actual current streak
+      totalXP,
+      unlockedAchievements,
+      lastStreakDate: logDates[logDates.length - 1] ?? null,
+    }
+
+    return {
+      reconstructedStats,
+      breakdown: {
+        fromLogs,
+        fromWeeklyReviews,
+        fromMonthlyReviews,
+        fromAchievements,
+        total: totalXP,
+        weeklyCount: reviewedWeeks.length,
+        monthlyCount: reviewedMonths.length,
+        achievementsCount: unlockedAchievements.length,
+      },
+    }
+  }, [user, currentDateKey])
+
+  const applyRecoveredStats = useCallback(async (reconstructedStats: UserStats) => {
     if (!user || !statsRef) return
-    await setDoc(statsRef, { totalXP: recoveredXP }, { merge: true })
+    await setDoc(statsRef, reconstructedStats)
   }, [user, statsRef])
 
   return {
@@ -654,6 +759,6 @@ export function useGameData() {
     streakFreezeAvailable, completeGhostProtocol, toggleSocialPresence, togglePhysicalActivity,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
     recordGhostImpulseV2, recordHonestFailure, logCustomSideQuest,
-    recoverXP, applyRecoveredXP,
+    recoverStats, applyRecoveredStats,
   }
 }

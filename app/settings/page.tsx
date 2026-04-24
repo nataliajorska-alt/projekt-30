@@ -958,32 +958,40 @@ function NominatedContactsSection() {
 
 /* ─── Odzyskiwanie XP ─── */
 
-type RecoveryResult = { total: number; fromLogs: number; fromWeeklyReviews: number; fromMonthlyReviews: number; weeklyCount: number; monthlyCount: number }
+type RecoveryBreakdown = {
+  fromLogs: number; fromWeeklyReviews: number; fromMonthlyReviews: number
+  fromAchievements: number; total: number; weeklyCount: number; monthlyCount: number; achievementsCount: number
+}
 
 function XPRecoverySection() {
-  const { stats, recoverXP, applyRecoveredXP } = useGameData()
-  const [result, setResult] = useState<RecoveryResult | null>(null)
+  const { stats, recoverStats, applyRecoveredStats } = useGameData()
+  const [breakdown, setBreakdown] = useState<RecoveryBreakdown | null>(null)
+  const [recoveredStats, setRecoveredStats] = useState<import('@/types').UserStats | null>(null)
   const [scanning, setScanning] = useState(false)
   const [applying, setApplying] = useState(false)
   const [done, setDone] = useState(false)
 
   const handleScan = async () => {
     setScanning(true)
-    setResult(null)
+    setBreakdown(null)
+    setRecoveredStats(null)
     setDone(false)
     try {
-      const r = await recoverXP()
-      setResult(r)
+      const r = await recoverStats()
+      if (r) {
+        setBreakdown(r.breakdown)
+        setRecoveredStats(r.reconstructedStats)
+      }
     } finally {
       setScanning(false)
     }
   }
 
   const handleApply = async () => {
-    if (!result) return
+    if (!recoveredStats) return
     setApplying(true)
     try {
-      await applyRecoveredXP(result.total)
+      await applyRecoveredStats(recoveredStats)
       setDone(true)
     } finally {
       setApplying(false)
@@ -994,27 +1002,28 @@ function XPRecoverySection() {
     <div className="bg-white rounded-2xl shadow-elegant p-6">
       <h2 className="font-serif text-lg text-dark mb-1 flex items-center gap-2">
         <ShieldAlert size={18} strokeWidth={1.5} className="text-muted" />
-        Odzyskiwanie XP
+        Odzyskiwanie danych
       </h2>
       <p className="font-sans text-xs text-muted mb-4">
-        Jeśli XP zniknęło — użyj tego narzędzia. Przeskanuje wszystkie Twoje wpisy i wyliczy XP od nowa.
+        Jeśli XP lub osiągnięcia zniknęły — użyj tego narzędzia. Przeskanuje wszystkie wpisy, przeglądy i osiągnięcia od nowa.
       </p>
 
       <p className="font-sans text-sm text-dark mb-4">
         Aktualne XP: <span className="font-semibold text-gold">{stats.totalXP}</span>
       </p>
 
-      {result !== null && !done && (
+      {breakdown !== null && !done && (
         <div className="bg-cream/60 rounded-xl p-4 mb-4 space-y-1">
-          <p className="font-sans text-sm font-semibold text-dark">Znalezione XP: {result.total}</p>
-          <p className="font-sans text-xs text-muted">Dzienne wpisy (rutyna, questy, zasady): {result.fromLogs}</p>
-          <p className="font-sans text-xs text-muted">Przeglądy tygodniowe ({result.weeklyCount} × 150 XP): {result.fromWeeklyReviews}</p>
-          <p className="font-sans text-xs text-muted">Przeglądy miesięczne ({result.monthlyCount} × 300 XP): {result.fromMonthlyReviews}</p>
+          <p className="font-sans text-sm font-semibold text-dark mb-2">Odzyskane łącznie: {breakdown.total} XP</p>
+          <p className="font-sans text-xs text-muted">Dzienne wpisy (rutyna, questy, zasady, check-iny): {breakdown.fromLogs}</p>
+          <p className="font-sans text-xs text-muted">Przeglądy tygodniowe ({breakdown.weeklyCount} × 150): {breakdown.fromWeeklyReviews}</p>
+          <p className="font-sans text-xs text-muted">Przeglądy miesięczne ({breakdown.monthlyCount} × 300): {breakdown.fromMonthlyReviews}</p>
+          <p className="font-sans text-xs text-muted">Osiągnięcia ({breakdown.achievementsCount} odblokowanych): {breakdown.fromAchievements}</p>
         </div>
       )}
 
       {done && (
-        <p className="font-sans text-sm text-forest mb-4">XP zostało przywrócone ✓</p>
+        <p className="font-sans text-sm text-forest mb-4">Dane zostały przywrócone ✓</p>
       )}
 
       <div className="flex gap-3">
@@ -1023,16 +1032,16 @@ function XPRecoverySection() {
           disabled={scanning}
           className="font-sans text-sm px-4 py-2 rounded-xl border border-muted/30 text-dark hover:bg-cream/60 transition-colors disabled:opacity-50"
         >
-          {scanning ? 'Skanowanie…' : 'Skanuj logi'}
+          {scanning ? 'Skanowanie…' : 'Skanuj dane'}
         </button>
 
-        {result !== null && !done && (
+        {breakdown !== null && !done && (
           <button
             onClick={handleApply}
             disabled={applying}
             className="font-sans text-sm px-4 py-2 rounded-xl bg-forest text-ivory hover:bg-forest/90 transition-colors disabled:opacity-50"
           >
-            {applying ? 'Przywracam…' : `Przywróć ${result.total} XP`}
+            {applying ? 'Przywracam…' : `Przywróć ${breakdown.total} XP + ${breakdown.achievementsCount} osiągnięć`}
           </button>
         )}
       </div>
