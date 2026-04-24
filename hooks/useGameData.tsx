@@ -676,6 +676,12 @@ export function useGameData() {
           pillarXP[csq.pillar as Pillar] = (pillarXP[csq.pillar as Pillar] ?? 0) + (csq.xp ?? 0)
         }
       }
+      // Ghost Protocol XP — both V1 (+50 tozsamosc) and V2 (+40 pozycja, no-contact) use same flag.
+      // Can't distinguish version so add to both pillars as best-effort approximation.
+      if (log.ghostProtocolCompleted) {
+        pillarXP.tozsamosc = (pillarXP.tozsamosc ?? 0) + 25
+        pillarXP.pozycja = (pillarXP.pozycja ?? 0) + 20
+      }
     }
 
     // ── Streak computation ──
