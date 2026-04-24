@@ -615,25 +615,32 @@ export function useGameData() {
 
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(getMonthKey(new Date()))
 
-  // Recalculates totalXP by summing all daily logs + reviews + achievements.
-  // Returns the recovered XP value without writing — caller decides whether to apply.
-  const recoverXP = useCallback(async (): Promise<number> => {
-    if (!user) return 0
-    const snap = await getDocs(collection(db, 'users', user.uid, 'logs'))
-    let xpFromLogs = 0
-    snap.forEach(d => {
+  // Recalculates totalXP by reading all daily logs + review docs + achievements.
+  // Returns breakdown so the UI can show what was found.
+  const recoverXP = useCallback(async (): Promise<{ total: number; fromLogs: number; fromWeeklyReviews: number; fromMonthlyReviews: number; weeklyCount: number; monthlyCount: number }> => {
+    if (!user) return { total: 0, fromLogs: 0, fromWeeklyReviews: 0, fromMonthlyReviews: 0, weeklyCount: 0, monthlyCount: 0 }
+
+    const [logsSnap, weeklySnap, monthlySnap] = await Promise.all([
+      getDocs(collection(db, 'users', user.uid, 'logs')),
+      getDocs(collection(db, 'users', user.uid, 'reviews')),
+      getDocs(collection(db, 'users', user.uid, 'monthlyReviews')),
+    ])
+
+    let fromLogs = 0
+    logsSnap.forEach(d => {
       const raw = d.data().totalXP
-      if (Number.isFinite(raw) && raw > 0) xpFromLogs += raw
+      if (Number.isFinite(raw) && raw > 0) fromLogs += raw
     })
-    const reviewXP =
-      (stats.reviewedWeeks?.length ?? 0) * (XP_VALUES.weeklyReview ?? 0) +
-      (stats.reviewedMonths?.length ?? 0) * (XP_VALUES.monthlyReview ?? 0)
-    const achXP = (stats.unlockedAchievements ?? []).reduce((acc, id) => {
-      const a = ACHIEVEMENTS.find(a => a.id === id)
-      return acc + (a?.xpReward ?? 0)
-    }, 0)
-    return xpFromLogs + reviewXP + achXP
-  }, [user, stats])
+
+    const weeklyCount = weeklySnap.size
+    const fromWeeklyReviews = weeklyCount * XP_VALUES.weeklyReview
+
+    const monthlyCount = monthlySnap.size
+    const fromMonthlyReviews = monthlyCount * XP_VALUES.monthlyReview
+
+    const total = fromLogs + fromWeeklyReviews + fromMonthlyReviews
+    return { total, fromLogs, fromWeeklyReviews, fromMonthlyReviews, weeklyCount, monthlyCount }
+  }, [user])
 
   const applyRecoveredXP = useCallback(async (recoveredXP: number) => {
     if (!user || !statsRef) return

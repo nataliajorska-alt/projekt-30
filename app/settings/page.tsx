@@ -958,30 +958,32 @@ function NominatedContactsSection() {
 
 /* ─── Odzyskiwanie XP ─── */
 
+type RecoveryResult = { total: number; fromLogs: number; fromWeeklyReviews: number; fromMonthlyReviews: number; weeklyCount: number; monthlyCount: number }
+
 function XPRecoverySection() {
   const { stats, recoverXP, applyRecoveredXP } = useGameData()
-  const [recovered, setRecovered] = useState<number | null>(null)
+  const [result, setResult] = useState<RecoveryResult | null>(null)
   const [scanning, setScanning] = useState(false)
   const [applying, setApplying] = useState(false)
   const [done, setDone] = useState(false)
 
   const handleScan = async () => {
     setScanning(true)
-    setRecovered(null)
+    setResult(null)
     setDone(false)
     try {
-      const xp = await recoverXP()
-      setRecovered(xp)
+      const r = await recoverXP()
+      setResult(r)
     } finally {
       setScanning(false)
     }
   }
 
   const handleApply = async () => {
-    if (recovered === null) return
+    if (!result) return
     setApplying(true)
     try {
-      await applyRecoveredXP(recovered)
+      await applyRecoveredXP(result.total)
       setDone(true)
     } finally {
       setApplying(false)
@@ -1002,14 +1004,12 @@ function XPRecoverySection() {
         Aktualne XP: <span className="font-semibold text-gold">{stats.totalXP}</span>
       </p>
 
-      {recovered !== null && !done && (
-        <div className="bg-cream/60 rounded-xl p-4 mb-4">
-          <p className="font-sans text-sm text-dark">
-            Odzyskane XP z logów: <span className="font-semibold text-forest">{recovered}</span>
-          </p>
-          <p className="font-sans text-xs text-muted mt-1">
-            Obejmuje XP z rutyny, questów, zasad, check-inów nastroju, przeglądów i osiągnięć.
-          </p>
+      {result !== null && !done && (
+        <div className="bg-cream/60 rounded-xl p-4 mb-4 space-y-1">
+          <p className="font-sans text-sm font-semibold text-dark">Znalezione XP: {result.total}</p>
+          <p className="font-sans text-xs text-muted">Dzienne wpisy (rutyna, questy, zasady): {result.fromLogs}</p>
+          <p className="font-sans text-xs text-muted">Przeglądy tygodniowe ({result.weeklyCount} × 150 XP): {result.fromWeeklyReviews}</p>
+          <p className="font-sans text-xs text-muted">Przeglądy miesięczne ({result.monthlyCount} × 300 XP): {result.fromMonthlyReviews}</p>
         </div>
       )}
 
@@ -1026,13 +1026,13 @@ function XPRecoverySection() {
           {scanning ? 'Skanowanie…' : 'Skanuj logi'}
         </button>
 
-        {recovered !== null && !done && (
+        {result !== null && !done && (
           <button
             onClick={handleApply}
             disabled={applying}
             className="font-sans text-sm px-4 py-2 rounded-xl bg-forest text-ivory hover:bg-forest/90 transition-colors disabled:opacity-50"
           >
-            {applying ? 'Przywracam…' : `Przywróć ${recovered} XP`}
+            {applying ? 'Przywracam…' : `Przywróć ${result.total} XP`}
           </button>
         )}
       </div>
