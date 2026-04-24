@@ -964,6 +964,11 @@ type RecoveryBreakdown = {
   unknownSideQuestCount: number; unknownSideQuestXP: number
 }
 
+const PILLAR_NAMES: Record<string, string> = {
+  pozycja: 'Pozycja', cialo: 'Ciało', styl: 'Styl',
+  kapital: 'Kapitał', kariera: 'Kariera', tozsamosc: 'Tożsamość', milosc: 'Miłość',
+}
+
 function XPRecoverySection() {
   const { stats, recoverStats, applyRecoveredStats } = useGameData()
   const [breakdown, setBreakdown] = useState<RecoveryBreakdown | null>(null)
@@ -1022,8 +1027,18 @@ function XPRecoverySection() {
           <p className="font-sans text-xs text-muted">Osiągnięcia ({breakdown.achievementsCount} odblokowanych): {breakdown.fromAchievements}</p>
           {breakdown.unknownSideQuestCount > 0 && (
             <p className="font-sans text-xs text-amber-600 mt-1">
-              ⚠ {breakdown.unknownSideQuestCount} side questów z nierozpoznanym ID (łącznie ~{breakdown.unknownSideQuestXP} XP) — XP rozdzielone po równo między filary
+              ⚠ {breakdown.unknownSideQuestCount} side questów z nierozpoznanym ID (~{breakdown.unknownSideQuestXP} XP) — XP rozdzielone po równo między filary
             </p>
+          )}
+          {recoveredStats && (
+            <div className="mt-3 pt-3 border-t border-muted/10">
+              <p className="font-sans text-xs text-muted font-semibold mb-1">Rekonstrukcja pillarXP:</p>
+              {Object.entries(recoveredStats.pillarXP).map(([p, xp]) => (
+                <p key={p} className="font-sans text-xs text-muted">
+                  {PILLAR_NAMES[p] ?? p}: <span className="text-dark font-medium">{xp} XP</span>
+                </p>
+              ))}
+            </div>
           )}
         </div>
       )}
