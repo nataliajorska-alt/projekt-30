@@ -673,15 +673,28 @@ export function useGameData() {
       if (log.dayMode !== 'minimum') consecutiveNormalDays++
       else consecutiveNormalDays = 0
 
+      const ALL_PILLARS_LIST: Pillar[] = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc']
       // Pillar XP from daily quests
       for (const qid of (log.completedDailyQuests ?? [])) {
         const q = questPillarMap[qid] ?? guessPillarFromId(qid)
-        if (q) pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
+        if (q) {
+          pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
+        } else {
+          // Unknown ID — spread equally across all pillars so nothing is lost
+          const share = Math.round(XP_VALUES.dailyQuest / 7)
+          for (const p of ALL_PILLARS_LIST) pillarXP[p] = (pillarXP[p] ?? 0) + share
+        }
       }
       // Pillar XP from side quests
       for (const qid of (log.completedSideQuests ?? [])) {
         const q = questPillarMap[qid] ?? guessPillarFromId(qid)
-        if (q) pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
+        if (q) {
+          pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
+        } else {
+          // Unknown ID — spread equally across all pillars
+          const share = Math.round(120 / 7)
+          for (const p of ALL_PILLARS_LIST) pillarXP[p] = (pillarXP[p] ?? 0) + share
+        }
       }
       // Pillar XP from custom side quests (pillar + xp stored directly in log)
       for (const csq of (log.customSideQuests ?? [])) {
