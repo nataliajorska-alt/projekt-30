@@ -8,11 +8,11 @@ import {
   reauthenticateWithCredential,
   updatePassword,
 } from 'firebase/auth'
-import { LogOut, Lock, Mail, Download, Printer, Sun, Moon, Sparkles, Plus, X, RotateCcw, Bell, Phone, ShieldAlert, Swords } from 'lucide-react'
+import { LogOut, Lock, Mail, Download, Printer, Sun, Moon, Sparkles, Plus, X, RotateCcw, Bell, Phone, ShieldAlert, Swords, BrainCircuit } from 'lucide-react'
 import { useNominatedContacts } from '@/hooks/useNominatedContacts'
 import { useCustomQuestLibrary } from '@/hooks/useCustomQuestLibrary'
 import type { NominatedContact } from '@/types'
-import { exportLogsAsCSV, exportQuestsAsCSV, exportReviewsAsCSV, exportStatsAsCSV, exportAllAsCSV } from '@/lib/exportData'
+import { exportLogsAsCSV, exportQuestsAsCSV, exportReviewsAsCSV, exportStatsAsCSV, exportAllAsCSV, exportAsMarkdown } from '@/lib/exportData'
 import type { DateRange } from '@/lib/exportData'
 import { useRoutineConfig } from '@/hooks/useRoutineConfig'
 import { useSparkSchedule } from '@/hooks/useSparkSchedule'
@@ -486,6 +486,7 @@ function ExportSection({ uid }: { uid: string }) {
   const [exportingReviews, setExportingReviews] = useState(false)
   const [exportingStats, setExportingStats] = useState(false)
   const [exportingAll, setExportingAll] = useState(false)
+  const [exportingMd, setExportingMd] = useState(false)
   const [error, setError] = useState('')
 
   const range = useMemo<DateRange>(() => {
@@ -531,6 +532,14 @@ function ExportSection({ uid }: { uid: string }) {
     try { await exportAllAsCSV(uid, range) }
     catch { setError('Nie udało się wyeksportować wszystkich danych.') }
     finally { setExportingAll(false) }
+  }
+
+  const handleExportMd = async () => {
+    setError('')
+    setExportingMd(true)
+    try { await exportAsMarkdown(uid, range) }
+    catch { setError('Nie udało się wyeksportować dziennika.') }
+    finally { setExportingMd(false) }
   }
 
   const PRESETS: { value: Preset; label: string }[] = [
@@ -601,6 +610,20 @@ function ExportSection({ uid }: { uid: string }) {
         <p className="font-sans text-xs text-muted-light">• <strong>Przeglądy</strong> — tygodniowe i miesięczne: oceny filarów, refleksje, intencje</p>
         <p className="font-sans text-xs text-muted-light">• <strong>Statystyki</strong> — globalne podsumowanie: streaki, rekordy, osiągnięcia, XP per filar (nie filtruje zakresu dat)</p>
       </div>
+
+      {/* Eksport dla AI */}
+      <button
+        onClick={handleExportMd}
+        disabled={exportingMd}
+        className={`${btnBase} w-full justify-center bg-forest text-ivory hover:bg-forest/90 mb-3`}
+      >
+        {exportingMd
+          ? <><div className="w-4 h-4 border-2 border-ivory border-t-transparent rounded-full animate-spin" />Generuję dziennik...</>
+          : <><BrainCircuit size={14} strokeWidth={1.5} />Eksport dla AI — jeden plik Markdown</>}
+      </button>
+      <p className="font-sans text-[11px] text-muted-light mb-4 -mt-1 px-1">
+        Jeden plik .md z całą historią, notatkami i refleksjami — gotowy do wklejenia w Claude lub ChatGPT.
+      </p>
 
       {/* Pobierz wszystko */}
       <button
