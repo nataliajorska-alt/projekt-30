@@ -27,7 +27,7 @@ export const EVENING_ROUTINE: RoutineItem[] = [
 
 // Tylko dni robocze (pon–pt)
 export const DAILY_HABITS: RoutineItem[] = [
-  { id: 'd1', text: '30 minut przy biurku', type: 'daily', xp: 10, priority: 'normal',   category: 'mental'    },
+  { id: 'd1', text: 'Godzina przy biurku', type: 'daily', xp: 10, priority: 'normal',   category: 'mental'    },
   { id: 'd2', text: 'Zadbanie o paznokcie', type: 'daily', xp: 10, priority: 'normal',   category: 'hygiene'   },
   { id: 'd3', text: 'Czytanie Biblii',      type: 'daily', xp: 10, priority: 'normal',   category: 'spiritual' },
 ]

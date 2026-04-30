@@ -13,6 +13,7 @@ import { MINIMUM_DAY_REASONS } from '@/types'
 import { Check, Sun, Moon, Sparkles, BatteryLow, ChevronDown } from 'lucide-react'
 import clsx from 'clsx'
 import MinimumDayModal from '@/components/MinimumDayModal'
+import DeskTimer from '@/components/DeskTimer'
 import type { MinimumDayReason, RoutineItem } from '@/types'
 
 type Tab = 'morning' | 'daily' | 'evening'
@@ -315,6 +316,12 @@ export default function RoutineChecklist() {
               />
               {(item.id === 'm7' || item.id === 'e2') && (
                 <SkincareGuide itemId={item.id as 'm7' | 'e2'} dow={dow} />
+              )}
+              {item.id === 'd1' && (
+                <DeskTimer
+                  done={done}
+                  onComplete={() => toggleRoutine(item.id, item.xp)}
+                />
               )}
             </div>
           )
