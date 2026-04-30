@@ -133,6 +133,15 @@ export const SIDE_QUESTS: Quest[] = [
   ] },
   { id: 'sq_life_25', title: 'Wygrana w programie', description: 'Udział i wygrana w jakimkolwiek programie — konkurs, quiz, teleturniej, program TV. Liczy się udział i walka o wynik.', pillar: 'pozycja', type: 'side', xp: 500, difficulty: 'hard', tags: ['wygrana', 'konkurs', 'odwaga'] },
 
+  // Sport i aktywności
+  { id: 'sq_life_28', title: 'Strzelanie z łuku', description: 'Sesja strzelania z łuku — na strzelnicy lub w terenie. Skupienie, spokój, precyzja. Elegancki sport z dużą dawką mindfulness.', pillar: 'cialo', type: 'side', xp: 220, difficulty: 'medium', tags: ['łuk', 'sport', 'skupienie', 'precyzja'], steps: [
+    'Znajdź strzelnicę łuczniczą w okolicy i zarezerwuj termin',
+    'Weź lekcję wprowadzającą — postawa, uchwyt, celowanie',
+    'Strzel pierwszą serię celując w tarczę z bliskiej odległości',
+    'Poćwicz oddech i skupienie — łucznictwo to medytacja w ruchu',
+    'Strzel serię z docelowej odległości i udokumentuj wynik',
+  ] },
+
   // Wdzięczność i relacje
   { id: 'sq_life_26', title: 'Podziękuj fundacji FDNT', description: 'Napisz lub zadzwoń do fundacji FDNT z podziękowaniem. Szczerym, konkretnym. Wdzięczność wyrażona to wdzięczność prawdziwa.', pillar: 'kapital', type: 'side', xp: 200, difficulty: 'easy', tags: ['wdzięczność', 'relacje', 'ważne'] },
   { id: 'sq_life_27', title: 'Podziękuj terapeutce', description: 'Wyraź wdzięczność swojej terapeutce — za pracę, czas, obecność. Słowa, list, coś symbolicznego. To ważne.', pillar: 'pozycja', type: 'side', xp: 200, difficulty: 'easy', tags: ['wdzięczność', 'terapia', 'ważne'] },

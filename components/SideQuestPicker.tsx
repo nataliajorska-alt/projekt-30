@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useGameData } from '@/hooks/useGameData'
 import { getRandomSideQuest } from '@/lib/questData'
+import { useCustomQuestLibrary } from '@/hooks/useCustomQuestLibrary'
 import { getPillar, PILLARS } from '@/lib/pillars'
 import type { Quest, Pillar } from '@/types'
 import { Shuffle, Check, Star, Undo2, Plus, ChevronDown } from 'lucide-react'
@@ -113,14 +114,35 @@ function CustomQuestForm({ onClose }: { onClose: () => void }) {
 
 export default function SideQuestPicker() {
   const { todayLog, toggleSideQuest } = useGameData()
+  const { quests: libraryQuests } = useCustomQuestLibrary()
   const [activeQuest, setActiveQuest] = useState<Quest | null>(null)
   const [completed, setCompleted] = useState(false)
   const [showCustomForm, setShowCustomForm] = useState(false)
 
   const roll = () => {
     const alreadyDone = todayLog?.completedSideQuests ?? []
-    const quest = getRandomSideQuest(alreadyDone)
-    setActiveQuest(quest)
+
+    // Merge custom library quests into pool
+    const customAsQuests: Quest[] = libraryQuests.map(q => ({
+      id: q.id,
+      title: q.title,
+      description: q.description ?? 'Twój własny side quest.',
+      pillar: 'pozycja' as Pillar,
+      type: 'side' as const,
+      xp: 150,
+      difficulty: 'medium' as const,
+      tags: ['własny'],
+    }))
+
+    const available = customAsQuests.filter(q => !alreadyDone.includes(q.id))
+    if (available.length > 0 && Math.random() < 0.3) {
+      // 30% szans na wylosowanie własnego questa z biblioteki
+      const quest = available[Math.floor(Math.random() * available.length)]
+      setActiveQuest(quest)
+    } else {
+      const quest = getRandomSideQuest(alreadyDone)
+      setActiveQuest(quest)
+    }
     setCompleted(false)
   }
 
