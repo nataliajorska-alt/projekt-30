@@ -176,7 +176,7 @@ export function getWeeklyStudyLabel(forDate?: Date): string {
 
 export const MORNING_SKINCARE_STEPS = [
   'mycie',
-  'witamina C krem (jak kupię)',
+  'witamina C',
   'Toleriane',
   'SPF',
 ]
