@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useAprilQuests } from '@/hooks/useAprilQuests'
+import { useGameData } from '@/hooks/useGameData'
 import { getAprilQuestsForDate, getOverdueAprilQuests, getPostponedQuestsForDate } from '@/lib/aprilData'
 import { getPillar } from '@/lib/pillars'
 import { todayKey, dateKey } from '@/lib/gameLogic'
@@ -60,10 +61,11 @@ function SkipModal({ quest, onConfirm, onClose }: {
   )
 }
 
-function QuestCard({ quest, done, overdue, onComplete, onSkip, onPostpone }: {
+function QuestCard({ quest, done, overdue, isMinimum, onComplete, onSkip, onPostpone }: {
   quest: AprilQuest
   done: boolean
   overdue: boolean
+  isMinimum: boolean
   onComplete: () => void
   onSkip: () => void
   onPostpone: () => void
@@ -96,9 +98,14 @@ function QuestCard({ quest, done, overdue, onComplete, onSkip, onPostpone }: {
             {quest.title}
           </h3>
         </div>
-        <span className={clsx('font-sans text-xs flex-shrink-0 mt-1', done ? 'text-gold font-medium' : 'text-muted-light')}>
-          +{quest.xp} XP
-        </span>
+        <div className="flex flex-col items-end flex-shrink-0 mt-1 gap-0.5">
+          <span className={clsx('font-sans text-xs', done ? 'text-gold font-medium' : 'text-muted-light')}>
+            +{isMinimum ? quest.xp * 2 : quest.xp} XP
+          </span>
+          {isMinimum && !done && (
+            <span className="text-[9px] font-sans text-forest/60">×2</span>
+          )}
+        </div>
       </div>
 
       <p className="font-sans text-sm text-muted leading-relaxed mb-3">{quest.description}</p>
@@ -137,6 +144,8 @@ function QuestCard({ quest, done, overdue, onComplete, onSkip, onPostpone }: {
 
 export default function DailyQuests() {
   const { log, skippedIds, loading, completeQuest, skipQuest, postponeQuest } = useAprilQuests()
+  const { todayLog } = useGameData()
+  const isMinimum = (todayLog?.dayMode ?? 'normal') === 'minimum'
   const [skipTarget, setSkipTarget] = useState<AprilQuest | null>(null)
   const today = todayKey()
 
@@ -228,6 +237,7 @@ export default function DailyQuests() {
               quest={quest}
               done={log.completed.includes(quest.id)}
               overdue={true}
+              isMinimum={isMinimum}
               onComplete={() => completeQuest(quest.id, quest.pillar)}
               onSkip={() => setSkipTarget(quest)}
               onPostpone={() => handlePostpone(quest)}
@@ -241,6 +251,7 @@ export default function DailyQuests() {
               quest={quest}
               done={log.completed.includes(quest.id)}
               overdue={false}
+              isMinimum={isMinimum}
               onComplete={() => completeQuest(quest.id, quest.pillar)}
               onSkip={() => setSkipTarget(quest)}
               onPostpone={() => handlePostpone(quest)}

@@ -240,7 +240,7 @@ export default function ProgressPage() {
               {totalXP.toLocaleString('pl-PL')} XP zebrane
             </span>
             <span className="font-sans text-[11px] text-muted-light">
-              cel: 140 000 XP
+              cel: 200 000 XP
             </span>
           </div>
         </div>

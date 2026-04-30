@@ -4,32 +4,32 @@ import { PROJECT_START, getISOWeekKey } from './gameLogic'
 // ─── WERSJA NORMALNA ───────────────────────────────────────────
 
 export const MORNING_ROUTINE: RoutineItem[] = [
-  { id: 'm1', text: 'Po wstaniu 30 minut bez telefonu', type: 'morning', xp: 10 },
-  { id: 'm2', text: 'Krótka modlitwa poranna', type: 'morning', xp: 10 },
-  { id: 'm3', text: 'Wypicie ciepłej wody', type: 'morning', xp: 10 },
-  { id: 'm4', text: '2 minuty oddechu', type: 'morning', xp: 10 },
-  { id: 'm5', text: '5–10 minut medytacji', type: 'morning', xp: 10 },
-  { id: 'm6', text: 'Afirmacja', type: 'morning', xp: 10 },
-  { id: 'm7', text: 'Zadbanie o twarz', type: 'morning', xp: 10 },
-  { id: 'm8', text: 'Umycie zębów + nitkowanie', type: 'morning', xp: 10 },
-  { id: 'm9', text: 'Witaminy + witamina C', type: 'morning', xp: 10 },
+  { id: 'm1', text: 'Po wstaniu 30 minut bez telefonu', type: 'morning', xp: 10, priority: 'normal',   category: 'mental'    },
+  { id: 'm2', text: 'Krótka modlitwa poranna',          type: 'morning', xp: 10, priority: 'essential', category: 'spiritual' },
+  { id: 'm3', text: 'Wypicie ciepłej wody',             type: 'morning', xp: 10, priority: 'essential', category: 'hygiene'   },
+  { id: 'm4', text: '2 minuty oddechu',                 type: 'morning', xp: 10, priority: 'normal',   category: 'mental'    },
+  { id: 'm5', text: '5–10 minut medytacji',             type: 'morning', xp: 10, priority: 'normal',   category: 'mental'    },
+  { id: 'm6', text: 'Afirmacja',                        type: 'morning', xp: 10, priority: 'normal',   category: 'mental'    },
+  { id: 'm7', text: 'Zadbanie o twarz',                 type: 'morning', xp: 10, priority: 'normal',   category: 'hygiene'   },
+  { id: 'm8', text: 'Umycie zębów + nitkowanie',        type: 'morning', xp: 10, priority: 'essential', category: 'hygiene'   },
+  { id: 'm9', text: 'Witaminy + witamina C',            type: 'morning', xp: 10, priority: 'essential', category: 'hygiene'   },
 ]
 
 export const EVENING_ROUTINE: RoutineItem[] = [
-  { id: 'e1', text: '30 minut bez telefonu przed snem', type: 'evening', xp: 10 },
-  { id: 'e2', text: 'Zadbanie o twarz', type: 'evening', xp: 10 },
-  { id: 'e3', text: 'Umycie zębów', type: 'evening', xp: 10 },
-  { id: 'e4', text: '3 rzeczy, z których jestem dumna tego dnia', type: 'evening', xp: 10 },
-  { id: 'e5', text: 'Krótka modlitwa wieczorna', type: 'evening', xp: 10 },
-  { id: 'e6', text: 'Opcjonalnie: 5 minut czytania', type: 'evening', xp: 10 },
-  { id: 'e7', text: 'Magnez + duloksetyna', type: 'evening', xp: 10 },
+  { id: 'e1', text: '30 minut bez telefonu przed snem',          type: 'evening', xp: 10, priority: 'normal',   category: 'mental'    },
+  { id: 'e2', text: 'Zadbanie o twarz',                          type: 'evening', xp: 10, priority: 'normal',   category: 'hygiene'   },
+  { id: 'e3', text: 'Umycie zębów',                              type: 'evening', xp: 10, priority: 'essential', category: 'hygiene'   },
+  { id: 'e4', text: '3 rzeczy, z których jestem dumna tego dnia', type: 'evening', xp: 10, priority: 'normal',   category: 'spiritual' },
+  { id: 'e5', text: 'Krótka modlitwa wieczorna',                 type: 'evening', xp: 10, priority: 'essential', category: 'spiritual' },
+  { id: 'e6', text: 'Opcjonalnie: 5 minut czytania',             type: 'evening', xp: 10, priority: 'bonus',    category: 'mental'    },
+  { id: 'e7', text: 'Magnez + duloksetyna',                      type: 'evening', xp: 10, priority: 'essential', category: 'hygiene'   },
 ]
 
 // Tylko dni robocze (pon–pt)
 export const DAILY_HABITS: RoutineItem[] = [
-  { id: 'd1', text: '30 minut przy biurku', type: 'daily', xp: 10 },
-  { id: 'd2', text: 'Zadbanie o paznokcie', type: 'daily', xp: 10 },
-  { id: 'd3', text: 'Czytanie Biblii', type: 'daily', xp: 10 },
+  { id: 'd1', text: '30 minut przy biurku', type: 'daily', xp: 10, priority: 'normal',   category: 'mental'    },
+  { id: 'd2', text: 'Zadbanie o paznokcie', type: 'daily', xp: 10, priority: 'normal',   category: 'hygiene'   },
+  { id: 'd3', text: 'Czytanie Biblii',      type: 'daily', xp: 10, priority: 'normal',   category: 'spiritual' },
 ]
 
 // ─── WERSJA MINIMUM ────────────────────────────────────────────
@@ -170,6 +170,25 @@ export function getWeeklyStudyLabel(forDate?: Date): string {
   const weeksSinceStart = Math.floor((now.getTime() - PROJECT_START.getTime()) / (7 * 24 * 60 * 60 * 1000))
   const topic = WEEKLY_STUDY_TOPICS[((weeksSinceStart % WEEKLY_STUDY_TOPICS.length) + WEEKLY_STUDY_TOPICS.length) % WEEKLY_STUDY_TOPICS.length]
   return topic.label
+}
+
+// ─── PIELĘGNACJA CERY ──────────────────────────────────────────
+
+export const MORNING_SKINCARE_STEPS = [
+  'mycie',
+  'witamina C krem (jak kupię)',
+  'Toleriane',
+  'SPF',
+]
+
+export const EVENING_SKINCARE: Record<number, { theme: string; steps: string[] }> = {
+  1: { theme: 'oczyszczanie + balans',   steps: ['mycie', 'azelaic acid', 'Toleriane'] },
+  2: { theme: 'anti-aging / wygładzenie', steps: ['mycie', 'retinoid', 'MoonCall'] },
+  3: { theme: 'regeneracja',             steps: ['mycie', 'MoonCall'] },
+  4: { theme: 'pory / czoło',            steps: ['mycie', 'BHA (tylko strefa T)', 'Toleriane'] },
+  5: { theme: 'balans 2',                steps: ['mycie', 'azelaic acid', 'Toleriane'] },
+  6: { theme: 'retinoid 2',              steps: ['mycie', 'retinoid', 'MoonCall'] },
+  0: { theme: 'reset',                   steps: ['mycie', 'peeling enzymatyczny', 'Toleriane'] },
 }
 
 export const DAILY_SPARKS = [

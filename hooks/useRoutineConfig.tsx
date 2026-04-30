@@ -8,7 +8,8 @@ import {
   MORNING_ROUTINE, EVENING_ROUTINE, DAILY_HABITS,
   MORNING_MINIMUM, EVENING_MINIMUM,
 } from '@/lib/routineData'
-import type { RoutineItem, RoutineConfig } from '@/types'
+import { filterItemsForMinimumDay } from '@/lib/minimumDayLogic'
+import type { RoutineItem, RoutineConfig, MinimumDayReason } from '@/types'
 
 const DEFAULT_CONFIG: RoutineConfig = {
   disabledItems: [],
@@ -75,9 +76,19 @@ export function useRoutineConfig() {
     category: 'morning' | 'evening' | 'daily',
     isMinimum: boolean,
     extraDailyItems?: RoutineItem[],
+    minimumReason?: MinimumDayReason,
   ): RoutineItem[] => {
     let defaults: RoutineItem[]
-    if (category === 'morning') {
+    if (isMinimum && minimumReason) {
+      // New: filter normal routine by reason
+      if (category === 'morning') {
+        defaults = filterItemsForMinimumDay(MORNING_ROUTINE, minimumReason)
+      } else if (category === 'evening') {
+        defaults = filterItemsForMinimumDay(EVENING_ROUTINE, minimumReason)
+      } else {
+        defaults = []
+      }
+    } else if (category === 'morning') {
       defaults = isMinimum ? MORNING_MINIMUM : MORNING_ROUTINE
     } else if (category === 'evening') {
       defaults = isMinimum ? EVENING_MINIMUM : EVENING_ROUTINE

@@ -17,12 +17,27 @@ export interface PillarMeta {
   description: string
 }
 
+export type RoutineItemCategory = 'hygiene' | 'spiritual' | 'mental' | 'physical'
+export type RoutineItemPriority = 'essential' | 'normal' | 'bonus'
+
 export interface RoutineItem {
   id: string
   text: string
   type: 'morning' | 'evening' | 'daily'
   xp: number
+  priority?: RoutineItemPriority
+  category?: RoutineItemCategory
 }
+
+export type MinimumDayReason = 'choroba' | 'okres' | 'zly_nastroj' | 'przemeczenie' | 'inne'
+
+export const MINIMUM_DAY_REASONS: { value: MinimumDayReason; label: string; emoji: string; description: string }[] = [
+  { value: 'choroba',      label: 'Choroba',       emoji: '🤒', description: 'Czuję się fizycznie źle' },
+  { value: 'okres',        label: 'Okres',         emoji: '🌸', description: 'Okres lub ból' },
+  { value: 'zly_nastroj',  label: 'Zły nastrój',   emoji: '🌧️', description: 'Trudny dzień emocjonalnie' },
+  { value: 'przemeczenie', label: 'Przemęczenie',   emoji: '😴', description: 'Jestem wyczerpana' },
+  { value: 'inne',         label: 'Inny powód',    emoji: '💫', description: 'Potrzebuję minimum' },
+]
 
 export interface Quest {
   id: string
@@ -158,6 +173,7 @@ export interface DailyLog {
   keptRules: string[]
   totalXP: number
   dayMode: 'normal' | 'minimum'
+  minimumReason?: MinimumDayReason
   notes?: string
   socialPresence?: boolean
   physicalActivity?: boolean

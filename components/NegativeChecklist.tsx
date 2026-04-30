@@ -8,6 +8,7 @@ import GhostProtocolV2 from './GhostProtocolV2'
 export default function NegativeChecklist() {
   const { todayLog, toggleRule } = useGameData()
   const kept = DAILY_RULES.filter(r => todayLog?.keptRules?.includes(r.id)).length
+  const isMinimum = (todayLog?.dayMode ?? 'normal') === 'minimum'
 
   return (
     <div className="bg-white rounded-2xl shadow-elegant overflow-hidden mb-4">
@@ -44,9 +45,14 @@ export default function NegativeChecklist() {
                 )}>
                   {rule.text}
                 </p>
-                <span className={clsx('font-sans text-[11px] flex-shrink-0', done ? 'text-gold' : 'text-muted-light')}>
-                  +{rule.xp}
-                </span>
+                <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
+                  <span className={clsx('font-sans text-[11px]', done ? 'text-gold' : 'text-muted-light')}>
+                    +{isMinimum ? rule.xp * 2 : rule.xp}
+                  </span>
+                  {isMinimum && !done && (
+                    <span className="text-[9px] font-sans text-forest/60">×2</span>
+                  )}
+                </div>
               </button>
               {rule.id === 'r1' && <GhostProtocolV2 />}
             </div>

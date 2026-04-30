@@ -236,7 +236,8 @@ export function useGameData() {
     const newCompleted = completed
       ? current.filter(id => id !== itemId)
       : [...current, itemId]
-    const xpDelta = completed ? -xp : xp
+    const effectiveXP = todayLog.dayMode === 'minimum' ? xp * 2 : xp
+    const xpDelta = completed ? -effectiveXP : effectiveXP
 
     const newTodayXP = Math.max(0, (todayLog.totalXP ?? 0) + xpDelta)
     const withStreak = await applyStreakIfNeeded(stats)
@@ -317,7 +318,9 @@ export function useGameData() {
     const newCompleted = completed
       ? currentDQ.filter(id => id !== questId)
       : [...currentDQ, questId]
-    const xpDelta = completed ? -XP_VALUES.dailyQuest : XP_VALUES.dailyQuest
+    const baseXP = XP_VALUES.dailyQuest
+    const effectiveXP = todayLog.dayMode === 'minimum' ? baseXP * 2 : baseXP
+    const xpDelta = completed ? -effectiveXP : effectiveXP
 
     const withStreak = await applyStreakIfNeeded(stats)
     let newStats: UserStats = {
@@ -377,7 +380,8 @@ export function useGameData() {
     const newKept = kept
       ? currentRules.filter(id => id !== ruleId)
       : [...currentRules, ruleId]
-    const xpDelta = kept ? -XP_VALUES.rulekept : XP_VALUES.rulekept
+    const baseRule = XP_VALUES.rulekept
+    const xpDelta = kept ? -(todayLog.dayMode === 'minimum' ? baseRule * 2 : baseRule) : (todayLog.dayMode === 'minimum' ? baseRule * 2 : baseRule)
 
     const withStreak = await applyStreakIfNeeded(stats)
     const newStats: UserStats = {
@@ -433,10 +437,12 @@ export function useGameData() {
     return true
   }, [user, stats, statsRef, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
-  const setDayMode = useCallback(async (mode: 'normal' | 'minimum') => {
+  const setDayMode = useCallback(async (mode: 'normal' | 'minimum', reason?: import('@/types').MinimumDayReason) => {
     if (!user || !todayRef || !todayLog) return
-    await setDoc(todayRef, { ...todayLog, dayMode: mode }, { merge: true })
-    // Minimum mode resets the no-minimum streak
+    const update: Partial<import('@/types').DailyLog> = { dayMode: mode }
+    if (mode === 'minimum' && reason) update.minimumReason = reason
+    if (mode === 'normal') update.minimumReason = undefined
+    await setDoc(todayRef, { ...todayLog, ...update }, { merge: true })
     if (mode === 'minimum' && statsRef) {
       await setDoc(statsRef, { consecutiveNormalDays: 0, lastNormalDay: currentDateKey }, { merge: true })
     }

@@ -31,7 +31,7 @@ export default function ReviewPage() {
   const { stats, submitWeeklyReview, submitMonthlyReview } = useGameData()
   const { logs } = useTimelineData()
   const { weeklyReviews, monthlyReviews, lastWeeklyReview, lastMonthlyReview, loading: historyLoading } = useReviewHistory()
-  const [mode, setMode] = useState<Mode>('weekly')
+  const [mode, setMode] = useState<Mode>('progress')
 
   return (
     <div className="max-w-2xl mx-auto px-4 pt-6 pb-8 animate-fade-in">
@@ -1246,7 +1246,7 @@ function ProgressTab({ stats }: ProgressTabProps) {
               {totalXP.toLocaleString('pl-PL')} XP zebrane
             </span>
             <span className="font-sans text-[11px] text-muted-light">
-              cel: 140 000 XP
+              cel: 200 000 XP
             </span>
           </div>
         </div>
