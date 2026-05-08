@@ -1,36 +1,16 @@
 'use client'
 import { useGameData } from '@/hooks/useGameData'
-import { LEVELS, getLevelFromXP } from '@/lib/gameLogic'
+import {
+  LEVELS,
+  getLevelFromXP,
+  getGardenStage,
+  getNextGardenStage,
+  getPace,
+} from '@/lib/gameLogic'
 import { Check } from 'lucide-react'
 import clsx from 'clsx'
 
 const TOTAL_XP = 200_000
-
-// ────────────────────────────────────────────────────────────
-// Garden stages — which botanical scene we're in
-// ────────────────────────────────────────────────────────────
-interface GardenStage {
-  emoji: string
-  stageName: string
-  desc: string
-  bg: string
-  accentColor: string
-}
-
-function getGardenStage(level: number): GardenStage {
-  if (level <= 2)  return { emoji: '🌰', stageName: 'Nasienie',        desc: 'Wszystko wielkie zaczyna się od małego ziarnka.',         bg: 'from-stone-50 to-parchment',      accentColor: '#8B6914' }
-  if (level <= 4)  return { emoji: '🌱', stageName: 'Kiełek',          desc: 'Pierwsze pędy przebijają się przez ziemię.',              bg: 'from-green-50/60 to-ivory',        accentColor: '#3d6b2b' }
-  if (level <= 6)  return { emoji: '🌿', stageName: 'Łodyżka',         desc: 'Korzenie się ugruntowują, liście złapały słońce.',        bg: 'from-emerald-50/50 to-ivory',     accentColor: '#2d5a20' }
-  if (level <= 9)  return { emoji: '🪴', stageName: 'Roślina',         desc: 'Jesteś silna, zakorzeniona i wyraźna.',                   bg: 'from-green-50/40 to-parchment',   accentColor: '#3d6b2b' }
-  if (level <= 12) return { emoji: '🌷', stageName: 'Pąk',             desc: 'Coś bardzo pięknego właśnie się zbliża.',                 bg: 'from-pink-50/40 to-ivory',        accentColor: '#c06080' }
-  if (level <= 15) return { emoji: '🌸', stageName: 'Pierwszy kwiat',  desc: 'Rozkwitasz — i warto było na to czekać.',                 bg: 'from-pink-50/50 to-parchment',    accentColor: '#d4698c' }
-  if (level <= 18) return { emoji: '🌺', stageName: 'Pełen rozkwit',   desc: 'Piękno w pełnej, niepowstrzymanej ekspresji.',            bg: 'from-rose-50/50 to-ivory',        accentColor: '#c0392b' }
-  if (level <= 21) return { emoji: '🌹', stageName: 'Róża',            desc: 'Klasyczna elegancja, silna i nieodparta.',                bg: 'from-rose-50/60 to-parchment',    accentColor: '#9b2335' }
-  if (level <= 24) return { emoji: '💐', stageName: 'Bukiet',          desc: 'Otaczasz się pięknem, które sama stworzyłaś.',            bg: 'from-purple-50/30 to-ivory',      accentColor: '#7c5cbf' }
-  if (level <= 27) return { emoji: '🌳', stageName: 'Drzewo',          desc: 'Głęboko zakorzeniona siła, widoczna z daleka.',           bg: 'from-emerald-50/40 to-parchment', accentColor: '#1a5c2a' }
-  if (level <= 29) return { emoji: '🌿✨', stageName: 'Ogród Eden',    desc: 'Na samym progu finału. Jeden krok dzieli Cię od wszystkiego.', bg: 'from-gold-pale to-ivory',    accentColor: '#B8963E' }
-  return                 { emoji: '✨',  stageName: 'Natalia 30',      desc: 'Osiągnęłaś wszystko, co zaplanowałaś. To jest Ty.',       bg: 'from-gold-pale to-parchment',     accentColor: '#B8963E' }
-}
 
 // ────────────────────────────────────────────────────────────
 // Subtle decorative garden SVG (grows with level 0-9 stage)
@@ -164,8 +144,21 @@ export default function ProgressPage() {
   const totalXP    = stats?.totalXP ?? 0
   const currentLvl = getLevelFromXP(totalXP)
   const stage      = getGardenStage(currentLvl.level)
+  const nextStage  = getNextGardenStage(currentLvl.level)
   const overallPct = Math.min(100, Math.round((totalXP / TOTAL_XP) * 100))
   const levelStage = Math.floor((currentLvl.level - 1) / 3)   // 0-9 for SVG
+
+  // XP do pierwszego levelu kolejnego stage'a
+  const xpToNextStage = nextStage
+    ? Math.max(0, (LEVELS.find(l => l.level === stage.maxLevel + 1)?.xpRequired ?? totalXP) - totalXP)
+    : 0
+
+  const pace = getPace(totalXP)
+  const paceCopy = pace.status === 'ahead'
+    ? { label: 'Przed planem', detail: `+${Math.abs(pace.diffDays)} ${Math.abs(pace.diffDays) === 1 ? 'dzień' : 'dni'} przewagi`, color: '#1a5c2a', bg: 'bg-emerald-50/60', emoji: '↑' }
+    : pace.status === 'behind'
+      ? { label: 'Do nadrobienia', detail: `${Math.abs(pace.diffDays)} ${Math.abs(pace.diffDays) === 1 ? 'dzień' : 'dni'} opóźnienia`, color: '#9b2335', bg: 'bg-rose-50/60', emoji: '↓' }
+      : { label: 'Na track', detail: 'Idziesz dokładnie w swoim tempie', color: '#B8963E', bg: 'bg-gold-pale/60', emoji: '·' }
 
   if (loading) return (
     <div className="min-h-screen bg-ivory flex items-center justify-center">
@@ -214,6 +207,40 @@ export default function ProgressPage() {
               </p>
             </div>
           </div>
+
+          {/* Next stage spoiler */}
+          {nextStage && (
+            <div className="mt-5 pt-4 border-t border-dark/5 flex items-center gap-3">
+              <div className="text-3xl opacity-25 blur-[1.5px]">{nextStage.emoji}</div>
+              <div className="flex-1 min-w-0">
+                <p className="font-sans text-[9px] uppercase tracking-widest text-muted-light mb-0.5">
+                  Następnie
+                </p>
+                <p className="font-serif text-dark/60 text-sm truncate">
+                  {nextStage.stageName}
+                </p>
+              </div>
+              <span className="font-sans text-[11px] text-muted-light tabular-nums flex-shrink-0">
+                +{xpToNextStage.toLocaleString('pl-PL')} XP
+              </span>
+            </div>
+          )}
+
+          {/* 30-stage dots axis */}
+          <div className="mt-5 flex gap-1 justify-center" aria-label="oś 30 poziomów">
+            {LEVELS.map(l => (
+              <div
+                key={l.level}
+                title={`Poziom ${l.level} · ${l.name}`}
+                className={clsx(
+                  'w-1.5 h-1.5 rounded-full transition-all',
+                  l.level < currentLvl.level && 'bg-gold',
+                  l.level === currentLvl.level && 'bg-gold animate-pulse w-2 h-2',
+                  l.level > currentLvl.level && 'bg-ivory/60 border border-border/60'
+                )}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Overall XP progress */}
@@ -226,6 +253,12 @@ export default function ProgressPage() {
             {/* Subtle texture stripe */}
             <div className="absolute inset-0 opacity-20"
               style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,0,0,0.05) 8px, rgba(0,0,0,0.05) 9px)' }} />
+            {/* Marker oczekiwanego tempa */}
+            <div
+              className="absolute top-0 bottom-0 w-px bg-dark/40"
+              style={{ left: `${Math.min(100, Math.round((pace.expectedXP / TOTAL_XP) * 100))}%` }}
+              title={`Oczekiwane do dziś: ${pace.expectedXP.toLocaleString('pl-PL')} XP`}
+            />
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{
@@ -234,6 +267,30 @@ export default function ProgressPage() {
                 boxShadow: '0 0 8px rgba(184,150,62,0.4)',
               }}
             />
+          </div>
+
+          {/* Pace banner — czy idziesz w terminie */}
+          <div className={clsx('mt-3 rounded-xl px-3 py-2.5 flex items-center gap-3', paceCopy.bg)}>
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center font-serif text-base flex-shrink-0"
+              style={{ background: paceCopy.color, color: '#FAF8F4' }}
+            >
+              {paceCopy.emoji}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-sans text-[10px] uppercase tracking-widest" style={{ color: paceCopy.color }}>
+                {paceCopy.label}
+              </p>
+              <p className="font-serif text-dark text-sm leading-tight">
+                {paceCopy.detail}
+              </p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="font-sans text-[9px] uppercase tracking-widest text-muted-light">do dziś</p>
+              <p className="font-sans text-[11px] text-muted tabular-nums">
+                {pace.expectedXP.toLocaleString('pl-PL')} XP
+              </p>
+            </div>
           </div>
           <div className="flex justify-between mt-2">
             <span className="font-sans text-[11px] text-muted">

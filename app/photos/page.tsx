@@ -1,5 +1,7 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { usePhotos } from '@/hooks/usePhotos'
 import { Camera, Trash2, X, Upload } from 'lucide-react'
 import type { PhotoEntry } from '@/types'
@@ -169,13 +171,17 @@ function Lightbox({ photo, onClose, onDelete }: LightboxProps) {
         </button>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 overflow-hidden" onClick={e => e.stopPropagation()}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={photo.url}
-          alt={photo.caption ?? ''}
-          className="max-w-full max-h-full object-contain rounded-xl"
-        />
+      <div className="flex-1 flex items-center justify-center px-4 overflow-hidden relative" onClick={e => e.stopPropagation()}>
+        <div className="relative w-full h-full">
+          <Image
+            src={photo.url}
+            alt={photo.caption ?? ''}
+            fill
+            sizes="100vw"
+            className="object-contain rounded-xl"
+            priority
+          />
+        </div>
       </div>
 
       {photo.caption && (
@@ -209,6 +215,11 @@ export default function PhotosPage() {
   const { photos, loading, uploading, uploadError, uploadPhoto, deletePhoto } = usePhotos()
   const [showUpload, setShowUpload] = useState(false)
   const [lightbox, setLightbox] = useState<PhotoEntry | null>(null)
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'upload') setShowUpload(true)
+  }, [searchParams])
 
   const grouped = groupByMonth(photos)
 
@@ -265,11 +276,13 @@ export default function PhotosPage() {
                     onClick={() => setLightbox(photo)}
                     className="aspect-square rounded-xl overflow-hidden hover:opacity-90 transition-opacity relative group"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={photo.url}
                       alt={photo.caption ?? ''}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 640px) 33vw, 200px"
+                      className="object-cover"
+                      loading="lazy"
                     />
                     <div className="absolute inset-0 bg-dark/0 group-hover:bg-dark/10 transition-colors rounded-xl" />
                     {photo.caption && (

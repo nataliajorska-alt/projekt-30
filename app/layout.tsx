@@ -3,6 +3,7 @@ import './globals.css'
 import { AuthProvider } from '@/hooks/useAuth'
 import AuthGate from '@/components/AuthGate'
 import Navigation from '@/components/Navigation'
+import QuickActionsFab from '@/components/QuickActionsFab'
 import { ToastProvider } from '@/components/ToastProvider'
 import { AchievementUnlockProvider } from '@/components/AchievementUnlockModal'
 import { LevelUpProvider } from '@/components/LevelUpModal'
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <main className="flex-1 md:ml-56 pb-24 md:pb-0 min-h-screen overflow-x-hidden">
                   {children}
                 </main>
+                <QuickActionsFab />
               </div>
             </AuthGate>
           </ToastProvider>

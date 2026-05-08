@@ -3,10 +3,12 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { useWeeklyInsightBadge } from '@/hooks/useWeeklyInsightBadge'
 import {
   Home, Sword, Trophy, BookOpen, CalendarDays,
   LogOut, Settings, Lock, Camera, Scroll,
-  TrendingUp, Archive, ChevronRight, Moon,
+  Archive, ChevronRight, Moon, Heart,
+  Sprout, TreePine, Columns3,
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -45,13 +47,23 @@ const NAV: NavItem[] = [
   },
   {
     kind: 'group',
-    icon: TrendingUp,
-    label: 'Postęp',
+    icon: Sprout,
+    label: 'Wzrost',
     children: [
-      { href: '/timeline',     icon: CalendarDays, label: 'Historia' },
+      { href: '/progress',         icon: TreePine,     label: 'Drzewko' },
+      { href: '/timeline?tab=patterns', icon: CalendarDays, label: 'Wzorce' },
+      { href: '/pillars',      icon: Columns3,     label: 'Filary' },
       { href: '/achievements', icon: Trophy,       label: 'Osiągnięcia' },
-      { href: '/review',       icon: BookOpen,     label: 'Przegląd' },
-      { href: '/cycle',        icon: Moon,         label: 'Rytm' },
+    ],
+  },
+  {
+    kind: 'group',
+    icon: Moon,
+    label: 'Rytm',
+    children: [
+      { href: '/cycle',  icon: Moon,     label: 'Cykl' },
+      { href: '/serce',  icon: Heart,    label: 'Serce' },
+      { href: '/review', icon: BookOpen, label: 'Przegląd' },
     ],
   },
   {
@@ -73,8 +85,12 @@ const NAV: NavItem[] = [
 ]
 
 // Helpers
+function pathOnly(href: string) {
+  return href.split('?')[0]
+}
+
 function groupPaths(item: GroupItem) {
-  return item.children.map(c => c.href)
+  return item.children.map(c => pathOnly(c.href))
 }
 
 function isGroupActive(item: GroupItem, pathname: string) {
@@ -85,6 +101,7 @@ function isGroupActive(item: GroupItem, pathname: string) {
 
 function DesktopNav({ pathname }: { pathname: string }) {
   const { logOut } = useAuth()
+  const insightBadge = useWeeklyInsightBadge()
   const [openGroup, setOpenGroup] = useState<string | null>(() => {
     // Auto-open the group that contains the current path
     for (const item of NAV) {
@@ -136,7 +153,12 @@ function DesktopNav({ pathname }: { pathname: string }) {
                     : 'text-muted-light hover:text-ivory hover:bg-forest/50'
                 )}
               >
-                <item.icon size={16} strokeWidth={1.5} />
+                <span className="relative flex items-center">
+                  <item.icon size={16} strokeWidth={1.5} />
+                  {item.label === 'Wzrost' && insightBadge && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-gold ring-2 ring-dark" aria-label="Nowy insight" />
+                  )}
+                </span>
                 <span className="flex-1 text-left">{item.label}</span>
                 <ChevronRight
                   size={13}
@@ -148,7 +170,7 @@ function DesktopNav({ pathname }: { pathname: string }) {
               {open && (
                 <div className="ml-3 pl-3 border-l border-forest/40 mt-0.5 mb-1 space-y-0.5">
                   {item.children.map(child => {
-                    const childActive = pathname === child.href
+                    const childActive = pathname === pathOnly(child.href)
                     return (
                       <Link
                         key={child.href}
@@ -186,6 +208,7 @@ function DesktopNav({ pathname }: { pathname: string }) {
 // ── Mobile bottom nav ────────────────────────────────────────────
 
 function MobileNav({ pathname }: { pathname: string }) {
+  const insightBadge = useWeeklyInsightBadge()
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
 
@@ -222,7 +245,7 @@ function MobileNav({ pathname }: { pathname: string }) {
             </p>
             <div className="flex gap-2">
               {group.children.map(child => {
-                const active = pathname === child.href
+                const active = pathname === pathOnly(child.href)
                 return (
                   <Link
                     key={child.href}
@@ -277,7 +300,12 @@ function MobileNav({ pathname }: { pathname: string }) {
                 groupActive || groupOpen ? 'text-gold-light' : 'text-muted-light'
               )}
             >
-              <item.icon size={18} strokeWidth={1.5} />
+              <span className="relative flex items-center">
+                <item.icon size={18} strokeWidth={1.5} />
+                {item.label === 'Wzrost' && insightBadge && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-gold ring-2 ring-dark" aria-label="Nowy insight" />
+                )}
+              </span>
               <span className="text-[9px] font-sans">{item.shortLabel ?? item.label}</span>
             </button>
           )

@@ -1,6 +1,6 @@
 import type { DailyLog } from '@/types'
 import { MORNING_ROUTINE, EVENING_ROUTINE, DAILY_HABITS } from './routineData'
-import { APRIL_QUESTS } from './aprilData'
+import { APRIL_QUESTS } from './seasonal/aprilData'
 import { SIDE_QUESTS } from './questData'
 
 export interface MagnetismBreakdown {

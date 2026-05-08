@@ -4,6 +4,7 @@ import { DAILY_RULES } from '@/lib/routineData'
 import { Check } from 'lucide-react'
 import clsx from 'clsx'
 import GhostProtocolV2 from './GhostProtocolV2'
+import SoothingPicker from './SoothingPicker'
 
 export default function NegativeChecklist() {
   const { todayLog, toggleRule } = useGameData()
@@ -55,6 +56,7 @@ export default function NegativeChecklist() {
                 </div>
               </button>
               {rule.id === 'r1' && <GhostProtocolV2 />}
+              {rule.id === 'r3' && <SoothingPicker />}
             </div>
           )
         })}

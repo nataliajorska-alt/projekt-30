@@ -81,7 +81,12 @@ export default function EmergencyLock({ onClose }: { onClose: () => void }) {
 
   const handleSaveThought = useCallback(async () => {
     if (!thoughtText.trim()) { setPhase('locked'); return }
-    await addVaultEntry('Z Emergency Lock', thoughtText.trim())
+    await addVaultEntry({
+      letterType: 'crisis',
+      unlockType: 'immediate',
+      title: 'Z Emergency Lock',
+      content: thoughtText.trim(),
+    })
     setThoughtSaved(true)
     setThoughtText('')
     setTimeout(() => {

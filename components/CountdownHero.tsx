@@ -3,7 +3,7 @@ import { getDaysRemaining, getDaysElapsed, getProjectProgress, getLevelFromXP, g
 import { useGameData } from '@/hooks/useGameData'
 import { todayKey } from '@/lib/gameLogic'
 import { getDailySpark } from '@/lib/questData'
-import { getCurrentMonthData } from '@/lib/monthData'
+import { getCurrentMonthData } from '@/lib/seasonal/monthData'
 import { useSparkSchedule } from '@/hooks/useSparkSchedule'
 
 export default function CountdownHero() {

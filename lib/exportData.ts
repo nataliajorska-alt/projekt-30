@@ -3,7 +3,7 @@ import { db } from '@/lib/firebase'
 import type { DailyLog, WeeklyReview, MonthlyReview, UserStats } from '@/types'
 import { SIDE_QUESTS, getDailyQuests } from '@/lib/questData'
 import { DAILY_RULES } from '@/lib/routineData'
-import { APRIL_QUESTS } from '@/lib/aprilData'
+import { APRIL_QUESTS } from '@/lib/seasonal/aprilData'
 
 const PILLAR_KEYS = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc'] as const
 const PILLAR_LABELS = ['Pozycja', 'Ciało', 'Styl', 'Kapitał', 'Kariera', 'Tożsamość', 'Miłość']
@@ -63,9 +63,9 @@ export async function exportLogsAsCSV(uid: string, range: DateRange = { from: nu
     'Questy dzienne (liczba)',
     'Side questy (liczba)',
     'Własne side questy (liczba)',
-    'Zasada 1: Nie pisałam do byłego (0/1)',
+    'Zasada 1: Nie wróciłam do starych wzorców (0/1)',
     'Zasada 2: Zrobiłam coś dla przyszłości (0/1)',
-    'Zasada 3: Zadbałam o wygląd (0/1)',
+    'Zasada 3: Zrobiłam jedną rzecz dla spokoju (0/1)',
     'Łącznie zasad dotrzymanych',
     ...PILLAR_LABELS.map(p => `XP: ${p}`),
     'Aktywność fizyczna (0/1)',
@@ -312,7 +312,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
   // ── NOWE: imports danych statycznych ──────────────────────────
   const { ACHIEVEMENTS } = await import('./achievements')
   const { DAILY_RULES, MORNING_ROUTINE, EVENING_ROUTINE, DAILY_HABITS, MORNING_MINIMUM, EVENING_MINIMUM } = await import('./routineData')
-  const { APRIL_QUESTS } = await import('./aprilData')
+  const { APRIL_QUESTS } = await import('./seasonal/aprilData')
   const { GHOST_CATEGORIES, INTENSITY_LABELS } = await import('./ghost-data')
 
   // Lookup map elementów rutyny

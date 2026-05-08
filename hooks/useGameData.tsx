@@ -10,7 +10,7 @@ import { todayKey, XP_VALUES, getISOWeekKey, getLevelFromXP, getMonthKey } from 
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import { DAILY_QUESTS_POOL, SIDE_QUESTS } from '@/lib/questData'
-import { Pillar } from '@/types'
+import { DailyLogSchema, UserStatsSchema, parseSafe } from '@/lib/schemas'
 import { useToast } from '@/components/ToastProvider'
 import { useAchievementUnlock } from '@/components/AchievementUnlockModal'
 import { useLevelUp } from '@/components/LevelUpModal'
@@ -33,6 +33,7 @@ const DEFAULT_STATS: UserStats = {
   streakFreezeUsedMonths: [],
   reviewedWeeks: [],
   reviewedMonths: [],
+  completedHeartBlocks: [],
   pillarBalanceWeeks: [],
   totalGhostProtocols: 0,
   consecutiveGhostDays: 0,
@@ -80,12 +81,14 @@ export function useGameData() {
     unsub1 = onSnapshot(statsRef,
       (snap) => {
         if (snap.exists()) {
-          const data = snap.data() as UserStats
-          const safeXP = Number.isFinite(data.totalXP) && data.totalXP >= 0 ? data.totalXP : 0
-          if (!Number.isFinite(data.totalXP) || data.totalXP < 0) {
-            setDoc(statsRef!, { totalXP: safeXP }, { merge: true })
+          const raw = snap.data()
+          const parsed = parseSafe(UserStatsSchema, { ...DEFAULT_STATS, ...raw }, DEFAULT_STATS, 'UserStats')
+          // If the parsed XP differs from the raw one, the value was corrupt and got fixed — write it back.
+          const rawXP = (raw as { totalXP?: unknown }).totalXP
+          if (!Number.isFinite(rawXP) || (rawXP as number) < 0) {
+            setDoc(statsRef!, { totalXP: parsed.totalXP }, { merge: true })
           }
-          setStats({ ...DEFAULT_STATS, ...data, totalXP: safeXP })
+          setStats(parsed)
           statsLoadedRef.current = true
         } else {
           setDoc(statsRef!, DEFAULT_STATS)
@@ -94,27 +97,35 @@ export function useGameData() {
       (err) => { addToast({ message: 'Błąd ładowania statystyk. Odśwież stronę.', type: 'error' }); setLoading(false) }
     )
 
+    const emptyDailyLog: DailyLog = {
+      date: currentDateKey,
+      completedRoutine: [],
+      completedDailyQuests: [],
+      completedSideQuests: [],
+      keptRules: [],
+      totalXP: 0,
+      dayMode: 'normal',
+    }
+
     unsub2 = onSnapshot(todayRef,
       (snap) => {
         if (snap.exists()) {
-          const data = snap.data() as DailyLog
-          const rawXP = data.totalXP
-          const fixedXP = (Number.isFinite(rawXP) && rawXP >= 0) ? rawXP : 0
-          setTodayLog({
-            completedRoutine: [],
-            completedDailyQuests: [],
-            completedSideQuests: [],
-            keptRules: [],
-            dayMode: 'normal',
-            ...data,
-            totalXP: fixedXP,
-          })
-          // Repair corrupt value in Firestore so it doesn't come back
-          if (!Number.isFinite(rawXP) || rawXP < 0) {
-            setDoc(doc(db, 'users', user!.uid, 'logs', currentDateKey), { totalXP: fixedXP }, { merge: true })
+          const raw = snap.data()
+          // Merge defaults beneath raw so missing fields (legacy docs) get safe values.
+          const parsed = parseSafe(
+            DailyLogSchema,
+            { ...emptyDailyLog, ...raw },
+            emptyDailyLog,
+            `DailyLog ${currentDateKey}`,
+          )
+          setTodayLog(parsed)
+          // Heal corrupt totalXP in-place so the bad value doesn't come back next read.
+          const rawXP = (raw as { totalXP?: unknown }).totalXP
+          if (!Number.isFinite(rawXP) || (rawXP as number) < 0) {
+            setDoc(doc(db, 'users', user!.uid, 'logs', currentDateKey), { totalXP: parsed.totalXP }, { merge: true })
           }
         } else {
-          setTodayLog({ date: currentDateKey, completedRoutine: [], completedDailyQuests: [], completedSideQuests: [], keptRules: [], totalXP: 0, dayMode: 'normal' })
+          setTodayLog(emptyDailyLog)
         }
         setLoading(false)
       },
@@ -437,6 +448,30 @@ export function useGameData() {
     return true
   }, [user, stats, statsRef, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
+  const completeHeartBlock = useCallback(async (weekKey: string): Promise<{ awarded: boolean; xp: number }> => {
+    if (!user || !statsRef || !statsLoadedRef.current) return { awarded: false, xp: 0 }
+    const completed = stats.completedHeartBlocks ?? []
+    if (completed.includes(weekKey)) return { awarded: false, xp: 0 }
+
+    const withStreak = await applyStreakIfNeeded(stats)
+    let newStats: UserStats = {
+      ...withStreak,
+      totalXP: withStreak.totalXP + XP_VALUES.heartBlock,
+      pillarXP: {
+        ...withStreak.pillarXP,
+        pozycja: (withStreak.pillarXP.pozycja ?? 0) + XP_VALUES.heartBlock,
+      },
+      completedHeartBlocks: [...completed, weekKey],
+    }
+    newStats = applyPillarBalanceIfNeeded(newStats, 'pozycja')
+    const achUpdates = await checkAchievements(newStats)
+    const finalStats = { ...newStats, ...achUpdates }
+    checkLevelUp(stats.totalXP, finalStats.totalXP)
+
+    await setDoc(statsRef, finalStats, { merge: true })
+    return { awarded: true, xp: XP_VALUES.heartBlock }
+  }, [user, stats, statsRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
+
   const setDayMode = useCallback(async (mode: 'normal' | 'minimum', reason?: import('@/types').MinimumDayReason) => {
     if (!user || !todayRef || !todayLog) return
     const update: Partial<import('@/types').DailyLog> = { dayMode: mode }
@@ -447,48 +482,6 @@ export function useGameData() {
       await setDoc(statsRef, { consecutiveNormalDays: 0, lastNormalDay: currentDateKey }, { merge: true })
     }
   }, [user, todayRef, todayLog, statsRef, currentDateKey])
-
-  // Ghost Protocol: grants XP + marks today's log + tracks behavioral stats
-  const completeGhostProtocol = useCallback(async () => {
-    if (!user || !statsRef || !statsLoadedRef.current) return
-    const withStreak = await applyStreakIfNeeded(stats)
-    const today = currentDateKey
-
-    // Behavioral: GP consecutive days
-    const lastGhost = withStreak.lastGhostDate ?? null
-    const isConsecutiveGhost = lastGhost !== null && (() => {
-      const [y, m, d] = today.split('-').map(Number)
-      const todayDate = new Date(y, m - 1, d)
-      const prev = new Date(lastGhost + 'T12:00:00')
-      const diff = Math.round((todayDate.getTime() - prev.getTime()) / 86400000)
-      return diff <= 1  // same day re-trigger or consecutive day
-    })()
-    const newConsecGhost = lastGhost === today
-      ? (withStreak.consecutiveGhostDays ?? 0)  // same day, no increment
-      : isConsecutiveGhost
-        ? (withStreak.consecutiveGhostDays ?? 0) + 1
-        : 1  // streak broken, reset to 1
-
-    let newStats: UserStats = {
-      ...withStreak,
-      totalXP: withStreak.totalXP + 50,
-      pillarXP: {
-        ...withStreak.pillarXP,
-        tozsamosc: (withStreak.pillarXP.tozsamosc ?? 0) + 50,
-      },
-      totalGhostProtocols: (withStreak.totalGhostProtocols ?? 0) + (lastGhost === today ? 0 : 1),
-      consecutiveGhostDays: newConsecGhost,
-      lastGhostDate: today,
-    }
-    newStats = applyPillarBalanceIfNeeded(newStats, 'tozsamosc')
-    const achUpdates = await checkAchievements(newStats)
-    const finalStats = { ...newStats, ...achUpdates }
-    checkLevelUp(stats.totalXP, finalStats.totalXP)
-    await Promise.all([
-      setDoc(statsRef, finalStats, { merge: true }),
-      todayRef ? setDoc(todayRef, { ghostProtocolCompleted: true }, { merge: true }) : Promise.resolve(),
-    ])
-  }, [user, stats, statsRef, todayRef, currentDateKey, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
 
   const toggleSocialPresence = useCallback(async () => {
     if (!user || !todayRef || !todayLog) return
@@ -816,8 +809,9 @@ export function useGameData() {
     stats, todayLog, loading,
     toggleRoutine, toggleDailyQuest, toggleSideQuest, toggleRule,
     submitWeeklyReview, submitMonthlyReview, setDayMode,
-    streakFreezeAvailable, completeGhostProtocol, toggleSocialPresence, togglePhysicalActivity,
+    streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
+    completeHeartBlock,
     recordGhostImpulseV2, recordHonestFailure, logCustomSideQuest,
     recoverStats, applyRecoveredStats,
   }

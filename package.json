@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "backup": "node scripts/backup.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -15,10 +18,11 @@
     "lucide-react": "^0.395.0",
     "next": "14.2.5",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^20.19.39",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
@@ -27,6 +31,7 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
-    "vercel": "^52.0.0"
+    "vercel": "^52.0.0",
+    "vitest": "^4.1.5"
   }
 }

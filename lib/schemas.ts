@@ -1,0 +1,167 @@
+/**
+ * Zod schemas for Firestore data validation.
+ *
+ * Use parseSafe() when reading from Firestore — it never throws,
+ * logs a warning on schema mismatch, and returns the document with
+ * invalid fields replaced by safe defaults (via .catch() per-field).
+ *
+ * If the schema gains new optional fields, old documents stay valid.
+ * If a field's type changes incompatibly, bump the field with .catch()
+ * to a default and the app keeps working while data migrates.
+ */
+import { z } from 'zod'
+
+// ── Enums ────────────────────────────────────────────────────────────────────
+
+export const PillarSchema = z.enum([
+  'pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc',
+])
+
+const MoodStateSchema = z.enum(['calm', 'storm', 'fog', 'clarity']).catch('calm')
+
+const MinimumDayReasonSchema = z.enum([
+  'choroba', 'okres', 'zly_nastroj', 'przemeczenie', 'inne',
+])
+
+// ── Leaf objects ─────────────────────────────────────────────────────────────
+
+export const MoodCheckInSchema = z.object({
+  energy: z.number().min(1).max(5).catch(3),
+  mood: z.number().min(1).max(5).catch(3),
+  state: MoodStateSchema,
+  timestamp: z.number().nonnegative().catch(() => Date.now()),
+})
+
+export const KeyMomentSchema = z.object({
+  title: z.string().catch(''),
+  note: z.string().optional(),
+  savedAt: z.number().catch(() => Date.now()),
+})
+
+export const CustomSideQuestEntrySchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  pillar: PillarSchema,
+  xp: z.number().catch(0),
+})
+
+// ── DailyLog ─────────────────────────────────────────────────────────────────
+
+export const DailyLogSchema = z.object({
+  date: z.string().catch(''),
+  completedRoutine: z.array(z.string()).catch([]),
+  completedDailyQuests: z.array(z.string()).catch([]),
+  completedSideQuests: z.array(z.string()).catch([]),
+  customSideQuests: z.array(CustomSideQuestEntrySchema).optional(),
+  keptRules: z.array(z.string()).catch([]),
+  totalXP: z.number().nonnegative().catch(0),
+  dayMode: z.enum(['normal', 'minimum']).catch('normal'),
+  minimumReason: MinimumDayReasonSchema.optional(),
+  notes: z.string().optional(),
+  socialPresence: z.boolean().optional(),
+  physicalActivity: z.boolean().optional(),
+  ghostProtocolCompleted: z.boolean().optional(),
+  moodCheckIns: z.array(MoodCheckInSchema).optional(),
+  keyMoment: KeyMomentSchema.optional(),
+})
+
+// ── UserStats ────────────────────────────────────────────────────────────────
+
+const PillarXPSchema = z.object({
+  pozycja:   z.number().catch(0),
+  cialo:     z.number().catch(0),
+  styl:      z.number().catch(0),
+  kapital:   z.number().catch(0),
+  kariera:   z.number().catch(0),
+  tozsamosc: z.number().catch(0),
+  milosc:    z.number().catch(0),
+})
+
+export const UserStatsSchema = z.object({
+  totalXP:                    z.number().nonnegative().catch(0),
+  currentStreak:              z.number().nonnegative().catch(0),
+  longestStreak:              z.number().nonnegative().catch(0),
+  totalDaysLogged:            z.number().nonnegative().catch(0),
+  totalRoutinesCompleted:     z.number().nonnegative().catch(0),
+  totalQuestsCompleted:       z.number().nonnegative().catch(0),
+  totalSideQuestsCompleted:   z.number().nonnegative().catch(0),
+  totalRulesKept:             z.number().nonnegative().catch(0),
+  pillarXP:                   PillarXPSchema,
+  unlockedAchievements:       z.array(z.string()).catch([]),
+  lastStreakDate:             z.string().nullable().optional(),
+  streakFreezeUsedMonths:     z.array(z.string()).optional(),
+  reviewedWeeks:              z.array(z.string()).optional(),
+  reviewedMonths:             z.array(z.string()).optional(),
+  completedHeartBlocks:       z.array(z.string()).optional(),
+  pillarBalanceWeeks:         z.array(z.string()).optional(),
+  currentWeekPillars:         z.object({
+    weekKey: z.string(),
+    pillars: z.array(PillarSchema),
+  }).optional(),
+  totalGhostProtocols:        z.number().optional(),
+  consecutiveGhostDays:       z.number().optional(),
+  lastGhostDate:              z.string().nullable().optional(),
+  highestDayXP:               z.number().optional(),
+  consecutiveNormalDays:      z.number().optional(),
+  lastNormalDay:              z.string().nullable().optional(),
+  consecutivePerfectMornings: z.number().optional(),
+  lastPerfectMorningDate:     z.string().nullable().optional(),
+  lastReturnCeremonyDate:     z.string().nullable().optional(),
+})
+
+// ── Vault ────────────────────────────────────────────────────────────────────
+
+const LetterTypeSchema = z.enum(['future', 'crisis', 'gratitude', 'vent', 'date']).catch('future')
+const UnlockTypeSchema = z.enum(['quarterly', 'date', 'immediate', 'never']).catch('quarterly')
+
+export const VaultReplySchema = z.object({
+  id:            z.string().catch(''),
+  content:       z.string().catch(''),
+  dateKey:       z.string().catch(''),
+  dayOfProject:  z.number().int().min(1).catch(1),
+  moodAtWriting: MoodStateSchema.optional(),
+  createdAt:     z.string().catch(() => new Date().toISOString()),
+})
+
+// VaultEntry — z fallbackiem na stary format (brak letterType ⇒ 'future' + 'quarterly').
+// Stare listy działają bez migracji, nowe pola są opcjonalne.
+export const VaultEntrySchema = z.object({
+  id:            z.string().catch(''),
+  letterType:    LetterTypeSchema,
+  unlockType:    UnlockTypeSchema,
+  title:         z.string().catch(''),
+  content:       z.string().catch(''),
+  dateKey:       z.string().catch(''),
+  dayOfProject:  z.number().int().min(1).catch(1),
+  createdAt:     z.string().catch(() => new Date().toISOString()),
+  unlockDate:    z.string().optional(),
+  moodAtWriting: MoodStateSchema.optional(),
+  promptUsed:    z.string().optional(),
+  charCount:     z.number().nonnegative().optional(),
+})
+
+// ── Safe parse helper ────────────────────────────────────────────────────────
+
+/**
+ * Parse a Firestore document with a Zod schema, falling back to defaults on failure.
+ * Never throws — logs a structured warning so corrupt documents don't crash the UI.
+ *
+ * @param schema  Zod schema (each field should have its own .catch() for resilience)
+ * @param raw     Unknown data from Firestore (snap.data())
+ * @param fallback  Used only if the top-level shape is so broken the schema can't parse
+ * @param label   Identifier for log messages (e.g. 'DailyLog 2026-05-01')
+ */
+export function parseSafe<T>(
+  schema: z.ZodSchema,
+  raw: unknown,
+  fallback: T,
+  label: string,
+): T {
+  const result = schema.safeParse(raw)
+  if (result.success) return result.data as T
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.warn(`[schema] ${label} failed validation, using fallback:`, result.error.flatten())
+  }
+  return fallback
+}

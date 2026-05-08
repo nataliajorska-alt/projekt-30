@@ -7,6 +7,7 @@ import DailyQuests from '@/components/DailyQuests'
 import TomorrowQuests from '@/components/TomorrowQuests'
 import SideQuestPicker from '@/components/SideQuestPicker'
 import NegativeChecklist from '@/components/NegativeChecklist'
+import HeartBlockCard from '@/components/HeartBlockCard'
 import DailyXPSummary from '@/components/DailyXPSummary'
 import MagnetismMeter from '@/components/MagnetismMeter'
 import MoodCheckInModal from '@/components/MoodCheckInModal'
@@ -15,12 +16,15 @@ import ReturnCeremony from '@/components/ReturnCeremony'
 import DashboardNudges from '@/components/DashboardNudges'
 import SafeHoursBanner from '@/components/SafeHoursBanner'
 import CyclePhaseWidget from '@/components/CyclePhaseWidget'
+import MiniGardenWidget from '@/components/MiniGardenWidget'
+import PatternOfTheWeek from '@/components/PatternOfTheWeek'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/SkeletonCard'
 import { useGameData } from '@/hooks/useGameData'
 import { todayKey, tomorrowDate } from '@/lib/gameLogic'
 import type { MoodState } from '@/types'
 
-// Probability of showing the check-in on any given app open (when < 3 check-ins today).
+// Probability of showing the check-in on any given app open (when < 4 check-ins today).
 const CHECKIN_TRIGGER_PROBABILITY = 0.4
 
 function daysBetween(a: string, b: string): number {
@@ -50,7 +54,7 @@ export default function Dashboard() {
     sessionStorage.setItem(sessionKey, '1')
 
     const checkIns = todayLog.moodCheckIns ?? []
-    if (checkIns.length >= 3) return
+    if (checkIns.length >= 4) return
 
     // Don't show if last check-in was less than 3 hours ago
     const lastTs = checkIns.length > 0 ? checkIns[checkIns.length - 1].timestamp : null
@@ -137,24 +141,30 @@ export default function Dashboard() {
       </div>
 
       <CountdownHero />
-      <CyclePhaseWidget />
-      <MagnetismMeter />
+
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <ErrorBoundary label="Drzewko"><MiniGardenWidget /></ErrorBoundary>
+        <ErrorBoundary label="Cykl"><CyclePhaseWidget /></ErrorBoundary>
+        <ErrorBoundary label="Wzorzec tygodnia"><PatternOfTheWeek /></ErrorBoundary>
+      </div>
+      <ErrorBoundary label="Magnetyzm"><MagnetismMeter /></ErrorBoundary>
       <SafeHoursBanner />
       <DashboardNudges />
-      <DailyXPSummary />
+      <ErrorBoundary label="Podsumowanie XP"><DailyXPSummary /></ErrorBoundary>
 
       {viewingTomorrow ? (
         <>
-          <TomorrowChecklist />
-          <TomorrowQuests />
+          <ErrorBoundary label="Jutrzejsza rutyna"><TomorrowChecklist /></ErrorBoundary>
+          <ErrorBoundary label="Jutrzejsze questy"><TomorrowQuests /></ErrorBoundary>
         </>
       ) : (
         <>
-          <RoutineChecklist />
-          <DailyQuests />
-          <SideQuestPicker />
-          <KeyMomentCapture />
-          <NegativeChecklist />
+          <ErrorBoundary label="Rutyna"><RoutineChecklist /></ErrorBoundary>
+          <ErrorBoundary label="Daily questy"><DailyQuests /></ErrorBoundary>
+          <ErrorBoundary label="Side quest"><SideQuestPicker /></ErrorBoundary>
+          <ErrorBoundary label="Moment dnia"><KeyMomentCapture /></ErrorBoundary>
+          <ErrorBoundary label="Negative checklist"><NegativeChecklist /></ErrorBoundary>
+          <ErrorBoundary label="Heart Block"><HeartBlockCard /></ErrorBoundary>
         </>
       )}
 

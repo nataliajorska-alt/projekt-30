@@ -164,6 +164,49 @@ export interface CustomSideQuestEntry {
   xp: number
 }
 
+// ── Vault — listy do siebie z różnych emocjonalnych miejsc ──────────
+// future:    list do siebie z przyszłości — quarterly unlock (jak teraz)
+// crisis:    list na trudną chwilę — zawsze otwarty, surface gdy mood ≤2 przez 3 dni
+// gratitude: kapsuła wdzięczności — odblokowuje się 30 dni po napisaniu
+// vent:      czysta terapia — content NIE jest zapisywany do Firestore, tylko meta
+// date:      list na konkretną datę (urodziny, rocznica) — odblokowuje się tego dnia
+export type LetterType = 'future' | 'crisis' | 'gratitude' | 'vent' | 'date'
+export type UnlockType = 'quarterly' | 'date' | 'immediate' | 'never'
+
+export const LETTER_TYPES: { value: LetterType; label: string; emoji: string; description: string; unlockType: UnlockType }[] = [
+  { value: 'future',    label: 'Do siebie z przyszłości', emoji: '🌿', description: 'Piszesz jako Natalia 30. Otwiera się co kwartał.',                  unlockType: 'quarterly' },
+  { value: 'crisis',    label: 'Na trudną chwilę',         emoji: '🕯️', description: 'Zawsze otwarty. Pojawi się gdy będziesz tego potrzebować.',         unlockType: 'immediate' },
+  { value: 'gratitude', label: 'Wdzięczność',              emoji: '✨', description: 'Mała kapsuła czasu — otwiera się za 30 dni.',                      unlockType: 'date' },
+  { value: 'vent',      label: 'Vent — bez powrotu',       emoji: '🌪️', description: 'Piszesz, znika. Treść nigdy nie jest zapisywana. Czysta terapia.', unlockType: 'never' },
+  { value: 'date',      label: 'Na konkretną datę',        emoji: '🗓️', description: 'Urodziny, rocznica, "za rok od dziś" — sama wybierasz dzień.',     unlockType: 'date' },
+]
+
+// Reply do odblokowanego listu — można dodać wiele, każda z własnym mood.
+export interface VaultReply {
+  id: string
+  content: string
+  dateKey: string        // YYYY-MM-DD
+  dayOfProject: number
+  moodAtWriting?: MoodState
+  createdAt: string      // ISO
+}
+
+export interface VaultEntry {
+  id: string
+  letterType: LetterType
+  unlockType: UnlockType
+  title: string
+  content: string             // pusty string dla vent (nie zapisujemy treści)
+  dateKey: string             // YYYY-MM-DD — kiedy napisany
+  dayOfProject: number
+  createdAt: string           // ISO
+  unlockDate?: string         // YYYY-MM-DD — używane dla 'date' i 'gratitude'
+  moodAtWriting?: MoodState
+  promptUsed?: string         // tekst prompta (jeśli użyty)
+  charCount?: number          // długość oryginału — dla vent zachowujemy ślad bez treści
+  replies?: VaultReply[]      // ładowane z subkolekcji
+}
+
 export interface DailyLog {
   date: string
   completedRoutine: string[]
@@ -209,6 +252,7 @@ export interface UserStats {
   streakFreezeUsedMonths?: string[]
   reviewedWeeks?: string[]
   reviewedMonths?: string[]
+  completedHeartBlocks?: string[]            // weekKey list — idempotentne nagradzanie
   pillarBalanceWeeks?: string[]
   currentWeekPillars?: {
     weekKey: string

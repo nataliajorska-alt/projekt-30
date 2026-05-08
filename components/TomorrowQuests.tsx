@@ -1,10 +1,10 @@
 'use client'
 import { useTomorrowData } from '@/hooks/useTomorrowData'
-import { getAprilQuestsForDate } from '@/lib/aprilData'
+import { getAprilQuestsForDate } from '@/lib/seasonal/aprilData'
 import { getPillar } from '@/lib/pillars'
 import { Check, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
-import type { AprilQuest } from '@/lib/aprilData'
+import type { AprilQuest } from '@/lib/seasonal/aprilData'
 
 const APRIL_LAST_DAY  = '2026-04-30'
 const APRIL_FIRST_DAY = '2026-04-05'

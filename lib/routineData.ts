@@ -109,9 +109,34 @@ export function getTodayWeeklyHabits(forDate?: Date): RoutineItem[] {
 // ─── ZASADY ────────────────────────────────────────────────────
 
 export const DAILY_RULES = [
-  { id: 'r1', text: 'Nie pisałam do byłego', xp: 20 },
+  { id: 'r1', text: 'Nie wróciłam do starych wzorców', xp: 20 },
   { id: 'r2', text: 'Zrobiłam coś dla swojej przyszłości', xp: 20 },
-  { id: 'r3', text: 'Zadbałam o wygląd i prezencję', xp: 20 },
+  { id: 'r3', text: 'Zrobiłam jedną rzecz dla spokoju', xp: 20 },
+]
+
+// Mała pula podpowiedzi pod zasadę 3 — gdy nie wiesz, co zrobić dla siebie.
+// Mały gest, nie wielki rytuał.
+export const SOOTHING_SUGGESTIONS: string[] = [
+  '10 minut spaceru bez celu',
+  '5 minut oddechu, modlitwy albo ciszy',
+  'Telefon odłożony 30 minut przed snem',
+  'Wieczorna pielęgnacja bez scrolla',
+  'Jedno zdanie journalingu: „Dziś ukoiło mnie…"',
+  'Normalny posiłek zamiast chaosu',
+  'Łagodny prysznic albo kąpiel',
+  '10 minut rozciągania',
+  'Rozmowa z kimś stabilnym',
+  'Wcześniejsze pójście spać',
+  'Minimum dnia zamiast karania się za brak perfekcji',
+  'Cztery długie wydechy, świadomie',
+  'Świeże powietrze przy otwartym oknie, 5 minut',
+  'Gorąca herbata bez robienia niczego przy okazji',
+  'Ulubiona piosenka, słuchana w pełni',
+  'Zapalenie świecy i 10 minut ciszy',
+  'Mały porządek w jednym miejscu — biurko, torba, łazienka',
+  'Krótka modlitwa wieczorna',
+  'Jedna strona książki zamiast feedu',
+  'Powiedzenie sobie „Dziś już wystarczy" i odpoczynek',
 ]
 
 // ─── ISKRY DNIA ────────────────────────────────────────────────
@@ -140,6 +165,38 @@ export const PINNED_SPARKS: Record<string, string> = {
   '2026-04-24': 'Nie porzucam siebie tylko dlatego, że jest mi trudno.',
   '2026-04-25': 'Daję sobie dziś więcej czułości, mniej presji i mniej walki ze sobą.',
   '2026-04-26': 'Przetrwałam kolejny tydzień i nadal mogę łagodnie wracać do siebie.',
+  // ── MAJ 2026 — UKOJENIE ─────────────────────────────────────
+  '2026-05-01': 'Wchodzę w maj bez pretensji do siebie. Kwiecień zrobił to, co umiał.',
+  '2026-05-02': 'Moje ciało jest moim domem, nie projektem do naprawy.',
+  '2026-05-03': 'Cisza też jest formą powrotu do siebie.',
+  '2026-05-04': 'Mam ster, nawet jeśli wody są jeszcze niespokojne.',
+  '2026-05-05': 'Buduję przyszłość, nie uciekam od przeszłości.',
+  '2026-05-06': 'Spokojny wieczór jest aktem szacunku do siebie.',
+  '2026-05-07': 'Buduję własny obieg, nie pukam do drzwi czyjegoś świata.',
+  '2026-05-08': 'Karmię głowę czymś lepszym niż analiza ciszy.',
+  '2026-05-09': 'Wchodzę w świat ze spokojem, nie z udowadnianiem.',
+  '2026-05-10': 'Domykam tydzień bez przemocy wobec siebie.',
+  '2026-05-11': 'Patrzę na liczby bez wstydu i bez paniki.',
+  '2026-05-12': 'Każda wysłana wiadomość zawodowa to cegła w moim świecie.',
+  '2026-05-13': 'Mój wygląd ma mi służyć, nie mną rządzić.',
+  '2026-05-14': 'Nie gonię za cudzym środowiskiem. Buduję własne.',
+  '2026-05-15': 'Mogę tęsknić i jednocześnie wybierać siebie.',
+  '2026-05-16': 'Życie nadal może być moje, jeśli mu pozwolę.',
+  '2026-05-17': 'W połowie maja widzę, że już nie jestem tylko bólem.',
+  '2026-05-18': 'Postęp nie wymaga karania siebie.',
+  '2026-05-19': 'Odwaga to czasem jedna wysłana wiadomość.',
+  '2026-05-20': 'Dziś chronię siebie, nie wyciskam siebie.',
+  '2026-05-21': 'Zaproszenie wysłane to mała rewolucja przeciwko izolacji.',
+  '2026-05-22': 'Inteligencja i lekkość mogą iść razem.',
+  '2026-05-23': 'Moja widoczność dziś płynie z pełni, nie z braku.',
+  '2026-05-24': 'Wiem o sobie więcej, niż wiedziałam miesiąc temu.',
+  '2026-05-25': 'Finansowa godność buduje się decyzja po decyzji.',
+  '2026-05-26': 'Następny poziom zawodowy zaczyna się od dzisiejszego ruchu.',
+  '2026-05-27': 'Klasa to spokój widoczny w postawie i prostocie.',
+  '2026-05-28': 'Czerwiec już szykuję, ale nie uciekam z maja.',
+  '2026-05-29': 'Standard buduje się w ciszy, nie w awanturze.',
+  '2026-05-30': 'Wychodzę dziś z energii „mam życie", a nie „patrz, co straciłeś".',
+  '2026-05-31': 'Nadal mnie boli, ale już nie jestem tylko bólem. To jest pozycja.',
 }
 
 // ─── TEMAT TYGODNIA (rotacja co 7 dni) ────────────────────────

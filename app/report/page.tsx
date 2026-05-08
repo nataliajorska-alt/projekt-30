@@ -450,21 +450,24 @@ export default function ReportPage() {
       </Section>
 
       {/* ── SKARBIEC ──────────────────────────────── */}
-      {IS_REPORT_DAY && vaultEntries.length > 0 && (
+      {IS_REPORT_DAY && vaultEntries.filter(e => e.letterType !== 'vent' && e.content).length > 0 && (
         <Section title="Ze Skarbca" subtitle="Listy od Natalii 30">
           <div className="space-y-4">
-            {vaultEntries.slice(0, 5).map(entry => (
-              <div key={entry.id} className="p-4 bg-gold-pale rounded-xl border border-gold/20">
-                <p className="font-sans text-[10px] text-gold uppercase tracking-widest mb-1">
-                  Dzień {entry.dayOfProject}
-                </p>
-                <p className="font-serif text-dark text-sm font-medium mb-2">{entry.title}</p>
-                <p className="font-sans text-xs text-muted leading-relaxed line-clamp-3">{entry.content}</p>
-              </div>
-            ))}
-            {vaultEntries.length > 5 && (
+            {vaultEntries
+              .filter(e => e.letterType !== 'vent' && e.content)
+              .slice(0, 5)
+              .map(entry => (
+                <div key={entry.id} className="p-4 bg-gold-pale rounded-xl border border-gold/20">
+                  <p className="font-sans text-[10px] text-gold uppercase tracking-widest mb-1">
+                    Dzień {entry.dayOfProject}
+                  </p>
+                  <p className="font-serif text-dark text-sm font-medium mb-2">{entry.title || 'List bez tytułu'}</p>
+                  <p className="font-sans text-xs text-muted leading-relaxed line-clamp-3">{entry.content}</p>
+                </div>
+              ))}
+            {vaultEntries.filter(e => e.letterType !== 'vent' && e.content).length > 5 && (
               <p className="font-sans text-xs text-muted-light text-center">
-                + {vaultEntries.length - 5} kolejnych listów w Skarbcu
+                + {vaultEntries.filter(e => e.letterType !== 'vent' && e.content).length - 5} kolejnych listów w Skarbcu
               </p>
             )}
           </div>
