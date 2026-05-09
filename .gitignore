@@ -6,3 +6,6 @@ npm-debug.log*
 .DS_Store
 .vercel
 backups/
+.firebase/
+firebase-debug.log
+firestore-debug.log

@@ -45,18 +45,26 @@ Poczekaj chwilę — pobierze potrzebne pakiety.
 11. Zobaczysz obiekt `firebaseConfig` — skopiuj z niego wartości
 
 ### Ustaw reguły Firestore (ważne!):
-12. Firestore → **Reguły** → wklej:
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
+Reguły żyją w repo w pliku `firestore.rules`. Masz dwie opcje:
+
+**Opcja A — wklej ręcznie (szybciej za pierwszym razem):**
+12. Firestore → **Reguły** → wklej zawartość pliku `firestore.rules` z repo
 13. **Opublikuj**
+
+**Opcja B — deploy z CLI (zalecane długoterminowo, reguły żyją obok kodu):**
+```
+npm install -g firebase-tools
+firebase login
+firebase use --add        # wybierz projekt z konsoli, alias: default
+firebase deploy --only firestore:rules
+```
+Po pierwszej konfiguracji wystarcza `firebase deploy --only firestore:rules` po każdej zmianie reguł.
+
+**Lokalny emulator (opcjonalnie):**
+```
+firebase emulators:start
+```
+Konfiguracja jest w `firebase.json` (Auth: 9099, Firestore: 8080, UI: 4000).
 
 ---
 
