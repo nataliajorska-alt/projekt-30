@@ -2,10 +2,11 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Plus, Heart, PenLine, Camera } from 'lucide-react'
+import { Plus, Heart, PenLine, Camera, Wind } from 'lucide-react'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import MoodCheckInModal from './MoodCheckInModal'
+import SmokeButton from './SmokeButton'
 import type { MoodState } from '@/types'
 
 const HIDDEN_ON = ['/settings']
@@ -14,6 +15,7 @@ export default function QuickActionsFab() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [showMood, setShowMood] = useState(false)
+  const [showSmoke, setShowSmoke] = useState(false)
   const fabRef = useRef<HTMLDivElement>(null)
   const { saveMoodCheckIn } = useGameData()
 
@@ -36,6 +38,7 @@ export default function QuickActionsFab() {
     setShowMood(false)
     await saveMoodCheckIn(data)
   }
+  const handleSmoke = () => { setOpen(false); setShowSmoke(true) }
 
   return (
     <>
@@ -52,6 +55,11 @@ export default function QuickActionsFab() {
             label="Mood"
             onClick={handleMood}
             icon={<Heart size={16} strokeWidth={1.8} />}
+          />
+          <FabAction
+            label="Papieros"
+            onClick={handleSmoke}
+            icon={<Wind size={16} strokeWidth={1.8} />}
           />
           <FabAction
             label="Wpis do skarbca"
@@ -83,6 +91,10 @@ export default function QuickActionsFab() {
           onSave={handleMoodSave}
           onDismiss={() => setShowMood(false)}
         />
+      )}
+
+      {showSmoke && (
+        <SmokeButton onClose={() => setShowSmoke(false)} />
       )}
     </>
   )

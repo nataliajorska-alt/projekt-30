@@ -38,6 +38,19 @@ export const KeyMomentSchema = z.object({
   savedAt: z.number().catch(() => Date.now()),
 })
 
+const CigaretteContextSchema = z.enum([
+  'kawa', 'posilek', 'quest', 'stres', 'nuda',
+  'impreza', 'wieczor_z_kims', 'samochod', 'inne',
+])
+
+export const CigaretteEntrySchema = z.object({
+  timestamp: z.number().nonnegative().catch(() => Date.now()),
+  hour:      z.number().int().min(0).max(23).catch(0),
+  weekday:   z.number().int().min(0).max(6).catch(0),
+  context:   CigaretteContextSchema.optional(),
+  intensity: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
+})
+
 export const CustomSideQuestEntrySchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -63,6 +76,7 @@ export const DailyLogSchema = z.object({
   ghostProtocolCompleted: z.boolean().optional(),
   moodCheckIns: z.array(MoodCheckInSchema).optional(),
   keyMoment: KeyMomentSchema.optional(),
+  cigarettes: z.array(CigaretteEntrySchema).optional(),
 })
 
 // ── UserStats ────────────────────────────────────────────────────────────────
@@ -107,6 +121,12 @@ export const UserStatsSchema = z.object({
   consecutivePerfectMornings: z.number().optional(),
   lastPerfectMorningDate:     z.string().nullable().optional(),
   lastReturnCeremonyDate:     z.string().nullable().optional(),
+  // Papierosy — patrz PLAN_PALENIE.md
+  smokingTrackingEnabled:     z.boolean().optional(),
+  cigarettesBaseline:         z.number().nonnegative().optional(),
+  cigarettesPhase:            z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
+  cigarettesPhaseStartDate:   z.string().nullable().optional(),
+  cigarettesAlarmTriggered:   z.string().nullable().optional(),
 })
 
 // ── Vault ────────────────────────────────────────────────────────────────────

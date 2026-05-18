@@ -207,6 +207,38 @@ export interface VaultEntry {
   replies?: VaultReply[]      // ładowane z subkolekcji
 }
 
+// ── Papierosy — obserwacja, nie walka ─────────────────────────────────────
+// Filozofia: każdy papieros to dane, nie porażka. Nie ma streaku „X dni bez",
+// nie ma czerwonych alertów. Patrz PLAN_PALENIE.md.
+export type CigaretteContext =
+  | 'kawa'
+  | 'posilek'
+  | 'quest'
+  | 'stres'
+  | 'nuda'
+  | 'impreza'
+  | 'wieczor_z_kims'
+  | 'samochod'
+  | 'inne'
+
+export interface CigaretteEntry {
+  timestamp: number          // ms epoch
+  hour: number               // 0-23 — dla heatmapy godzinowej
+  weekday: number            // 0=Pon … 6=Nd
+  context?: CigaretteContext
+  intensity?: 1 | 2 | 3 | 4 | 5  // opcjonalne — gdy używasz Smoke Protocol
+}
+
+export type SmokingPhase = 1 | 2 | 3 | 4 | 5
+
+export const SMOKING_PHASE_META: Record<SmokingPhase, { label: string; period: string; softTarget: string }> = {
+  1: { label: 'Obserwacja',     period: 'maj–czerwiec 2026',     softTarget: 'bez limitu — tylko liczymy' },
+  2: { label: 'Dywersyfikacja', period: 'lipiec–wrzesień 2026',  softTarget: '–15–25% od bazy' },
+  3: { label: 'Kompresja',      period: 'październik–grudzień 2026', softTarget: '8–12 / dzień' },
+  4: { label: 'Transfer',       period: 'styczeń–luty 2027',     softTarget: '3–5 / dzień, większość dni 0' },
+  5: { label: 'Okazjonalnie',   period: 'marzec 2027 →',         softTarget: 'domyślnie 0' },
+}
+
 export interface DailyLog {
   date: string
   completedRoutine: string[]
@@ -223,6 +255,7 @@ export interface DailyLog {
   ghostProtocolCompleted?: boolean
   moodCheckIns?: MoodCheckIn[]
   keyMoment?: KeyMoment
+  cigarettes?: CigaretteEntry[]
 }
 
 export interface Achievement {
@@ -268,6 +301,12 @@ export interface UserStats {
   consecutivePerfectMornings?: number       // dni z rzędu z pełną rutyną poranną
   lastPerfectMorningDate?: string | null    // data ostatniego idealnego poranka
   lastReturnCeremonyDate?: string | null    // kiedy ostatnio pokazano Return Ceremony
+  // Papierosy — patrz PLAN_PALENIE.md. Brak `totalCigarettes` celowo: demotywujący licznik.
+  smokingTrackingEnabled?: boolean          // toggle w settings; domyślnie true gdy w fazie ≥1
+  cigarettesBaseline?: number               // średnia z fazy 1 (obliczana po ~6 tyg)
+  cigarettesPhase?: SmokingPhase            // aktualna faza planu
+  cigarettesPhaseStartDate?: string | null  // YYYY-MM-DD startu fazy
+  cigarettesAlarmTriggered?: string | null  // ostatnia data alarmu rolling 30-day avg
 }
 
 export interface UserProfile {

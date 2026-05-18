@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
-import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry, Pillar } from '@/types'
+import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry, Pillar, CigaretteEntry, CigaretteContext } from '@/types'
 import { todayKey, XP_VALUES, getISOWeekKey, getLevelFromXP, getMonthKey } from '@/lib/gameLogic'
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
 import { ACHIEVEMENTS } from '@/lib/achievements'
@@ -530,6 +530,31 @@ export function useGameData() {
     await setDoc(todayRef, { keyMoment: null }, { merge: true })
   }, [user, todayRef])
 
+  // Papierosy — patrz PLAN_PALENIE.md sekcja 6.
+  // Świadomie: brak XP, brak wpływu na streak, brak alertów.
+  // Spokojny licznik. Logowanie ZAWSZE może się zdarzyć — to jest cały feedback loop.
+  const logCigarette = useCallback(async (context?: CigaretteContext, intensity?: 1 | 2 | 3 | 4 | 5) => {
+    if (!user || !todayRef || !todayLog) return
+    const now = new Date()
+    const entry: CigaretteEntry = {
+      timestamp: now.getTime(),
+      hour: now.getHours(),
+      weekday: (now.getDay() + 6) % 7, // 0=Pon … 6=Nd, zgodnie z resztą aplikacji
+      ...(context ? { context } : {}),
+      ...(intensity ? { intensity } : {}),
+    }
+    const existing = todayLog.cigarettes ?? []
+    await setDoc(todayRef, { cigarettes: [...existing, entry] }, { merge: true })
+  }, [user, todayRef, todayLog])
+
+  // Cofnięcie omyłki (np. podwójne tapnięcie). Bez „undo streak", tylko czysta korekta danych.
+  const removeLastCigarette = useCallback(async () => {
+    if (!user || !todayRef || !todayLog) return
+    const existing = todayLog.cigarettes ?? []
+    if (existing.length === 0) return
+    await setDoc(todayRef, { cigarettes: existing.slice(0, -1) }, { merge: true })
+  }, [user, todayRef, todayLog])
+
   const completeReturnCeremony = useCallback(async () => {
     if (!user || !statsRef || !statsLoadedRef.current) return
     const newStats: UserStats = {
@@ -811,6 +836,7 @@ export function useGameData() {
     submitWeeklyReview, submitMonthlyReview, setDayMode,
     streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
+    logCigarette, removeLastCigarette,
     completeHeartBlock,
     recordGhostImpulseV2, recordHonestFailure, logCustomSideQuest,
     recoverStats, applyRecoveredStats,
