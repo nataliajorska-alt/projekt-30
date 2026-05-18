@@ -516,14 +516,14 @@ export function useGameData() {
   }, [user, todayRef, todayLog, stats, statsRef, applyStreakIfNeeded, checkAchievements, checkLevelUp])
 
   const saveKeyMoment = useCallback(async (data: { title: string; note?: string }) => {
-    if (!user || !todayRef || !todayLog) return
+    if (!user || !todayRef) return
     const keyMoment: KeyMoment = {
       title: data.title,
-      note: data.note,
       savedAt: Date.now(),
+      ...(data.note ? { note: data.note } : {}),
     }
     await setDoc(todayRef, { keyMoment }, { merge: true })
-  }, [user, todayRef, todayLog])
+  }, [user, todayRef])
 
   const clearKeyMoment = useCallback(async () => {
     if (!user || !todayRef) return

@@ -9,17 +9,26 @@ export default function KeyMomentCapture() {
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const existing = todayLog?.keyMoment
 
   const handleSave = async () => {
     if (!title.trim()) return
     setSaving(true)
-    await saveKeyMoment({ title: title.trim(), note: note.trim() || undefined })
-    setSaving(false)
-    setOpen(false)
-    setTitle('')
-    setNote('')
+    setError(null)
+    try {
+      const trimmedNote = note.trim()
+      await saveKeyMoment({ title: title.trim(), ...(trimmedNote ? { note: trimmedNote } : {}) })
+      setOpen(false)
+      setTitle('')
+      setNote('')
+    } catch (e) {
+      console.error('[KeyMoment] zapis nie powiódł się', e)
+      setError('Nie udało się zapisać. Spróbuj jeszcze raz.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleClear = async () => {
@@ -96,6 +105,12 @@ export default function KeyMomentCapture() {
               rows={2}
               className="w-full font-sans text-sm text-dark bg-cream/50 rounded-xl px-4 py-2.5 border border-cream outline-none focus:border-gold/40 mb-4 placeholder:text-muted-light/50 resize-none transition-colors leading-relaxed"
             />
+
+            {error && (
+              <p className="font-sans text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3">
+                {error}
+              </p>
+            )}
 
             <div className="flex gap-3">
               <button
