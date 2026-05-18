@@ -12,7 +12,7 @@ export const MORNING_ROUTINE: RoutineItem[] = [
   { id: 'm6', text: 'Afirmacja',                        type: 'morning', xp: 10, priority: 'normal',   category: 'mental'    },
   { id: 'm7', text: 'Zadbanie o twarz',                 type: 'morning', xp: 10, priority: 'normal',   category: 'hygiene'   },
   { id: 'm8', text: 'Umycie zębów + nitkowanie',        type: 'morning', xp: 10, priority: 'essential', category: 'hygiene'   },
-  { id: 'm9', text: 'Witaminy + witamina C',            type: 'morning', xp: 10, priority: 'essential', category: 'hygiene'   },
+  { id: 'm9', text: 'Witaminy + witamina C + kreatyna',            type: 'morning', xp: 10, priority: 'essential', category: 'hygiene'   },
 ]
 
 export const EVENING_ROUTINE: RoutineItem[] = [
