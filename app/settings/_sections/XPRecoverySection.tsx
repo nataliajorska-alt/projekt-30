@@ -32,6 +32,10 @@ import clsx from 'clsx'
 type RecoveryBreakdown = {
   fromLogs: number; fromWeeklyReviews: number; fromMonthlyReviews: number
   fromAchievements: number; total: number; weeklyCount: number; monthlyCount: number; achievementsCount: number
+  fromMoodCheckIns: number; fromHeartBlocks: number; fromPillarBalance: number
+  fromGhostV2: number; fromHonestFailure: number
+  moodCheckInsCount: number; heartBlocksCount: number; pillarBalanceCount: number
+  ghostV2Count: number; honestFailureCount: number
 }
 
 const PILLAR_NAMES: Record<string, string> = {
@@ -90,9 +94,14 @@ export default function XPRecoverySection() {
       {breakdown !== null && !done && (
         <div className="bg-cream/60 rounded-xl p-4 mb-4 space-y-1">
           <p className="font-sans text-sm font-semibold text-dark mb-2">Odzyskane łącznie: {breakdown.total} XP</p>
-          <p className="font-sans text-xs text-muted">Dzienne wpisy (rutyna, questy, zasady, check-iny): {breakdown.fromLogs}</p>
+          <p className="font-sans text-xs text-muted">Dzienne wpisy (rutyna, questy, zasady): {breakdown.fromLogs}</p>
+          <p className="font-sans text-xs text-muted">Mood check-iny ({breakdown.moodCheckInsCount} × 5): {breakdown.fromMoodCheckIns}</p>
           <p className="font-sans text-xs text-muted">Przeglądy tygodniowe ({breakdown.weeklyCount} × 150): {breakdown.fromWeeklyReviews}</p>
           <p className="font-sans text-xs text-muted">Przeglądy miesięczne ({breakdown.monthlyCount} × 300): {breakdown.fromMonthlyReviews}</p>
+          <p className="font-sans text-xs text-muted">Heart blocks ({breakdown.heartBlocksCount} × 200): {breakdown.fromHeartBlocks}</p>
+          <p className="font-sans text-xs text-muted">Pillar balance bonus ({breakdown.pillarBalanceCount} × 30): {breakdown.fromPillarBalance}</p>
+          <p className="font-sans text-xs text-muted">Ghost Protocol V2 ({breakdown.ghostV2Count} wpisów): {breakdown.fromGhostV2}</p>
+          <p className="font-sans text-xs text-muted">Honest Failure ({breakdown.honestFailureCount} wpisów): {breakdown.fromHonestFailure}</p>
           <p className="font-sans text-xs text-muted">Osiągnięcia ({breakdown.achievementsCount} odblokowanych): {breakdown.fromAchievements}</p>
           {recoveredStats && (
             <div className="mt-3 pt-3 border-t border-muted/10">

@@ -1,11 +1,11 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  doc, setDoc, onSnapshot, collection, getDocs,
+  doc, setDoc, onSnapshot, collection, getDocs, getDoc,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
-import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry, Pillar, CigaretteEntry, CigaretteContext } from '@/types'
+import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry, Pillar, CigaretteEntry, CigaretteContext, GhostLogEntryV2, HonestFailureEntry } from '@/types'
 import { todayKey, XP_VALUES, getISOWeekKey, getLevelFromXP, getMonthKey } from '@/lib/gameLogic'
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
 import { ACHIEVEMENTS } from '@/lib/achievements'
@@ -641,15 +641,30 @@ export function useGameData() {
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(getMonthKey(new Date()))
 
   // Full stats reconstruction from Firestore source documents.
-  // Reads daily logs, weekly/monthly review docs, re-evaluates achievement conditions.
+  // Reads daily logs, weekly/monthly review docs, Ghost V2 + honest failure logs,
+  // re-evaluates achievement conditions. PRESERVES fields rebuild can't reconstruct
+  // (heart blocks, pillar balance weeks, streak freeze months — bez tego applyRecoveredStats
+  // wymazałoby zarobione XP).
   const recoverStats = useCallback(async () => {
-    if (!user) return null
+    if (!user || !statsRef) return null
 
-    const [logsSnap, weeklySnap, monthlySnap] = await Promise.all([
+    const [currentStatsSnap, logsSnap, weeklySnap, monthlySnap, ghostV2Snap, failureSnap] = await Promise.all([
+      getDoc(statsRef),
       getDocs(collection(db, 'users', user.uid, 'logs')),
       getDocs(collection(db, 'users', user.uid, 'reviews')),
       getDocs(collection(db, 'users', user.uid, 'monthlyReviews')),
+      getDoc(doc(db, 'users', user.uid, 'data', 'ghostLogV2')),
+      getDoc(doc(db, 'users', user.uid, 'data', 'honestFailureLog')),
     ])
+
+    // Pola których pętla po logach nie odbuduje — czytamy je z aktualnych stats,
+    // żeby nie zostały wymazane przez applyRecoveredStats.
+    const currentStats: Partial<UserStats> = currentStatsSnap.exists()
+      ? (currentStatsSnap.data() as Partial<UserStats>)
+      : {}
+    const preservedHeartBlocks   = currentStats.completedHeartBlocks ?? []
+    const preservedPillarBalance = currentStats.pillarBalanceWeeks ?? []
+    const preservedStreakFreezes = currentStats.streakFreezeUsedMonths ?? []
 
     // ── Reconstruct counters from daily logs ──
     const logEntries = logsSnap.docs
@@ -675,6 +690,7 @@ export function useGameData() {
     }
 
     let fromLogs = 0
+    let totalMoodCheckIns = 0      // sumujemy w pętli — log.moodCheckIns nie idą do log.totalXP
     let totalRoutinesCompleted = 0
     let totalQuestsCompleted = 0
     let totalSideQuestsCompleted = 0
@@ -713,6 +729,7 @@ export function useGameData() {
       totalQuestsCompleted += log.completedDailyQuests?.length ?? 0
       totalSideQuestsCompleted += (log.completedSideQuests?.length ?? 0) + (log.customSideQuests?.length ?? 0)
       totalRulesKept += log.keptRules?.length ?? 0
+      totalMoodCheckIns += log.moodCheckIns?.length ?? 0
 
       // Ghost Protocol — count + day-streak.
       if (log.ghostProtocolCompleted) {
@@ -817,10 +834,44 @@ export function useGameData() {
     const fromWeeklyReviews = reviewedWeeks.length * XP_VALUES.weeklyReview
     const fromMonthlyReviews = reviewedMonths.length * XP_VALUES.monthlyReview
 
+    // ── Dodatkowe źródła XP (pisane tylko do stats, nie do log.totalXP) ──
+    const fromMoodCheckIns = totalMoodCheckIns * XP_VALUES.moodCheckIn
+    const fromHeartBlocks   = preservedHeartBlocks.length * XP_VALUES.heartBlock
+    const fromPillarBalance = preservedPillarBalance.length * XP_VALUES.pillarBalance
+
+    // Heart block dorzuca też +200 do filaru pozycja.
+    pillarXP.pozycja = (pillarXP.pozycja ?? 0) + fromHeartBlocks
+
+    // ── Ghost Protocol V2 (osobna kolekcja) + Honest Failure ──
+    const ghostV2Entries: GhostLogEntryV2[] = ghostV2Snap.exists()
+      ? ((ghostV2Snap.data() as { entries?: GhostLogEntryV2[] }).entries ?? [])
+      : []
+    const failureEntries: HonestFailureEntry[] = failureSnap.exists()
+      ? ((failureSnap.data() as { entries?: HonestFailureEntry[] }).entries ?? [])
+      : []
+    const fromGhostV2       = ghostV2Entries.reduce((sum, e) => sum + (e.xpEarned ?? 0), 0)
+    const fromHonestFailure = failureEntries.reduce((sum, e) => sum + (e.xpEarned ?? 0), 0)
+
+    // V2 dorzuca do filaru pozycja całość zarobionego XP (zgodnie z recordGhostImpulseV2/recordHonestFailure).
+    pillarXP.pozycja = (pillarXP.pozycja ?? 0) + fromGhostV2 + fromHonestFailure
+
+    // Jeśli V2 ma więcej unikalnych dni z impulsami niż log.ghostProtocolCompleted — użyj większego.
+    if (ghostV2Entries.length > 0) {
+      const v2DayKeys = new Set(
+        ghostV2Entries.map(e => {
+          const d = new Date(e.timestamp)
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        })
+      )
+      totalGhostProtocols = Math.max(totalGhostProtocols, v2DayKeys.size)
+    }
+
     // ── Achievement evaluation ──
     // Używamy longestStreak/longestPerfectMornings/longestGhostDays do oceny
     // historycznych passy — żeby achievement złapał się nawet jeśli aktualna passa = 0.
     const baseXP = fromLogs + fromWeeklyReviews + fromMonthlyReviews
+                 + fromMoodCheckIns + fromHeartBlocks + fromPillarBalance
+                 + fromGhostV2 + fromHonestFailure
     const statsForEval: UserStats = {
       ...DEFAULT_STATS,
       totalXP: baseXP,
@@ -862,6 +913,19 @@ export function useGameData() {
       totalXP,
       unlockedAchievements,
       lastStreakDate: logDates[logDates.length - 1] ?? null,
+      // ── Pola których rebuild NIE odbudowuje — zachowane z aktualnych stats. ──
+      // Bez tego applyRecoveredStats (setDoc bez merge) wymazałoby je do undefined.
+      completedHeartBlocks:       preservedHeartBlocks,
+      pillarBalanceWeeks:         preservedPillarBalance,
+      streakFreezeUsedMonths:     preservedStreakFreezes,
+      currentWeekPillars:         currentStats.currentWeekPillars,
+      lastReturnCeremonyDate:     currentStats.lastReturnCeremonyDate ?? null,
+      // Palenie — zachowane (recovery ich nie dotyczy).
+      smokingTrackingEnabled:     currentStats.smokingTrackingEnabled,
+      cigarettesBaseline:         currentStats.cigarettesBaseline,
+      cigarettesPhase:            currentStats.cigarettesPhase,
+      cigarettesPhaseStartDate:   currentStats.cigarettesPhaseStartDate ?? null,
+      cigarettesAlarmTriggered:   currentStats.cigarettesAlarmTriggered ?? null,
     }
 
     return {
@@ -871,17 +935,31 @@ export function useGameData() {
         fromWeeklyReviews,
         fromMonthlyReviews,
         fromAchievements,
+        fromMoodCheckIns,
+        fromHeartBlocks,
+        fromPillarBalance,
+        fromGhostV2,
+        fromHonestFailure,
         total: totalXP,
         weeklyCount: reviewedWeeks.length,
         monthlyCount: reviewedMonths.length,
         achievementsCount: unlockedAchievements.length,
+        moodCheckInsCount:    totalMoodCheckIns,
+        heartBlocksCount:     preservedHeartBlocks.length,
+        pillarBalanceCount:   preservedPillarBalance.length,
+        ghostV2Count:         ghostV2Entries.length,
+        honestFailureCount:   failureEntries.length,
       },
     }
-  }, [user, currentDateKey])
+  }, [user, statsRef, currentDateKey])
 
+  // applyRecoveredStats — UŻYWAMY { merge: true }. Bez merge setDoc wymazuje
+  // wszystkie pola których nie ma w reconstructedStats. Mimo że recovery teraz
+  // jawnie przekazuje preserved fields, merge jest tańszą siatką bezpieczeństwa
+  // na wypadek przyszłych pól w UserStats które ktoś zapomni dorzucić.
   const applyRecoveredStats = useCallback(async (reconstructedStats: UserStats) => {
     if (!user || !statsRef) return
-    await setDoc(statsRef, reconstructedStats)
+    await setDoc(statsRef, reconstructedStats, { merge: true })
   }, [user, statsRef])
 
   return {
