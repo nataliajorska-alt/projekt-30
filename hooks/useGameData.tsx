@@ -682,8 +682,28 @@ export function useGameData() {
     let totalGhostProtocols = 0
     let highestDayXP = 0
     let consecutiveNormalDays = 0
+    // Mode-aware morning streak (każdy „pełny poranek" zależy od dayMode danego dnia).
     let consecutivePerfectMornings = 0
+    let longestPerfectMornings = 0   // historyczna passa — używana do oceny achievementów
+    let lastPerfectMorningDate: string | null = null
+    let prevPerfectMorningDate: string | null = null
+    // Ghost Protocol — passa dni z aktywacją GP.
+    let consecutiveGhostDays = 0
+    let longestGhostDays = 0
+    let lastGhostDate: string | null = null
+    let prevGhostDate: string | null = null
     const pillarXP: UserStats['pillarXP'] = { pozycja: 0, cialo: 0, styl: 0, kapital: 0, kariera: 0, tozsamosc: 0, milosc: 0 }
+
+    // Lookup setów ID dla rutyny porannej (normal vs minimum).
+    const MORNING_NORMAL_IDS = MORNING_ROUTINE.map(i => i.id)
+    const MORNING_MINIMUM_IDS = MORNING_MINIMUM.map(i => i.id)
+    const isConsecutiveDay = (prevDate: string | null, currDate: string): boolean => {
+      if (!prevDate) return false
+      const diff = Math.round(
+        (new Date(currDate).getTime() - new Date(prevDate).getTime()) / 86400000
+      )
+      return diff === 1
+    }
 
     for (const log of logEntries) {
       const xp = (Number.isFinite(log.totalXP) && log.totalXP > 0) ? log.totalXP : 0
@@ -693,9 +713,37 @@ export function useGameData() {
       totalQuestsCompleted += log.completedDailyQuests?.length ?? 0
       totalSideQuestsCompleted += (log.completedSideQuests?.length ?? 0) + (log.customSideQuests?.length ?? 0)
       totalRulesKept += log.keptRules?.length ?? 0
-      if (log.ghostProtocolCompleted) totalGhostProtocols++
+
+      // Ghost Protocol — count + day-streak.
+      if (log.ghostProtocolCompleted) {
+        totalGhostProtocols++
+        consecutiveGhostDays = isConsecutiveDay(prevGhostDate, log.dateKey) ? consecutiveGhostDays + 1 : 1
+        longestGhostDays = Math.max(longestGhostDays, consecutiveGhostDays)
+        lastGhostDate = log.dateKey
+        prevGhostDate = log.dateKey
+      }
+      // Uwaga: brak resetu consecutiveGhostDays w dniach bez GP — pasujemy do semantyki
+      // „passa GP" jako kolejnych dni z aktywacją (analogicznie do streaków logowania).
+
       if (log.dayMode !== 'minimum') consecutiveNormalDays++
       else consecutiveNormalDays = 0
+
+      // Perfect morning — wszystkie itemy porannej rutyny (mode-aware) odhaczone.
+      const morningIds = log.dayMode === 'minimum' ? MORNING_MINIMUM_IDS : MORNING_NORMAL_IDS
+      const completed = log.completedRoutine ?? []
+      const allMorningDone = morningIds.length > 0 && morningIds.every(id => completed.includes(id))
+      if (allMorningDone) {
+        consecutivePerfectMornings = isConsecutiveDay(prevPerfectMorningDate, log.dateKey)
+          ? consecutivePerfectMornings + 1
+          : 1
+        longestPerfectMornings = Math.max(longestPerfectMornings, consecutivePerfectMornings)
+        lastPerfectMorningDate = log.dateKey
+        prevPerfectMorningDate = log.dateKey
+      } else {
+        // Złamana passa porannego rytuału — historyczny rekord zachowany w longest*.
+        consecutivePerfectMornings = 0
+        prevPerfectMorningDate = null
+      }
 
       const ALL_PILLARS_LIST: Pillar[] = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc']
       // Pillar XP from daily quests
@@ -770,7 +818,8 @@ export function useGameData() {
     const fromMonthlyReviews = reviewedMonths.length * XP_VALUES.monthlyReview
 
     // ── Achievement evaluation ──
-    // Use longestStreak for historical streak achievements
+    // Używamy longestStreak/longestPerfectMornings/longestGhostDays do oceny
+    // historycznych passy — żeby achievement złapał się nawet jeśli aktualna passa = 0.
     const baseXP = fromLogs + fromWeeklyReviews + fromMonthlyReviews
     const statsForEval: UserStats = {
       ...DEFAULT_STATS,
@@ -782,10 +831,11 @@ export function useGameData() {
       totalRulesKept,
       totalGhostProtocols,
       highestDayXP,
-      currentStreak: longestStreak,    // use longestStreak to catch historical achievements
+      currentStreak: longestStreak,                       // historyczny peak — dla streak_*
       longestStreak,
       consecutiveNormalDays,
-      consecutivePerfectMornings,
+      consecutivePerfectMornings: longestPerfectMornings, // historyczny peak — dla perfect_morning_*
+      consecutiveGhostDays: longestGhostDays,             // historyczny peak — dla ghost_streak_7
       reviewedWeeks,
       reviewedMonths,
       pillarXP,
@@ -804,7 +854,11 @@ export function useGameData() {
 
     const reconstructedStats: UserStats = {
       ...statsForEval,
-      currentStreak,    // actual current streak
+      currentStreak,                                       // aktualna passa logowania
+      consecutivePerfectMornings,                           // aktualna passa porannego rytuału (nie peak)
+      consecutiveGhostDays,                                 // aktualna passa GP (nie peak)
+      lastPerfectMorningDate,
+      lastGhostDate,
       totalXP,
       unlockedAchievements,
       lastStreakDate: logDates[logDates.length - 1] ?? null,
