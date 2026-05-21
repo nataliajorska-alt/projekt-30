@@ -106,7 +106,7 @@ export default function XPRecoverySection() {
       {breakdown !== null && !done && (
         <div className="bg-cream/60 rounded-xl p-4 mb-4 space-y-1">
           <p className="font-sans text-sm font-semibold text-dark mb-2">Odzyskane łącznie: {breakdown.total} XP</p>
-          <p className="font-sans text-xs text-muted">Dzienne wpisy (rutyna, questy, zasady): {breakdown.fromLogs}</p>
+          <p className="font-sans text-xs text-muted">Dzienne wpisy (rutyna, daily + side questy, custom side questy, zasady): {breakdown.fromLogs}</p>
           <p className="font-sans text-xs text-muted">Mood check-iny ({breakdown.moodCheckInsCount} × 5): {breakdown.fromMoodCheckIns}</p>
           <p className="font-sans text-xs text-muted">Przeglądy tygodniowe ({breakdown.weeklyCount} × 150): {breakdown.fromWeeklyReviews}</p>
           <p className="font-sans text-xs text-muted">Przeglądy miesięczne ({breakdown.monthlyCount} × 300): {breakdown.fromMonthlyReviews}</p>
