@@ -50,17 +50,23 @@ export default function XPRecoverySection() {
   const [scanning, setScanning] = useState(false)
   const [applying, setApplying] = useState(false)
   const [done, setDone] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const handleScan = async () => {
     setScanning(true)
     setBreakdown(null)
     setRecoveredStats(null)
     setDone(false)
+    setError(null)
     try {
       const r = await recoverStats()
       if (r) {
         setBreakdown(r.breakdown)
         setRecoveredStats(r.reconstructedStats)
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nieznany błąd skanowania')
+      // eslint-disable-next-line no-console
+      console.error('recoverStats error:', err)
     } finally {
       setScanning(false)
     }
@@ -69,9 +75,15 @@ export default function XPRecoverySection() {
   const handleApply = async () => {
     if (!recoveredStats) return
     setApplying(true)
+    setError(null)
     try {
       await applyRecoveredStats(recoveredStats)
       setDone(true)
+    } catch (err) {
+      // Widoczny błąd zamiast cichego zawieszenia przycisku w stanie "Przywracam…".
+      setError(err instanceof Error ? err.message : 'Nieznany błąd zapisu')
+      // eslint-disable-next-line no-console
+      console.error('applyRecoveredStats error:', err)
     } finally {
       setApplying(false)
     }
@@ -118,6 +130,13 @@ export default function XPRecoverySection() {
 
       {done && (
         <p className="font-sans text-sm text-forest mb-4">Dane zostały przywrócone ✓</p>
+      )}
+
+      {error && (
+        <div className="bg-rose-50/60 border border-rose-200/60 rounded-xl p-3 mb-4">
+          <p className="font-sans text-xs text-rose-900 font-semibold mb-1">Coś poszło nie tak:</p>
+          <p className="font-sans text-xs text-rose-900/80 break-words">{error}</p>
+        </div>
       )}
 
       <div className="flex gap-3">

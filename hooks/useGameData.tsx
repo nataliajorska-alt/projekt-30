@@ -903,6 +903,17 @@ export function useGameData() {
 
     const totalXP = baseXP + fromAchievements
 
+    // Preserved fields — dorzucane tylko gdy DEFINED, bo Firestore rzuca na undefined.
+    // (Ten sam bug co kiedyś z saveKeyMoment.note — patrz commit c4cb85a.)
+    const preservedOptional: Partial<UserStats> = {}
+    if (currentStats.currentWeekPillars     !== undefined) preservedOptional.currentWeekPillars     = currentStats.currentWeekPillars
+    if (currentStats.lastReturnCeremonyDate !== undefined) preservedOptional.lastReturnCeremonyDate = currentStats.lastReturnCeremonyDate
+    if (currentStats.smokingTrackingEnabled !== undefined) preservedOptional.smokingTrackingEnabled = currentStats.smokingTrackingEnabled
+    if (currentStats.cigarettesBaseline     !== undefined) preservedOptional.cigarettesBaseline     = currentStats.cigarettesBaseline
+    if (currentStats.cigarettesPhase        !== undefined) preservedOptional.cigarettesPhase        = currentStats.cigarettesPhase
+    if (currentStats.cigarettesPhaseStartDate !== undefined) preservedOptional.cigarettesPhaseStartDate = currentStats.cigarettesPhaseStartDate
+    if (currentStats.cigarettesAlarmTriggered !== undefined) preservedOptional.cigarettesAlarmTriggered = currentStats.cigarettesAlarmTriggered
+
     const reconstructedStats: UserStats = {
       ...statsForEval,
       currentStreak,                                       // aktualna passa logowania
@@ -913,19 +924,12 @@ export function useGameData() {
       totalXP,
       unlockedAchievements,
       lastStreakDate: logDates[logDates.length - 1] ?? null,
-      // ── Pola których rebuild NIE odbudowuje — zachowane z aktualnych stats. ──
-      // Bez tego applyRecoveredStats (setDoc bez merge) wymazałoby je do undefined.
-      completedHeartBlocks:       preservedHeartBlocks,
-      pillarBalanceWeeks:         preservedPillarBalance,
-      streakFreezeUsedMonths:     preservedStreakFreezes,
-      currentWeekPillars:         currentStats.currentWeekPillars,
-      lastReturnCeremonyDate:     currentStats.lastReturnCeremonyDate ?? null,
-      // Palenie — zachowane (recovery ich nie dotyczy).
-      smokingTrackingEnabled:     currentStats.smokingTrackingEnabled,
-      cigarettesBaseline:         currentStats.cigarettesBaseline,
-      cigarettesPhase:            currentStats.cigarettesPhase,
-      cigarettesPhaseStartDate:   currentStats.cigarettesPhaseStartDate ?? null,
-      cigarettesAlarmTriggered:   currentStats.cigarettesAlarmTriggered ?? null,
+      // Pola których rebuild nie odbudowuje, ale ZAWSZE są zdefiniowane (array fallback []).
+      completedHeartBlocks:   preservedHeartBlocks,
+      pillarBalanceWeeks:     preservedPillarBalance,
+      streakFreezeUsedMonths: preservedStreakFreezes,
+      // Pola opcjonalne — tylko jeśli istniały (inaczej Firestore wywala write).
+      ...preservedOptional,
     }
 
     return {
