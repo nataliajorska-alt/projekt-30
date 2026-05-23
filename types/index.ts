@@ -256,6 +256,13 @@ export interface DailyLog {
   moodCheckIns?: MoodCheckIn[]
   keyMoment?: KeyMoment
   cigarettes?: CigaretteEntry[]
+  /**
+   * Suma XP wpisana w tym dniu przez zewnętrzne aplikacje (na razie tylko
+   * The Learning Vault), rozbita per filar. Endpoint /api/external/xp
+   * inkrementuje to pole atomowo. recoverStats czyta to pole, żeby pillarXP
+   * po odzyskaniu zawierał Vault XP — bez tego rebuild by go gubił.
+   */
+  externalXP?: Partial<Record<Pillar, number>>
 }
 
 export interface Achievement {

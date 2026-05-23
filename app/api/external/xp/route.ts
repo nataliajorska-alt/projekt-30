@@ -117,6 +117,10 @@ export async function POST(req: Request) {
     const todayRef = db.collection('users').doc(ownerUid).collection('logs').doc(todayKey())
 
     // Inkrementacja totalXP + pillarXP.{pillar} w stats; totalXP w today log.
+    // Plus log.externalXP[pillar] — żeby recoverStats mogło odbudować
+    // pillarXP z Vault XP (totalXP odbuduje się z sum log.totalXP, ale
+    // pillarXP rebuilduje od zera tylko z quest completions, więc bez
+    // externalXP Vault contribution by się gubił po recovery).
     // FieldValue.increment jest atomic — bezpieczne pod współbieżnymi requestami.
     await Promise.all([
       statsRef.set(
@@ -129,6 +133,7 @@ export async function POST(req: Request) {
       todayRef.set(
         {
           totalXP: FieldValue.increment(xp),
+          externalXP: { [pillarSafe]: FieldValue.increment(xp) },
         },
         { merge: true },
       ),

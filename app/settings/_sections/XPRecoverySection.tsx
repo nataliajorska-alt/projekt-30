@@ -11,6 +11,9 @@ type RecoveryBreakdown = {
   fromGhostV2: number; fromHonestFailure: number
   moodCheckInsCount: number; heartBlocksCount: number; pillarBalanceCount: number
   ghostV2Count: number; honestFailureCount: number
+  /** XP z Learning Vault, JUŻ wliczone w fromLogs — informacyjny rozkład. */
+  fromExternal: number
+  externalDaysCount: number
 }
 
 const PILLAR_NAMES: Record<string, string> = {
@@ -101,6 +104,10 @@ export default function XPRecoverySection() {
             [`Ghost Protocol V2 (${breakdown.ghostV2Count})`, breakdown.fromGhostV2],
             [`Honest Failure (${breakdown.honestFailureCount})`, breakdown.fromHonestFailure],
             [`Osiągnięcia (${breakdown.achievementsCount})`, breakdown.fromAchievements],
+            // Z Learning Vault — informacyjnie, JUŻ wliczone w „Dzienne wpisy" wyżej.
+            ...(breakdown.fromExternal > 0
+              ? [[`Z Learning Vault (${breakdown.externalDaysCount} dni, wliczone wyżej)`, breakdown.fromExternal] as const]
+              : []),
           ].map(([label, value]) => (
             <p key={label as string} className="flex items-baseline justify-between gap-2">
               <span className="font-serif-body italic text-muted text-[12.5px]">{label}</span>

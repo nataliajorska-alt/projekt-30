@@ -690,6 +690,8 @@ export function useGameData() {
     }
 
     let fromLogs = 0
+    let fromExternal = 0           // XP z zewnętrznych apek (Learning Vault), z log.externalXP
+    let externalDaysCount = 0      // liczba dni, w których byl jakikolwiek external XP
     let totalMoodCheckIns = 0      // sumujemy w pętli — log.moodCheckIns nie idą do log.totalXP
     let totalRoutinesCompleted = 0
     let totalQuestsCompleted = 0
@@ -794,6 +796,21 @@ export function useGameData() {
       if (log.ghostProtocolCompleted) {
         pillarXP.tozsamosc = (pillarXP.tozsamosc ?? 0) + 25
         pillarXP.pozycja = (pillarXP.pozycja ?? 0) + 20
+      }
+      // External XP (na razie tylko The Learning Vault) — zapisywane przez
+      // /api/external/xp do log.externalXP per filar. Recovery musi je
+      // uwzględnić, bo pillarXP rebuilduje od zera.
+      if (log.externalXP) {
+        let dayExternal = 0
+        for (const p of ALL_PILLARS_LIST) {
+          const v = log.externalXP[p]
+          if (typeof v === 'number' && v > 0) {
+            pillarXP[p] = (pillarXP[p] ?? 0) + v
+            dayExternal += v
+          }
+        }
+        if (dayExternal > 0) externalDaysCount += 1
+        fromExternal += dayExternal
       }
     }
 
@@ -944,6 +961,11 @@ export function useGameData() {
         fromPillarBalance,
         fromGhostV2,
         fromHonestFailure,
+        // fromExternal informacyjnie — XP z Learning Vault, JUŻ wliczone
+        // w fromLogs (endpoint inkrementuje log.totalXP). Pokazujemy
+        // osobno tylko dla rozbicia UI, nie sumujemy ponownie.
+        fromExternal,
+        externalDaysCount,
         total: totalXP,
         weeklyCount: reviewedWeeks.length,
         monthlyCount: reviewedMonths.length,
