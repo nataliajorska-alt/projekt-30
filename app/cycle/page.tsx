@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import clsx from 'clsx'
 import { useCycleData } from '@/hooks/useCycleData'
 import { useCycleSettings } from '@/hooks/useCycleSettings'
 import { useTimelineData } from '@/hooks/useTimelineData'
@@ -7,10 +8,8 @@ import {
   CYCLE_PHASES, getPhaseForDate, getPhaseIdForDate, computePhaseRanges,
   type CyclePhase, type CycleSettings,
 } from '@/lib/cycle-data'
-import { PILLARS } from '@/lib/pillars'
-import clsx from 'clsx'
-
-const PL_DAYS = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb']
+import { SmallCaps, Diamond, Fleuron, GoldRule, RomanNumeral } from '@/components/ui'
+import { toRoman } from '@/lib/romanNumerals'
 
 function todayKey() {
   const now = new Date()
@@ -19,52 +18,78 @@ function todayKey() {
 
 // ── Karta fazy ───────────────────────────────────────────────────
 
-function PhaseCard({ phase, cycleDay, settings }: { phase: CyclePhase; cycleDay: number; settings: CycleSettings }) {
+function PhaseCard({ phase, cycleDay, settings }: {
+  phase: CyclePhase
+  cycleDay: number
+  settings: CycleSettings
+}) {
   const ranges = computePhaseRanges(settings)
   return (
-    <div
-      className="rounded-2xl p-6 mb-4"
-      style={{ backgroundColor: phase.bgColor, border: `1px solid ${phase.color}20` }}
-    >
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <p className="font-sans text-[10px] uppercase tracking-widest mb-1" style={{ color: phase.color }}>
-            Dzień {cycleDay} · Energia {phase.energy}
-          </p>
-          <h2 className="font-serif text-dark text-2xl flex items-center gap-2">
-            <span>{phase.emoji}</span> {phase.name}
+    <div className="bg-ivory border border-gold-light/40 p-6 mb-4">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="min-w-0 flex-1">
+          <SmallCaps tracking="luxury" size="xs">
+            <span style={{ color: phase.color }}>
+              Dzień {toRoman(cycleDay)} · energia {phase.energy}
+            </span>
+          </SmallCaps>
+          <h2 className="font-heading text-dark text-2xl leading-tight mt-1 flex items-center gap-3">
+            <span style={{ color: phase.color }}>
+              <Diamond size={6} filled />
+            </span>
+            {phase.name}
           </h2>
         </div>
-        <div className="text-right">
-          <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-1">Faza</p>
-          <p className="font-sans text-xs font-medium" style={{ color: phase.color }}>
-            {ranges[phase.id][0]}–{ranges[phase.id][1]} dzień
+        <div className="text-right shrink-0">
+          <SmallCaps tone="muted" tracking="luxury" size="xs">
+            Faza
+          </SmallCaps>
+          <p
+            className="font-display text-xl leading-none mt-1"
+            style={{ color: phase.color }}
+          >
+            {ranges[phase.id][0]}–{ranges[phase.id][1]}
           </p>
+          <SmallCaps tone="muted" size="xs">
+            dzień
+          </SmallCaps>
         </div>
       </div>
 
-      <p className="font-sans text-sm text-dark leading-relaxed mb-4">{phase.description}</p>
+      <p className="font-serif-body italic text-dark text-[14px] leading-relaxed mb-5">
+        {phase.description}
+      </p>
 
-      <div className="space-y-2 mb-4">
+      <div className="space-y-2 mb-5">
         {phase.tips.map((tip, i) => (
-          <div key={i} className="flex items-start gap-2">
-            <span className="text-[10px] mt-1" style={{ color: phase.color }}>✦</span>
-            <p className="font-sans text-xs text-muted leading-relaxed">{tip}</p>
+          <div key={i} className="flex items-baseline gap-3">
+            <span className="shrink-0 translate-y-[1px]" style={{ color: phase.color }}>
+              <Diamond size={5} />
+            </span>
+            <p className="font-serif-body italic text-muted text-[13px] leading-relaxed">
+              {tip}
+            </p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-xl px-4 py-3 border" style={{ borderColor: `${phase.color}30`, backgroundColor: `${phase.color}08` }}>
-        <p className="font-sans text-[10px] uppercase tracking-widest mb-1" style={{ color: phase.color }}>
-          Questy
+      <div
+        className="relative border px-4 py-3"
+        style={{ borderColor: `${phase.color}44`, backgroundColor: `${phase.color}0F` }}
+      >
+        <SmallCaps tracking="luxury" size="xs" as="div">
+          <span style={{ color: phase.color }}>Questy</span>
+        </SmallCaps>
+        <p className="font-serif-body italic text-muted text-[13px] mt-1.5 leading-relaxed">
+          {phase.questHint}
         </p>
-        <p className="font-sans text-xs text-muted leading-relaxed">{phase.questHint}</p>
       </div>
 
       {phase.suggestMinimum && (
-        <div className="mt-3 rounded-xl bg-forest/10 border border-forest/20 px-4 py-2.5">
-          <p className="font-sans text-xs text-forest">
-            💡 To dobry czas na tryb minimum — możesz go aktywować w rubryce rutyna.
+        <div className="mt-3 border border-forest/30 bg-forest/5 px-4 py-3 flex items-baseline gap-3">
+          <Diamond size={5} className="text-forest shrink-0 translate-y-[1px]" />
+          <p className="font-serif-body italic text-forest text-[13px] leading-relaxed">
+            to dobry czas na tryb minimum — możesz go aktywować w rubryce rutyna.
           </p>
         </div>
       )}
@@ -74,13 +99,21 @@ function PhaseCard({ phase, cycleDay, settings }: { phase: CyclePhase; cycleDay:
 
 // ── Oś cyklu ────────────────────────────────────────────────────
 
-function CycleTimeline({ cycleDay, settings }: { cycleDay: number; settings: CycleSettings }) {
+function CycleTimeline({ cycleDay, settings }: {
+  cycleDay: number
+  settings: CycleSettings
+}) {
   const clampedDay = Math.min(cycleDay, settings.cycleLength)
   const ranges = computePhaseRanges(settings)
+  const markerPct = Math.min((clampedDay / settings.cycleLength) * 100, 98)
+
   return (
-    <div className="bg-white rounded-2xl shadow-elegant p-5 mb-4">
-      <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-3">Gdzie jesteś w cyklu</p>
-      <div className="relative h-3 rounded-full overflow-hidden flex mb-2">
+    <div className="bg-ivory border border-gold-light/40 p-5 mb-4">
+      <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-3">
+        Gdzie jesteś w cyklu
+      </SmallCaps>
+
+      <div className="relative h-2 flex mb-3">
         {CYCLE_PHASES.map(p => {
           const [from, to] = ranges[p.id]
           const width = ((to - from + 1) / settings.cycleLength) * 100
@@ -92,16 +125,23 @@ function CycleTimeline({ cycleDay, settings }: { cycleDay: number; settings: Cyc
             />
           )
         })}
-        {/* Marker */}
+        {/* Diamond marker */}
         <div
-          className="absolute top-0 bottom-0 w-0.5 bg-dark rounded-full"
-          style={{ left: `${Math.min((clampedDay / settings.cycleLength) * 100, 98)}%` }}
-        />
+          className="absolute -top-1 transition-all duration-700"
+          style={{ left: `calc(${markerPct}% - 4px)`, color: '#1A2420' }}
+        >
+          <Diamond size={9} filled />
+        </div>
       </div>
+
       <div className="flex justify-between">
         {CYCLE_PHASES.map(p => (
-          <span key={p.id} className="font-sans text-[9px] text-muted-light" style={{ color: p.color }}>
-            {p.emoji}
+          <span
+            key={p.id}
+            className="font-ui uppercase tracking-luxury text-[9px]"
+            style={{ color: p.color }}
+          >
+            {p.name.slice(0, 3)}.
           </span>
         ))}
       </div>
@@ -126,10 +166,13 @@ function LogForm({ onLog }: { onLog: (date: string) => Promise<void> }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-elegant p-5 mb-4">
-      <h3 className="font-serif text-dark text-base mb-1">Zaloguj dzień 1 cyklu</h3>
-      <p className="font-sans text-xs text-muted mb-4">
-        Data pierwszego dnia miesiączki. Na tej podstawie obliczam fazę automatycznie.
+    <div className="bg-ivory border border-gold-light/40 p-5 mb-4">
+      <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+        Nowy cykl
+      </SmallCaps>
+      <h3 className="font-heading text-dark text-lg mt-1">Zaloguj dzień 1 cyklu</h3>
+      <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-4 leading-relaxed">
+        data pierwszego dnia miesiączki. na tej podstawie obliczam fazę automatycznie.
       </p>
       <div className="flex gap-3">
         <input
@@ -137,14 +180,17 @@ function LogForm({ onLog }: { onLog: (date: string) => Promise<void> }) {
           value={date}
           max={today}
           onChange={e => setDate(e.target.value)}
-          className="flex-1 font-sans text-sm text-dark bg-cream/50 border border-cream rounded-xl px-3 py-2.5 outline-none focus:border-gold/40 transition-colors"
+          className="flex-1 font-serif-body text-[14px] text-dark bg-cream/40 border border-hairline px-3 py-2.5 outline-none focus:border-gold transition-colors"
         />
         <button
           onClick={handleSave}
           disabled={saving || saved}
-          className="px-5 py-2.5 bg-dark text-ivory font-sans text-sm rounded-xl hover:bg-forest transition-colors disabled:opacity-60"
+          className="px-5 py-2.5 bg-dark-deep text-ivory border border-gold hover:bg-forest transition-colors disabled:opacity-60 flex items-center gap-2"
         >
-          {saved ? 'Zapisano ✦' : saving ? '...' : 'Zapisz'}
+          <Diamond size={5} className="text-gold" />
+          <SmallCaps tone="ivory" tracking="luxury" size="xs">
+            {saved ? 'zapisano' : saving ? '…' : 'zapisz'}
+          </SmallCaps>
         </button>
       </div>
     </div>
@@ -161,7 +207,9 @@ function Insights({ logs, dailyLogs, settings }: {
   const insights = useMemo(() => {
     if (logs.length < 2) return null
 
-    const phaseStats: Record<string, { xpSum: number; energySum: number; moodSum: number; count: number; ghostCount: number }> = {
+    const phaseStats: Record<string, {
+      xpSum: number; energySum: number; moodSum: number; count: number; ghostCount: number
+    }> = {
       menstruacja: { xpSum: 0, energySum: 0, moodSum: 0, count: 0, ghostCount: 0 },
       folikularna: { xpSum: 0, energySum: 0, moodSum: 0, count: 0, ghostCount: 0 },
       owulacyjna:  { xpSum: 0, energySum: 0, moodSum: 0, count: 0, ghostCount: 0 },
@@ -197,11 +245,12 @@ function Insights({ logs, dailyLogs, settings }: {
 
   if (!insights) {
     return (
-      <div className="bg-white rounded-2xl shadow-elegant p-6 text-center">
-        <p className="text-2xl mb-3">🌱</p>
-        <p className="font-serif text-dark text-base mb-2">Dane zbierane</p>
-        <p className="font-sans text-sm text-muted leading-relaxed">
-          Po zalogowaniu co najmniej 2 cykli zobaczysz tu wzorce — który tydzień daje Ci najwięcej energii, kiedy ghost protocol odpala się częściej i w jakiej fazie masz najlepsze wyniki.
+      <div className="bg-ivory border border-gold-light/40 p-7 text-center">
+        <Fleuron size={14} className="text-gold-deep mx-auto mb-3 inline-block" />
+        <h3 className="font-heading text-dark text-lg">Dane zbierane</h3>
+        <p className="font-serif-body italic text-muted text-[13.5px] mt-2 leading-relaxed">
+          po zalogowaniu co najmniej 2 cykli zobaczysz tu wzorce — który tydzień daje ci najwięcej energii,
+          kiedy ghost protocol odpala się częściej i w jakiej fazie masz najlepsze wyniki.
         </p>
       </div>
     )
@@ -211,24 +260,35 @@ function Insights({ logs, dailyLogs, settings }: {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl shadow-elegant p-5">
-        <h3 className="font-serif text-dark text-base mb-4">Średnie XP na dzień według fazy</h3>
-        <div className="space-y-3">
+      {/* XP per phase */}
+      <div className="bg-ivory border border-gold-light/40 p-5">
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-4">
+          Średnie XP na dzień według fazy
+        </SmallCaps>
+        <div className="space-y-3.5">
           {insights.sort((a, b) => (b.avgXP ?? 0) - (a.avgXP ?? 0)).map(item => (
             <div key={item.phase.id}>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <span>{item.phase.emoji}</span>
-                  <span className="font-sans text-sm text-dark">{item.phase.name}</span>
-                  <span className="font-sans text-[10px] text-muted-light">({item.days} dni)</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span style={{ color: item.phase.color }}>
+                    <Diamond size={5} />
+                  </span>
+                  <span className="font-heading text-dark text-[14px]">
+                    {item.phase.name}
+                  </span>
+                  <SmallCaps tone="muted" size="xs" className="opacity-70">
+                    {item.days} dni
+                  </SmallCaps>
                 </div>
-                <span className="font-sans text-xs font-medium" style={{ color: item.phase.color }}>
-                  {item.avgXP !== null ? `${item.avgXP} XP` : '—'}
-                </span>
+                <SmallCaps tracking="luxury" size="xs">
+                  <span style={{ color: item.phase.color }}>
+                    {item.avgXP !== null ? `${item.avgXP} XP` : '—'}
+                  </span>
+                </SmallCaps>
               </div>
-              <div className="h-2 bg-cream rounded-full overflow-hidden">
+              <div className="relative h-px w-full bg-hairline">
                 <div
-                  className="h-full rounded-full transition-all"
+                  className="absolute left-0 top-0 h-px transition-all duration-500"
                   style={{
                     width: item.avgXP !== null ? `${(item.avgXP / maxXP) * 100}%` : '0%',
                     backgroundColor: item.phase.color,
@@ -240,38 +300,30 @@ function Insights({ logs, dailyLogs, settings }: {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-elegant p-5">
-        <h3 className="font-serif text-dark text-base mb-4">Nastrój i energia według fazy</h3>
+      {/* Mood / energy per phase */}
+      <div className="bg-ivory border border-gold-light/40 p-5">
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-4">
+          Nastrój i energia według fazy
+        </SmallCaps>
         <div className="grid grid-cols-2 gap-3">
           {insights.map(item => (
             <div
               key={item.phase.id}
-              className="rounded-xl p-4"
-              style={{ backgroundColor: item.phase.bgColor }}
+              className="border p-4"
+              style={{ borderColor: `${item.phase.color}55`, backgroundColor: `${item.phase.color}0A` }}
             >
-              <div className="flex items-center gap-1.5 mb-2">
-                <span>{item.phase.emoji}</span>
-                <span className="font-sans text-xs font-medium" style={{ color: item.phase.color }}>
-                  {item.phase.name}
+              <div className="flex items-center gap-2 mb-3">
+                <span style={{ color: item.phase.color }}>
+                  <Diamond size={5} />
                 </span>
+                <SmallCaps tracking="luxury" size="xs">
+                  <span style={{ color: item.phase.color }}>{item.phase.name}</span>
+                </SmallCaps>
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <span className="font-sans text-[10px] text-muted">Energia</span>
-                  <span className="font-sans text-[10px] font-medium text-dark">
-                    {item.avgEnergy !== null ? `${item.avgEnergy}/5` : '—'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-sans text-[10px] text-muted">Nastrój</span>
-                  <span className="font-sans text-[10px] font-medium text-dark">
-                    {item.avgMood !== null ? `${item.avgMood}/5` : '—'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-sans text-[10px] text-muted">Ghost Protocol</span>
-                  <span className="font-sans text-[10px] font-medium text-dark">{item.ghostCount}×</span>
-                </div>
+              <div className="space-y-1.5">
+                <Stat label="Energia" value={item.avgEnergy !== null ? `${item.avgEnergy}/5` : '—'} />
+                <Stat label="Nastrój" value={item.avgMood !== null ? `${item.avgMood}/5` : '—'} />
+                <Stat label="Ghost" value={`${item.ghostCount}×`} />
               </div>
             </div>
           ))}
@@ -281,12 +333,19 @@ function Insights({ logs, dailyLogs, settings }: {
   )
 }
 
-// ── Ustawienia cyklu ──────────────────────────────────────────────
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between items-baseline">
+      <SmallCaps tone="muted" size="xs">{label}</SmallCaps>
+      <span className="font-display text-dark text-sm">{value}</span>
+    </div>
+  )
+}
+
+// ── Settings ──────────────────────────────────────────────────────
 
 function CycleSettingsForm({
-  settings,
-  saving,
-  onSave,
+  settings, saving, onSave,
 }: {
   settings: CycleSettings
   saving: boolean
@@ -296,7 +355,6 @@ function CycleSettingsForm({
   const [periodLength, setPeriodLength] = useState(settings.periodLength)
   const [saved, setSaved] = useState(false)
 
-  // Sync gdy settings załadowane z Firestore
   useMemo(() => {
     setCycleLength(settings.cycleLength)
     setPeriodLength(settings.periodLength)
@@ -311,17 +369,20 @@ function CycleSettingsForm({
   const ranges = computePhaseRanges({ cycleLength, periodLength })
 
   return (
-    <div className="bg-white rounded-2xl shadow-elegant p-5 mt-4">
-      <h3 className="font-serif text-dark text-base mb-1">Mój cykl</h3>
-      <p className="font-sans text-xs text-muted mb-5">
-        Te dane pozwalają dokładniej obliczać fazy. Możesz je zmienić kiedy chcesz.
+    <div className="bg-ivory border border-gold-light/40 p-5 mt-4">
+      <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+        Apparatus · cykl
+      </SmallCaps>
+      <h3 className="font-heading text-dark text-lg mt-1">Mój cykl</h3>
+      <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5 leading-relaxed">
+        te dane pozwalają dokładniej obliczać fazy. możesz je zmienić kiedy chcesz.
       </p>
 
       <div className="space-y-5 mb-5">
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="font-sans text-xs text-dark">Długość cyklu</label>
-            <span className="font-serif text-dark text-lg">{cycleLength} dni</span>
+            <SmallCaps tone="muted" tracking="luxury" size="xs">Długość cyklu</SmallCaps>
+            <span className="font-display text-dark text-xl leading-none">{cycleLength} <span className="text-muted-light text-sm font-serif-body italic">dni</span></span>
           </div>
           <input
             type="range"
@@ -331,15 +392,15 @@ function CycleSettingsForm({
             className="w-full accent-gold"
           />
           <div className="flex justify-between mt-1">
-            <span className="font-sans text-[10px] text-muted-light">21</span>
-            <span className="font-sans text-[10px] text-muted-light">35</span>
+            <SmallCaps tone="muted" size="xs">21</SmallCaps>
+            <SmallCaps tone="muted" size="xs">35</SmallCaps>
           </div>
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="font-sans text-xs text-dark">Długość okresu</label>
-            <span className="font-serif text-dark text-lg">{periodLength} dni</span>
+            <SmallCaps tone="muted" tracking="luxury" size="xs">Długość okresu</SmallCaps>
+            <span className="font-display text-dark text-xl leading-none">{periodLength} <span className="text-muted-light text-sm font-serif-body italic">dni</span></span>
           </div>
           <input
             type="range"
@@ -349,27 +410,31 @@ function CycleSettingsForm({
             className="w-full accent-gold"
           />
           <div className="flex justify-between mt-1">
-            <span className="font-sans text-[10px] text-muted-light">2</span>
-            <span className="font-sans text-[10px] text-muted-light">8</span>
+            <SmallCaps tone="muted" size="xs">2</SmallCaps>
+            <SmallCaps tone="muted" size="xs">8</SmallCaps>
           </div>
         </div>
       </div>
 
-      {/* Podgląd faz */}
-      <div className="bg-cream rounded-xl p-4 mb-5 space-y-1.5">
-        <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-2">Twoje fazy</p>
+      {/* Phase preview */}
+      <div className="bg-cream/50 border border-hairline px-4 py-3 mb-5 space-y-1.5">
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-2">
+          Twoje fazy
+        </SmallCaps>
         {CYCLE_PHASES.map(p => {
           const [from, to] = ranges[p.id]
           if (from > to) return null
           return (
             <div key={p.id} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xs">{p.emoji}</span>
-                <span className="font-sans text-xs text-dark">{p.name}</span>
+                <span style={{ color: p.color }}>
+                  <Diamond size={5} />
+                </span>
+                <span className="font-serif-body text-[13px] text-dark">{p.name}</span>
               </div>
-              <span className="font-sans text-xs text-muted">
-                dzień {from}–{to} <span className="text-muted-light">({to - from + 1} dni)</span>
-              </span>
+              <SmallCaps tone="muted" size="xs">
+                dzień {from}–{to} · {to - from + 1} dni
+              </SmallCaps>
             </div>
           )
         })}
@@ -379,21 +444,27 @@ function CycleSettingsForm({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 bg-dark text-ivory font-sans text-sm py-2.5 px-5 rounded-xl hover:bg-forest transition-colors disabled:opacity-60 font-medium"
+          className="flex items-center gap-2 bg-dark-deep text-ivory border border-gold py-2.5 px-5 hover:bg-forest transition-colors disabled:opacity-60"
         >
-          {saving ? '...' : 'Zapisz'}
+          <Diamond size={5} className="text-gold" />
+          <SmallCaps tone="ivory" tracking="luxury" size="xs">
+            {saving ? '…' : 'zapisz'}
+          </SmallCaps>
         </button>
-        {saved && <p className="font-sans text-xs text-forest animate-fade-in">Zapisano ✓</p>}
+        {saved && (
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="animate-fade-in">
+            zapisano ◆
+          </SmallCaps>
+        )}
       </div>
     </div>
   )
 }
 
-// ── Historia cykli ────────────────────────────────────────────────
+// ── History ───────────────────────────────────────────────────────
 
 function CycleHistory({
-  logs,
-  onDelete,
+  logs, onDelete,
 }: {
   logs: ReturnType<typeof useCycleData>['logs']
   onDelete: (docId: string) => Promise<void>
@@ -411,8 +482,10 @@ function CycleHistory({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-elegant p-5 mb-4">
-      <h3 className="font-serif text-dark text-base mb-3">Historia cykli</h3>
+    <div className="bg-ivory border border-gold-light/40 p-5 mb-4">
+      <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-3">
+        Historia cykli
+      </SmallCaps>
       <div className="space-y-2">
         {logs.slice(0, 6).map((log, i) => {
           const [y, m, d] = log.startDate.split('-').map(Number)
@@ -426,42 +499,51 @@ function CycleHistory({
           const docId = log.docId
 
           return (
-            <div key={log.id} className={clsx(
-              'py-2 border-b border-cream last:border-0',
-              isZero && 'bg-red-50/60 rounded-xl px-3 -mx-3'
-            )}>
-              <div className="flex items-center justify-between">
-                <p className={clsx('font-sans text-sm', isZero ? 'text-red-500' : 'text-dark')}>
+            <div
+              key={log.id}
+              className={clsx(
+                'py-2.5 border-b border-hairline last:border-0',
+                isZero && 'bg-red-50/40 px-3 -mx-3 border-red-200'
+              )}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className={clsx('font-serif-body text-[14px]', isZero ? 'text-red-600' : 'text-dark')}>
                   {label}
-                  {isZero && <span className="ml-2 text-[10px] font-sans bg-red-100 text-red-400 px-2 py-0.5 rounded-full">0 dni — duplikat?</span>}
+                  {isZero && (
+                    <span className="ml-2 font-ui uppercase tracking-luxury text-[9px] border border-red-300 text-red-500 px-2 py-0.5">
+                      0 dni · duplikat?
+                    </span>
+                  )}
                 </p>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   {length !== null && length > 0 && (
-                    <span className="font-sans text-xs text-muted-light">{length} dni</span>
+                    <SmallCaps tone="muted" size="xs">
+                      {length} dni
+                    </SmallCaps>
                   )}
                   {docId && confirmId !== docId && (
                     <button
                       onClick={() => setConfirmId(docId)}
-                      className="font-sans text-[10px] text-muted-light hover:text-red-400 transition-colors"
+                      className="font-ui uppercase tracking-luxury text-[10px] text-muted-light hover:text-red-500 transition-colors"
                     >
                       usuń
                     </button>
                   )}
                   {docId && confirmId === docId && (
                     <div className="flex items-center gap-2">
-                      <span className="font-sans text-[10px] text-muted">Na pewno?</span>
+                      <SmallCaps tone="muted" size="xs">na pewno?</SmallCaps>
                       <button
                         onClick={() => handleDelete(docId)}
                         disabled={deleting}
-                        className="font-sans text-[10px] text-red-500 font-medium hover:text-red-700 transition-colors disabled:opacity-50"
+                        className="font-ui uppercase tracking-luxury text-[10px] text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
                       >
-                        {deleting ? '...' : 'Tak, usuń'}
+                        {deleting ? '…' : 'tak, usuń'}
                       </button>
                       <button
                         onClick={() => setConfirmId(null)}
-                        className="font-sans text-[10px] text-muted hover:text-dark transition-colors"
+                        className="font-ui uppercase tracking-luxury text-[10px] text-muted hover:text-dark transition-colors"
                       >
-                        Anuluj
+                        anuluj
                       </button>
                     </div>
                   )}
@@ -475,14 +557,14 @@ function CycleHistory({
   )
 }
 
-// ── Główna strona ─────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────
 
 type Tab = 'faza' | 'insights'
 
 export default function CyclePage() {
   const { logs, loading, logCycleStart, deleteCycleLog } = useCycleData()
   const { settings, loading: settingsLoading, saving: settingsSaving, saveSettings } = useCycleSettings()
-  const { logs: dailyLogs, loading: logsLoading } = useTimelineData()
+  const { logs: dailyLogs } = useTimelineData()
   const [tab, setTab] = useState<Tab>('faza')
   const [showLogForm, setShowLogForm] = useState(false)
 
@@ -497,49 +579,60 @@ export default function CyclePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-ivory flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-ivory grain-parchment flex items-center justify-center">
+        <Fleuron size={20} className="text-gold animate-pulse" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-6 pb-16 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-end justify-between mb-6">
-        <div>
-          <p className="font-sans text-xs text-muted uppercase tracking-widest mb-1">Rytm</p>
-          <h1 className="font-serif text-dark text-2xl">Rytm kobiecy</h1>
+    <div className="max-w-2xl mx-auto px-4 pt-8 pb-16 animate-fade-in">
+      {/* Editorial header */}
+      <header className="flex items-end justify-between gap-4 mb-6">
+        <div className="min-w-0">
+          <SmallCaps tone="muted" tracking="editorial" size="xs">
+            Rytm · Vol. I
+          </SmallCaps>
+          <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.75rem)] leading-tight mt-2">
+            Rytm kobiecy
+          </h1>
           {currentData && (
-            <p className="font-sans text-sm text-muted mt-0.5">
-              Dzień {currentData.cycleDay} · {currentData.phase.name}
+            <p className="font-serif-body italic text-muted text-[14px] mt-2">
+              dzień {currentData.cycleDay} · {currentData.phase.name.toLowerCase()}
             </p>
           )}
         </div>
         <button
           onClick={() => setShowLogForm(v => !v)}
-          className="flex items-center gap-2 px-4 py-2 bg-dark text-ivory font-sans text-sm rounded-xl hover:bg-forest transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-dark-deep text-ivory border border-gold hover:bg-forest transition-colors shrink-0"
         >
-          🌑 Dzień 1
+          <Diamond size={5} className="text-gold" />
+          <SmallCaps tone="ivory" tracking="luxury" size="xs">
+            dzień I
+          </SmallCaps>
         </button>
-      </div>
+      </header>
 
-      {/* Log form */}
+      <GoldRule variant="diamond" tone="gold-deep" className="mb-6 opacity-50" />
+
       {showLogForm && <LogForm onLog={handleLog} />}
 
-      {/* No data */}
       {!currentCycle && !showLogForm && (
-        <div className="bg-white rounded-2xl shadow-elegant p-8 text-center mb-4">
-          <p className="text-3xl mb-4">🌑</p>
-          <p className="font-serif text-dark text-lg mb-2">Zacznij śledzić cykl</p>
-          <p className="font-sans text-sm text-muted leading-relaxed mb-5">
-            Zaloguj pierwszy dzień ostatniej miesiączki. Aplikacja automatycznie obliczy aktualną fazę i będzie śledzić wzorce.
+        <div className="bg-ivory border border-gold-light/40 p-8 text-center mb-4">
+          <Fleuron size={14} className="text-gold-deep mx-auto mb-3 inline-block" />
+          <h3 className="font-heading text-dark text-xl">Zacznij śledzić cykl</h3>
+          <p className="font-serif-body italic text-muted text-[14px] mt-2 mb-5 leading-relaxed">
+            zaloguj pierwszy dzień ostatniej miesiączki. aplikacja automatycznie obliczy aktualną fazę
+            i będzie śledzić wzorce.
           </p>
           <button
             onClick={() => setShowLogForm(true)}
-            className="px-6 py-3 bg-dark text-ivory font-sans text-sm rounded-xl hover:bg-forest transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-dark-deep text-ivory border border-gold hover:bg-forest transition-colors"
           >
-            Zaloguj dzień 1
+            <Diamond size={5} className="text-gold" />
+            <SmallCaps tone="ivory" tracking="luxury" size="xs">
+              zaloguj dzień I
+            </SmallCaps>
           </button>
         </div>
       )}
@@ -547,20 +640,46 @@ export default function CyclePage() {
       {currentData && (
         <>
           {/* Tabs */}
-          <div className="flex gap-1 bg-cream rounded-xl p-1 mb-4">
-            {(['faza', 'insights'] as Tab[]).map(t => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={clsx(
-                  'flex-1 py-2 rounded-lg font-sans text-sm transition-all',
-                  tab === t ? 'bg-white shadow-sm text-dark font-medium' : 'text-muted hover:text-dark'
-                )}
-              >
-                {t === 'faza' ? 'Bieżąca faza' : 'Wzorce'}
-              </button>
-            ))}
-          </div>
+          <nav className="mb-6">
+            <div className="flex justify-center gap-10">
+              {([
+                { key: 'faza' as const, label: 'Bieżąca faza', n: 1 },
+                { key: 'insights' as const, label: 'Wzorce', n: 2 },
+              ]).map(({ key, label, n }) => {
+                const active = tab === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setTab(key)}
+                    className="group flex flex-col items-center gap-1.5"
+                  >
+                    <span className="flex items-baseline gap-2">
+                      <RomanNumeral
+                        value={n}
+                        className={clsx(
+                          'text-sm transition-colors',
+                          active ? 'text-gold' : 'text-muted-light group-hover:text-gold-light'
+                        )}
+                      />
+                      <SmallCaps
+                        tone={active ? 'gold' : 'muted'}
+                        tracking="luxury"
+                        size="sm"
+                      >
+                        {label}
+                      </SmallCaps>
+                    </span>
+                    <span
+                      className={clsx(
+                        'h-px w-10 transition-colors',
+                        active ? 'bg-gold' : 'bg-transparent'
+                      )}
+                    />
+                  </button>
+                )
+              })}
+            </div>
+          </nav>
 
           {tab === 'faza' && (
             <>

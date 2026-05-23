@@ -1,11 +1,11 @@
 'use client'
 import { useRef, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import Image from 'next/image'
+import clsx from 'clsx'
 import { usePhotos } from '@/hooks/usePhotos'
 import { Camera, Trash2, X, Upload } from 'lucide-react'
 import type { PhotoEntry } from '@/types'
-import clsx from 'clsx'
+import { SmallCaps, GoldRule, Diamond, Fleuron } from '@/components/ui'
 
 const PL_MONTHS = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru']
 
@@ -14,7 +14,6 @@ function formatDateShort(dateKey: string): string {
   return `${d} ${PL_MONTHS[m - 1]} ${y}`
 }
 
-// Group photos by month
 function groupByMonth(photos: PhotoEntry[]): { monthKey: string; label: string; items: PhotoEntry[] }[] {
   const map: Record<string, PhotoEntry[]> = {}
   for (const p of photos) {
@@ -24,7 +23,7 @@ function groupByMonth(photos: PhotoEntry[]): { monthKey: string; label: string; 
     map[key].push(p)
   }
   return Object.entries(map)
-    .sort(([a], [b]) => b.localeCompare(a)) // newest first
+    .sort(([a], [b]) => b.localeCompare(a))
     .map(([key, items]) => {
       const [y, m] = key.split('-').map(Number)
       return { monthKey: key, label: `${PL_MONTHS[m - 1]} ${y}`, items }
@@ -64,23 +63,26 @@ function UploadModal({ onUpload, uploading, uploadError, onClose }: UploadModalP
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-dark/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-md mx-4 mb-4 sm:mb-0 bg-ivory rounded-2xl shadow-2xl border border-cream/60 p-6 animate-slide-up">
+      <div className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full sm:max-w-md mx-4 mb-4 sm:mb-0 bg-ivory border border-gold-light/40 p-7 animate-slide-up">
         <div className="flex items-start justify-between mb-5">
           <div>
-            <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-0.5">Photo Timeline</p>
-            <h2 className="font-serif text-dark text-lg">Dodaj zdjęcie</h2>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              Photo Timeline
+            </SmallCaps>
+            <h2 className="font-display text-dark text-2xl mt-1 leading-tight">Dodaj zdjęcie</h2>
           </div>
           <button onClick={onClose} className="text-muted-light hover:text-dark transition-colors">
-            <X size={18} strokeWidth={1.5} />
+            <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
-        {/* Drop zone / preview */}
         <div
           className={clsx(
-            'w-full h-48 rounded-xl border-2 border-dashed mb-4 flex items-center justify-center cursor-pointer overflow-hidden transition-colors',
-            preview ? 'border-transparent' : 'border-cream hover:border-gold/40'
+            'w-full h-48 border mb-4 flex items-center justify-center cursor-pointer overflow-hidden transition-colors',
+            preview
+              ? 'border-gold-light/60'
+              : 'border-2 border-dashed border-hairline hover:border-gold'
           )}
           onClick={() => !preview && inputRef.current?.click()}
           onDrop={handleDrop}
@@ -89,19 +91,23 @@ function UploadModal({ onUpload, uploading, uploadError, onClose }: UploadModalP
           {preview ? (
             <div className="relative w-full h-full group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="Preview" className="w-full h-full object-cover rounded-xl" />
+              <img src={preview} alt="Preview" className="w-full h-full object-cover" />
               <button
                 onClick={(e) => { e.stopPropagation(); setFile(null); setPreview(null) }}
-                className="absolute top-2 right-2 bg-dark/60 text-ivory rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 bg-dark-deep/70 text-ivory p-1 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <X size={14} />
+                <X size={13} />
               </button>
             </div>
           ) : (
             <div className="text-center px-4">
-              <Upload size={24} className="text-muted-light mx-auto mb-2" strokeWidth={1.5} />
-              <p className="font-sans text-sm text-muted">Kliknij lub przeciągnij zdjęcie</p>
-              <p className="font-sans text-xs text-muted-light mt-1">JPG, PNG, WEBP</p>
+              <Upload size={22} className="text-muted-light mx-auto mb-3" strokeWidth={1.5} />
+              <SmallCaps tone="muted" tracking="luxury" size="xs">
+                Kliknij lub przeciągnij zdjęcie
+              </SmallCaps>
+              <p className="font-serif-body italic text-muted-light text-[12px] mt-1.5">
+                jpg · png · webp
+              </p>
             </div>
           )}
         </div>
@@ -116,18 +122,20 @@ function UploadModal({ onUpload, uploading, uploadError, onClose }: UploadModalP
 
         <input
           type="text"
-          placeholder="Podpis (opcjonalnie)..."
+          placeholder="podpis (opcjonalnie)…"
           value={caption}
           onChange={e => setCaption(e.target.value.slice(0, 120))}
-          className="w-full font-sans text-sm text-dark bg-cream/50 rounded-xl px-4 py-2.5 border border-cream outline-none focus:border-gold/40 mb-4 placeholder:text-muted-light/50 transition-colors"
+          className="w-full font-serif-body text-[14px] text-dark bg-cream/40 px-4 py-3 border border-hairline outline-none focus:border-gold mb-4 placeholder:text-muted-light/60 transition-colors"
         />
 
         {uploadError && (
-          <div className="mb-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
-            <p className="font-sans text-xs text-red-700 leading-relaxed">{uploadError}</p>
-            <p className="font-sans text-[10px] text-red-500 mt-1">
-              Firebase Console → Build → Storage → Utwórz
+          <div className="mb-3 px-4 py-3 bg-red-50/50 border border-red-200">
+            <p className="font-serif-body italic text-red-700 text-[12.5px] leading-relaxed">
+              {uploadError}
             </p>
+            <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-1.5 block opacity-70">
+              firebase console → build → storage → utwórz
+            </SmallCaps>
           </div>
         )}
 
@@ -135,15 +143,20 @@ function UploadModal({ onUpload, uploading, uploadError, onClose }: UploadModalP
           <button
             onClick={handleSave}
             disabled={!file || uploading}
-            className="flex-1 py-2.5 rounded-xl bg-forest text-ivory font-sans text-sm disabled:opacity-40 hover:bg-forest/90 transition-colors"
+            className="flex-1 py-3 bg-dark-deep text-ivory border border-gold hover:bg-forest transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
           >
-            {uploading ? 'Wgrywam...' : 'Zapisz zdjęcie ✦'}
+            <Diamond size={5} className="text-gold" />
+            <SmallCaps tone="ivory" tracking="luxury" size="xs">
+              {uploading ? 'wgrywam…' : 'zapisz zdjęcie'}
+            </SmallCaps>
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-cream font-sans text-sm text-muted hover:text-dark transition-colors"
+            className="px-4 py-3 border border-hairline text-muted hover:text-dark hover:border-gold transition-colors"
           >
-            Anuluj
+            <SmallCaps tone="muted" tracking="luxury" size="xs">
+              anuluj
+            </SmallCaps>
           </button>
         </div>
       </div>
@@ -160,51 +173,83 @@ interface LightboxProps {
 function Lightbox({ photo, onClose, onDelete }: LightboxProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   return (
-    <div className="fixed inset-0 z-[130] bg-dark/95 flex flex-col animate-fade-in" onClick={onClose}>
-      <div className="flex items-center justify-between px-5 pt-6 pb-4 flex-shrink-0" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[130] bg-forest-deep/95 grain-linen flex flex-col animate-fade-in" onClick={onClose}>
+      <div
+        className="flex items-center justify-between px-6 pt-7 pb-4 flex-shrink-0"
+        onClick={e => e.stopPropagation()}
+      >
         <div>
-          <p className="font-sans text-[10px] text-gold/60 uppercase tracking-widest">Dzień {photo.dayOfProject}</p>
-          <p className="font-sans text-sm text-ivory/70">{formatDateShort(photo.dateKey)}</p>
+          <SmallCaps tone="gold-light" tracking="luxury" size="xs">
+            Dzień {photo.dayOfProject}
+          </SmallCaps>
+          <p className="font-serif-body italic text-parchment text-[13px] mt-0.5">
+            {formatDateShort(photo.dateKey)}
+          </p>
         </div>
         <button onClick={onClose} className="text-ivory/50 hover:text-ivory transition-colors">
-          <X size={20} strokeWidth={1.5} />
+          <X size={18} strokeWidth={1.5} />
         </button>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 overflow-hidden relative" onClick={e => e.stopPropagation()}>
-        <div className="relative w-full h-full">
-          <Image
-            src={photo.url}
-            alt={photo.caption ?? ''}
-            fill
-            sizes="100vw"
-            className="object-contain rounded-xl"
-            priority
-          />
-        </div>
+      <div
+        className="flex-1 flex items-center justify-center px-4 overflow-hidden relative"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photo.url}
+          alt={photo.caption ?? ''}
+          className="max-w-full max-h-full object-contain"
+        />
       </div>
 
       {photo.caption && (
-        <p className="text-center font-serif text-ivory/70 text-sm px-6 py-4 italic" onClick={e => e.stopPropagation()}>
-          {photo.caption}
+        <p
+          className="text-center font-serif-body italic text-parchment text-[14px] px-6 py-4"
+          onClick={e => e.stopPropagation()}
+        >
+          „{photo.caption}"
         </p>
       )}
 
-      <div className="px-5 py-4 flex justify-between items-center flex-shrink-0" onClick={e => e.stopPropagation()}>
+      <div
+        className="px-6 py-5 flex justify-between items-center flex-shrink-0"
+        onClick={e => e.stopPropagation()}
+      >
         {confirmDelete ? (
           <div className="flex items-center gap-3">
-            <span className="font-sans text-xs text-ivory/50">Usunąć?</span>
-            <button onClick={() => { onDelete(photo); onClose() }} className="font-sans text-xs text-red-400">Usuń</button>
-            <button onClick={() => setConfirmDelete(false)} className="font-sans text-xs text-ivory/40">Anuluj</button>
+            <SmallCaps tone="parchment" tracking="luxury" size="xs">
+              usunąć?
+            </SmallCaps>
+            <button
+              onClick={() => { onDelete(photo); onClose() }}
+              className="font-ui uppercase tracking-luxury text-[10px] text-red-400 hover:text-red-300 transition-colors"
+            >
+              tak, usuń
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="font-ui uppercase tracking-luxury text-[10px] text-parchment/50 hover:text-parchment transition-colors"
+            >
+              anuluj
+            </button>
           </div>
         ) : (
-          <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-1.5 text-ivory/30 hover:text-ivory/60 transition-colors">
-            <Trash2 size={14} strokeWidth={1.5} />
-            <span className="font-sans text-xs">Usuń</span>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="flex items-center gap-1.5 text-parchment/40 hover:text-parchment/80 transition-colors"
+          >
+            <Trash2 size={12} strokeWidth={1.5} />
+            <SmallCaps tracking="luxury" size="xs">
+              <span className="!text-current">usuń</span>
+            </SmallCaps>
           </button>
         )}
-        <button onClick={onClose} className="font-sans text-sm text-ivory/40 hover:text-ivory/70 transition-colors">
-          Zamknij ✦
+        <button
+          onClick={onClose}
+          className="font-ui uppercase tracking-luxury text-[10px] text-parchment/50 hover:text-parchment transition-colors"
+        >
+          zamknij  ◆
         </button>
       </div>
     </div>
@@ -224,70 +269,88 @@ export default function PhotosPage() {
   const grouped = groupByMonth(photos)
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-6 pb-8 animate-fade-in">
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <p className="font-sans text-xs text-muted uppercase tracking-widest mb-1">Dokumentacja</p>
-          <h1 className="font-serif text-dark text-2xl mb-1">Photo Timeline</h1>
-          <p className="font-sans text-sm text-muted">
-            {photos.length} {photos.length === 1 ? 'zdjęcie' : photos.length < 5 ? 'zdjęcia' : 'zdjęć'} · trafi do Annual Report
+    <div className="max-w-3xl mx-auto px-4 pt-8 pb-12 animate-fade-in">
+      {/* Editorial header */}
+      <header className="mb-8 flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <SmallCaps tone="muted" tracking="editorial" size="xs">
+            Dokumentacja · Vol. I
+          </SmallCaps>
+          <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.75rem)] leading-tight mt-2">
+            Photo Timeline
+          </h1>
+          <p className="font-serif-body italic text-muted text-[14px] mt-2">
+            {photos.length} {photos.length === 1 ? 'zdjęcie' : photos.length < 5 ? 'zdjęcia' : 'zdjęć'} · trafi do annual report.
           </p>
         </div>
         <button
           onClick={() => setShowUpload(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-forest text-ivory rounded-xl font-sans text-sm hover:bg-forest/90 transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-dark-deep text-ivory border border-gold hover:bg-forest transition-colors shrink-0"
         >
-          <Camera size={15} strokeWidth={1.5} />
-          Dodaj
+          <Camera size={13} strokeWidth={1.5} />
+          <SmallCaps tone="ivory" tracking="luxury" size="xs">
+            dodaj
+          </SmallCaps>
         </button>
-      </div>
+      </header>
+
+      <GoldRule variant="diamond" tone="gold-deep" className="mb-8 opacity-50" />
 
       {loading ? (
         <div className="grid grid-cols-3 gap-2">
           {[1,2,3,4,5,6].map(i => (
-            <div key={i} className="aspect-square bg-cream rounded-xl animate-pulse" />
+            <div key={i} className="aspect-square bg-cream border border-hairline animate-pulse" />
           ))}
         </div>
       ) : photos.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="text-5xl mb-4">📸</div>
-          <p className="font-serif text-dark text-lg mb-2">Zacznij dokumentować rok</p>
-          <p className="font-sans text-sm text-muted mb-6 max-w-xs mx-auto leading-relaxed">
-            Zdjęcia z transformacji — nie dla innych, dla siebie i Annual Report.
-            Za rok zobaczysz jak daleko zaszłaś.
+        <div className="bg-ivory border border-gold-light/40 px-6 py-16 text-center">
+          <Fleuron size={16} className="text-gold-deep mx-auto mb-4 inline-block" />
+          <h3 className="font-display text-dark text-2xl">Zacznij dokumentować rok</h3>
+          <p className="font-serif-body italic text-muted text-[14px] mt-3 mb-7 max-w-sm mx-auto leading-relaxed">
+            zdjęcia z transformacji — nie dla innych, dla siebie i annual report.
+            za rok zobaczysz jak daleko zaszłaś.
           </p>
           <button
             onClick={() => setShowUpload(true)}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-forest text-ivory rounded-xl font-sans text-sm hover:bg-forest/90 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-dark-deep text-ivory border border-gold hover:bg-forest transition-colors"
           >
-            <Camera size={15} strokeWidth={1.5} />
-            Dodaj pierwsze zdjęcie
+            <Camera size={13} strokeWidth={1.5} />
+            <SmallCaps tone="ivory" tracking="luxury" size="xs">
+              dodaj pierwsze zdjęcie
+            </SmallCaps>
           </button>
         </div>
       ) : (
         <div className="space-y-8">
           {grouped.map(group => (
             <div key={group.monthKey}>
-              <p className="font-serif text-dark text-base mb-3">{group.label}</p>
+              <div className="flex items-center gap-3 mb-4">
+                <Diamond size={5} className="text-gold-deep" />
+                <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
+                  {group.label}
+                </SmallCaps>
+                <span className="flex-1 h-px bg-hairline" />
+              </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {group.items.map(photo => (
                   <button
                     key={photo.id}
                     onClick={() => setLightbox(photo)}
-                    className="aspect-square rounded-xl overflow-hidden hover:opacity-90 transition-opacity relative group"
+                    className="aspect-square overflow-hidden hover:opacity-90 transition-opacity relative group border border-hairline"
                   >
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={photo.url}
                       alt={photo.caption ?? ''}
-                      fill
-                      sizes="(max-width: 640px) 33vw, 200px"
-                      className="object-cover"
                       loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-dark/0 group-hover:bg-dark/10 transition-colors rounded-xl" />
+                    <div className="absolute inset-0 bg-forest-deep/0 group-hover:bg-forest-deep/15 transition-colors" />
                     {photo.caption && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-dark/60 px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <p className="font-sans text-[10px] text-ivory truncate">{photo.caption}</p>
+                      <div className="absolute bottom-0 left-0 right-0 bg-forest-deep/70 px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="font-serif-body italic text-ivory text-[11px] truncate">
+                          {photo.caption}
+                        </p>
                       </div>
                     )}
                   </button>

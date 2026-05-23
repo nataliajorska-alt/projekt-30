@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { X } from 'lucide-react'
 import type { MoodState } from '@/types'
 import { MOOD_STATES } from '@/types'
+import { SmallCaps, Diamond, GoldRule } from '@/components/ui'
 
 interface Props {
   onSave: (data: { energy: number; mood: number; state: MoodState }) => void
@@ -20,23 +22,27 @@ function ScaleSelector({
 }) {
   return (
     <div className="mb-5">
-      <p className="font-sans text-xs text-muted uppercase tracking-widest mb-2">{label}</p>
+      <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2.5">
+        {label}
+      </SmallCaps>
       <div className="flex gap-2">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            onClick={() => onChange(n)}
-            className={`
-              w-10 h-10 rounded-full border font-sans text-sm transition-all duration-150
-              ${value === n
-                ? 'bg-forest border-forest text-ivory'
-                : 'border-cream bg-transparent text-muted hover:border-forest/60 hover:text-dark'
-              }
-            `}
-          >
-            {n}
-          </button>
-        ))}
+        {[1, 2, 3, 4, 5].map((n) => {
+          const sel = value === n
+          return (
+            <button
+              key={n}
+              onClick={() => onChange(n)}
+              className={`flex-1 h-10 border transition-all duration-150 flex items-center justify-center gap-1.5 ${
+                sel
+                  ? 'bg-dark-deep text-ivory border-gold'
+                  : 'border-hairline bg-cream/30 text-muted hover:border-gold-light hover:text-dark'
+              }`}
+            >
+              {sel && <Diamond size={4} className="text-gold" />}
+              <span className="font-display text-base leading-none">{n}</span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -58,68 +64,96 @@ export default function MoodCheckInModal({ onSave, onDismiss }: Props) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-dark/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm"
         onClick={onDismiss}
       />
 
       {/* Card */}
-      <div className="relative w-full sm:max-w-sm mx-4 mb-4 sm:mb-0 bg-ivory rounded-2xl shadow-2xl border border-cream/60 p-6 animate-slide-up">
+      <div className="relative w-full sm:max-w-sm mx-4 mb-4 sm:mb-0 bg-ivory border border-gold-light/40 p-7 animate-slide-up">
+        <button
+          onClick={onDismiss}
+          className="absolute top-4 right-4 text-muted-light hover:text-dark transition-colors"
+          aria-label="Zamknij"
+        >
+          <X size={16} strokeWidth={1.5} />
+        </button>
+
         {/* Header */}
         <div className="mb-5">
-          <p className="font-sans text-xs text-muted uppercase tracking-widest mb-1">Check-in</p>
-          <h2 className="font-serif text-dark text-xl">Jak się teraz czujesz?</h2>
-          <p className="font-sans text-xs text-muted mt-1">10 sekund, dane na całe życie.</p>
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+            Check-in
+          </SmallCaps>
+          <h2 className="font-display text-dark text-2xl mt-1 leading-tight">
+            Jak się teraz czujesz?
+          </h2>
+          <p className="font-serif-body italic text-muted text-[13px] mt-1">
+            dziesięć sekund · dane na całe życie.
+          </p>
         </div>
 
-        {/* Energy */}
-        <ScaleSelector label="Energia" value={energy} onChange={setEnergy} />
+        <GoldRule variant="diamond" tone="gold-deep" className="opacity-40 mb-5" />
 
-        {/* Mood */}
+        <ScaleSelector label="Energia" value={energy} onChange={setEnergy} />
         <ScaleSelector label="Nastrój" value={mood} onChange={setMood} />
 
-        {/* State icons */}
+        {/* State pills */}
         <div className="mb-6">
-          <p className="font-sans text-xs text-muted uppercase tracking-widest mb-2">Stan</p>
+          <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2.5">
+            Stan
+          </SmallCaps>
           <div className="flex gap-2 flex-wrap">
-            {MOOD_STATES.map(({ value, emoji, label }) => (
-              <button
-                key={value}
-                onClick={() => setState(value)}
-                className={`
-                  flex items-center gap-1.5 px-3 py-2 rounded-full border font-sans text-xs transition-all duration-150
-                  ${state === value
-                    ? 'bg-forest border-forest text-ivory'
-                    : 'border-cream bg-transparent text-muted hover:border-forest/60 hover:text-dark'
-                  }
-                `}
-              >
-                <span>{emoji}</span>
-                <span>{label}</span>
-              </button>
-            ))}
+            {MOOD_STATES.map(({ value, emoji, label }) => {
+              const sel = state === value
+              return (
+                <button
+                  key={value}
+                  onClick={() => setState(value)}
+                  className={`flex items-center gap-2 px-3 py-2 border transition-all duration-150 ${
+                    sel
+                      ? 'bg-dark-deep border-gold text-ivory'
+                      : 'border-hairline bg-cream/30 text-muted hover:border-gold-light hover:text-dark'
+                  }`}
+                >
+                  <span className="text-sm leading-none">{emoji}</span>
+                  <SmallCaps
+                    tone={sel ? 'ivory' : 'muted'}
+                    tracking="luxury"
+                    size="xs"
+                  >
+                    {label}
+                  </SmallCaps>
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-3">
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className={`
-              flex-1 py-2.5 rounded-xl font-sans text-sm font-medium transition-all duration-150
-              ${canSave
-                ? 'bg-forest text-ivory hover:bg-forest/90'
-                : 'bg-cream text-muted cursor-not-allowed'
-              }
-            `}
+            className={`flex-1 py-3 transition-all duration-150 flex items-center justify-center gap-2 ${
+              canSave
+                ? 'bg-dark-deep text-ivory border border-gold hover:bg-forest'
+                : 'bg-cream/50 border border-hairline text-muted-light cursor-not-allowed'
+            }`}
           >
-            Zapisz +5 XP
+            <Diamond size={5} className={canSave ? 'text-gold' : 'text-muted-light'} />
+            <SmallCaps
+              tone={canSave ? 'ivory' : 'muted'}
+              tracking="luxury"
+              size="xs"
+            >
+              zapisz · + 5 XP
+            </SmallCaps>
           </button>
           <button
             onClick={onDismiss}
-            className="px-4 py-2.5 rounded-xl border border-cream font-sans text-sm text-muted hover:text-dark hover:border-forest/40 transition-all duration-150"
+            className="px-4 py-3 border border-hairline text-muted hover:text-dark hover:border-gold transition-all"
           >
-            Może później
+            <SmallCaps tone="muted" tracking="luxury" size="xs">
+              może później
+            </SmallCaps>
           </button>
         </div>
       </div>

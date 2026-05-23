@@ -1,9 +1,10 @@
 'use client'
 import { useState } from 'react'
+import clsx from 'clsx'
 import { X, BatteryLow } from 'lucide-react'
 import { MINIMUM_DAY_REASONS } from '@/types'
 import type { MinimumDayReason } from '@/types'
-import clsx from 'clsx'
+import { SmallCaps, Diamond } from '@/components/ui'
 
 interface Props {
   onConfirm: (reason: MinimumDayReason) => void
@@ -15,55 +16,86 @@ export default function MinimumDayModal({ onConfirm, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0">
-      <div className="absolute inset-0 bg-dark/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-ivory rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in fade-in slide-in-from-bottom-4 duration-200">
+      <div
+        className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative bg-ivory border border-gold-light/40 w-full max-w-sm p-7 animate-slide-up">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-muted-light hover:text-muted transition-colors"
+          className="absolute top-4 right-4 text-muted-light hover:text-dark transition-colors"
+          aria-label="Zamknij"
         >
           <X size={16} strokeWidth={1.5} />
         </button>
 
         <div className="flex items-center gap-2.5 mb-1">
-          <BatteryLow size={16} className="text-forest" strokeWidth={1.5} />
-          <h3 className="font-serif text-dark text-base">Dzień minimum</h3>
+          <BatteryLow size={13} className="text-forest" strokeWidth={1.5} />
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+            Dzień minimum
+          </SmallCaps>
         </div>
-        <p className="font-sans text-xs text-muted mb-5">
-          Co sprawia, że dziś potrzebujesz minimum? Pokażę Ci tylko to, co najważniejsze.
+        <h3 className="font-display text-dark text-2xl mt-1 leading-tight">
+          Co dziś bierzesz na siebie?
+        </h3>
+        <p className="font-serif-body italic text-muted text-[13px] mt-2 mb-5 leading-relaxed">
+          pokażę ci tylko to, co najważniejsze.
         </p>
 
         <div className="space-y-2 mb-5">
-          {MINIMUM_DAY_REASONS.map(({ value, label, emoji, description }) => (
-            <button
-              key={value}
-              onClick={() => setSelected(value)}
-              className={clsx(
-                'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all border',
-                selected === value
-                  ? 'bg-forest/10 border-forest/40 text-dark'
-                  : 'bg-white border-border hover:border-forest/20 hover:bg-forest/5'
-              )}
-            >
-              <span className="text-lg leading-none">{emoji}</span>
-              <div>
-                <p className="font-sans text-sm font-medium text-dark">{label}</p>
-                <p className="font-sans text-[11px] text-muted">{description}</p>
-              </div>
-            </button>
-          ))}
+          {MINIMUM_DAY_REASONS.map(({ value, label, emoji, description }) => {
+            const sel = selected === value
+            return (
+              <button
+                key={value}
+                onClick={() => setSelected(value)}
+                className={clsx(
+                  'w-full flex items-center gap-3 px-4 py-3 text-left transition-all border',
+                  sel
+                    ? 'bg-forest/8 border-forest'
+                    : 'bg-cream/30 border-hairline hover:border-gold-light'
+                )}
+              >
+                <Diamond
+                  size={9}
+                  filled={sel}
+                  className={sel ? 'text-forest' : 'text-hairline'}
+                />
+                <span className="text-base leading-none flex-shrink-0">{emoji}</span>
+                <div className="min-w-0">
+                  <p className={clsx(
+                    'font-heading text-[14px] leading-tight',
+                    sel ? 'text-forest' : 'text-dark'
+                  )}>
+                    {label}
+                  </p>
+                  <p className="font-serif-body italic text-muted text-[12px] mt-0.5 leading-snug">
+                    {description}
+                  </p>
+                </div>
+              </button>
+            )
+          })}
         </div>
 
         <button
           onClick={() => selected && onConfirm(selected)}
           disabled={!selected}
           className={clsx(
-            'w-full py-3 rounded-xl font-sans text-sm font-medium transition-all',
+            'w-full py-3 transition-all flex items-center justify-center gap-2 border',
             selected
-              ? 'bg-forest text-white hover:bg-forest/90'
-              : 'bg-cream text-muted-light cursor-not-allowed'
+              ? 'bg-dark-deep text-ivory border-gold hover:bg-forest'
+              : 'bg-cream/50 border-hairline text-muted-light cursor-not-allowed'
           )}
         >
-          Włącz tryb minimum
+          <Diamond size={5} className={selected ? 'text-gold' : 'text-muted-light'} />
+          <SmallCaps
+            tone={selected ? 'ivory' : 'muted'}
+            tracking="luxury"
+            size="xs"
+          >
+            włącz tryb minimum
+          </SmallCaps>
         </button>
       </div>
     </div>

@@ -1,23 +1,15 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { useGameData } from '@/hooks/useGameData'
-import { useAuth } from '@/hooks/useAuth'
+import clsx from 'clsx'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { PILLARS } from '@/lib/pillars'
-import { Pillar } from '@/types'
-import { db } from '@/lib/firebase'
-import { doc, setDoc } from 'firebase/firestore'
-import { getDaysElapsed, getDaysRemaining, getMonthKey, XP_VALUES } from '@/lib/gameLogic'
-import { getMonthAggregate, getRoutineItemCounts, getCompletedSideQuestDates, getRuleKeptCounts, aggregateXpByMonth } from '@/lib/analytics'
+import { getMonthKey } from '@/lib/gameLogic'
+import { getRoutineItemCounts, getCompletedSideQuestDates, getRuleKeptCounts, aggregateXpByMonth } from '@/lib/analytics'
 import { MORNING_ROUTINE, EVENING_ROUTINE, DAILY_RULES, DAILY_HABITS, WEEKLY_HABITS } from '@/lib/routineData'
 import { SIDE_QUESTS } from '@/lib/questData'
-import { CheckCircle, Check, ChevronLeft, ChevronRight, ChevronDown, Eye, EyeOff } from 'lucide-react'
-import { useReviewHistory } from '@/hooks/useReviewHistory'
-import type { WeeklyReview, MonthlyReview } from '@/types'
-import PillarTrendChart from '@/components/PillarTrendChart'
-import clsx from 'clsx'
-import { formatMonthPL, PL_MONTH_SHORT, formatWeekRange } from './shared'
-
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { formatMonthPL, PL_MONTH_SHORT } from './shared'
+import { SmallCaps, Diamond, Fleuron, CornerBrackets } from '@/components/ui'
 
 function formatDay(dateStr: string): string {
   const [, m, d] = dateStr.split('-').map(Number)
@@ -78,14 +70,16 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
     []
   )
 
-  function ProgressBar({ count, total }: { count: number; total: number }) {
+  function ProgressLine({ count, total }: { count: number; total: number }) {
     const pct = total > 0 ? Math.min(100, Math.round((count / total) * 100)) : 0
     return (
-      <div className="flex items-center gap-2 flex-shrink-0 w-28">
-        <div className="flex-1 bg-parchment rounded-full h-1.5">
-          <div className="h-1.5 rounded-full bg-gold transition-all" style={{ width: `${pct}%` }} />
+      <div className="flex items-center gap-2 shrink-0 w-28">
+        <div className="flex-1 h-px bg-hairline relative">
+          <div className="absolute left-0 top-0 h-px bg-gold transition-all" style={{ width: `${pct}%` }} />
         </div>
-        <span className="font-sans text-xs text-muted w-10 text-right shrink-0">{count}/{total}</span>
+        <SmallCaps tone="muted" tracking="luxury" size="xs" className="w-12 text-right shrink-0 tabular-nums">
+          {count}/{total}
+        </SmallCaps>
       </div>
     )
   }
@@ -93,72 +87,89 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
   return (
     <div className="space-y-5">
       {/* Month selector */}
-      <div className="flex items-center justify-between bg-white rounded-2xl shadow-elegant p-4">
+      <div className="flex items-center justify-between bg-ivory border border-gold-light/40 p-4">
         <button
           onClick={() => canGoPrev && setMonthKey(shiftMonth(monthKey, -1))}
           disabled={!canGoPrev}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-dark hover:bg-cream transition-colors disabled:opacity-30"
+          className="w-9 h-9 flex items-center justify-center border border-hairline text-muted hover:text-dark hover:border-gold transition-colors disabled:opacity-30"
         >
-          <ChevronLeft size={16} />
+          <ChevronLeft size={14} strokeWidth={1.5} />
         </button>
         <div className="text-center">
-          <p className="font-serif text-dark text-lg">{formatMonthPL(monthKey)}</p>
-          <p className="font-sans text-[10px] text-muted uppercase tracking-wide">{elapsedDays} dni w miesiącu</p>
+          <h3 className="font-heading text-dark text-lg">{formatMonthPL(monthKey)}</h3>
+          <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-0.5 block">
+            {elapsedDays} dni w miesiącu
+          </SmallCaps>
         </div>
         <button
           onClick={() => canGoNext && setMonthKey(shiftMonth(monthKey, 1))}
           disabled={!canGoNext}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-dark hover:bg-cream transition-colors disabled:opacity-30"
+          className="w-9 h-9 flex items-center justify-center border border-hairline text-muted hover:text-dark hover:border-gold transition-colors disabled:opacity-30"
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={14} strokeWidth={1.5} />
         </button>
       </div>
 
-      {/* Overview cards */}
+      {/* Overview */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Dni aktywne', value: agg.activeDays },
+          { label: 'Dni aktywne', value: String(agg.activeDays) },
           { label: 'XP miesiąca', value: agg.totalXP.toLocaleString('pl-PL') },
-          { label: 'Side questy', value: agg.totalSideQuests },
+          { label: 'Side questy', value: String(agg.totalSideQuests) },
         ].map(c => (
-          <div key={c.label} className="bg-white rounded-xl shadow-elegant p-3 text-center">
-            <p className="font-serif text-dark text-xl mb-0.5">{c.value}</p>
-            <p className="font-sans text-[10px] text-muted uppercase tracking-wide leading-tight">{c.label}</p>
+          <div key={c.label} className="bg-ivory border border-gold-light/40 p-3 text-center">
+            <p className="font-display text-dark text-2xl leading-none">{c.value}</p>
+            <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-2 block">
+              {c.label}
+            </SmallCaps>
           </div>
         ))}
       </div>
 
-      {/* Morning routine */}
-      <div className="bg-white rounded-2xl shadow-elegant p-5">
-        <h3 className="font-serif text-dark text-base mb-0.5">Rutyna poranna</h3>
-        <p className="font-sans text-[11px] text-muted mb-4">ile razy wykonana z {elapsedDays} możliwych dni</p>
+      {/* Morning */}
+      <section className="bg-ivory border border-gold-light/40 p-5">
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+          Rutyna poranna
+        </SmallCaps>
+        <h3 className="font-heading text-dark text-base mt-1 mb-1">Ile razy wykonana</h3>
+        <p className="font-serif-body italic text-muted text-[12.5px] mb-4">
+          z {elapsedDays} możliwych dni.
+        </p>
         <div className="space-y-3">
           {MORNING_ROUTINE.map(item => (
             <div key={item.id} className="flex items-center gap-3">
-              <span className="font-sans text-xs text-dark flex-1 leading-snug min-w-0">{item.text}</span>
-              <ProgressBar count={routineCounts[item.id] ?? 0} total={elapsedDays} />
+              <span className="font-serif-body text-[13px] text-dark flex-1 leading-snug min-w-0">
+                {item.text}
+              </span>
+              <ProgressLine count={routineCounts[item.id] ?? 0} total={elapsedDays} />
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Evening routine */}
-      <div className="bg-white rounded-2xl shadow-elegant p-5">
-        <h3 className="font-serif text-dark text-base mb-0.5">Rutyna wieczorna</h3>
-        <p className="font-sans text-[11px] text-muted mb-4">ile razy wykonana z {elapsedDays} możliwych dni</p>
+      {/* Evening */}
+      <section className="bg-ivory border border-gold-light/40 p-5">
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+          Rutyna wieczorna
+        </SmallCaps>
+        <h3 className="font-heading text-dark text-base mt-1 mb-1">Ile razy wykonana</h3>
+        <p className="font-serif-body italic text-muted text-[12.5px] mb-4">
+          z {elapsedDays} możliwych dni.
+        </p>
         <div className="space-y-3">
           {EVENING_ROUTINE.map(item => (
             <div key={item.id} className="flex items-center gap-3">
-              <span className="font-sans text-xs text-dark flex-1 leading-snug min-w-0">{item.text}</span>
-              <ProgressBar count={routineCounts[item.id] ?? 0} total={elapsedDays} />
+              <span className="font-serif-body text-[13px] text-dark flex-1 leading-snug min-w-0">
+                {item.text}
+              </span>
+              <ProgressLine count={routineCounts[item.id] ?? 0} total={elapsedDays} />
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Daily routine */}
+      {/* Daily */}
       {(() => {
-        // Count occurrences of each weekday (0=sun…6=sat) in the elapsed days of the month
         function countWeekdayOccurrences(dow: number): number {
           const [y, m] = monthKey.split('-').map(Number)
           let count = 0
@@ -168,7 +179,6 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
           return count
         }
         const weekdayDays = [1, 2, 3, 4, 5].reduce((s, d) => s + countWeekdayOccurrences(d), 0)
-        // Study item: appears Mon(1), Wed(3), Fri(5)
         const studyPossible = [1, 3, 5].reduce((s, d) => s + countWeekdayOccurrences(d), 0)
         const studyCount = Object.entries(routineCounts)
           .filter(([id]) => id.startsWith('study_'))
@@ -180,38 +190,47 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
         }
 
         return (
-          <div className="bg-white rounded-2xl shadow-elegant p-5">
-            <h3 className="font-serif text-dark text-base mb-0.5">Rutyna dzienna</h3>
-            <p className="font-sans text-[11px] text-muted mb-4">nawyki dnia, temat tygodnia i cykliczne zadania</p>
+          <section className="bg-ivory border border-gold-light/40 p-5">
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+              Rutyna dzienna
+            </SmallCaps>
+            <h3 className="font-heading text-dark text-base mt-1 mb-1">Nawyki i temat tygodnia</h3>
+            <p className="font-serif-body italic text-muted text-[12.5px] mb-5">
+              nawyki dnia, temat tygodnia i cykliczne zadania.
+            </p>
             <div className="space-y-5">
-
-              {/* Daily habits (weekdays only) */}
               {DAILY_HABITS.length > 0 && (
                 <div>
-                  <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest mb-2">Codzienne robocze</p>
+                  <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2 opacity-80">
+                    Codzienne robocze
+                  </SmallCaps>
                   <div className="space-y-3">
                     {DAILY_HABITS.map(item => (
                       <div key={item.id} className="flex items-center gap-3">
-                        <span className="font-sans text-xs text-dark flex-1 leading-snug min-w-0">{item.text}</span>
-                        <ProgressBar count={routineCounts[item.id] ?? 0} total={weekdayDays} />
+                        <span className="font-serif-body text-[13px] text-dark flex-1 leading-snug min-w-0">
+                          {item.text}
+                        </span>
+                        <ProgressLine count={routineCounts[item.id] ?? 0} total={weekdayDays} />
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Study item */}
               {studyPossible > 0 && (
                 <div>
-                  <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest mb-2">Temat tygodnia (pn / śr / pt)</p>
+                  <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2 opacity-80">
+                    Temat tygodnia · pn / śr / pt
+                  </SmallCaps>
                   <div className="flex items-center gap-3">
-                    <span className="font-sans text-xs text-dark flex-1 leading-snug min-w-0">Nauka z danego tygodnia</span>
-                    <ProgressBar count={studyCount} total={studyPossible} />
+                    <span className="font-serif-body text-[13px] text-dark flex-1 leading-snug min-w-0">
+                      Nauka z danego tygodnia
+                    </span>
+                    <ProgressLine count={studyCount} total={studyPossible} />
                   </div>
                 </div>
               )}
 
-              {/* Weekly habits per day */}
               {([0, 1, 2, 3, 4, 5, 6] as number[])
                 .filter(dow => WEEKLY_HABITS[dow]?.length > 0)
                 .map(dow => {
@@ -220,12 +239,16 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
                   if (possible === 0) return null
                   return (
                     <div key={dow}>
-                      <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest mb-2">{DAY_LABELS[dow]}</p>
+                      <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2 opacity-80">
+                        {DAY_LABELS[dow]}
+                      </SmallCaps>
                       <div className="space-y-3">
                         {items.map(item => (
                           <div key={item.id} className="flex items-center gap-3">
-                            <span className="font-sans text-xs text-dark flex-1 leading-snug min-w-0">{item.text}</span>
-                            <ProgressBar count={routineCounts[item.id] ?? 0} total={possible} />
+                            <span className="font-serif-body text-[13px] text-dark flex-1 leading-snug min-w-0">
+                              {item.text}
+                            </span>
+                            <ProgressLine count={routineCounts[item.id] ?? 0} total={possible} />
                           </div>
                         ))}
                       </div>
@@ -233,14 +256,19 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
                   )
                 })}
             </div>
-          </div>
+          </section>
         )
       })()}
 
       {/* Rules */}
-      <div className="bg-white rounded-2xl shadow-elegant p-5">
-        <h3 className="font-serif text-dark text-base mb-0.5">Zasady</h3>
-        <p className="font-sans text-[11px] text-muted mb-4">jak często trzymałaś się zasad</p>
+      <section className="bg-ivory border border-gold-light/40 p-5">
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+          Zasady
+        </SmallCaps>
+        <h3 className="font-heading text-dark text-base mt-1 mb-1">Dotrzymanie zasad</h3>
+        <p className="font-serif-body italic text-muted text-[12.5px] mb-4">
+          jak często trzymałaś się zasad.
+        </p>
         <div className="space-y-4">
           {DAILY_RULES.map(rule => {
             const count = ruleCounts[rule.id] ?? 0
@@ -248,124 +276,155 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
             return (
               <div key={rule.id}>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-sans text-xs text-dark leading-snug">{rule.text}</span>
-                  <span className="font-sans text-xs text-gold-light font-medium ml-2 shrink-0">{pct}%</span>
+                  <span className="font-serif-body text-[13px] text-dark leading-snug">
+                    {rule.text}
+                  </span>
+                  <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="ml-2 shrink-0">
+                    {pct}%
+                  </SmallCaps>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-parchment rounded-full h-1.5">
-                    <div className="h-1.5 rounded-full bg-gold transition-all" style={{ width: `${pct}%` }} />
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-hairline relative">
+                    <div className="absolute left-0 top-0 h-px bg-gold transition-all" style={{ width: `${pct}%` }} />
                   </div>
-                  <span className="font-sans text-xs text-muted shrink-0">{count}/{elapsedDays} dni</span>
+                  <SmallCaps tone="muted" tracking="luxury" size="xs" className="shrink-0 tabular-nums">
+                    {count}/{elapsedDays} dni
+                  </SmallCaps>
                 </div>
               </div>
             )
           })}
         </div>
-      </div>
+      </section>
 
       {/* Daily quests */}
-      <div className="bg-white rounded-2xl shadow-elegant p-5">
-        <h3 className="font-serif text-dark text-base mb-0.5">Daily questy</h3>
-        <p className="font-sans text-[11px] text-muted mb-3">
-          3 questy dziennie × {elapsedDays} dni = {elapsedDays * 3} możliwych
+      <section className="bg-ivory border border-gold-light/40 p-5">
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+          Daily questy
+        </SmallCaps>
+        <h3 className="font-heading text-dark text-base mt-1 mb-1">Ukończone</h3>
+        <p className="font-serif-body italic text-muted text-[12.5px] mb-4">
+          III questy dziennie × {elapsedDays} dni = {elapsedDays * 3} możliwych.
         </p>
         <div className="flex items-center gap-3">
-          <div className="flex-1 bg-parchment rounded-full h-2">
+          <div className="flex-1 h-px bg-hairline relative">
             <div
-              className="h-2 rounded-full bg-gold transition-all"
+              className="absolute left-0 top-0 h-px bg-gold transition-all"
               style={{
-                width: `${elapsedDays * 3 > 0 ? Math.min(100, Math.round((agg.totalDailyQuests / (elapsedDays * 3)) * 100)) : 0}%`,
+                width: `${elapsedDays * 3 > 0
+                  ? Math.min(100, Math.round((agg.totalDailyQuests / (elapsedDays * 3)) * 100))
+                  : 0}%`,
               }}
             />
           </div>
-          <span className="font-serif text-dark text-lg shrink-0">{agg.totalDailyQuests}</span>
+          <span className="font-display text-dark text-xl leading-none shrink-0">
+            {agg.totalDailyQuests}
+          </span>
         </div>
-        <p className="font-sans text-[11px] text-muted mt-1">ukończonych questów</p>
-      </div>
+      </section>
 
       {/* Side quests list */}
       {completedSideQuests.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-elegant p-5">
-          <h3 className="font-serif text-dark text-base mb-0.5">Side questy</h3>
-          <p className="font-sans text-[11px] text-muted mb-4">
+        <section className="bg-ivory border border-gold-light/40 p-5">
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+            Side questy
+          </SmallCaps>
+          <h3 className="font-heading text-dark text-base mt-1 mb-1">Lista ukończonych</h3>
+          <p className="font-serif-body italic text-muted text-[12.5px] mb-4">
             {completedSideQuests.length} ukończonych ·{' '}
-            {completedSideQuests.reduce((s, sq) => s + (questMap[sq.questId]?.xp ?? 0), 0).toLocaleString('pl-PL')} XP łącznie
+            {completedSideQuests.reduce((s, sq) => s + (questMap[sq.questId]?.xp ?? 0), 0).toLocaleString('pl-PL')} XP łącznie.
           </p>
-          <div className="space-y-0">
+          <div>
             {completedSideQuests.map(({ questId, date }, i) => {
               const quest = questMap[questId]
               if (!quest) return null
               const pillar = PILLARS.find(p => p.id === quest.pillar)
               return (
-                <div key={i} className="flex items-start gap-3 py-2.5 border-b border-cream last:border-0">
-                  <span className="font-sans text-[11px] text-muted shrink-0 w-12 pt-0.5">{formatDay(date)}</span>
+                <div key={i} className="flex items-start gap-3 py-2.5 border-b border-hairline last:border-0">
+                  <SmallCaps tone="muted" tracking="luxury" size="xs" className="shrink-0 w-12 pt-0.5">
+                    {formatDay(date)}
+                  </SmallCaps>
                   <div className="flex-1 min-w-0">
-                    <p className="font-sans text-sm text-dark leading-snug">{quest.title}</p>
+                    <p className="font-serif-body text-[13.5px] text-dark leading-snug">{quest.title}</p>
                     {pillar && (
-                      <span
-                        className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-sans uppercase tracking-wide text-white"
-                        style={{ backgroundColor: pillar.color }}
-                      >
-                        {pillar.shortName}
-                      </span>
+                      <div className="inline-flex items-center gap-1 mt-1.5">
+                        <span style={{ color: pillar.color }}>
+                          <Diamond size={4} filled />
+                        </span>
+                        <SmallCaps tracking="luxury" size="xs">
+                          <span style={{ color: pillar.color }}>{pillar.shortName}</span>
+                        </SmallCaps>
+                      </div>
                     )}
                   </div>
-                  <span className="font-sans text-xs text-gold-light font-medium shrink-0 pt-0.5">+{quest.xp} XP</span>
+                  <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="shrink-0 pt-0.5">
+                    + {quest.xp} XP
+                  </SmallCaps>
                 </div>
               )
             })}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Comparison with previous month */}
+      {/* Comparison */}
       {prevAgg && (prevAgg.totalXP > 0 || prevAgg.activeDays > 0) && (
-        <div className="bg-dark rounded-2xl p-5 text-ivory">
-          <h3 className="font-serif text-ivory text-base mb-3">
-            vs. {formatMonthPL(prevMonthKey)}
-          </h3>
-          <div className="space-y-3">
-            {[
-              { label: 'XP', now: agg.totalXP, prev: prevAgg.totalXP, fmt: (v: number) => v.toLocaleString('pl-PL') },
-              { label: 'Dni aktywne', now: agg.activeDays, prev: prevAgg.activeDays, fmt: (v: number) => String(v) },
-              { label: 'Side questy', now: agg.totalSideQuests, prev: prevAgg.totalSideQuests, fmt: (v: number) => String(v) },
-            ].map(({ label, now, prev, fmt }) => {
-              const diff = now - prev
-              const positive = diff >= 0
-              return (
-                <div key={label} className="flex items-center justify-between">
-                  <span className="font-sans text-xs text-muted-light">{label}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-sans text-xs text-ivory/50">{fmt(prev)}</span>
-                    <span className="font-sans text-xs text-muted-light">→</span>
-                    <span className="font-serif text-sm text-ivory">{fmt(now)}</span>
-                    {diff !== 0 && (
-                      <span className={clsx(
-                        'font-sans text-xs font-medium',
-                        positive ? 'text-gold-light' : 'text-red-300'
-                      )}>
-                        {positive ? '+' : ''}{fmt(diff)}
-                      </span>
-                    )}
+        <div className="relative bg-forest-deep grain-linen text-ivory p-6">
+          <CornerBrackets size={14} tone="gold" weight={1} />
+          <div className="relative z-10">
+            <SmallCaps tone="gold-light" tracking="editorial" size="xs">
+              Porównanie z poprzednim
+            </SmallCaps>
+            <h3 className="font-display text-ivory text-xl mt-2 mb-5">
+              vs. {formatMonthPL(prevMonthKey)}
+            </h3>
+            <div className="space-y-3">
+              {[
+                { label: 'XP',          now: agg.totalXP,        prev: prevAgg.totalXP,        fmt: (v: number) => v.toLocaleString('pl-PL') },
+                { label: 'Dni aktywne', now: agg.activeDays,     prev: prevAgg.activeDays,     fmt: (v: number) => String(v) },
+                { label: 'Side questy', now: agg.totalSideQuests, prev: prevAgg.totalSideQuests, fmt: (v: number) => String(v) },
+              ].map(({ label, now, prev, fmt }) => {
+                const diff = now - prev
+                const positive = diff >= 0
+                return (
+                  <div key={label} className="flex items-center justify-between">
+                    <SmallCaps tone="parchment" tracking="luxury" size="xs">
+                      {label}
+                    </SmallCaps>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-serif-body italic text-parchment/60 text-[13px]">{fmt(prev)}</span>
+                      <span className="text-parchment/40">→</span>
+                      <span className="font-display text-ivory text-sm">{fmt(now)}</span>
+                      {diff !== 0 && (
+                        <SmallCaps
+                          tracking="luxury"
+                          size="xs"
+                          className={positive ? '!text-gold-light' : '!text-red-300'}
+                        >
+                          {positive ? '+' : ''}{fmt(diff)}
+                        </SmallCaps>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty */}
       {agg.activeDays === 0 && elapsedDays > 0 && (
         <div className="text-center py-8">
-          <p className="font-sans text-muted text-sm">Brak danych za {formatMonthPL(monthKey)}.</p>
-          <p className="font-sans text-muted text-xs mt-1">Wróć tu gdy zalogujesz pierwsze dni.</p>
+          <Fleuron size={12} className="text-gold-deep mx-auto mb-3 inline-block" />
+          <p className="font-serif-body italic text-muted text-[13.5px]">
+            brak danych za {formatMonthPL(monthKey)}.
+          </p>
+          <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-1 block opacity-70">
+            wróć tu gdy zalogujesz pierwsze dni.
+          </SmallCaps>
         </div>
       )}
     </div>
   )
 }
-
-
-// ---------- Review history tab ----------
-

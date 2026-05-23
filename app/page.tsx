@@ -22,7 +22,33 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/SkeletonCard'
 import { useGameData } from '@/hooks/useGameData'
 import { todayKey, tomorrowDate } from '@/lib/gameLogic'
+import { toRoman } from '@/lib/romanNumerals'
+import { SmallCaps, GoldRule, Fleuron, RomanNumeral } from '@/components/ui'
 import type { MoodState } from '@/types'
+
+const PROJECT_START = '2026-04-05'
+
+function dayOfProject(): number {
+  const today = new Date()
+  const [y, m, d] = PROJECT_START.split('-').map(Number)
+  const start = new Date(y, m - 1, d)
+  const diff = Math.floor((today.getTime() - start.getTime()) / 86400000)
+  return Math.max(1, diff + 1)
+}
+
+function SectionLabel({ num, title }: { num: number; title: string }) {
+  return (
+    <div className="mt-8 mb-6">
+      <div className="flex items-baseline gap-3">
+        <RomanNumeral value={num} className="text-gold-deep text-base" />
+        <SmallCaps tone="gold-deep" tracking="editorial" size="sm">
+          {title}
+        </SmallCaps>
+      </div>
+      <div className="hairline-gold mt-2 opacity-30" />
+    </div>
+  )
+}
 
 // Probability of showing the check-in on any given app open (when < 4 check-ins today).
 const CHECKIN_TRIGGER_PROBABILITY = 0.4
@@ -101,48 +127,68 @@ export default function Dashboard() {
     </div>
   )
 
-  const todayLabel    = new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })
-  const tomorrowLabel = tomorrowDate().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })
+  const todayLabel    = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+  const tomorrowLabel = tomorrowDate().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+
+  const day = dayOfProject()
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-6 pb-8 animate-fade-in">
-      {/* Date + switcher */}
-      <div className="mb-5">
-        <p className="font-sans text-xs text-muted uppercase tracking-widest mb-1">
-          {viewingTomorrow ? 'Jutro' : 'Dziś'}
-        </p>
-        <div className="flex items-end justify-between gap-3">
-          <h1 className="font-serif text-dark text-2xl capitalize">
-            {viewingTomorrow ? tomorrowLabel : todayLabel}
-          </h1>
-          <div className="flex items-center gap-1 mb-0.5 flex-shrink-0">
+    <div className="max-w-2xl mx-auto px-4 pt-8 pb-12 animate-fade-in">
+      {/* Editorial date header */}
+      <header className="mb-8">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <SmallCaps tone="muted" tracking="editorial" size="xs">
+              {viewingTomorrow ? 'Jutro' : 'Dziś'}
+            </SmallCaps>
+            <h1 className="font-display text-dark text-[clamp(1.75rem,5vw,2.5rem)] leading-tight capitalize mt-1">
+              {viewingTomorrow ? tomorrowLabel : todayLabel}
+            </h1>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                <SmallCaps tone="gold-deep" size="xs" tracking="luxury">
+                  Day {toRoman(day)}
+                </SmallCaps>
+                <Fleuron size={10} className="text-gold-deep" />
+              </span>
+              <SmallCaps tone="muted" size="xs">
+                the year of becoming
+              </SmallCaps>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mb-1 shrink-0">
             <button
               onClick={() => setViewingTomorrow(false)}
-              className={`font-sans text-xs px-3 py-1.5 rounded-full transition-all ${
+              className={`font-ui uppercase tracking-luxury text-[10px] px-3 py-1.5 transition-all border ${
                 !viewingTomorrow
-                  ? 'bg-dark text-ivory'
-                  : 'text-muted hover:text-dark border border-border'
+                  ? 'bg-dark text-ivory border-dark'
+                  : 'text-muted hover:text-dark border-hairline hover:border-gold'
               }`}
             >
               Dziś
             </button>
             <button
               onClick={() => setViewingTomorrow(true)}
-              className={`font-sans text-xs px-3 py-1.5 rounded-full transition-all ${
+              className={`font-ui uppercase tracking-luxury text-[10px] px-3 py-1.5 transition-all border ${
                 viewingTomorrow
-                  ? 'bg-dark text-ivory'
-                  : 'text-muted hover:text-dark border border-border'
+                  ? 'bg-dark text-ivory border-dark'
+                  : 'text-muted hover:text-dark border-hairline hover:border-gold'
               }`}
             >
-              Jutro →
+              Jutro
             </button>
           </div>
         </div>
-      </div>
+        <GoldRule variant="fleuron" className="mt-6" tone="gold-deep" />
+      </header>
 
+      {/* I — THE COUNTDOWN: today within the year */}
+      <SectionLabel num={1} title="The Countdown · gdzie jesteś" />
       <CountdownHero />
 
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      {/* II — THE GLANCE: orientation widgets */}
+      <SectionLabel num={2} title="The Glance · zorientuj się" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
         <ErrorBoundary label="Drzewko"><MiniGardenWidget /></ErrorBoundary>
         <ErrorBoundary label="Cykl"><CyclePhaseWidget /></ErrorBoundary>
         <ErrorBoundary label="Wzorzec tygodnia"><PatternOfTheWeek /></ErrorBoundary>
@@ -152,6 +198,11 @@ export default function Dashboard() {
       <DashboardNudges />
       <ErrorBoundary label="Podsumowanie XP"><DailyXPSummary /></ErrorBoundary>
 
+      {/* III — TODAY'S PRACTICE: routine + quests */}
+      <SectionLabel
+        num={3}
+        title={viewingTomorrow ? "Tomorrow's Practice" : "Today's Practice"}
+      />
       {viewingTomorrow ? (
         <>
           <ErrorBoundary label="Jutrzejsza rutyna"><TomorrowChecklist /></ErrorBoundary>
@@ -162,6 +213,9 @@ export default function Dashboard() {
           <ErrorBoundary label="Rutyna"><RoutineChecklist /></ErrorBoundary>
           <ErrorBoundary label="Daily questy"><DailyQuests /></ErrorBoundary>
           <ErrorBoundary label="Side quest"><SideQuestPicker /></ErrorBoundary>
+
+          {/* IV — THE MARGIN: reflection */}
+          <SectionLabel num={4} title="The Margin · refleksja" />
           <ErrorBoundary label="Moment dnia"><KeyMomentCapture /></ErrorBoundary>
           <ErrorBoundary label="Negative checklist"><NegativeChecklist /></ErrorBoundary>
           <ErrorBoundary label="Heart Block"><HeartBlockCard /></ErrorBoundary>

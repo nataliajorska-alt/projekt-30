@@ -1,33 +1,9 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword,
-} from 'firebase/auth'
-import { LogOut, Lock, Mail, Download, Printer, Sun, Moon, Sparkles, Plus, X, RotateCcw, Bell, Phone, ShieldAlert, Swords, BrainCircuit } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, X, Phone } from 'lucide-react'
 import { useNominatedContacts } from '@/hooks/useNominatedContacts'
-import { useCustomQuestLibrary } from '@/hooks/useCustomQuestLibrary'
 import type { NominatedContact } from '@/types'
-import { exportLogsAsCSV, exportQuestsAsCSV, exportReviewsAsCSV, exportStatsAsCSV, exportAllAsCSV, exportAsMarkdown } from '@/lib/exportData'
-import type { DateRange } from '@/lib/exportData'
-import { useRoutineConfig } from '@/hooks/useRoutineConfig'
-import { useSparkSchedule } from '@/hooks/useSparkSchedule'
-import { useGameData } from '@/hooks/useGameData'
-import {
-  loadPreferences,
-  savePreferences,
-  requestPermission,
-  getPermissionStatus,
-  scheduleWithTimeout,
-  scheduleRemindersViaSW,
-  DEFAULT_PREFERENCES,
-  type NotificationPreferences,
-  type ReminderType,
-} from '@/lib/notifications'
-import clsx from 'clsx'
+import { SmallCaps, Diamond } from '@/components/ui'
 
 export default function NominatedContactsSection() {
   const { contacts, loading, saveContacts } = useNominatedContacts()
@@ -54,28 +30,32 @@ export default function NominatedContactsSection() {
   if (loading) return null
 
   return (
-    <div className="bg-white rounded-2xl shadow-elegant p-6">
-      <h2 className="font-serif text-lg text-dark mb-1 flex items-center gap-2">
-        <Phone size={18} strokeWidth={1.5} className="text-gold" />
-        Nominated Contacts
-      </h2>
-      <p className="font-sans text-xs text-muted mb-5">
-        Osoby, do których dzwonisz zamiast pisać do niego. Widoczne w Emergency Lock.
+    <section className="bg-ivory border border-gold-light/40 p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Phone size={14} strokeWidth={1.5} className="text-gold-deep" />
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+          Nominated Contacts
+        </SmallCaps>
+      </div>
+      <h2 className="font-heading text-dark text-xl mt-1">Osoby na trudną chwilę</h2>
+      <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5 leading-relaxed">
+        osoby, do których dzwonisz zamiast pisać do niego. widoczne w emergency lock.
       </p>
 
       {contacts.length > 0 && (
         <div className="space-y-2 mb-4">
           {contacts.map(c => (
-            <div key={c.phone} className="flex items-center gap-3 bg-cream/50 rounded-xl px-4 py-3">
-              <div className="flex-1">
-                <p className="font-sans text-sm text-dark font-medium">{c.name}</p>
-                <p className="font-sans text-xs text-muted">{c.phone}</p>
+            <div key={c.phone} className="flex items-center gap-3 bg-cream/40 border border-hairline px-4 py-3">
+              <Diamond size={5} className="text-gold-deep shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-heading text-dark text-[14px]">{c.name}</p>
+                <p className="font-serif-body italic text-muted text-[12.5px]">{c.phone}</p>
               </div>
               <button
                 onClick={() => handleRemove(c.phone)}
                 className="text-muted hover:text-red-500 transition-colors"
               >
-                <X size={14} strokeWidth={1.5} />
+                <X size={12} strokeWidth={1.5} />
               </button>
             </div>
           ))}
@@ -85,62 +65,58 @@ export default function NominatedContactsSection() {
       {contacts.length < 3 && !editing && (
         <button
           onClick={() => setEditing(true)}
-          className="flex items-center gap-2 text-xs font-sans text-muted hover:text-gold transition-colors"
+          className="flex items-center gap-2 text-muted hover:text-gold-deep transition-colors"
         >
-          <Plus size={14} strokeWidth={1.5} />
-          Dodaj kontakt (max 3)
+          <Plus size={12} strokeWidth={1.5} />
+          <SmallCaps tone="muted" tracking="luxury" size="xs">
+            dodaj kontakt · max III
+          </SmallCaps>
         </button>
       )}
 
       {editing && (
-        <div className="border border-border rounded-xl p-4 space-y-3">
+        <div className="border border-hairline p-4 space-y-3">
           <input
             type="text"
             value={newName}
             onChange={e => setNewName(e.target.value)}
-            placeholder="Imię"
-            className="w-full border border-border rounded-lg px-3 py-2 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold"
+            placeholder="imię"
+            className="w-full border border-hairline bg-cream/40 px-3 py-2 font-serif-body text-[14px] text-dark focus:outline-none focus:border-gold transition-colors"
           />
           <input
             type="tel"
             value={newPhone}
             onChange={e => setNewPhone(e.target.value)}
             placeholder="+48 123 456 789"
-            className="w-full border border-border rounded-lg px-3 py-2 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold"
+            className="w-full border border-hairline bg-cream/40 px-3 py-2 font-serif-body text-[14px] text-dark focus:outline-none focus:border-gold transition-colors"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <button
               onClick={() => setEditing(false)}
-              className="font-sans text-xs text-muted hover:text-dark transition-colors"
+              className="font-ui uppercase tracking-luxury text-[10px] text-muted-light hover:text-dark transition-colors"
             >
-              Anuluj
+              anuluj
             </button>
+            <div className="flex-1" />
             <button
               onClick={handleAdd}
               disabled={!newName.trim() || !newPhone.trim()}
-              className="bg-dark text-ivory font-sans text-xs py-2 px-4 rounded-lg hover:bg-forest transition-colors disabled:opacity-60 font-medium"
+              className="bg-dark-deep text-ivory border border-gold py-2 px-4 hover:bg-forest transition-colors disabled:opacity-60 flex items-center gap-2"
             >
-              Dodaj
+              <Diamond size={4} className="text-gold" />
+              <SmallCaps tone="ivory" tracking="luxury" size="xs">
+                dodaj
+              </SmallCaps>
             </button>
           </div>
         </div>
       )}
 
       {saved && (
-        <p className="font-sans text-xs text-forest mt-2 animate-fade-in">Zapisano ✓</p>
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="mt-3 block animate-fade-in">
+          zapisano ◆
+        </SmallCaps>
       )}
-    </div>
+    </section>
   )
-}
-
-/* ─── Odzyskiwanie XP ─── */
-
-type RecoveryBreakdown = {
-  fromLogs: number; fromWeeklyReviews: number; fromMonthlyReviews: number
-  fromAchievements: number; total: number; weeklyCount: number; monthlyCount: number; achievementsCount: number
-}
-
-const PILLAR_NAMES: Record<string, string> = {
-  pozycja: 'Pozycja', cialo: 'Ciało', styl: 'Styl',
-  kapital: 'Kapitał', kariera: 'Kariera', tozsamosc: 'Tożsamość', milosc: 'Miłość',
 }

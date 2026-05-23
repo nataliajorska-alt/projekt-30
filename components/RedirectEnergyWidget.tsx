@@ -1,13 +1,16 @@
 'use client'
 
 import { useMemo } from 'react'
+import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { getDailyRedirectQuests } from '@/lib/redirect-quests'
-import clsx from 'clsx'
+import { SmallCaps, Diamond, GoldRule } from '@/components/ui'
 
 interface Props {
-  compact?: boolean  // wersja do Ghost Protocol (ciemne tło)
+  compact?: boolean
 }
+
+const WINE = '#C27BA0'
 
 export default function RedirectEnergyWidget({ compact = false }: Props) {
   const { todayLog, toggleSideQuest } = useGameData()
@@ -22,8 +25,9 @@ export default function RedirectEnergyWidget({ compact = false }: Props) {
 
   if (compact) {
     return (
-      <div className="mt-6 pt-5 border-t border-ivory/10">
-        <p className="font-sans text-[11px] text-gold/70 uppercase tracking-[0.15em] text-center mb-4">
+      <div className="mt-6 pt-5 border-t border-gold-light/15">
+        <GoldRule variant="diamond" tone="gold" className="max-w-xs mx-auto mb-4 opacity-60" />
+        <p className="font-serif-body italic text-parchment text-[13px] text-center mb-4">
           — lub przekieruj energię —
         </p>
         <div className="space-y-2">
@@ -34,24 +38,35 @@ export default function RedirectEnergyWidget({ compact = false }: Props) {
                 key={q.id}
                 onClick={() => !done && toggleSideQuest(q.id, 'milosc', q.xp)}
                 className={clsx(
-                  'w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all',
+                  'w-full flex items-center gap-3 px-4 py-3 border text-left transition-all',
                   done
-                    ? 'border-gold/30 bg-gold/10 opacity-70 cursor-default'
-                    : 'border-ivory/10 bg-forest/20 hover:bg-forest/40 hover:border-gold/30'
+                    ? 'border-gold/40 bg-gold/10 opacity-70 cursor-default'
+                    : 'border-ivory/15 bg-forest/20 hover:bg-forest/40 hover:border-gold/40'
                 )}
               >
-                <span className="text-lg flex-shrink-0">{q.emoji}</span>
+                <span className="text-lg shrink-0">{q.emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <p className={clsx('font-sans text-sm leading-tight', done ? 'text-gold/80 line-through' : 'text-ivory/90')}>
+                  <p
+                    className={clsx(
+                      'font-serif-body text-[14px] leading-tight',
+                      done ? 'text-gold-light/70 line-through italic' : 'text-ivory'
+                    )}
+                  >
                     {q.title}
                   </p>
                   {!done && (
-                    <p className="font-sans text-[11px] text-ivory/40 mt-0.5 leading-tight">{q.description}</p>
+                    <p className="font-serif-body italic text-parchment/60 text-[11px] mt-0.5 leading-tight">
+                      {q.description}
+                    </p>
                   )}
                 </div>
-                <span className={clsx('font-sans text-[11px] flex-shrink-0', done ? 'text-gold/60' : 'text-ivory/40')}>
-                  {done ? '✓' : `+${q.xp} XP`}
-                </span>
+                {done ? (
+                  <Diamond size={5} className="text-gold shrink-0" filled />
+                ) : (
+                  <SmallCaps tone="parchment" tracking="luxury" size="xs" className="shrink-0">
+                    + {q.xp} XP
+                  </SmallCaps>
+                )}
               </button>
             )
           })}
@@ -61,12 +76,17 @@ export default function RedirectEnergyWidget({ compact = false }: Props) {
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-cream">
+    <div className="mt-4 pt-4 border-t border-hairline">
       <div className="flex items-center justify-between mb-3">
-        <p className="font-sans text-[10px] text-muted uppercase tracking-widest">
-          Przekierowanie energii · dziś
-        </p>
-        <span className="font-sans text-[10px] text-muted-light">Miłość</span>
+        <div className="flex items-center gap-2" style={{ color: WINE }}>
+          <Diamond size={5} />
+          <SmallCaps tracking="luxury" size="xs">
+            <span style={{ color: WINE }}>Przekierowanie energii · dziś</span>
+          </SmallCaps>
+        </div>
+        <SmallCaps tone="muted" tracking="luxury" size="xs">
+          Miłość
+        </SmallCaps>
       </div>
       <div className="space-y-2">
         {quests.map(q => {
@@ -76,36 +96,49 @@ export default function RedirectEnergyWidget({ compact = false }: Props) {
               key={q.id}
               onClick={() => !done && toggleSideQuest(q.id, 'milosc', q.xp)}
               className={clsx(
-                'w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all',
-                done
-                  ? 'border-[#C27BA0]/20 bg-[#C27BA0]/5 cursor-default'
-                  : 'border-[#C27BA0]/15 bg-[#C27BA0]/5 hover:bg-[#C27BA0]/10 hover:border-[#C27BA0]/30'
+                'w-full flex items-center gap-3 px-4 py-3 border text-left transition-all'
               )}
+              style={
+                done
+                  ? { borderColor: `${WINE}25`, background: `${WINE}08` }
+                  : { borderColor: `${WINE}25`, background: `${WINE}05` }
+              }
             >
-              <span className="text-base flex-shrink-0">{q.emoji}</span>
+              <span className="text-base shrink-0">{q.emoji}</span>
               <div className="flex-1 min-w-0">
-                <p className={clsx(
-                  'font-sans text-sm leading-tight',
-                  done ? 'text-[#C27BA0]/60 line-through' : 'text-dark'
-                )}>
+                <p
+                  className={clsx(
+                    'font-serif-body text-[14px] leading-tight',
+                    done ? 'line-through italic' : ''
+                  )}
+                  style={{ color: done ? `${WINE}90` : '#1A2420' }}
+                >
                   {q.title}
                 </p>
                 {!done && (
-                  <p className="font-sans text-[11px] text-muted-light mt-0.5 leading-tight">{q.description}</p>
+                  <p className="font-serif-body italic text-muted-light text-[11.5px] mt-0.5 leading-tight">
+                    {q.description}
+                  </p>
                 )}
               </div>
-              <span className={clsx(
-                'font-sans text-[11px] flex-shrink-0 font-medium',
-                done ? 'text-[#C27BA0]/50' : 'text-[#C27BA0]'
-              )}>
-                {done ? '✓' : `+${q.xp}`}
-              </span>
+              {done ? (
+                <span style={{ color: WINE }} className="shrink-0">
+                  <Diamond size={5} filled />
+                </span>
+              ) : (
+                <span
+                  className="font-ui uppercase tracking-luxury text-[10px] shrink-0"
+                  style={{ color: WINE }}
+                >
+                  + {q.xp}
+                </span>
+              )}
             </button>
           )
         })}
       </div>
-      <p className="font-sans text-[10px] text-muted-light text-center mt-3">
-        Miłość to też relacja z sobą i ze światem.
+      <p className="font-serif-body italic text-muted-light text-[12px] text-center mt-3">
+        miłość to też relacja z sobą i ze światem.
       </p>
     </div>
   )

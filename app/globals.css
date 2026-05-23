@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Italiana&family=Gloock&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -23,6 +24,67 @@
   }
 }
 
+@layer components {
+  /* Editorial typography scale — Quiet Inheritance */
+  .type-display {
+    @apply font-display text-[clamp(3rem,8vw,7rem)] leading-[0.95] tracking-tight text-dark;
+  }
+  .type-heading {
+    @apply font-heading text-[clamp(1.5rem,3vw,2.25rem)] leading-tight text-dark;
+  }
+  .type-subhead {
+    @apply font-serif-body italic text-[clamp(1rem,1.6vw,1.25rem)] leading-snug text-dark;
+  }
+  .type-body {
+    @apply font-serif-body text-[15px] leading-[1.65] text-dark;
+  }
+  .type-caption {
+    @apply font-ui text-[12px] leading-relaxed text-muted;
+  }
+  .type-smallcaps {
+    @apply font-ui uppercase text-[10px] tracking-luxury text-muted;
+  }
+  .type-label {
+    @apply font-ui uppercase text-[11px] tracking-luxury text-dark;
+  }
+
+  /* Editorial surfaces */
+  .surface-ivory {
+    @apply bg-ivory text-dark;
+  }
+  .surface-cream {
+    @apply bg-cream text-dark;
+  }
+  .surface-parchment {
+    @apply bg-parchment text-dark;
+  }
+  .surface-ritual {
+    @apply bg-forest-deep text-ivory;
+  }
+  .surface-dark {
+    @apply bg-dark-deep text-ivory;
+  }
+
+  /* Editorial card (light mode default) */
+  .card-quiet {
+    @apply surface-ivory border border-gold-light/40 relative;
+  }
+  .card-cream {
+    @apply surface-cream border border-gold-light/40 relative;
+  }
+  .card-ritual {
+    @apply surface-ritual border border-gold-light/40 relative;
+  }
+
+  /* Hairline rule */
+  .hairline {
+    @apply border-t border-hairline;
+  }
+  .hairline-gold {
+    @apply border-t border-gold;
+  }
+}
+
 @layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none;
@@ -30,5 +92,15 @@
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Linen / parchment grain — for ritual surfaces */
+  .grain-linen {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.27  0 0 0 0 0.24  0 0 0 0.08 0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+    background-size: 180px 180px;
+  }
+  .grain-parchment {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' seed='9'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.47  0 0 0 0 0.37  0 0 0 0.10 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+    background-size: 200px 200px;
   }
 }

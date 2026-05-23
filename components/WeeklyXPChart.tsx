@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import type { DailyLog } from '@/types'
 import { getISOWeekKey, PROJECT_START, PROJECT_END } from '@/lib/gameLogic'
 import { aggregateXpByWeek } from '@/lib/analytics'
+import { SmallCaps, Diamond } from '@/components/ui'
 
 interface Props {
   logs: Record<string, DailyLog>
@@ -45,7 +46,7 @@ export default function WeeklyXPChart({ logs }: Props) {
 
   return (
     <div className="w-full">
-      <div className="flex items-end gap-[3px] border-b border-border pb-1" style={{ height: chartHeight + 4 }}>
+      <div className="flex items-end gap-[3px] border-b border-hairline pb-1" style={{ height: chartHeight + 4 }}>
         {data.rows.map((row, idx) => {
           const h = Math.max(2, Math.round((row.totalXP / data.max) * chartHeight))
           const isCurrent = row.weekKey === data.currentWeek
@@ -55,11 +56,11 @@ export default function WeeklyXPChart({ logs }: Props) {
               key={row.weekKey}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
-              className="flex-1 min-w-[5px] rounded-t-sm transition-all cursor-default"
+              className="flex-1 min-w-[5px] transition-all cursor-default"
               style={{
                 height: `${h}px`,
-                backgroundColor: isCurrent ? '#B8963E' : isHovered ? '#D4AF6B' : '#E5DDD3',
-                opacity: row.totalXP === 0 ? 0.6 : 1,
+                backgroundColor: isCurrent ? '#B8963E' : isHovered ? '#D4AF6B' : '#C9BFB1',
+                opacity: row.totalXP === 0 ? 0.5 : 1,
               }}
               aria-label={`${row.weekKey}: ${row.totalXP} XP`}
             />
@@ -67,20 +68,25 @@ export default function WeeklyXPChart({ logs }: Props) {
         })}
       </div>
 
-      <div className="flex justify-between mt-2 text-[10px] font-sans text-muted-light">
-        <span>kwi &apos;26</span>
-        <span>lip</span>
-        <span>paź</span>
-        <span>sty &apos;27</span>
-        <span>kwi</span>
+      <div className="flex justify-between mt-2">
+        {['kwi MMXXVI', 'lip', 'paź', 'sty MMXXVII', 'kwi'].map(m => (
+          <SmallCaps key={m} tone="muted" size="xs">{m}</SmallCaps>
+        ))}
       </div>
 
-      <div className="mt-3 min-h-[28px]">
+      <div className="mt-3 min-h-[32px]">
         {hoveredIdx !== null && (
-          <div className="inline-flex items-center gap-3 bg-white rounded-lg border border-border px-3 py-1.5 shadow-elegant text-xs font-sans">
-            <span className="text-dark font-medium">Tydzień {data.rows[hoveredIdx].weekKey.split('-W')[1]}</span>
-            <span className="text-gold-dark">{data.rows[hoveredIdx].totalXP.toLocaleString('pl-PL')} XP</span>
-            <span className="text-muted-light">{data.rows[hoveredIdx].activeDays} dni</span>
+          <div className="inline-flex items-center gap-3 bg-ivory border border-gold-light/40 px-3 py-1.5">
+            <Diamond size={4} className="text-gold" />
+            <SmallCaps tone="dark" tracking="luxury" size="xs">
+              Tydzień {data.rows[hoveredIdx].weekKey.split('-W')[1]}
+            </SmallCaps>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              {data.rows[hoveredIdx].totalXP.toLocaleString('pl-PL')} XP
+            </SmallCaps>
+            <SmallCaps tone="muted" size="xs">
+              {data.rows[hoveredIdx].activeDays} dni
+            </SmallCaps>
           </div>
         )}
       </div>

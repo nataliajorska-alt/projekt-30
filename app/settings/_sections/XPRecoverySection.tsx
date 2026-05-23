@@ -1,33 +1,8 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword,
-} from 'firebase/auth'
-import { LogOut, Lock, Mail, Download, Printer, Sun, Moon, Sparkles, Plus, X, RotateCcw, Bell, Phone, ShieldAlert, Swords, BrainCircuit } from 'lucide-react'
-import { useNominatedContacts } from '@/hooks/useNominatedContacts'
-import { useCustomQuestLibrary } from '@/hooks/useCustomQuestLibrary'
-import type { NominatedContact } from '@/types'
-import { exportLogsAsCSV, exportQuestsAsCSV, exportReviewsAsCSV, exportStatsAsCSV, exportAllAsCSV, exportAsMarkdown } from '@/lib/exportData'
-import type { DateRange } from '@/lib/exportData'
-import { useRoutineConfig } from '@/hooks/useRoutineConfig'
-import { useSparkSchedule } from '@/hooks/useSparkSchedule'
+import { useState } from 'react'
+import { ShieldAlert } from 'lucide-react'
 import { useGameData } from '@/hooks/useGameData'
-import {
-  loadPreferences,
-  savePreferences,
-  requestPermission,
-  getPermissionStatus,
-  scheduleWithTimeout,
-  scheduleRemindersViaSW,
-  DEFAULT_PREFERENCES,
-  type NotificationPreferences,
-  type ReminderType,
-} from '@/lib/notifications'
-import clsx from 'clsx'
+import { SmallCaps, Diamond, Fleuron, GoldRule } from '@/components/ui'
 
 type RecoveryBreakdown = {
   fromLogs: number; fromWeeklyReviews: number; fromMonthlyReviews: number
@@ -51,12 +26,10 @@ export default function XPRecoverySection() {
   const [applying, setApplying] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
   const handleScan = async () => {
     setScanning(true)
-    setBreakdown(null)
-    setRecoveredStats(null)
-    setDone(false)
-    setError(null)
+    setBreakdown(null); setRecoveredStats(null); setDone(false); setError(null)
     try {
       const r = await recoverStats()
       if (r) {
@@ -65,7 +38,6 @@ export default function XPRecoverySection() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nieznany błąd skanowania')
-      // eslint-disable-next-line no-console
       console.error('recoverStats error:', err)
     } finally {
       setScanning(false)
@@ -80,9 +52,7 @@ export default function XPRecoverySection() {
       await applyRecoveredStats(recoveredStats)
       setDone(true)
     } catch (err) {
-      // Widoczny błąd zamiast cichego zawieszenia przycisku w stanie "Przywracam…".
       setError(err instanceof Error ? err.message : 'Nieznany błąd zapisu')
-      // eslint-disable-next-line no-console
       console.error('applyRecoveredStats error:', err)
     } finally {
       setApplying(false)
@@ -90,37 +60,64 @@ export default function XPRecoverySection() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-elegant p-6">
-      <h2 className="font-serif text-lg text-dark mb-1 flex items-center gap-2">
-        <ShieldAlert size={18} strokeWidth={1.5} className="text-muted" />
-        Odzyskiwanie danych
-      </h2>
-      <p className="font-sans text-xs text-muted mb-4">
-        Jeśli XP lub osiągnięcia zniknęły — użyj tego narzędzia. Przeskanuje wszystkie wpisy, przeglądy i osiągnięcia od nowa.
+    <section className="bg-ivory border border-gold-light/40 p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <ShieldAlert size={14} strokeWidth={1.5} className="text-muted" />
+        <SmallCaps tone="muted" tracking="luxury" size="xs">
+          Odzyskiwanie danych
+        </SmallCaps>
+      </div>
+      <h2 className="font-heading text-dark text-xl mt-1">Skan i odzysk XP</h2>
+      <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-4 leading-relaxed">
+        jeśli xp lub osiągnięcia zniknęły — użyj tego narzędzia.
+        przeskanuje wszystkie wpisy, przeglądy i osiągnięcia od nowa.
       </p>
 
-      <p className="font-sans text-sm text-dark mb-4">
-        Aktualne XP: <span className="font-semibold text-gold">{stats.totalXP}</span>
-      </p>
+      <div className="bg-cream/40 border border-hairline px-4 py-3 mb-4 flex items-baseline justify-between">
+        <SmallCaps tone="muted" tracking="luxury" size="xs">
+          Aktualne XP
+        </SmallCaps>
+        <span className="font-display text-gold text-2xl leading-none">{stats.totalXP}</span>
+      </div>
 
       {breakdown !== null && !done && (
-        <div className="bg-cream/60 rounded-xl p-4 mb-4 space-y-1">
-          <p className="font-sans text-sm font-semibold text-dark mb-2">Odzyskane łącznie: {breakdown.total} XP</p>
-          <p className="font-sans text-xs text-muted">Dzienne wpisy (rutyna, daily + side questy, custom side questy, zasady): {breakdown.fromLogs}</p>
-          <p className="font-sans text-xs text-muted">Mood check-iny ({breakdown.moodCheckInsCount} × 5): {breakdown.fromMoodCheckIns}</p>
-          <p className="font-sans text-xs text-muted">Przeglądy tygodniowe ({breakdown.weeklyCount} × 150): {breakdown.fromWeeklyReviews}</p>
-          <p className="font-sans text-xs text-muted">Przeglądy miesięczne ({breakdown.monthlyCount} × 300): {breakdown.fromMonthlyReviews}</p>
-          <p className="font-sans text-xs text-muted">Heart blocks ({breakdown.heartBlocksCount} × 200): {breakdown.fromHeartBlocks}</p>
-          <p className="font-sans text-xs text-muted">Pillar balance bonus ({breakdown.pillarBalanceCount} × 30): {breakdown.fromPillarBalance}</p>
-          <p className="font-sans text-xs text-muted">Ghost Protocol V2 ({breakdown.ghostV2Count} wpisów): {breakdown.fromGhostV2}</p>
-          <p className="font-sans text-xs text-muted">Honest Failure ({breakdown.honestFailureCount} wpisów): {breakdown.fromHonestFailure}</p>
-          <p className="font-sans text-xs text-muted">Osiągnięcia ({breakdown.achievementsCount} odblokowanych): {breakdown.fromAchievements}</p>
+        <div className="bg-gold-pale/40 border border-gold-light/40 p-4 mb-4 space-y-1.5">
+          <div className="flex items-baseline justify-between mb-2">
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              Odzyskane łącznie
+            </SmallCaps>
+            <span className="font-display text-gold text-xl leading-none">
+              {breakdown.total} XP
+            </span>
+          </div>
+          <GoldRule variant="plain" tone="gold-deep" className="opacity-30 my-2" />
+          {[
+            ['Dzienne wpisy (rutyna, questy, zasady)', breakdown.fromLogs],
+            [`Mood check-iny (${breakdown.moodCheckInsCount} × 5)`, breakdown.fromMoodCheckIns],
+            [`Przeglądy tygodniowe (${breakdown.weeklyCount} × 150)`, breakdown.fromWeeklyReviews],
+            [`Przeglądy miesięczne (${breakdown.monthlyCount} × 300)`, breakdown.fromMonthlyReviews],
+            [`Heart blocks (${breakdown.heartBlocksCount} × 200)`, breakdown.fromHeartBlocks],
+            [`Pillar balance bonus (${breakdown.pillarBalanceCount} × 30)`, breakdown.fromPillarBalance],
+            [`Ghost Protocol V2 (${breakdown.ghostV2Count})`, breakdown.fromGhostV2],
+            [`Honest Failure (${breakdown.honestFailureCount})`, breakdown.fromHonestFailure],
+            [`Osiągnięcia (${breakdown.achievementsCount})`, breakdown.fromAchievements],
+          ].map(([label, value]) => (
+            <p key={label as string} className="flex items-baseline justify-between gap-2">
+              <span className="font-serif-body italic text-muted text-[12.5px]">{label}</span>
+              <span className="font-ui text-[11px] text-dark tabular-nums">{value}</span>
+            </p>
+          ))}
           {recoveredStats && (
-            <div className="mt-3 pt-3 border-t border-muted/10">
-              <p className="font-sans text-xs text-muted font-semibold mb-1">Rekonstrukcja pillarXP:</p>
+            <div className="mt-3 pt-3 border-t border-gold-deep/20">
+              <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-1.5">
+                Rekonstrukcja pillarXP
+              </SmallCaps>
               {Object.entries(recoveredStats.pillarXP).map(([p, xp]) => (
-                <p key={p} className="font-sans text-xs text-muted">
-                  {PILLAR_NAMES[p] ?? p}: <span className="text-dark font-medium">{xp} XP</span>
+                <p key={p} className="flex items-baseline justify-between gap-2">
+                  <span className="font-serif-body italic text-muted text-[12.5px]">
+                    {PILLAR_NAMES[p] ?? p}
+                  </span>
+                  <span className="font-ui text-[11px] text-dark tabular-nums">{xp} XP</span>
                 </p>
               ))}
             </div>
@@ -129,35 +126,52 @@ export default function XPRecoverySection() {
       )}
 
       {done && (
-        <p className="font-sans text-sm text-forest mb-4">Dane zostały przywrócone ✓</p>
-      )}
-
-      {error && (
-        <div className="bg-rose-50/60 border border-rose-200/60 rounded-xl p-3 mb-4">
-          <p className="font-sans text-xs text-rose-900 font-semibold mb-1">Coś poszło nie tak:</p>
-          <p className="font-sans text-xs text-rose-900/80 break-words">{error}</p>
+        <div className="flex items-start gap-2 border border-forest/30 bg-forest/5 px-4 py-3 mb-4">
+          <Fleuron size={10} className="text-forest mt-0.5 shrink-0" />
+          <p className="font-serif-body italic text-forest text-[13px] leading-snug">
+            dane zostały przywrócone.
+          </p>
         </div>
       )}
 
-      <div className="flex gap-3">
+      {error && (
+        <div className="border border-red-200 bg-red-50/50 p-3 mb-4">
+          <SmallCaps tracking="luxury" size="xs" className="!text-red-700">
+            Coś poszło nie tak
+          </SmallCaps>
+          <p className="font-serif-body italic text-red-800 text-[12.5px] mt-1 break-words">{error}</p>
+        </div>
+      )}
+
+      <div className="flex gap-3 flex-wrap">
         <button
           onClick={handleScan}
           disabled={scanning}
-          className="font-sans text-sm px-4 py-2 rounded-xl border border-muted/30 text-dark hover:bg-cream/60 transition-colors disabled:opacity-50"
+          className="border border-hairline text-dark hover:border-gold py-2.5 px-4 transition-colors disabled:opacity-50 flex items-center gap-2"
         >
-          {scanning ? 'Skanowanie…' : 'Skanuj dane'}
+          {scanning ? (
+            <Fleuron size={10} className="text-gold-deep animate-pulse" />
+          ) : (
+            <Diamond size={5} className="text-gold-deep" />
+          )}
+          <SmallCaps tone="dark" tracking="luxury" size="xs">
+            {scanning ? 'skanowanie…' : 'skanuj dane'}
+          </SmallCaps>
         </button>
 
         {breakdown !== null && !done && (
           <button
             onClick={handleApply}
             disabled={applying}
-            className="font-sans text-sm px-4 py-2 rounded-xl bg-forest text-ivory hover:bg-forest/90 transition-colors disabled:opacity-50"
+            className="bg-dark-deep text-ivory border border-gold py-2.5 px-4 hover:bg-forest transition-colors disabled:opacity-50 flex items-center gap-2"
           >
-            {applying ? 'Przywracam…' : `Przywróć ${breakdown.total} XP + ${breakdown.achievementsCount} osiągnięć`}
+            <Diamond size={5} className="text-gold" />
+            <SmallCaps tone="ivory" tracking="luxury" size="xs">
+              {applying ? 'przywracam…' : `przywróć ${breakdown.total} XP + ${breakdown.achievementsCount} osiągnięć`}
+            </SmallCaps>
           </button>
         )}
       </div>
-    </div>
+    </section>
   )
 }

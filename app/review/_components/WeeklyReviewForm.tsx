@@ -1,23 +1,17 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
+import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { useAuth } from '@/hooks/useAuth'
-import { useTimelineData } from '@/hooks/useTimelineData'
 import { PILLARS } from '@/lib/pillars'
 import { Pillar } from '@/types'
 import { db } from '@/lib/firebase'
 import { doc, setDoc } from 'firebase/firestore'
-import { getDaysElapsed, getDaysRemaining, getMonthKey, XP_VALUES } from '@/lib/gameLogic'
-import { getMonthAggregate, getRoutineItemCounts, getCompletedSideQuestDates, getRuleKeptCounts, aggregateXpByMonth } from '@/lib/analytics'
-import { MORNING_ROUTINE, EVENING_ROUTINE, DAILY_RULES, DAILY_HABITS, WEEKLY_HABITS } from '@/lib/routineData'
-import { SIDE_QUESTS } from '@/lib/questData'
-import { CheckCircle, Check, ChevronLeft, ChevronRight, ChevronDown, Eye, EyeOff } from 'lucide-react'
-import { useReviewHistory } from '@/hooks/useReviewHistory'
-import type { WeeklyReview, MonthlyReview } from '@/types'
-import PillarTrendChart from '@/components/PillarTrendChart'
-import clsx from 'clsx'
-import { formatMonthPL, PL_MONTH_SHORT, formatWeekRange } from './shared'
+import { XP_VALUES } from '@/lib/gameLogic'
+import type { WeeklyReview } from '@/types'
+import { formatWeekRange } from './shared'
 import ContinuityBanner from './ContinuityBanner'
+import { SmallCaps, GoldRule, Fleuron, Diamond } from '@/components/ui'
 
 interface WeeklyFormProps {
   user: ReturnType<typeof useAuth>['user']
@@ -43,7 +37,6 @@ export default function WeeklyReviewForm({ user, stats, submitWeeklyReview, last
     const day = now.getDay()
     const diff = now.getDate() - day + (day === 0 ? -6 : 1)
     const monday = new Date(now.getFullYear(), now.getMonth(), diff)
-    // W poniedziałek recenzujemy ubiegły tydzień, nie nowy
     if (day === 1) monday.setDate(monday.getDate() - 7)
     return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`
   })()
@@ -60,12 +53,8 @@ export default function WeeklyReviewForm({ user, stats, submitWeeklyReview, last
     try {
       const ref = doc(db, 'users', user.uid, 'reviews', weekStart)
       await setDoc(ref, {
-        weekStart,
-        highlights,
-        challenges,
-        nextWeekFocus: nextFocus,
-        pillarsRated: ratings,
-        xpEarned: XP_VALUES.weeklyReview,
+        weekStart, highlights, challenges, nextWeekFocus: nextFocus,
+        pillarsRated: ratings, xpEarned: XP_VALUES.weeklyReview,
         savedAt: new Date().toISOString(),
       }, { merge: true })
       const granted = await submitWeeklyReview(weekStart)
@@ -78,13 +67,14 @@ export default function WeeklyReviewForm({ user, stats, submitWeeklyReview, last
 
   if (saved) {
     return (
-      <div className="bg-gold-pale rounded-2xl border border-gold/30 p-8 text-center">
-        <CheckCircle size={40} className="text-gold mx-auto mb-3" strokeWidth={1.5} />
-        <h2 className="font-serif text-dark text-xl mb-2">Przegląd zapisany</h2>
-        <p className="font-sans text-sm text-muted">
+      <div className="bg-ivory border border-gold p-10 text-center">
+        <Fleuron size={20} className="text-gold mx-auto mb-4 inline-block" />
+        <h2 className="font-display text-dark text-3xl leading-tight">Przegląd zapisany</h2>
+        <GoldRule variant="diamond" tone="gold-deep" className="max-w-xs mx-auto my-5 opacity-50" />
+        <p className="font-serif-body italic text-muted text-[14px] leading-relaxed">
           {xpGranted
-            ? `+${XP_VALUES.weeklyReview} XP za refleksję. Dobra robota.`
-            : 'Zaktualizowano. XP za ten tydzień masz już przyznane.'}
+            ? `+ ${XP_VALUES.weeklyReview} XP za refleksję. dobra robota.`
+            : 'zaktualizowano. xp za ten tydzień masz już przyznane.'}
         </p>
       </div>
     )
@@ -103,18 +93,25 @@ export default function WeeklyReviewForm({ user, stats, submitWeeklyReview, last
         />
       )}
 
-      <div className="bg-white rounded-2xl shadow-elegant p-5">
-        <h2 className="font-serif text-dark text-lg mb-1">Oceń filary tego tygodnia</h2>
-        <p className="font-sans text-xs text-muted mb-4">1 = zaniedbany, 5 = zadbany</p>
+      <section className="bg-ivory border border-gold-light/40 p-5">
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+          Filary tygodnia
+        </SmallCaps>
+        <h2 className="font-heading text-dark text-xl mt-1">Oceń każdy</h2>
+        <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
+          I = zaniedbany, V = zadbany.
+        </p>
         <div className="space-y-4">
           {PILLARS.map(p => (
             <div key={p.id}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span>{p.icon}</span>
-                  <span className="font-sans text-sm text-dark">{p.shortName}</span>
+                  <span style={{ color: p.color }}><Diamond size={5} /></span>
+                  <span className="font-heading text-dark text-[14px]" style={{ color: p.color }}>
+                    {p.shortName}
+                  </span>
                 </div>
-                <span className="font-serif text-dark text-sm font-medium">
+                <span className="font-display text-base" style={{ color: p.color }}>
                   {ratings[p.id as Pillar]}/5
                 </span>
               </div>
@@ -124,82 +121,71 @@ export default function WeeklyReviewForm({ user, stats, submitWeeklyReview, last
                     key={n}
                     onClick={() => setRatings(r => ({ ...r, [p.id]: n }))}
                     className={clsx(
-                      'flex-1 h-8 rounded-lg font-sans text-xs transition-all',
+                      'flex-1 h-9 border transition-all flex items-center justify-center',
                       ratings[p.id as Pillar] >= n
-                        ? 'text-white'
-                        : 'bg-cream text-muted-light hover:bg-parchment'
+                        ? 'text-ivory'
+                        : 'bg-cream/40 border-hairline text-muted-light hover:border-gold-light'
                     )}
-                    style={ratings[p.id as Pillar] >= n ? { backgroundColor: p.color } : {}}
+                    style={ratings[p.id as Pillar] >= n
+                      ? { backgroundColor: p.color, borderColor: p.color }
+                      : {}}
                   >
-                    {n}
+                    <span className="font-display text-sm">{n}</span>
                   </button>
                 ))}
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      <div className="bg-white rounded-2xl shadow-elegant p-5 space-y-5">
-        <h2 className="font-serif text-dark text-lg">Refleksja pisana</h2>
-
+      <section className="bg-ivory border border-gold-light/40 p-5 space-y-5">
         <div>
-          <label className="block font-sans text-xs text-muted uppercase tracking-wider mb-2">
-            Co w tym tygodniu działało?
-          </label>
-          <textarea
-            value={highlights}
-            onChange={e => setHighlights(e.target.value)}
-            rows={3}
-            className="w-full border border-border rounded-xl px-4 py-3 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors resize-none"
-            placeholder="Konkretne momenty, decyzje, działania..."
-          />
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+            Refleksja pisana
+          </SmallCaps>
+          <h2 className="font-heading text-dark text-xl mt-1">Trzy pytania</h2>
         </div>
 
-        <div>
-          <label className="block font-sans text-xs text-muted uppercase tracking-wider mb-2">
-            Co było trudne lub nie wyszło?
-          </label>
-          <textarea
-            value={challenges}
-            onChange={e => setChallenges(e.target.value)}
-            rows={3}
-            className="w-full border border-border rounded-xl px-4 py-3 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors resize-none"
-            placeholder="Uczciwie. Bez oceniania siebie za bardzo."
-          />
-        </div>
+        {[
+          { value: highlights, set: setHighlights, label: 'Co w tym tygodniu działało?', placeholder: 'konkretne momenty, decyzje, działania…', rows: 3 },
+          { value: challenges, set: setChallenges, label: 'Co było trudne lub nie wyszło?', placeholder: 'uczciwie. bez oceniania siebie za bardzo.', rows: 3 },
+          { value: nextFocus,  set: setNextFocus,  label: 'Focus na następny tydzień',     placeholder: 'jedna, dwie rzeczy. nie lista piętnastu postanowień.', rows: 2 },
+        ].map(f => (
+          <div key={f.label}>
+            <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
+              {f.label}
+            </SmallCaps>
+            <textarea
+              value={f.value}
+              onChange={e => f.set(e.target.value)}
+              rows={f.rows}
+              className="w-full border border-hairline bg-cream/40 px-4 py-3 font-serif-body italic text-[14px] text-dark focus:outline-none focus:border-gold transition-colors resize-none placeholder:text-muted-light/60 leading-relaxed"
+              placeholder={f.placeholder}
+            />
+          </div>
+        ))}
+      </section>
 
-        <div>
-          <label className="block font-sans text-xs text-muted uppercase tracking-wider mb-2">
-            Focus na następny tydzień
-          </label>
-          <textarea
-            value={nextFocus}
-            onChange={e => setNextFocus(e.target.value)}
-            rows={2}
-            className="w-full border border-border rounded-xl px-4 py-3 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors resize-none"
-            placeholder="Jedna, dwie rzeczy. Nie lista 15 postanowień."
-          />
-        </div>
-      </div>
-
-      <div title={!canSave ? 'Oceń przynajmniej jeden filar lub wypełnij jedno pole, żeby zapisać przegląd' : undefined}>
+      <div title={!canSave ? 'Oceń przynajmniej jeden filar lub wypełnij jedno pole' : undefined}>
         <button
           onClick={handleSave}
           disabled={saving || !canSave}
-          className="w-full bg-dark text-ivory font-sans text-sm py-4 rounded-2xl hover:bg-forest transition-colors disabled:opacity-40 disabled:cursor-not-allowed font-medium tracking-wide"
+          className="w-full bg-dark-deep text-ivory border border-gold py-4 hover:bg-forest transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3"
         >
-          {saving
-            ? 'Zapisuję...'
-            : !canSave
-              ? 'Wypełnij przynajmniej jedno pole'
-              : alreadyReviewedThisWeek
-                ? 'Zapisz zmiany'
-                : `Zapisz przegląd · +${XP_VALUES.weeklyReview} XP`}
+          <Diamond size={5} className="text-gold" />
+          <SmallCaps tone="ivory" tracking="luxury" size="sm">
+            {saving
+              ? 'zapisuję…'
+              : !canSave
+                ? 'wypełnij przynajmniej jedno pole'
+                : alreadyReviewedThisWeek
+                  ? 'zapisz zmiany'
+                  : `zapisz przegląd · + ${XP_VALUES.weeklyReview} XP`}
+          </SmallCaps>
+          <Diamond size={5} className="text-gold" />
         </button>
       </div>
     </div>
   )
 }
-
-// ---------- Monthly form ----------

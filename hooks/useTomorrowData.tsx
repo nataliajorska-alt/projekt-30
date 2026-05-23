@@ -62,6 +62,16 @@ export function useTomorrowData() {
     if (!snap.exists()) return
     const stats = snap.data() as UserStats
 
+    // ALSO sync to aprilQuestLog — the canonical store DailyQuests reads from.
+    // Bez tego quest zrobiony „na zapas" wczoraj nie wyświetli się dziś jako zrobiony.
+    const aprilQuestLogRef = doc(db, 'users', user.uid, 'data', 'aprilQuestLog')
+    const aprilSnap = await getDoc(aprilQuestLogRef)
+    const aprilData = aprilSnap.exists() ? (aprilSnap.data() as { completed?: string[] }) : {}
+    const aprilCompleted = aprilData.completed ?? []
+    const newAprilCompleted = done
+      ? aprilCompleted.filter(id => id !== questId)
+      : (aprilCompleted.includes(questId) ? aprilCompleted : [...aprilCompleted, questId])
+
     await Promise.all([
       setDoc(tomorrowRef, { completedDailyQuests: newCompleted, totalXP: newLogXP, date: dateKey }, { merge: true }),
       setDoc(statsRef, {
@@ -72,6 +82,7 @@ export function useTomorrowData() {
         },
         totalQuestsCompleted: Math.max(0, (stats.totalQuestsCompleted ?? 0) + (done ? -1 : 1)),
       }, { merge: true }),
+      setDoc(aprilQuestLogRef, { completed: newAprilCompleted }, { merge: true }),
     ])
   }, [user, tomorrowRef, tomorrowLog, statsRef, dateKey])
 

@@ -1,10 +1,10 @@
 'use client'
+import clsx from 'clsx'
 import { useTomorrowData } from '@/hooks/useTomorrowData'
 import { getAprilQuestsForDate } from '@/lib/seasonal/aprilData'
 import { getPillar } from '@/lib/pillars'
-import { Check, Sparkles } from 'lucide-react'
-import clsx from 'clsx'
 import type { AprilQuest } from '@/lib/seasonal/aprilData'
+import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
 
 const APRIL_LAST_DAY  = '2026-04-30'
 const APRIL_FIRST_DAY = '2026-04-05'
@@ -16,34 +16,57 @@ function QuestCard({ quest, done, onComplete }: {
 }) {
   const pillar = getPillar(quest.pillar)
   return (
-    <div className={clsx(
-      'rounded-xl border p-4 transition-all',
-      done ? 'border-gold/30 bg-gold-pale' : 'border-border bg-cream/30'
-    )}>
+    <div
+      className={clsx(
+        'border p-5 transition-all',
+        done ? 'border-gold bg-gold-pale/40' : 'border-hairline bg-cream/30'
+      )}
+    >
       <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex-1">
-          <span className="text-[10px] font-sans uppercase tracking-widest font-medium" style={{ color: pillar.color }}>
-            {pillar.icon} {pillar.shortName}
+        <div className="flex-1 min-w-0">
+          <span
+            className="inline-flex items-center gap-1.5"
+            style={{ color: pillar.color }}
+          >
+            <Diamond size={5} />
+            <span className="font-ui uppercase tracking-luxury text-[10px]">
+              {pillar.shortName}
+            </span>
           </span>
-          <h3 className={clsx('font-serif text-base mt-0.5', done ? 'text-muted line-through' : 'text-dark')}>
+          <h3
+            className={clsx(
+              'font-heading text-[17px] leading-snug mt-1.5',
+              done ? 'text-muted line-through decoration-1' : 'text-dark'
+            )}
+          >
             {quest.title}
           </h3>
         </div>
-        <span className={clsx('font-sans text-xs flex-shrink-0 mt-1', done ? 'text-gold font-medium' : 'text-muted-light')}>
-          +{quest.xp} XP
-        </span>
+        <SmallCaps tone={done ? 'gold' : 'muted'} tracking="luxury" size="xs" className="shrink-0">
+          + {quest.xp} XP
+        </SmallCaps>
       </div>
-      <p className="font-sans text-sm text-muted leading-relaxed mb-3">{quest.description}</p>
+
+      <p className="font-serif-body italic text-muted text-[13.5px] leading-relaxed mb-4">
+        {quest.description}
+      </p>
+
       {done ? (
-        <div className="flex items-center gap-2 text-gold font-sans text-xs font-medium">
-          <Check size={13} strokeWidth={2} /> Już zrobione
+        <div className="flex items-center gap-2">
+          <Diamond size={6} className="text-gold" filled />
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+            już zrobione
+          </SmallCaps>
         </div>
       ) : (
         <button
           onClick={onComplete}
-          className="flex items-center justify-center gap-2 bg-dark text-ivory font-sans text-sm py-2.5 px-4 rounded-xl hover:bg-forest transition-colors"
+          className="inline-flex items-center gap-2 bg-dark-deep text-ivory border border-gold py-2.5 px-4 hover:bg-forest transition-colors"
         >
-          <Check size={13} strokeWidth={2} /> Zrobione na zapas
+          <Diamond size={5} className="text-gold" />
+          <SmallCaps tone="ivory" tracking="luxury" size="xs">
+            zrobione na zapas
+          </SmallCaps>
         </button>
       )}
     </div>
@@ -60,16 +83,19 @@ export default function TomorrowQuests() {
   if (quests.length === 0) {
     if (tomorrowDateKey > APRIL_LAST_DAY) {
       return (
-        <div className="bg-white rounded-2xl shadow-elegant overflow-hidden mb-4">
-          <div className="px-5 pt-5 pb-3">
-            <h2 className="font-serif text-dark text-lg">Questy dnia</h2>
+        <div className="bg-ivory border border-gold-light/40 mb-4">
+          <div className="px-5 pt-5 pb-3 flex items-baseline gap-3">
+            <h2 className="font-heading text-dark text-xl whitespace-nowrap">Questy dnia</h2>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              na zapas
+            </SmallCaps>
           </div>
           <div className="px-5 pb-5">
-            <div className="rounded-xl border border-gold/30 bg-gold-pale/60 p-5 text-center">
-              <Sparkles size={20} className="text-gold mx-auto mb-2" strokeWidth={1.5} />
-              <p className="font-serif text-dark text-base mb-1">Nowy rozdział wkrótce</p>
-              <p className="font-sans text-xs text-muted leading-relaxed">
-                Treść na ten miesiąc jest w przygotowaniu.
+            <div className="border border-gold-light/30 bg-gold-pale/30 p-6 text-center">
+              <Fleuron size={14} className="text-gold mx-auto mb-3 inline-block" />
+              <h3 className="font-heading text-dark text-lg">Nowy rozdział wkrótce</h3>
+              <p className="font-serif-body italic text-muted text-[13px] mt-2 leading-relaxed">
+                treść na ten miesiąc jest w przygotowaniu.
               </p>
             </div>
           </div>
@@ -81,13 +107,15 @@ export default function TomorrowQuests() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-elegant overflow-hidden mb-4">
+    <div className="bg-ivory border border-gold-light/40 mb-4">
       <div className="px-5 pt-5 pb-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-dark text-lg">Questy dnia</h2>
-          <span className="font-sans text-[10px] text-gold/80 bg-gold-pale px-2.5 py-1 rounded-full font-medium tracking-wide uppercase">
-            na zapas
-          </span>
+        <div className="flex items-baseline justify-between gap-3">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h2 className="font-heading text-dark text-xl whitespace-nowrap">Questy dnia</h2>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              na zapas
+            </SmallCaps>
+          </div>
         </div>
       </div>
       <div className="px-5 pb-5 space-y-3">

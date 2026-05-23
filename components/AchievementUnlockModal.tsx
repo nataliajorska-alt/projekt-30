@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import type { Achievement } from '@/types'
+import { SmallCaps, GoldRule, Fleuron, Diamond, CornerBrackets } from '@/components/ui'
 
 interface AchievementUnlockContextType {
   showAchievementUnlock: (ids: string[]) => void
@@ -16,21 +17,24 @@ export function useAchievementUnlock() {
   return useContext(AchievementUnlockContext)
 }
 
-// Particles spread around the card center (offsets in px from 50vw / 50vh)
+// Particles spread around the card — gold dust in candlelight
 const PARTICLES: { x: number; y: number; delay: string; size: number }[] = [
-  { x: -80,  y: -270, delay: '0s',     size: 5 },
+  { x: -80,  y: -270, delay: '0s',     size: 4 },
   { x: -25,  y: -285, delay: '0.15s',  size: 3 },
-  { x:  35,  y: -285, delay: '0.3s',   size: 4 },
-  { x:  85,  y: -270, delay: '0.08s',  size: 5 },
-  { x: -205, y: -150, delay: '0.2s',   size: 4 },
+  { x:  35,  y: -285, delay: '0.3s',   size: 3 },
+  { x:  85,  y: -270, delay: '0.08s',  size: 4 },
+  { x: -205, y: -150, delay: '0.2s',   size: 3 },
   { x: -215, y:  -40, delay: '0.4s',   size: 3 },
-  { x: -200, y:   60, delay: '0.05s',  size: 5 },
+  { x: -200, y:   60, delay: '0.05s',  size: 4 },
   { x:  205, y: -150, delay: '0.25s',  size: 3 },
-  { x:  215, y:  -40, delay: '0.35s',  size: 4 },
-  { x:  200, y:   60, delay: '0.12s',  size: 5 },
-  { x:  -75, y:  250, delay: '0.18s',  size: 4 },
+  { x:  215, y:  -40, delay: '0.35s',  size: 3 },
+  { x:  200, y:   60, delay: '0.12s',  size: 4 },
+  { x:  -75, y:  250, delay: '0.18s',  size: 3 },
   { x:   75, y:  250, delay: '0.28s',  size: 3 },
 ]
+
+// 12 radial diamonds around the medallion (clock positions)
+const RADIAL_ANGLES = Array.from({ length: 12 }, (_, i) => i * 30)
 
 export function AchievementUnlockProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<Achievement[]>([])
@@ -61,7 +65,7 @@ export function AchievementUnlockProvider({ children }: { children: ReactNode })
     if (!visible || queue.length === 0) return
     timerRef.current = setTimeout(dismiss, 5500)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [visible, animKey, dismiss])  // animKey resets timer for each achievement
+  }, [visible, animKey, dismiss])
 
   const current = queue[0]
 
@@ -77,19 +81,19 @@ export function AchievementUnlockProvider({ children }: { children: ReactNode })
           aria-modal="true"
           aria-label={`Osiągnięcie odblokowane: ${current.title}`}
         >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-dark/85 backdrop-blur-sm animate-fade-in" />
+          {/* Ritual backdrop — deep forest, candle-lit */}
+          <div className="absolute inset-0 bg-forest-deep/95 grain-linen animate-fade-in" />
 
-          {/* Gold particles */}
+          {/* Gold dust particles */}
           {PARTICLES.map((p, i) => (
             <span
               key={`${animKey}-${i}`}
               className="absolute rounded-full bg-gold pointer-events-none animate-sparkle-float"
               style={{
-                width:  p.size,
+                width: p.size,
                 height: p.size,
-                left:   `calc(50% + ${p.x}px)`,
-                top:    `calc(50% + ${p.y}px)`,
+                left: `calc(50% + ${p.x}px)`,
+                top: `calc(50% + ${p.y}px)`,
                 animationDelay: p.delay,
               }}
             />
@@ -98,78 +102,115 @@ export function AchievementUnlockProvider({ children }: { children: ReactNode })
           {/* Card */}
           <div
             key={animKey}
-            className="relative z-10 mx-4 bg-ivory rounded-2xl shadow-elegant-lg max-w-sm w-full animate-achievement-enter overflow-hidden"
+            className="relative z-10 mx-4 max-w-sm w-full bg-forest-deep grain-linen text-ivory animate-achievement-enter"
             onClick={e => e.stopPropagation()}
           >
-            {/* Gold top bar */}
-            <div className="h-1 w-full bg-gold-gradient" />
+            {/* Double gold frame */}
+            <div className="pointer-events-none absolute inset-3 border border-gold-light/40" />
+            <div className="pointer-events-none absolute inset-[14px] border border-gold-light/15" />
+            <div className="pointer-events-none absolute inset-6">
+              <CornerBrackets size={14} tone="gold" weight={1} />
+            </div>
 
-            <div className="px-8 pt-7 pb-8 text-center">
-              {/* Label */}
-              {current.hidden ? (
-                <div className="mb-6">
-                  <p className="text-gold text-[10px] font-sans font-semibold tracking-[0.22em] uppercase mb-1">
-                    🎁 Ukryte osiągnięcie
-                  </p>
-                  <p className="text-muted font-sans text-xs">Niespodzianka ✦</p>
+            <div className="relative px-8 pt-10 pb-9 text-center">
+              {/* Eyebrow */}
+              <SmallCaps tone="gold-light" tracking="editorial" size="xs" as="div">
+                {current.hidden ? 'Hidden Devotion · Unlocked' : 'Devotion · Unlocked'}
+              </SmallCaps>
+
+              {/* Medallion — concentric circles + radial diamonds + icon in center */}
+              <div className="relative mx-auto mt-7 w-32 h-32" key={`medal-${animKey}`}>
+                {/* outer ring of diamonds */}
+                <div className="absolute inset-0">
+                  {RADIAL_ANGLES.map((ang, i) => {
+                    const rad = (ang * Math.PI) / 180
+                    const r = 70
+                    const x = Math.cos(rad) * r
+                    const y = Math.sin(rad) * r
+                    return (
+                      <span
+                        key={i}
+                        className="absolute text-gold"
+                        style={{
+                          left: `calc(50% + ${x}px - 3px)`,
+                          top: `calc(50% + ${y}px - 3px)`,
+                        }}
+                      >
+                        <Diamond size={6} />
+                      </span>
+                    )
+                  })}
                 </div>
-              ) : (
-                <p className="text-gold text-[10px] font-sans font-semibold tracking-[0.22em] uppercase mb-6">
-                  ✦ Osiągnięcie odblokowane ✦
-                </p>
-              )}
-
-              {/* Icon */}
-              <div
-                key={`icon-${animKey}`}
-                className="text-6xl mb-5 inline-block animate-icon-float"
-              >
-                {current.icon}
+                {/* outer circle */}
+                <div className="absolute inset-2 rounded-full border border-gold" />
+                {/* inner circle */}
+                <div className="absolute inset-4 rounded-full border border-gold-light/40" />
+                {/* icon */}
+                <div
+                  key={`icon-${animKey}`}
+                  className="absolute inset-0 flex items-center justify-center text-5xl animate-icon-float"
+                >
+                  {current.icon}
+                </div>
               </div>
 
               {/* Title */}
-              <h2 className="font-serif text-2xl text-dark mb-2 leading-snug">
+              <h2 className="font-display text-3xl text-ivory mt-7 leading-tight">
                 {current.title}
               </h2>
 
               {/* Description */}
-              <p className="font-sans text-sm text-muted leading-relaxed mb-6">
+              <p className="font-serif-body italic text-parchment text-sm leading-relaxed mt-3 px-2">
                 {current.description}
               </p>
 
-              {/* XP Reward */}
-              <div className="inline-flex items-center gap-1.5 bg-gold-pale border border-gold/30 rounded-full px-5 py-1.5 mb-6">
-                <span className="text-gold font-sans text-xs font-semibold tracking-wide">
-                  +{current.xpReward} XP
-                </span>
+              {/* Gold rule */}
+              <GoldRule variant="diamond" tone="gold" className="mt-6 max-w-[180px] mx-auto" />
+
+              {/* XP — editorial */}
+              <div className="mt-5 inline-flex items-center gap-2">
+                <Diamond size={5} className="text-gold" />
+                <SmallCaps tone="gold" tracking="luxury" size="sm">
+                  + {current.xpReward} XP
+                </SmallCaps>
+                <Diamond size={5} className="text-gold" />
               </div>
 
               {/* Dismiss */}
-              <div>
+              <div className="mt-7">
                 <button
                   onClick={dismiss}
-                  className="font-sans text-sm text-muted-light hover:text-dark transition-colors tracking-wide"
+                  className="font-ui uppercase tracking-luxury text-[10px] text-parchment hover:text-gold-light transition-colors"
                 >
                   {queue.length > 1
                     ? `Dalej  ›  jeszcze ${queue.length - 1}`
-                    : 'Świetnie ✦'}
+                    : 'Świetnie'}
                 </button>
               </div>
             </div>
 
-            {/* Queue progress dots */}
+            {/* Queue progress — diamonds, not dots */}
             {queue.length > 1 && (
-              <div className="flex gap-1.5 justify-center pb-5">
+              <div className="relative flex gap-2 justify-center pb-5">
                 {queue.map((_, i) => (
-                  <div
+                  <Diamond
                     key={i}
-                    className={`h-1 rounded-full transition-all duration-300 ${
-                      i === 0 ? 'w-5 bg-gold' : 'w-2 bg-parchment'
-                    }`}
+                    size={i === 0 ? 7 : 5}
+                    className={i === 0 ? 'text-gold' : 'text-parchment/40'}
+                    filled={i === 0}
                   />
                 ))}
               </div>
             )}
+
+            {/* Ex libris signature */}
+            <div className="relative pb-5 flex items-center justify-center gap-2">
+              <Fleuron size={9} className="text-gold-deep" />
+              <SmallCaps tone="parchment" tracking="luxury" size="xs">
+                ex libris · natalia
+              </SmallCaps>
+              <Fleuron size={9} className="text-gold-deep" />
+            </div>
           </div>
         </div>
       )}

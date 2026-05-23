@@ -8,6 +8,7 @@ import { useGameData } from '@/hooks/useGameData'
 import MoodCheckInModal from './MoodCheckInModal'
 import SmokeButton from './SmokeButton'
 import type { MoodState } from '@/types'
+import { SmallCaps } from '@/components/ui'
 
 const HIDDEN_ON = ['/settings']
 
@@ -19,7 +20,6 @@ export default function QuickActionsFab() {
   const fabRef = useRef<HTMLDivElement>(null)
   const { saveMoodCheckIn } = useGameData()
 
-  // Zamknij na klik poza menu i przy zmianie strony
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
@@ -46,31 +46,15 @@ export default function QuickActionsFab() {
         ref={fabRef}
         className="fixed right-5 bottom-24 md:bottom-5 z-30 flex flex-col items-end gap-2"
       >
-        {/* Action bubbles */}
+        {/* Action items */}
         <div className={clsx(
           'flex flex-col items-end gap-2 transition-all duration-200',
           open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
         )}>
-          <FabAction
-            label="Mood"
-            onClick={handleMood}
-            icon={<Heart size={16} strokeWidth={1.8} />}
-          />
-          <FabAction
-            label="Papieros"
-            onClick={handleSmoke}
-            icon={<Wind size={16} strokeWidth={1.8} />}
-          />
-          <FabAction
-            label="Wpis do skarbca"
-            href="/vault?action=write"
-            icon={<PenLine size={16} strokeWidth={1.8} />}
-          />
-          <FabAction
-            label="Dodaj zdjęcie"
-            href="/photos?action=upload"
-            icon={<Camera size={16} strokeWidth={1.8} />}
-          />
+          <FabAction label="Mood" onClick={handleMood} icon={<Heart size={14} strokeWidth={1.5} />} />
+          <FabAction label="Papieros" onClick={handleSmoke} icon={<Wind size={14} strokeWidth={1.5} />} />
+          <FabAction label="Wpis do skarbca" href="/vault?action=write" icon={<PenLine size={14} strokeWidth={1.5} />} />
+          <FabAction label="Dodaj zdjęcie" href="/photos?action=upload" icon={<Camera size={14} strokeWidth={1.5} />} />
         </div>
 
         {/* Main toggle */}
@@ -78,11 +62,11 @@ export default function QuickActionsFab() {
           onClick={() => setOpen(o => !o)}
           aria-label={open ? 'Zamknij szybkie akcje' : 'Szybkie akcje'}
           className={clsx(
-            'w-14 h-14 rounded-full bg-dark text-ivory flex items-center justify-center shadow-elegant transition-all hover:bg-forest',
+            'w-12 h-12 bg-dark-deep text-ivory border border-gold flex items-center justify-center transition-all hover:bg-forest',
             open && 'rotate-45'
           )}
         >
-          <Plus size={22} strokeWidth={2} />
+          <Plus size={18} strokeWidth={1.5} />
         </button>
       </div>
 
@@ -92,10 +76,7 @@ export default function QuickActionsFab() {
           onDismiss={() => setShowMood(false)}
         />
       )}
-
-      {showSmoke && (
-        <SmokeButton onClose={() => setShowSmoke(false)} />
-      )}
+      {showSmoke && <SmokeButton onClose={() => setShowSmoke(false)} />}
     </>
   )
 }
@@ -109,9 +90,11 @@ interface FabActionProps {
 
 function FabAction({ label, icon, href, onClick }: FabActionProps) {
   const inner = (
-    <span className="flex items-center gap-2 bg-white rounded-full pl-4 pr-3 py-2 shadow-elegant border border-border/40 hover:border-gold/40 transition-colors">
-      <span className="font-sans text-xs text-dark whitespace-nowrap">{label}</span>
-      <span className="w-7 h-7 rounded-full bg-gold/15 text-gold-dark flex items-center justify-center">
+    <span className="flex items-center gap-3 bg-ivory border border-gold-light/60 hover:border-gold pl-4 pr-2 py-1.5 transition-colors">
+      <SmallCaps tone="dark" tracking="luxury" size="xs">
+        {label}
+      </SmallCaps>
+      <span className="w-7 h-7 border border-gold-light/60 text-gold-deep flex items-center justify-center">
         {icon}
       </span>
     </span>

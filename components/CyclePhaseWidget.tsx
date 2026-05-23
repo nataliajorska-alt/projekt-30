@@ -4,6 +4,8 @@ import { useCycleData } from '@/hooks/useCycleData'
 import { useCycleSettings } from '@/hooks/useCycleSettings'
 import { getPhaseForDate } from '@/lib/cycle-data'
 import { useMemo } from 'react'
+import { SmallCaps } from '@/components/ui'
+import { toRoman } from '@/lib/romanNumerals'
 
 export default function CyclePhaseWidget() {
   const { logs, loading } = useCycleData()
@@ -24,24 +26,25 @@ export default function CyclePhaseWidget() {
   return (
     <Link
       href="/cycle"
-      className="block rounded-2xl px-3 py-3 border transition-opacity hover:opacity-90 h-[68px]"
-      style={{ backgroundColor: phase.bgColor, borderColor: `${phase.color}25` }}
+      className="block bg-ivory border border-gold-light/40 hover:border-gold px-3 py-2.5 transition-colors h-[68px]"
     >
-      <div className="flex items-center gap-2.5 h-full">
+      <div className="flex items-center gap-3 h-full">
         <div
-          className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xl"
-          style={{ background: `${phase.color}1F` }}
+          className="flex-shrink-0 w-9 h-9 border flex items-center justify-center text-base"
+          style={{ borderColor: `${phase.color}55` }}
         >
           {phase.emoji}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-sans text-[9px] uppercase tracking-widest truncate" style={{ color: phase.color }}>
-            Rytm · D{cycleDay}
-          </p>
-          <p className="font-serif text-dark text-xs leading-tight truncate">
+          <SmallCaps tracking="luxury" size="xs">
+            <span style={{ color: phase.color }}>
+              Rytm · {toRoman(cycleDay)}
+            </span>
+          </SmallCaps>
+          <p className="font-heading text-dark text-[13px] leading-tight truncate mt-0.5">
             {phase.name}
           </p>
-          <p className="font-sans text-[10px] text-muted-light truncate">
+          <p className="font-serif-body italic text-muted text-[11px] leading-snug truncate">
             {phase.energy}
           </p>
         </div>

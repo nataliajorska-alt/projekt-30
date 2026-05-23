@@ -1,33 +1,8 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword,
-} from 'firebase/auth'
-import { LogOut, Lock, Mail, Download, Printer, Sun, Moon, Sparkles, Plus, X, RotateCcw, Bell, Phone, ShieldAlert, Swords, BrainCircuit } from 'lucide-react'
-import { useNominatedContacts } from '@/hooks/useNominatedContacts'
-import { useCustomQuestLibrary } from '@/hooks/useCustomQuestLibrary'
-import type { NominatedContact } from '@/types'
-import { exportLogsAsCSV, exportQuestsAsCSV, exportReviewsAsCSV, exportStatsAsCSV, exportAllAsCSV, exportAsMarkdown } from '@/lib/exportData'
-import type { DateRange } from '@/lib/exportData'
-import { useRoutineConfig } from '@/hooks/useRoutineConfig'
-import { useSparkSchedule } from '@/hooks/useSparkSchedule'
-import { useGameData } from '@/hooks/useGameData'
-import {
-  loadPreferences,
-  savePreferences,
-  requestPermission,
-  getPermissionStatus,
-  scheduleWithTimeout,
-  scheduleRemindersViaSW,
-  DEFAULT_PREFERENCES,
-  type NotificationPreferences,
-  type ReminderType,
-} from '@/lib/notifications'
-import clsx from 'clsx'
+import { useState } from 'react'
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth'
+import { LogOut, Lock, Mail } from 'lucide-react'
+import { SmallCaps, Diamond, GoldRule } from '@/components/ui'
 
 export default function AccountSection({
   email,
@@ -65,9 +40,7 @@ export default function AccountSection({
       await reauthenticateWithCredential(user!, credential)
       await updatePassword(user!, newPw)
       setSuccess('Hasło zostało zmienione.')
-      setCurrentPw('')
-      setNewPw('')
-      setConfirmPw('')
+      setCurrentPw(''); setNewPw(''); setConfirmPw('')
     } catch (err: any) {
       const msg = err?.message ?? ''
       setError(
@@ -83,103 +56,94 @@ export default function AccountSection({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-elegant p-6">
-      <h2 className="font-serif text-lg text-dark mb-5 flex items-center gap-2">
-        <Mail size={18} strokeWidth={1.5} className="text-gold" />
-        Konto
-      </h2>
+    <section className="bg-ivory border border-gold-light/40 p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Mail size={14} strokeWidth={1.5} className="text-gold-deep" />
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+          Konto
+        </SmallCaps>
+      </div>
+      <h2 className="font-heading text-dark text-xl mb-5">Twoje dane</h2>
 
       {/* Email */}
       <div className="mb-6">
-        <label className="block text-xs font-sans text-muted mb-1.5 uppercase tracking-wider">
+        <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-1.5">
           E-mail
-        </label>
-        <p className="font-sans text-sm text-dark bg-ivory border border-border rounded-xl px-4 py-3">
+        </SmallCaps>
+        <p className="font-serif-body text-dark text-[14px] bg-cream/40 border border-hairline px-4 py-3">
           {email}
         </p>
       </div>
 
       {/* Zmiana hasła */}
-      <div className="border-t border-border pt-5">
-        <h3 className="font-sans text-sm font-medium text-dark mb-4 flex items-center gap-2">
-          <Lock size={14} strokeWidth={1.5} />
-          Zmień hasło
-        </h3>
+      <GoldRule variant="plain" tone="gold-deep" className="opacity-30 mb-5" />
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Lock size={12} strokeWidth={1.5} className="text-gold-deep" />
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+            Zmień hasło
+          </SmallCaps>
+        </div>
 
         <form onSubmit={handleChangePassword} className="space-y-3">
-          <div>
-            <label className="block text-xs font-sans text-muted mb-1.5 uppercase tracking-wider">
-              Obecne hasło
-            </label>
-            <input
-              type="password"
-              value={currentPw}
-              onChange={(e) => setCurrentPw(e.target.value)}
-              required
-              className="w-full border border-border rounded-xl px-4 py-3 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-sans text-muted mb-1.5 uppercase tracking-wider">
-              Nowe hasło
-            </label>
-            <input
-              type="password"
-              value={newPw}
-              onChange={(e) => setNewPw(e.target.value)}
-              required
-              minLength={6}
-              className="w-full border border-border rounded-xl px-4 py-3 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors"
-              placeholder="Min. 6 znaków"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-sans text-muted mb-1.5 uppercase tracking-wider">
-              Potwierdź nowe hasło
-            </label>
-            <input
-              type="password"
-              value={confirmPw}
-              onChange={(e) => setConfirmPw(e.target.value)}
-              required
-              minLength={6}
-              className="w-full border border-border rounded-xl px-4 py-3 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
+          {[
+            { id: 'current', label: 'Obecne hasło', value: currentPw, set: setCurrentPw, placeholder: '••••••••' },
+            { id: 'new',     label: 'Nowe hasło',   value: newPw,     set: setNewPw,     placeholder: 'min. 6 znaków' },
+            { id: 'confirm', label: 'Potwierdź nowe hasło', value: confirmPw, set: setConfirmPw, placeholder: '••••••••' },
+          ].map(f => (
+            <div key={f.id}>
+              <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-1.5">
+                {f.label}
+              </SmallCaps>
+              <input
+                type="password"
+                value={f.value}
+                onChange={(e) => f.set(e.target.value)}
+                required
+                minLength={6}
+                className="w-full border border-hairline bg-cream/40 px-4 py-3 font-serif-body text-[14px] text-dark focus:outline-none focus:border-gold transition-colors placeholder:text-muted-light/60"
+                placeholder={f.placeholder}
+              />
+            </div>
+          ))}
 
           {error && (
-            <p className="text-red-600 text-xs font-sans bg-red-50 px-3 py-2 rounded-lg">
-              {error}
-            </p>
+            <div className="flex items-start gap-2 border border-red-200 bg-red-50/50 px-3 py-2">
+              <Diamond size={5} className="text-red-700 mt-1.5 shrink-0" />
+              <p className="font-serif-body italic text-red-800 text-[13px] leading-snug">{error}</p>
+            </div>
           )}
           {success && (
-            <p className="text-forest text-xs font-sans bg-green-50 px-3 py-2 rounded-lg">
-              {success}
-            </p>
+            <div className="flex items-start gap-2 border border-forest/30 bg-forest/5 px-3 py-2">
+              <Diamond size={5} className="text-forest mt-1.5 shrink-0" filled />
+              <p className="font-serif-body italic text-forest text-[13px] leading-snug">{success}</p>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={busy}
-            className="bg-dark text-ivory font-sans text-sm py-3 px-6 rounded-xl hover:bg-forest transition-colors disabled:opacity-60 font-medium"
+            className="bg-dark-deep text-ivory border border-gold py-3 px-6 hover:bg-forest transition-colors disabled:opacity-60 flex items-center gap-2"
           >
-            {busy ? '...' : 'Zmień hasło'}
+            <Diamond size={5} className="text-gold" />
+            <SmallCaps tone="ivory" tracking="luxury" size="xs">
+              {busy ? '…' : 'zmień hasło'}
+            </SmallCaps>
           </button>
         </form>
       </div>
 
       {/* Wyloguj */}
-      <div className="border-t border-border pt-5 mt-6">
-        <button
-          onClick={logOut}
-          className="flex items-center gap-2 border border-border text-muted hover:text-dark hover:border-dark rounded-xl px-4 py-3 font-sans text-sm transition-colors"
-        >
-          <LogOut size={14} strokeWidth={1.5} />
-          Wyloguj się
-        </button>
-      </div>
-    </div>
+      <GoldRule variant="plain" tone="gold-deep" className="opacity-30 my-6" />
+      <button
+        onClick={logOut}
+        className="flex items-center gap-2 border border-hairline text-muted hover:text-dark hover:border-gold px-4 py-3 transition-colors"
+      >
+        <LogOut size={12} strokeWidth={1.5} />
+        <SmallCaps tone="muted" tracking="luxury" size="xs">
+          wyloguj się
+        </SmallCaps>
+      </button>
+    </section>
   )
 }

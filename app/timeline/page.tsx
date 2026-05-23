@@ -1,6 +1,7 @@
 'use client'
 import { useMemo, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+import clsx from 'clsx'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { useGameData } from '@/hooks/useGameData'
 import { useHabitAnalytics } from '@/hooks/useHabitAnalytics'
@@ -13,7 +14,7 @@ import PillarsTab from './_tabs/PillarsTab'
 import MoodTab from './_tabs/MoodTab'
 import ProtocolTab from './_tabs/ProtocolTab'
 import PatternsTab from './_tabs/PatternsTab'
-import clsx from 'clsx'
+import { SmallCaps, GoldRule, Diamond, RomanNumeral, Fleuron } from '@/components/ui'
 
 type TimelineMode = 'calendar' | 'habits' | 'pillars' | 'mood' | 'patterns' | 'protokol'
 
@@ -31,6 +32,24 @@ function formatMonthPL(key: string): string {
 
 const VALID_TABS: TimelineMode[] = ['calendar', 'habits', 'pillars', 'mood', 'patterns', 'protokol']
 
+const SUB_COPY: Record<TimelineMode, string> = {
+  calendar: 'cały projekt w jednym kadrze — każdy dzień się liczy.',
+  habits:   'konsekwencja buduje tożsamość — śledź swoje nawyki.',
+  pillars:  'gdzie kierujesz energię? dbaj o równowagę.',
+  mood:     'co czujesz na co dzień. twój emocjonalny puls projektu.',
+  patterns: 'korelacje, najlepsze dni, ukryte zależności.',
+  protokol: 'kiedy konkretnie jesteś najbardziej narażona. dane operacyjne.',
+}
+
+const TABS: { key: TimelineMode; label: string; roman: number }[] = [
+  { key: 'calendar', label: 'Kalendarz', roman: 1 },
+  { key: 'habits',   label: 'Nawyki',    roman: 2 },
+  { key: 'pillars',  label: 'Filary',    roman: 3 },
+  { key: 'mood',     label: 'Nastrój',   roman: 4 },
+  { key: 'patterns', label: 'Wzorce',    roman: 5 },
+  { key: 'protokol', label: 'Protokół',  roman: 6 },
+]
+
 export default function TimelinePage() {
   const { logs, loading } = useTimelineData()
   const { stats } = useGameData()
@@ -42,7 +61,6 @@ export default function TimelinePage() {
   })()
   const [mode, setMode] = useState<TimelineMode>(initialTab)
 
-  // Reaguj na zmianę URL (np. klik z sidebar gdy już jesteś na /timeline)
   useEffect(() => {
     const t = searchParams.get('tab') as TimelineMode | null
     if (t && VALID_TABS.includes(t)) setMode(t)
@@ -62,92 +80,123 @@ export default function TimelinePage() {
   }, [logs])
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-6 pb-8 animate-fade-in">
-      <div className="mb-6">
-        <p className="font-sans text-xs text-muted uppercase tracking-widest mb-1">Twój rok</p>
-        <h1 className="font-serif text-dark text-2xl mb-1">Historia</h1>
-        <p className="font-sans text-sm text-muted">
-          {mode === 'calendar'
-            ? 'Cały projekt w jednym kadrze. Każdy dzień się liczy.'
-            : mode === 'pillars'
-              ? 'Gdzie kierujesz energię? Dbaj o równowagę.'
-              : mode === 'mood'
-                ? 'Co czujesz na co dzień. Twój emocjonalny puls projektu.'
-                : mode === 'patterns'
-                  ? 'Korelacje, najlepsze dni, ukryte zależności.'
-                  : mode === 'protokol'
-                    ? 'Kiedy konkretnie jesteś najbardziej narażona. Dane operacyjne.'
-                    : 'Konsekwencja buduje tożsamość. Śledź swoje nawyki.'}
+    <div className="max-w-3xl mx-auto px-4 pt-8 pb-12 animate-fade-in">
+      {/* Editorial header */}
+      <header className="mb-8">
+        <SmallCaps tone="muted" tracking="editorial" size="xs">
+          Twój rok · Vol. I
+        </SmallCaps>
+        <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.75rem)] leading-tight mt-2">
+          Historia
+        </h1>
+        <p className="font-serif-body italic text-muted text-[14px] mt-2">
+          {SUB_COPY[mode]}
         </p>
-      </div>
+        <GoldRule variant="diamond" tone="gold-deep" className="mt-5 opacity-50" />
+      </header>
 
-      {/* Tab switcher */}
-      <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
-        {([
-          { key: 'calendar' as TimelineMode, label: 'Kalendarz' },
-          { key: 'habits'   as TimelineMode, label: 'Nawyki' },
-          { key: 'pillars'  as TimelineMode, label: 'Filary' },
-          { key: 'mood'     as TimelineMode, label: 'Nastrój' },
-          { key: 'patterns' as TimelineMode, label: 'Wzorce' },
-          { key: 'protokol' as TimelineMode, label: 'Protokół' },
-        ] as { key: TimelineMode; label: string }[]).map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setMode(key)}
-            className={clsx(
-              'flex-shrink-0 px-4 py-2.5 rounded-xl font-sans text-xs transition-all whitespace-nowrap',
-              mode === key
-                ? 'bg-dark text-ivory'
-                : 'bg-white border border-border text-muted hover:bg-cream'
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* Tabs — editorial */}
+      <nav className="mb-8">
+        <div className="flex gap-5 sm:gap-6 md:gap-8 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-2">
+          {TABS.map(({ key, label, roman }) => {
+            const active = mode === key
+            return (
+              <button
+                key={key}
+                onClick={() => setMode(key)}
+                className="flex-shrink-0 group flex flex-col items-center gap-1.5"
+              >
+                <span className="flex items-baseline gap-2 whitespace-nowrap">
+                  <RomanNumeral
+                    value={roman}
+                    className={clsx(
+                      'text-sm transition-colors',
+                      active ? 'text-gold' : 'text-muted-light group-hover:text-gold-light'
+                    )}
+                  />
+                  <SmallCaps
+                    tone={active ? 'gold' : 'muted'}
+                    tracking="luxury"
+                    size="sm"
+                    className={clsx('transition-colors', !active && 'group-hover:text-gold-deep')}
+                  >
+                    {label}
+                  </SmallCaps>
+                </span>
+                <span
+                  className={clsx(
+                    'h-px w-10 transition-colors',
+                    active ? 'bg-gold' : 'bg-transparent'
+                  )}
+                />
+              </button>
+            )
+          })}
+        </div>
+        <GoldRule variant="plain" tone="gold-deep" className="opacity-30" />
+      </nav>
 
       {loading ? (
-        <div className="bg-white rounded-2xl shadow-elegant p-12 text-center">
-          <p className="font-sans text-sm text-muted-light">Wczytuję dane...</p>
+        <div className="bg-ivory border border-gold-light/40 p-12 text-center">
+          <Fleuron size={14} className="text-gold-deep mx-auto mb-3 inline-block animate-pulse" />
+          <SmallCaps tone="muted" tracking="luxury" size="xs">
+            Wczytuję dane
+          </SmallCaps>
         </div>
       ) : mode === 'calendar' ? (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Heatmap */}
-          <div className="bg-white rounded-2xl shadow-elegant p-5 sm:p-6 overflow-x-auto">
-            <h2 className="font-serif text-dark text-base mb-1">Kalendarz 365 dni</h2>
-            <p className="font-sans text-xs text-muted mb-5">Każdy kwadrat to jeden dzień. Intensywność koloru = XP.</p>
+          <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6 overflow-x-auto">
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+              Kalendarz · CCCLXV dni
+            </SmallCaps>
+            <h2 className="font-heading text-dark text-lg mt-1">365 dni jednym spojrzeniem</h2>
+            <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
+              każdy kwadrat to jeden dzień. intensywność koloru = XP.
+            </p>
             <YearHeatmap logs={logs} />
-          </div>
+          </section>
 
-          {/* Weekly XP chart */}
-          <div className="bg-white rounded-2xl shadow-elegant p-5 sm:p-6">
-            <h2 className="font-serif text-dark text-base mb-1">Tydzień po tygodniu</h2>
-            <p className="font-sans text-xs text-muted mb-5">XP zebrane w każdym tygodniu projektu.</p>
+          {/* Weekly XP */}
+          <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6">
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+              Tydzień po tygodniu
+            </SmallCaps>
+            <h2 className="font-heading text-dark text-lg mt-1">Rytm tygodniowy</h2>
+            <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
+              XP zebrane w każdym tygodniu projektu.
+            </p>
             <WeeklyXPChart logs={logs} />
-          </div>
+          </section>
 
-          {/* Monthly breakdown */}
+          {/* Months */}
           {analytics.months.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-elegant p-5 sm:p-6">
-              <h2 className="font-serif text-dark text-base mb-1">Miesiące projektu</h2>
-              <p className="font-sans text-xs text-muted mb-5">Rozkład aktywności na oś czasu.</p>
-              <div className="space-y-3">
+            <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6">
+              <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+                Miesiące projektu
+              </SmallCaps>
+              <h2 className="font-heading text-dark text-lg mt-1">Rozkład na oś czasu</h2>
+              <div className="space-y-3 mt-5">
                 {analytics.months.map(m => {
                   const pct = Math.round((m.totalXP / analytics.maxMonthXP) * 100)
                   return (
                     <div key={m.monthKey}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-sans text-sm text-dark">{formatMonthPL(m.monthKey)}</span>
-                        <div className="flex items-center gap-3">
-                          <span className="font-sans text-xs text-muted-light">{m.activeDays} dni</span>
-                          <span className="font-sans text-xs text-gold-dark font-medium w-20 text-right">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-heading text-dark text-[14px]">
+                          {formatMonthPL(m.monthKey)}
+                        </span>
+                        <div className="flex items-baseline gap-3">
+                          <SmallCaps tone="muted" tracking="luxury" size="xs">
+                            {m.activeDays} dni
+                          </SmallCaps>
+                          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="tabular-nums w-20 text-right">
                             {m.totalXP.toLocaleString('pl-PL')} XP
-                          </span>
+                          </SmallCaps>
                         </div>
                       </div>
-                      <div className="h-2 bg-cream rounded-full overflow-hidden">
+                      <div className="relative h-px w-full bg-hairline">
                         <div
-                          className="h-full bg-gold-gradient rounded-full transition-all duration-700"
+                          className="absolute left-0 top-0 h-px bg-gold transition-all duration-700"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -155,73 +204,73 @@ export default function TimelinePage() {
                   )
                 })}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Streaks & best/worst day */}
+          {/* Streaks + records */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white rounded-2xl shadow-elegant p-5">
-              <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-2">Serie</p>
-              <div className="space-y-2">
-                <div className="flex items-baseline justify-between">
-                  <span className="font-sans text-sm text-muted">Aktualna</span>
-                  <span className="font-serif text-dark text-xl">
-                    {analytics.streaks.currentStreak}
-                    <span className="text-muted-light text-xs ml-1">dni</span>
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="font-sans text-sm text-muted">Najdłuższa</span>
-                  <span className="font-serif text-dark text-xl">
-                    {analytics.streaks.longestStreak}
-                    <span className="text-muted-light text-xs ml-1">dni</span>
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="font-sans text-sm text-muted">Serii ≥ 7 dni</span>
-                  <span className="font-serif text-dark text-xl">{analytics.longStreaks}</span>
-                </div>
+            <section className="bg-ivory border border-gold-light/40 p-5">
+              <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-3">
+                Serie
+              </SmallCaps>
+              <div className="space-y-3">
+                <Row label="Aktualna" value={`${analytics.streaks.currentStreak}`} sub="dni" />
+                <Row label="Najdłuższa" value={`${analytics.streaks.longestStreak}`} sub="dni" />
+                <Row label="Serii ≥ 7 dni" value={`${analytics.longStreaks}`} />
               </div>
-            </div>
+            </section>
 
-            <div className="bg-white rounded-2xl shadow-elegant p-5">
-              <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-2">Rekordy</p>
+            <section className="bg-ivory border border-gold-light/40 p-5">
+              <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-3">
+                Rekordy
+              </SmallCaps>
               <div className="space-y-3">
                 <div>
-                  <p className="font-sans text-xs text-muted mb-0.5">Najlepszy dzień</p>
+                  <SmallCaps tone="muted" tracking="luxury" size="xs">
+                    Najlepszy dzień
+                  </SmallCaps>
                   {analytics.best ? (
-                    <p className="font-serif text-dark text-sm">
-                      {formatDatePL(analytics.best.date)} ·{' '}
-                      <span className="text-gold-dark">{analytics.best.xp} XP</span>
+                    <p className="font-serif-body text-dark text-[13.5px] mt-1">
+                      {formatDatePL(analytics.best.date)}{' '}
+                      <span className="text-gold-deep">· {analytics.best.xp} XP</span>
                     </p>
                   ) : (
-                    <p className="font-sans text-xs text-muted-light italic">jeszcze brak danych</p>
+                    <p className="font-serif-body italic text-muted-light text-[12px] mt-1">
+                      jeszcze brak danych
+                    </p>
                   )}
                 </div>
                 <div>
-                  <p className="font-sans text-xs text-muted mb-0.5">Najspokojniejszy aktywny dzień</p>
+                  <SmallCaps tone="muted" tracking="luxury" size="xs">
+                    Najspokojniejszy aktywny dzień
+                  </SmallCaps>
                   {analytics.worst ? (
-                    <p className="font-serif text-dark text-sm">
-                      {formatDatePL(analytics.worst.date)} ·{' '}
-                      <span className="text-muted">{analytics.worst.xp} XP</span>
+                    <p className="font-serif-body text-dark text-[13.5px] mt-1">
+                      {formatDatePL(analytics.worst.date)}{' '}
+                      <span className="text-muted">· {analytics.worst.xp} XP</span>
                     </p>
                   ) : (
-                    <p className="font-sans text-xs text-muted-light italic">jeszcze brak danych</p>
+                    <p className="font-serif-body italic text-muted-light text-[12px] mt-1">
+                      jeszcze brak danych
+                    </p>
                   )}
                 </div>
               </div>
-            </div>
+            </section>
           </div>
 
-          {/* Overall stats recap */}
-          <div className="bg-cream rounded-2xl p-5">
-            <p className="font-serif text-dark text-base mb-2">Łącznie</p>
-            <p className="font-sans text-sm text-muted leading-relaxed">
+          {/* Recap */}
+          <section className="bg-cream border border-gold-light/30 p-5 relative">
+            <Fleuron size={11} className="text-gold absolute -top-2 left-5 bg-cream px-1" />
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              Łącznie
+            </SmallCaps>
+            <p className="font-serif-body italic text-dark text-[14px] mt-2 leading-relaxed">
               {stats.totalDaysLogged} dni zalogowanych · {stats.totalXP.toLocaleString('pl-PL')} XP ·{' '}
               {stats.totalRoutinesCompleted} rutyn · {stats.totalSideQuestsCompleted} side questów ·{' '}
-              {stats.totalRulesKept} zasad dotrzymanych
+              {stats.totalRulesKept} zasad dotrzymanych.
             </p>
-          </div>
+          </section>
         </div>
       ) : mode === 'habits' ? (
         <HabitsTab analytics={habitAnalytics} />
@@ -234,6 +283,22 @@ export default function TimelinePage() {
       ) : (
         <PillarsTab stats={stats} />
       )}
+    </div>
+  )
+}
+
+function Row({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="flex items-baseline justify-between">
+      <SmallCaps tone="muted" tracking="luxury" size="xs">
+        {label}
+      </SmallCaps>
+      <p className="font-display text-dark text-2xl leading-none">
+        {value}
+        {sub && (
+          <span className="font-serif-body italic text-muted-light text-xs ml-1.5">{sub}</span>
+        )}
+      </p>
     </div>
   )
 }

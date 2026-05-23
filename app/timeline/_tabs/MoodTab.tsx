@@ -1,5 +1,6 @@
 'use client'
 import { MOOD_STATES, type DailyLog, type MoodCheckIn, type MoodState } from '@/types'
+import { SmallCaps, Diamond, Fleuron, CornerBrackets } from '@/components/ui'
 
 const PL_DAYS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd']
 const PL_DAYS_FULL = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
@@ -43,16 +44,17 @@ export default function MoodTab({ logs }: MoodTabProps) {
 
   if (totalCheckIns === 0) {
     return (
-      <div className="bg-white rounded-2xl shadow-elegant p-12 text-center">
-        <p className="font-serif text-dark text-lg mb-2">Brak danych</p>
-        <p className="font-sans text-sm text-muted-light">
-          Uzupełnij kilka check-inów nastroju — pojawią się tu wzorce i trendy.
+      <div className="bg-ivory border border-gold-light/40 p-12 text-center">
+        <Fleuron size={14} className="text-gold-deep mx-auto mb-3 inline-block" />
+        <h3 className="font-display text-dark text-2xl">Brak danych</h3>
+        <p className="font-serif-body italic text-muted text-[13.5px] mt-2">
+          uzupełnij kilka check-inów nastroju — pojawią się tu wzorce i trendy.
         </p>
       </div>
     )
   }
 
-  const avgMood   = avgOrNull(allCheckIns.map(c => c.mood))!
+  const avgMood = avgOrNull(allCheckIns.map(c => c.mood))!
   const avgEnergy = avgOrNull(allCheckIns.map(c => c.energy))!
 
   const stateCounts = { calm: 0, storm: 0, fog: 0, clarity: 0 } as Record<MoodState, number>
@@ -91,42 +93,42 @@ export default function MoodTab({ logs }: MoodTabProps) {
   }))
 
   const daysWithData = dayData.filter(d => d.avgMood !== null)
-  const bestDay  = [...daysWithData].sort((a, b) => b.avgMood! - a.avgMood!)[0]
+  const bestDay = [...daysWithData].sort((a, b) => b.avgMood! - a.avgMood!)[0]
   const worstDay = [...daysWithData].sort((a, b) => a.avgMood! - b.avgMood!)[0]
 
   const dominantMeta = MOOD_STATES.find(s => s.value === dominantState)
 
   return (
-    <div className="space-y-6">
-
+    <div className="space-y-5">
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl shadow-elegant p-4 text-center">
-          <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-2">Śr. nastrój</p>
-          <p className="font-serif text-dark text-2xl">{avgMood.toFixed(1)}</p>
-          <p className="font-sans text-[10px] text-muted mt-1">/ 5</p>
-        </div>
-        <div className="bg-white rounded-2xl shadow-elegant p-4 text-center">
-          <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-2">Śr. energia</p>
-          <p className="font-serif text-dark text-2xl">{avgEnergy.toFixed(1)}</p>
-          <p className="font-sans text-[10px] text-muted mt-1">/ 5</p>
-        </div>
-        <div className="bg-white rounded-2xl shadow-elegant p-4 text-center">
-          <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-2">Check-iny</p>
-          <p className="font-serif text-dark text-2xl">{totalCheckIns}</p>
-          <p className="font-sans text-[10px] text-muted mt-1">łącznie</p>
-        </div>
+        {[
+          { label: 'Śr. nastrój',  value: avgMood.toFixed(1),     sub: '/ 5' },
+          { label: 'Śr. energia',  value: avgEnergy.toFixed(1),   sub: '/ 5' },
+          { label: 'Check-iny',    value: totalCheckIns.toString(), sub: 'łącznie' },
+        ].map(s => (
+          <div key={s.label} className="bg-ivory border border-gold-light/40 p-4 text-center">
+            <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
+              {s.label}
+            </SmallCaps>
+            <p className="font-display text-dark text-3xl leading-none">{s.value}</p>
+            <p className="font-serif-body italic text-muted-light text-[11px] mt-2">{s.sub}</p>
+          </div>
+        ))}
       </div>
 
       {/* Dominant state */}
       {dominantMeta && (
-        <div className="bg-white rounded-2xl shadow-elegant p-5 flex items-center gap-4">
+        <div className="bg-ivory border border-gold-light/40 p-5 flex items-center gap-5">
           <span className="text-4xl">{dominantMeta.emoji}</span>
           <div>
-            <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-0.5">Dominujący stan</p>
-            <p className="font-serif text-dark text-base capitalize">{dominantMeta.label}</p>
-            <p className="font-sans text-xs text-muted mt-0.5">
-              {stateCounts[dominantState]} z {totalCheckIns} ({Math.round(stateCounts[dominantState] / totalCheckIns * 100)}%)
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+              Dominujący stan
+            </SmallCaps>
+            <h3 className="font-heading text-dark text-lg mt-1">{dominantMeta.label}</h3>
+            <p className="font-serif-body italic text-muted text-[13px] mt-0.5">
+              {stateCounts[dominantState]} z {totalCheckIns} ·{' '}
+              {Math.round(stateCounts[dominantState] / totalCheckIns * 100)}%
             </p>
           </div>
         </div>
@@ -134,97 +136,126 @@ export default function MoodTab({ logs }: MoodTabProps) {
 
       {/* Weekly trend */}
       {weeklyData.length >= 2 && (
-        <div className="bg-white rounded-2xl shadow-elegant p-5 sm:p-6">
-          <h2 className="font-serif text-dark text-base mb-1">Trend tygodniowy</h2>
-          <p className="font-sans text-xs text-muted mb-5">Średni nastrój i energia per tydzień.</p>
+        <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6">
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+            Trend tygodniowy
+          </SmallCaps>
+          <h2 className="font-heading text-dark text-lg mt-1">Nastrój i energia</h2>
+          <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
+            średnia per tydzień.
+          </p>
           <div className="space-y-3">
             {weeklyData.map(w => (
               <div key={w.weekKey} className="flex items-center gap-3">
-                <span className="font-sans text-[11px] text-muted w-8 flex-shrink-0">{w.label}</span>
-                <div className="flex-1 space-y-1">
+                <SmallCaps tone="muted" tracking="luxury" size="xs" className="w-8 shrink-0">
+                  {w.label}
+                </SmallCaps>
+                <div className="flex-1 space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-sans text-[10px] text-muted w-12">nastrój</span>
-                    <div className="flex-1 h-2 bg-cream rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-forest transition-all duration-500" style={{ width: `${(w.avgMood / 5) * 100}%` }} />
+                    <SmallCaps tone="muted" size="xs" className="w-12">nastrój</SmallCaps>
+                    <div className="flex-1 h-px bg-hairline relative">
+                      <div className="absolute left-0 top-0 h-px bg-forest transition-all duration-500" style={{ width: `${(w.avgMood / 5) * 100}%` }} />
                     </div>
-                    <span className="font-sans text-[11px] text-muted w-6 text-right">{w.avgMood}</span>
+                    <span className="font-ui text-[11px] text-muted w-7 text-right tabular-nums">{w.avgMood}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-sans text-[10px] text-muted w-12">energia</span>
-                    <div className="flex-1 h-2 bg-cream rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-gold transition-all duration-500" style={{ width: `${(w.avgEnergy / 5) * 100}%` }} />
+                    <SmallCaps tone="muted" size="xs" className="w-12">energia</SmallCaps>
+                    <div className="flex-1 h-px bg-hairline relative">
+                      <div className="absolute left-0 top-0 h-px bg-gold transition-all duration-500" style={{ width: `${(w.avgEnergy / 5) * 100}%` }} />
                     </div>
-                    <span className="font-sans text-[11px] text-muted w-6 text-right">{w.avgEnergy}</span>
+                    <span className="font-ui text-[11px] text-muted w-7 text-right tabular-nums">{w.avgEnergy}</span>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="flex gap-4 mt-4 pt-3 border-t border-border">
+          <div className="flex gap-4 mt-5 pt-3 border-t border-hairline">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-2 rounded-sm bg-forest" />
-              <span className="font-sans text-[10px] text-muted">nastrój</span>
+              <Diamond size={4} className="text-forest" filled />
+              <SmallCaps tone="muted" tracking="luxury" size="xs">nastrój</SmallCaps>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-2 rounded-sm bg-gold" />
-              <span className="font-sans text-[10px] text-muted">energia</span>
+              <Diamond size={4} className="text-gold" filled />
+              <SmallCaps tone="muted" tracking="luxury" size="xs">energia</SmallCaps>
             </div>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Day-of-week patterns */}
+      {/* Day-of-week */}
       {daysWithData.length >= 3 && (
-        <div className="bg-white rounded-2xl shadow-elegant p-5 sm:p-6">
-          <h2 className="font-serif text-dark text-base mb-1">Wzorce tygodniowe</h2>
-          <p className="font-sans text-xs text-muted mb-5">Średni nastrój według dnia tygodnia.</p>
+        <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6">
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+            Wzorce tygodniowe
+          </SmallCaps>
+          <h2 className="font-heading text-dark text-lg mt-1">Nastrój po dniach</h2>
+          <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
+            średni nastrój według dnia tygodnia.
+          </p>
           <div className="space-y-3">
             {dayData.map((d, i) => (
               <div key={i} className="flex items-center gap-3">
-                <span className="font-sans text-[11px] text-muted w-7 flex-shrink-0">{d.label}</span>
+                <SmallCaps tone="muted" tracking="luxury" size="xs" className="w-8 shrink-0">
+                  {d.label}
+                </SmallCaps>
                 {d.avgMood !== null ? (
                   <>
-                    <div className="flex-1 h-2 bg-cream rounded-full overflow-hidden">
+                    <div className="flex-1 h-px bg-hairline relative">
                       <div
-                        className="h-full rounded-full bg-forest transition-all duration-500"
+                        className="absolute left-0 top-0 h-px bg-forest transition-all duration-500"
                         style={{ width: `${(d.avgMood / 5) * 100}%` }}
                       />
                     </div>
-                    <span className="font-sans text-[11px] text-muted w-6 text-right">{d.avgMood.toFixed(1)}</span>
-                    <span className="font-sans text-[10px] text-muted-light w-8 text-right flex-shrink-0">{d.count}×</span>
+                    <span className="font-ui text-[11px] text-muted w-8 text-right tabular-nums">
+                      {d.avgMood.toFixed(1)}
+                    </span>
+                    <SmallCaps tone="muted" size="xs" className="w-10 text-right shrink-0">
+                      {d.count}×
+                    </SmallCaps>
                   </>
                 ) : (
-                  <div className="flex-1 h-2 bg-cream/50 rounded-full" />
+                  <div className="flex-1 h-px bg-hairline/50" />
                 )}
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* State distribution */}
-      <div className="bg-white rounded-2xl shadow-elegant p-5 sm:p-6">
-        <h2 className="font-serif text-dark text-base mb-1">Rozkład stanów</h2>
-        <p className="font-sans text-xs text-muted mb-5">Jak często pojawia się każdy ze stanów.</p>
+      <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6">
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+          Rozkład stanów
+        </SmallCaps>
+        <h2 className="font-heading text-dark text-lg mt-1">Co czujesz najczęściej</h2>
+        <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
+          jak często pojawia się każdy ze stanów.
+        </p>
         <div className="space-y-3">
           {MOOD_STATES.map(({ value, emoji, label }) => {
             const count = stateCounts[value]
             const pct = totalCheckIns > 0 ? Math.round((count / totalCheckIns) * 100) : 0
             return (
               <div key={value}>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2">
                     <span>{emoji}</span>
-                    <span className="font-sans text-sm text-dark capitalize">{label}</span>
+                    <SmallCaps tracking="luxury" size="xs">
+                      <span style={{ color: moodStateColor(value) }}>{label}</span>
+                    </SmallCaps>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-sans text-xs text-muted">{count}×</span>
-                    <span className="font-sans text-xs font-medium text-muted w-8 text-right">{pct}%</span>
+                  <div className="flex items-baseline gap-3">
+                    <SmallCaps tone="muted" tracking="luxury" size="xs">
+                      {count}×
+                    </SmallCaps>
+                    <span className="font-ui text-[11px] tabular-nums w-10 text-right" style={{ color: moodStateColor(value) }}>
+                      {pct}%
+                    </span>
                   </div>
                 </div>
-                <div className="h-2 bg-cream rounded-full overflow-hidden">
+                <div className="relative h-px w-full bg-hairline">
                   <div
-                    className="h-full rounded-full transition-all duration-700"
+                    className="absolute left-0 top-0 h-px transition-all duration-700"
                     style={{ width: `${pct}%`, backgroundColor: moodStateColor(value) }}
                   />
                 </div>
@@ -232,26 +263,33 @@ export default function MoodTab({ logs }: MoodTabProps) {
             )
           })}
         </div>
-      </div>
+      </section>
 
-      {/* Insight card */}
+      {/* Insight */}
       {bestDay && worstDay && bestDay.label !== worstDay.label && (
-        <div className="bg-forest rounded-2xl p-5">
-          <p className="font-sans text-[10px] text-ivory/60 uppercase tracking-widest mb-2">Twój wzorzec</p>
-          <p className="font-serif text-ivory text-base leading-relaxed">
-            Najlepszy nastrój w <span className="text-gold-light">{bestDay.labelFull.toLowerCase()}</span>{' '}
-            ({bestDay.avgMood!.toFixed(1)}/5).{' '}
-            Najtrudniejszy w <span className="text-ivory/70">{worstDay.labelFull.toLowerCase()}</span>{' '}
-            ({worstDay.avgMood!.toFixed(1)}/5).
-          </p>
-          {worstDay.avgMood! < 3 && (
-            <p className="font-sans text-xs text-ivory/60 mt-2">
-              Zaplanuj coś dobrego na {worstDay.labelFull.toLowerCase()} — quest, ruch, kontakt z kimś bliskim.
+        <div className="relative bg-forest-deep grain-linen text-ivory p-6">
+          <CornerBrackets size={14} tone="gold" weight={1} />
+          <div className="relative z-10">
+            <SmallCaps tone="gold-light" tracking="luxury" size="xs" as="div" className="mb-3">
+              Twój wzorzec
+            </SmallCaps>
+            <p className="font-serif-body italic text-ivory text-[14.5px] leading-relaxed">
+              najlepszy nastrój w{' '}
+              <span className="text-gold-light not-italic font-heading">{bestDay.labelFull.toLowerCase()}</span>{' '}
+              ({bestDay.avgMood!.toFixed(1)}/5).
+              <br />
+              najtrudniejszy w{' '}
+              <span className="text-parchment not-italic font-heading">{worstDay.labelFull.toLowerCase()}</span>{' '}
+              ({worstDay.avgMood!.toFixed(1)}/5).
             </p>
-          )}
+            {worstDay.avgMood! < 3 && (
+              <p className="font-serif-body italic text-parchment/80 text-[13px] mt-3 leading-relaxed">
+                zaplanuj coś dobrego na {worstDay.labelFull.toLowerCase()} — quest, ruch, kontakt z kimś bliskim.
+              </p>
+            )}
+          </div>
         </div>
       )}
-
     </div>
   )
 }

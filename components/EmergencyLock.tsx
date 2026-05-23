@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
-import { useGhostV2 } from '@/hooks/useGhostV2'
 import { useNominatedContacts } from '@/hooks/useNominatedContacts'
 import { useVault } from '@/hooks/useVault'
-import clsx from 'clsx'
+import { SmallCaps, Diamond, Fleuron, GoldRule, CornerBrackets } from '@/components/ui'
+import { toRoman } from '@/lib/romanNumerals'
 
-// Frazy rotowane co 5 minut
 const ROTATING_PHRASES = [
   'To miasto było Twoje zanim był on.',
   'Natalia 30 nie potrzebuje tego, czego chce Natalia teraz.',
@@ -33,6 +33,19 @@ function formatTime(s: number) {
   const sec = s % 60
   if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+}
+
+function Frame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-[130] bg-forest-deep grain-linen animate-fade-in">
+      <div className="pointer-events-none absolute inset-6 border border-gold-light/40" />
+      <div className="pointer-events-none absolute inset-9 border border-gold-light/15" />
+      <div className="pointer-events-none absolute inset-12">
+        <CornerBrackets size={20} tone="gold" weight={1} />
+      </div>
+      {children}
+    </div>
+  )
 }
 
 export default function EmergencyLock({ onClose }: { onClose: () => void }) {
@@ -104,248 +117,299 @@ export default function EmergencyLock({ onClose }: { onClose: () => void }) {
   }, [recordGhostImpulseV2])
 
   const tryFocusMode = useCallback(() => {
-    // iOS: próba otwarcia ustawień Focus Mode
     window.location.href = 'App-Prefs:FOCUS'
-    // Fallback info pokazany przez przeglądarkę
   }, [])
 
   const progress = selectedDuration.seconds > 0
     ? ((selectedDuration.seconds - seconds) / selectedDuration.seconds) * 100
     : 100
 
-  // ── Faza: setup ──────────────────────────────────────────────────────────────
+  // ── setup ──
   if (phase === 'setup') {
     return (
-      <div className="fixed inset-0 z-[130] flex flex-col items-center justify-center bg-dark/97 backdrop-blur-md animate-fade-in px-6">
-        <div className="w-full max-w-sm text-center">
-          <p className="font-sans text-[11px] text-gold/70 uppercase tracking-[0.2em] mb-8">
-            Emergency Lock
-          </p>
-          <div className="text-4xl mb-6">🛡️</div>
-          <h2 className="font-serif text-ivory text-xl leading-snug mb-2">
-            Jak długo chcesz się zamknąć?
-          </h2>
-          <p className="font-sans text-xs text-ivory/40 mb-10 tracking-wide">
-            Timer nie da się anulować. Po zakończeniu będziesz zapytana o wynik.
-          </p>
+      <Frame>
+        <div className="relative h-full flex flex-col items-center justify-center px-6">
+          <div className="w-full max-w-sm text-center">
+            <SmallCaps tone="gold-light" tracking="editorial" size="xs">
+              Emergency Lock
+            </SmallCaps>
+            <Fleuron size={20} className="text-gold mx-auto my-6 inline-block" />
+            <h2 className="font-display text-ivory text-4xl leading-tight mb-3">
+              Jak długo chcesz się zamknąć?
+            </h2>
+            <p className="font-serif-body italic text-parchment text-[14px] mb-10 leading-relaxed">
+              timer nie da się anulować. po zakończeniu będziesz zapytana o wynik.
+            </p>
 
-          <div className="flex gap-3 mb-10">
-            {DURATIONS.map(d => (
-              <button
-                key={d.label}
-                onClick={() => setSelectedDuration(d)}
-                className={clsx(
-                  'flex-1 py-4 rounded-xl border font-serif text-sm transition-all',
-                  selectedDuration.label === d.label
-                    ? 'bg-forest/60 border-gold/50 text-gold'
-                    : 'border-ivory/10 bg-forest/20 text-ivory/60 hover:bg-forest/30'
-                )}
-              >
-                {d.label}
-              </button>
-            ))}
+            <div className="flex gap-3 mb-10">
+              {DURATIONS.map(d => {
+                const sel = selectedDuration.label === d.label
+                return (
+                  <button
+                    key={d.label}
+                    onClick={() => setSelectedDuration(d)}
+                    className={clsx(
+                      'flex-1 py-4 border transition-all flex flex-col items-center gap-1',
+                      sel
+                        ? 'bg-forest/60 border-gold'
+                        : 'border-ivory/15 bg-forest/20 hover:bg-forest/30'
+                    )}
+                  >
+                    {sel && <Diamond size={5} className="text-gold" />}
+                    <SmallCaps
+                      tone={sel ? 'gold-light' : 'parchment'}
+                      tracking="luxury"
+                      size="sm"
+                    >
+                      {d.label}
+                    </SmallCaps>
+                  </button>
+                )
+              })}
+            </div>
+
+            <button
+              onClick={startLock}
+              className="w-full py-4 bg-gold text-dark-deep hover:bg-gold-light transition-all mb-4 flex items-center justify-center gap-3"
+            >
+              <Diamond size={5} className="text-dark-deep" filled />
+              <SmallCaps tracking="luxury" size="sm" className="!text-dark-deep">
+                Aktywuj Emergency Lock
+              </SmallCaps>
+              <Diamond size={5} className="text-dark-deep" filled />
+            </button>
+            <button
+              onClick={onClose}
+              className="font-ui uppercase tracking-luxury text-[10px] text-parchment/50 hover:text-parchment transition-colors"
+            >
+              zamknij
+            </button>
           </div>
-
-          <button
-            onClick={startLock}
-            className="w-full py-4 rounded-xl bg-forest border border-gold/30 font-serif text-ivory text-base hover:bg-forest/80 transition-all mb-4"
-          >
-            Aktywuj Emergency Lock
-          </button>
-          <button
-            onClick={onClose}
-            className="font-sans text-xs text-muted-light hover:text-ivory/60 transition-colors tracking-wide"
-          >
-            Zamknij
-          </button>
         </div>
-      </div>
+      </Frame>
     )
   }
 
-  // ── Faza: locked ─────────────────────────────────────────────────────────────
+  // ── locked ──
   if (phase === 'locked') {
     return (
-      <div className="fixed inset-0 z-[130] flex flex-col items-center justify-between bg-dark/97 backdrop-blur-md animate-fade-in px-6 py-10">
+      <Frame>
+        <div className="relative h-full flex flex-col items-center justify-between px-6 py-12">
+          <SmallCaps tone="gold-light" tracking="editorial" size="xs">
+            Emergency Lock · aktywne
+          </SmallCaps>
 
-        {/* Header */}
-        <div className="text-center">
-          <p className="font-sans text-[11px] text-gold/50 uppercase tracking-[0.2em]">
-            Emergency Lock
-          </p>
-        </div>
-
-        {/* Timer ring */}
-        <div className="flex flex-col items-center gap-6">
-          <div className="relative flex items-center justify-center">
-            <svg width="220" height="220" style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx="110" cy="110" r="98" fill="none" stroke="rgba(184,150,62,0.10)" strokeWidth="3" />
-              <circle
-                cx="110" cy="110" r="98"
-                fill="none"
-                stroke="rgba(184,150,62,0.50)"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 98}`}
-                strokeDashoffset={`${2 * Math.PI * 98 * (1 - progress / 100)}`}
-                style={{ transition: 'stroke-dashoffset 1s linear' }}
-              />
-            </svg>
-            <div className="absolute text-center">
-              <p className="font-serif text-ivory/80 text-4xl tabular-nums">
-                {formatTime(seconds)}
-              </p>
-              <p className="font-sans text-xs text-ivory/30 mt-1 tracking-wider">pozostało</p>
-            </div>
-          </div>
-
-          <p className="font-serif text-ivory/60 text-sm text-center leading-relaxed italic max-w-xs">
-            &ldquo;{ROTATING_PHRASES[phraseIdx]}&rdquo;
-          </p>
-        </div>
-
-        {/* Akcje */}
-        <div className="w-full max-w-sm space-y-3">
-          {/* Nominated contacts */}
-          {contacts.length > 0 && (
-            <div>
-              <p className="font-sans text-[11px] text-ivory/30 uppercase tracking-wider text-center mb-2">
-                Zadzwoń zamiast pisać
-              </p>
-              <div className="flex gap-2">
-                {contacts.map(c => (
-                  <a
-                    key={c.phone}
-                    href={`tel:${c.phone}`}
-                    className="flex-1 py-3 rounded-xl border border-gold/20 bg-forest/30 hover:bg-forest/50 transition-all text-center font-sans text-xs text-ivory/80"
-                  >
-                    {c.name}
-                  </a>
-                ))}
+          {/* Timer ring */}
+          <div className="flex flex-col items-center gap-7">
+            <div className="relative flex items-center justify-center">
+              <svg width="240" height="240" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="120" cy="120" r="108" fill="none" stroke="rgba(184,150,62,0.12)" strokeWidth="1.5" />
+                <circle
+                  cx="120" cy="120" r="108"
+                  fill="none"
+                  stroke="rgba(184,150,62,0.60)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 108}`}
+                  strokeDashoffset={`${2 * Math.PI * 108 * (1 - progress / 100)}`}
+                  style={{ transition: 'stroke-dashoffset 1s linear' }}
+                />
+              </svg>
+              <div className="absolute text-center">
+                <p className="font-display text-ivory text-5xl tabular-nums leading-none">
+                  {formatTime(seconds)}
+                </p>
+                <SmallCaps tone="parchment" tracking="luxury" size="xs" className="mt-3 block opacity-60">
+                  pozostało
+                </SmallCaps>
               </div>
             </div>
-          )}
 
-          <button
-            onClick={() => setPhase('save_thought')}
-            className="w-full py-3 rounded-xl border border-ivory/10 bg-forest/20 hover:bg-forest/40 transition-all font-sans text-xs text-ivory/60"
-          >
-            Zapisz myśl → Skarbiec
-          </button>
-
-          <button
-            onClick={tryFocusMode}
-            className="w-full py-3 rounded-xl border border-ivory/10 bg-transparent font-sans text-[11px] text-ivory/30 hover:text-ivory/50 transition-all"
-          >
-            Aktywuj Focus Mode (iPhone)
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Faza: zapis myśli ─────────────────────────────────────────────────────────
-  if (phase === 'save_thought') {
-    return (
-      <div className="fixed inset-0 z-[130] flex flex-col items-center justify-center bg-dark/97 backdrop-blur-md animate-fade-in px-6">
-        <div className="w-full max-w-sm">
-          <p className="font-sans text-[11px] text-gold/70 uppercase tracking-[0.2em] text-center mb-6">
-            Zapisz myśl — Skarbiec
-          </p>
-          {thoughtSaved ? (
-            <div className="text-center">
-              <div className="text-3xl mb-4">✦</div>
-              <p className="font-serif text-ivory/80 text-base">Zapisano w Skarbcu.</p>
+            <div className="relative max-w-xs text-center px-6">
+              <span className="absolute -left-1 top-0 text-gold-light text-2xl font-display leading-none opacity-40">
+                „
+              </span>
+              <p className="font-serif-body italic text-parchment text-[14px] leading-relaxed">
+                {ROTATING_PHRASES[phraseIdx]}
+              </p>
+              <span className="absolute -right-1 bottom-0 text-gold-light text-2xl font-display leading-none opacity-40">
+                "
+              </span>
             </div>
-          ) : (
-            <>
-              <textarea
-                value={thoughtText}
-                onChange={e => setThoughtText(e.target.value)}
-                rows={5}
-                autoFocus
-                placeholder="Co teraz czujesz? Co chciałaś powiedzieć?..."
-                className="w-full bg-forest/20 border border-ivory/10 rounded-xl px-4 py-3 font-sans text-sm text-ivory placeholder-ivory/30 focus:outline-none focus:border-gold/30 resize-none mb-6"
-              />
-              <button
-                onClick={handleSaveThought}
-                className="w-full py-3.5 rounded-xl bg-forest/50 border border-gold/20 font-sans text-sm text-ivory hover:bg-forest/70 transition-all mb-3"
-              >
-                Zapisz
-              </button>
-              <button
-                onClick={() => setPhase('locked')}
-                className="w-full text-center font-sans text-xs text-muted-light hover:text-ivory/60 transition-colors tracking-wide"
-              >
-                ← Wróć do timera
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    )
-  }
+          </div>
 
-  // ── Faza: outcome ─────────────────────────────────────────────────────────────
-  if (phase === 'outcome') {
-    return (
-      <div className="fixed inset-0 z-[130] flex flex-col items-center justify-center bg-dark/97 backdrop-blur-md animate-fade-in px-6">
-        <div className="w-full max-w-sm text-center">
-          <p className="font-sans text-[11px] text-gold/70 uppercase tracking-[0.2em] mb-8">
-            Emergency Lock — koniec
-          </p>
-          <p className="font-serif text-ivory text-lg mb-10 leading-snug">
-            Timer skończony. Czy był kontakt?
-          </p>
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          {/* Actions */}
+          <div className="w-full max-w-sm space-y-3">
+            {contacts.length > 0 && (
+              <div>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Diamond size={5} className="text-gold" />
+                  <SmallCaps tone="parchment" tracking="luxury" size="xs">
+                    Zadzwoń zamiast pisać
+                  </SmallCaps>
+                </div>
+                <div className="flex gap-2">
+                  {contacts.map(c => (
+                    <a
+                      key={c.phone}
+                      href={`tel:${c.phone}`}
+                      className="flex-1 py-3 border border-gold/30 bg-forest/30 hover:bg-forest/50 transition-all text-center"
+                    >
+                      <SmallCaps tone="parchment" tracking="luxury" size="xs">
+                        {c.name}
+                      </SmallCaps>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <button
-              onClick={() => handleOutcome(false)}
-              className="py-5 rounded-xl border border-gold/30 bg-forest/30 hover:bg-forest/50 transition-all"
+              onClick={() => setPhase('save_thought')}
+              className="w-full py-3 border border-ivory/15 bg-forest/20 hover:bg-forest/40 transition-all"
             >
-              <p className="font-serif text-ivory text-base mb-1">Nie był</p>
-              <p className="font-sans text-gold text-xs">+60 XP</p>
+              <SmallCaps tone="parchment" tracking="luxury" size="xs">
+                zapisz myśl  ›  skarbiec
+              </SmallCaps>
             </button>
+
             <button
-              onClick={() => handleOutcome(true)}
-              className="py-5 rounded-xl border border-ivory/10 bg-forest/20 hover:bg-forest/30 transition-all"
+              onClick={tryFocusMode}
+              className="w-full py-3 border border-ivory/10 bg-transparent hover:opacity-80 transition-all"
             >
-              <p className="font-serif text-ivory/80 text-base mb-1">Był</p>
-              <p className="font-sans text-ivory/40 text-xs">+10 XP za uczciwość</p>
+              <SmallCaps tone="parchment" tracking="luxury" size="xs" className="opacity-50">
+                aktywuj focus mode  ·  iphone
+              </SmallCaps>
             </button>
           </div>
         </div>
-      </div>
+      </Frame>
     )
   }
 
-  // ── Faza: done ────────────────────────────────────────────────────────────────
+  // ── save_thought ──
+  if (phase === 'save_thought') {
+    return (
+      <Frame>
+        <div className="relative h-full flex flex-col items-center justify-center px-6">
+          <div className="w-full max-w-sm">
+            <SmallCaps tone="gold-light" tracking="editorial" size="xs" as="div" className="text-center mb-6">
+              Zapisz myśl · Skarbiec
+            </SmallCaps>
+            {thoughtSaved ? (
+              <div className="text-center">
+                <Fleuron size={18} className="text-gold mx-auto mb-4 inline-block" />
+                <p className="font-serif-body italic text-ivory/85 text-base">
+                  zapisano w skarbcu.
+                </p>
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={thoughtText}
+                  onChange={e => setThoughtText(e.target.value)}
+                  rows={5}
+                  autoFocus
+                  placeholder="co teraz czujesz? co chciałaś powiedzieć?…"
+                  className="w-full bg-forest/20 border border-ivory/15 px-4 py-3 font-serif-body italic text-[14px] text-ivory placeholder-ivory/30 focus:outline-none focus:border-gold/50 resize-none mb-6"
+                />
+                <button
+                  onClick={handleSaveThought}
+                  className="w-full py-3.5 bg-gold text-dark-deep hover:bg-gold-light transition-all flex items-center justify-center gap-3 mb-3"
+                >
+                  <Diamond size={5} className="text-dark-deep" filled />
+                  <SmallCaps tracking="luxury" size="xs" className="!text-dark-deep">
+                    zapisz
+                  </SmallCaps>
+                </button>
+                <button
+                  onClick={() => setPhase('locked')}
+                  className="w-full text-center font-ui uppercase tracking-luxury text-[10px] text-parchment/50 hover:text-parchment transition-colors"
+                >
+                  ‹  wróć do timera
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </Frame>
+    )
+  }
+
+  // ── outcome ──
+  if (phase === 'outcome') {
+    return (
+      <Frame>
+        <div className="relative h-full flex flex-col items-center justify-center px-6">
+          <div className="w-full max-w-sm text-center">
+            <SmallCaps tone="gold-light" tracking="editorial" size="xs">
+              Emergency Lock · koniec
+            </SmallCaps>
+            <GoldRule variant="diamond" tone="gold" className="my-8 max-w-xs mx-auto" />
+            <p className="font-display text-ivory text-3xl mb-10 leading-tight">
+              Timer skończony.
+              <br />
+              <span className="font-serif-body italic text-2xl text-parchment">czy był kontakt?</span>
+            </p>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <button
+                onClick={() => handleOutcome(false)}
+                className="py-5 border border-gold bg-forest/30 hover:bg-forest/50 transition-all flex flex-col items-center gap-2"
+              >
+                <Diamond size={6} className="text-gold" filled />
+                <p className="font-display text-ivory text-xl leading-none">Nie był</p>
+                <SmallCaps tone="gold-light" tracking="luxury" size="xs">+ 60 XP</SmallCaps>
+              </button>
+              <button
+                onClick={() => handleOutcome(true)}
+                className="py-5 border border-ivory/15 bg-forest/20 hover:bg-forest/30 transition-all flex flex-col items-center gap-2"
+              >
+                <Diamond size={6} className="text-parchment/60" />
+                <p className="font-display text-ivory/85 text-xl leading-none">Był</p>
+                <SmallCaps tone="parchment" tracking="luxury" size="xs" className="opacity-60">
+                  + 10 XP za uczciwość
+                </SmallCaps>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Frame>
+    )
+  }
+
+  // ── done ──
   if (phase === 'done') {
     const noContact = hadContact === false
     return (
-      <div className="fixed inset-0 z-[130] flex flex-col items-center justify-center bg-dark/97 backdrop-blur-md animate-fade-in px-6">
-        <div className="w-full max-w-sm text-center">
-          <div className="text-4xl mb-6">{noContact ? '🛡️' : '🤍'}</div>
-          <p className="font-serif text-ivory text-xl leading-snug mb-4">
-            {noContact ? 'Natalia 30 już to wiedziała.' : 'Uczciwe zalogowanie to odwaga.'}
-          </p>
-          <p className="font-sans text-ivory/50 text-sm mb-8 leading-relaxed">
-            {noContact
-              ? 'Emergency Lock ukończony. Każda minuta wytrwałości buduje kogoś nowego.'
-              : 'Dane z trudnych chwil są cenniejsze niż każdy sukces.'}
-          </p>
-          <div className="inline-flex items-center gap-2 bg-gold/10 border border-gold/20 rounded-full px-5 py-2 mb-8">
-            <span className="font-sans text-gold text-xs font-semibold tracking-wide">
-              +{xpEarned} XP Pozycja
-            </span>
+      <Frame>
+        <div className="relative h-full flex flex-col items-center justify-center px-6">
+          <div className="w-full max-w-sm text-center">
+            <Fleuron size={20} className="text-gold mx-auto mb-6 inline-block" />
+            <p className="font-display text-ivory text-3xl leading-tight mb-4">
+              {noContact ? 'Natalia 30 już to wiedziała.' : 'Uczciwe zalogowanie to odwaga.'}
+            </p>
+            <p className="font-serif-body italic text-parchment text-[14px] mb-8 leading-relaxed">
+              {noContact
+                ? 'emergency lock ukończony. każda minuta wytrwałości buduje kogoś nowego.'
+                : 'dane z trudnych chwil są cenniejsze niż każdy sukces.'}
+            </p>
+            <GoldRule variant="diamond" tone="gold" className="mb-6 max-w-xs mx-auto" />
+            <div className="inline-flex items-center gap-3 border border-gold-light/40 px-5 py-2 mb-8">
+              <Diamond size={5} className="text-gold" />
+              <SmallCaps tone="gold-light" tracking="luxury" size="sm">
+                + {toRoman(xpEarned)} XP Pozycja
+              </SmallCaps>
+              <Diamond size={5} className="text-gold" />
+            </div>
+            <button
+              onClick={onClose}
+              className="w-full font-ui uppercase tracking-luxury text-[10px] text-parchment/70 hover:text-parchment transition-colors py-2"
+            >
+              zamknij  ◆
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-full font-sans text-sm text-muted-light hover:text-ivory/60 transition-colors tracking-wide py-2"
-          >
-            Zamknij ✦
-          </button>
         </div>
-      </div>
+      </Frame>
     )
   }
 

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import clsx from 'clsx'
 import { useTomorrowData } from '@/hooks/useTomorrowData'
 import { useRoutineConfig } from '@/hooks/useRoutineConfig'
 import {
@@ -7,15 +8,16 @@ import {
   getWeeklyStudyItem, getWeeklyStudyLabel,
 } from '@/lib/routineData'
 import { tomorrowDate } from '@/lib/gameLogic'
-import { Check, Sun, Moon, Sparkles } from 'lucide-react'
-import clsx from 'clsx'
+import { Sun, Moon, Sparkles } from 'lucide-react'
+import { SmallCaps, Diamond, Fleuron, RomanNumeral } from '@/components/ui'
+import { toRoman } from '@/lib/romanNumerals'
 
 type Tab = 'morning' | 'daily' | 'evening'
 
-const TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
-  { id: 'morning', label: 'Ranek',   icon: Sun },
-  { id: 'daily',   label: 'Dzień',   icon: Sparkles },
-  { id: 'evening', label: 'Wieczór', icon: Moon },
+const TABS: { id: Tab; label: string; roman: number }[] = [
+  { id: 'morning', label: 'Ranek',   roman: 1 },
+  { id: 'daily',   label: 'Dzień',   roman: 2 },
+  { id: 'evening', label: 'Wieczór', roman: 3 },
 ]
 
 export default function TomorrowChecklist() {
@@ -63,97 +65,138 @@ export default function TomorrowChecklist() {
   }, [progress, tab])
 
   return (
-    <div className="bg-white rounded-2xl shadow-elegant overflow-hidden mb-4">
+    <div className="bg-ivory border border-gold-light/40 overflow-hidden mb-4">
       {/* Header */}
       <div className="px-5 pt-5 pb-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-serif text-dark text-lg">Rutyna</h2>
-          <div className="flex items-center gap-2">
-            <span className="font-sans text-[10px] text-gold/80 bg-gold-pale px-2.5 py-1 rounded-full font-medium tracking-wide uppercase">
+        <div className="flex items-baseline justify-between gap-3 mb-3">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h2 className="font-heading text-dark text-xl whitespace-nowrap">Rutyna</h2>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
               na zapas
-            </span>
-            <span className="font-sans text-xs text-muted bg-cream px-2.5 py-1 rounded-full">
-              {completedCount}/{items.length}
-            </span>
+            </SmallCaps>
           </div>
+          <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
+            {toRoman(completedCount)} / {toRoman(items.length)}
+          </SmallCaps>
         </div>
-        <div className="h-1 bg-cream rounded-full overflow-hidden">
+
+        {/* Hairline progress */}
+        <div className="relative mt-2 h-px w-full bg-hairline">
           <div
-            className="h-full rounded-full transition-all duration-500 bg-gold"
+            className="absolute left-0 top-0 h-px bg-gold transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
+          {progress > 0 && progress < 100 && (
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                left: `calc(${progress}% - 4px)`,
+                top: '-3.5px',
+                width: 8,
+                height: 8,
+                lineHeight: 0,
+              }}
+            >
+              <svg width="8" height="8" viewBox="0 0 10 10" className="text-gold" style={{ display: 'block' }}>
+                <path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor" />
+              </svg>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-border mx-5">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={clsx(
-              'flex items-center gap-1.5 px-3 py-2.5 text-xs font-sans transition-all border-b-2 -mb-px',
-              tab === id
-                ? 'border-gold text-gold font-medium'
-                : 'border-transparent text-muted hover:text-dark'
-            )}
-          >
-            <Icon size={12} strokeWidth={1.5} />
-            {label}
-          </button>
-        ))}
+      <div className="flex border-t border-hairline mt-2">
+        {TABS.map(({ id, label, roman }) => {
+          const active = tab === id
+          return (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className="flex-1 group flex flex-col items-center gap-1.5 py-3 transition-colors"
+            >
+              <span className="flex items-baseline gap-2">
+                <RomanNumeral
+                  value={roman}
+                  className={clsx(
+                    'text-sm transition-colors',
+                    active ? 'text-gold' : 'text-muted-light group-hover:text-gold-light'
+                  )}
+                />
+                <SmallCaps
+                  tone={active ? 'gold' : 'muted'}
+                  tracking="luxury"
+                  size="sm"
+                >
+                  {label}
+                </SmallCaps>
+              </span>
+              <span
+                className={clsx(
+                  'h-px w-10 transition-colors',
+                  active ? 'bg-gold' : 'bg-transparent'
+                )}
+              />
+            </button>
+          )
+        })}
       </div>
 
       {/* Items */}
-      <div className="px-5 py-3 space-y-1">
+      <div className="px-3 py-3 space-y-1">
         {tab === 'daily' && isWeekday && weeklyTomorrow.length > 0 && (
-          <div className="pb-1">
-            <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest px-3 pb-1">Codzienne</p>
-          </div>
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="block px-3 pb-1 pt-1">
+            codzienne
+          </SmallCaps>
         )}
+
         {items.map((item, idx) => {
           const isFirstWeekly = tab === 'daily' && weeklyTomorrow.length > 0 && idx === dailyBase.length
           const isStudyItem   = tab === 'daily' && item.id === studyItem.id
           const done = tomorrowLog?.completedRoutine?.includes(item.id) ?? false
+
           return (
             <div key={item.id}>
               {isFirstWeekly && (
-                <div className="pt-2 pb-1">
-                  <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest px-3 pb-1">{tomorrowName}</p>
-                </div>
+                <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="block px-3 pb-1 pt-3">
+                  {tomorrowName}
+                </SmallCaps>
               )}
               {isStudyItem && (
-                <div className="pt-2 pb-1">
-                  <p className="font-sans text-[10px] text-muted-light uppercase tracking-widest px-3 pb-1">
-                    Temat tygodnia · {studyLabel}
-                  </p>
-                </div>
+                <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="block px-3 pb-1 pt-3">
+                  temat tygodnia · {studyLabel}
+                </SmallCaps>
               )}
               <button
                 onClick={() => toggleTomorrowRoutine(item.id, item.xp)}
                 className={clsx(
-                  'w-full flex items-start gap-3 px-3 py-3 rounded-xl text-left transition-all group',
-                  done ? 'bg-gold-pale' : 'hover:bg-cream'
+                  'w-full flex items-center gap-3 px-3 py-3 text-left transition-all group',
+                  done ? 'bg-gold-pale/60' : 'hover:bg-cream'
                 )}
               >
-                <div className={clsx(
-                  'flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 transition-all',
-                  done ? 'bg-gold border-gold' : 'border-border group-hover:border-gold/50'
-                )}>
-                  {done && <Check size={11} className="text-white" strokeWidth={2.5} />}
-                </div>
-                <p className={clsx(
-                  'font-sans text-sm leading-snug flex-1',
-                  done ? 'text-muted line-through' : 'text-dark'
-                )}>
+                <span
+                  className={clsx(
+                    'flex-shrink-0 transition-all',
+                    done ? 'text-gold' : 'text-hairline group-hover:text-gold-light'
+                  )}
+                >
+                  <Diamond size={10} filled={done} />
+                </span>
+                <p
+                  className={clsx(
+                    'font-serif-body text-[14.5px] leading-snug flex-1',
+                    done ? 'text-muted italic line-through decoration-1' : 'text-dark'
+                  )}
+                >
                   {item.text}
                 </p>
-                <span className={clsx(
-                  'text-[11px] font-sans flex-shrink-0 mt-0.5',
-                  done ? 'text-gold' : 'text-muted-light'
-                )}>
-                  +{item.xp}
-                </span>
+                <SmallCaps
+                  tone={done ? 'gold' : 'muted'}
+                  tracking="luxury"
+                  size="xs"
+                >
+                  + {item.xp}
+                </SmallCaps>
               </button>
             </div>
           )
@@ -161,10 +204,11 @@ export default function TomorrowChecklist() {
       </div>
 
       {progress === 100 && (
-        <div className="mx-5 mb-4">
-          <div className="rounded-xl px-4 py-2.5 text-center bg-gold-pale">
-            <p className="font-serif text-sm text-gold">Rutyna na jutro gotowa ✦</p>
-          </div>
+        <div className="mx-5 mb-5 border border-gold-light/30 px-5 py-3 text-center">
+          <Fleuron size={10} className="text-gold inline-block mb-1" />
+          <p className="font-serif-body italic text-gold-deep text-[14px] leading-snug">
+            rutyna na jutro gotowa — przygotowana w cichym porządku.
+          </p>
         </div>
       )}
     </div>

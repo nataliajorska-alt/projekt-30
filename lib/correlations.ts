@@ -67,6 +67,44 @@ function weekday(dateKey: string): number {
   return new Date(y, m - 1, d).getDay()
 }
 
+function questDoneAny(log: DailyLog): boolean {
+  return (log.completedDailyQuests?.length ?? 0) > 0
+}
+
+function sideQuestDone(log: DailyLog): boolean {
+  return (log.completedSideQuests?.length ?? 0) > 0
+    || (log.customSideQuests?.length ?? 0) > 0
+}
+
+function hasCigarettes(log: DailyLog): boolean {
+  return (log.cigarettes?.length ?? 0) > 0
+}
+
+function hasSocial(log: DailyLog): boolean {
+  return log.socialPresence === true
+}
+
+function rulesKept(log: DailyLog): boolean {
+  return (log.keptRules?.length ?? 0) > 0
+}
+
+// Iterate consecutive (yesterday, today) pairs only — skip gaps in logging.
+function consecutivePairs(
+  logs: Record<string, DailyLog>
+): Array<{ prev: DailyLog; today: DailyLog }> {
+  const keys = Object.keys(logs).sort()
+  const out: Array<{ prev: DailyLog; today: DailyLog }> = []
+  for (let i = 1; i < keys.length; i++) {
+    const prevKey = keys[i - 1]
+    const todayKey = keys[i]
+    const diff = Math.round(
+      (new Date(todayKey).getTime() - new Date(prevKey).getTime()) / 86400000
+    )
+    if (diff === 1) out.push({ prev: logs[prevKey], today: logs[todayKey] })
+  }
+  return out
+}
+
 // ── Result types ─────────────────────────────────────────────────────────────
 
 export interface ComparisonInsight {
@@ -278,6 +316,22 @@ export function computeCorrelations(logs: Record<string, DailyLog>): Correlation
       && lowXP.length >= MIN_PER_GROUP,
   })
 
+  // ─ 9. Papierosy → nastrój (faza 1 = obserwacja, bez oceny) ──────────────
+  const cigsWith    = withMood.filter(hasCigarettes)
+  const cigsWithout = withMood.filter(l => !hasCigarettes(l))
+  insights.push({
+    type: 'comparison', id: 'cigarettes_mood',
+    icon: '🚬', title: 'Papierosy → nastrój',
+    withLabel: 'Dni z papierosami', withoutLabel: 'Dni bez papierosów',
+    metric: 'mood',
+    withValue:    avg(cigsWith.map(logAvgMood)),
+    withoutValue: avg(cigsWithout.map(logAvgMood)),
+    withCount: cigsWith.length, withoutCount: cigsWithout.length,
+    hasEnoughData: withMood.length >= MIN_TOTAL
+      && cigsWith.length >= MIN_PER_GROUP
+      && cigsWithout.length >= MIN_PER_GROUP,
+  })
+
   // ── Lift insights — controlled directional comparisons ──────────────────────
   // Only days with ≥2 check-ins (so we can measure within-day lift).
   const withLift = Object.values(logs).filter(
@@ -355,6 +409,91 @@ export function computeCorrelations(logs: Record<string, DailyLog>): Correlation
     })
   }
 
+  // ─ L4. Obecność społeczna → wzrost nastroju w ciągu dnia ─────────────────
+  {
+    const wSoc  = withLift.filter(hasSocial)
+    const woSoc = withLift.filter(l => !hasSocial(l))
+    const wLift  = wSoc.map(l => dayLift(l, 'mood')!).filter(v => v !== null)
+    const woLift = woSoc.map(l => dayLift(l, 'mood')!).filter(v => v !== null)
+    insights.push({
+      type: 'lift', id: 'lift_social_mood',
+      icon: '👥', title: 'Czy obecność ludzi podnosi nastrój?',
+      subtitle: 'Wzrost nastroju w ciągu dnia w zależności od tego, czy był kontakt z kimś.',
+      metric: 'mood',
+      withLabel: 'W dni z kontaktem',
+      withoutLabel: 'W dni samotne',
+      withLift: avg(wLift), withoutLift: avg(woLift),
+      withCount: wLift.length, withoutCount: woLift.length,
+      hasEnoughData: withLift.length >= MIN_LIFT_TOTAL
+        && wLift.length >= MIN_LIFT_GROUP
+        && woLift.length >= MIN_LIFT_GROUP,
+    })
+  }
+
+  // ─ L5. Side quest → wzrost nastroju w ciągu dnia ─────────────────────────
+  {
+    const wSq  = withLift.filter(sideQuestDone)
+    const woSq = withLift.filter(l => !sideQuestDone(l))
+    const wLift  = wSq.map(l => dayLift(l, 'mood')!).filter(v => v !== null)
+    const woLift = woSq.map(l => dayLift(l, 'mood')!).filter(v => v !== null)
+    insights.push({
+      type: 'lift', id: 'lift_sidequest_mood',
+      icon: '🎯', title: 'Czy side quest realnie podnosi nastrój?',
+      subtitle: 'Wzrost nastroju w dni, gdy pchnęłaś się poza rutynę vs gdy zostałaś przy minimum.',
+      metric: 'mood',
+      withLabel: 'Z side questem',
+      withoutLabel: 'Bez side questa',
+      withLift: avg(wLift), withoutLift: avg(woLift),
+      withCount: wLift.length, withoutCount: woLift.length,
+      hasEnoughData: withLift.length >= MIN_LIFT_TOTAL
+        && wLift.length >= MIN_LIFT_GROUP
+        && woLift.length >= MIN_LIFT_GROUP,
+    })
+  }
+
+  // ─ L6. Dotrzymane zasady → wzrost nastroju w ciągu dnia ──────────────────
+  {
+    const wR  = withLift.filter(rulesKept)
+    const woR = withLift.filter(l => !rulesKept(l))
+    const wLift  = wR.map(l => dayLift(l, 'mood')!).filter(v => v !== null)
+    const woLift = woR.map(l => dayLift(l, 'mood')!).filter(v => v !== null)
+    insights.push({
+      type: 'lift', id: 'lift_rules_mood',
+      icon: '🛡️', title: 'Czy trzymanie zasad podnosi nastrój?',
+      subtitle: 'Czy nastrój ROŚNIE w dni z dotrzymanymi zasadami — nie tylko czy jest wyższy.',
+      metric: 'mood',
+      withLabel: 'Z dotrzymanymi zasadami',
+      withoutLabel: 'Bez',
+      withLift: avg(wLift), withoutLift: avg(woLift),
+      withCount: wLift.length, withoutCount: woLift.length,
+      hasEnoughData: withLift.length >= MIN_LIFT_TOTAL
+        && wLift.length >= MIN_LIFT_GROUP
+        && woLift.length >= MIN_LIFT_GROUP,
+    })
+  }
+
+  // ─ L7. Quest dnia zrobiony → wzrost nastroju ─────────────────────────────
+  // Test odwracający kierunek: czy quest podnosi mood, czy mood sprawia że robisz quest?
+  {
+    const wQ  = withLift.filter(questDoneAny)
+    const woQ = withLift.filter(l => !questDoneAny(l))
+    const wLift  = wQ.map(l => dayLift(l, 'mood')!).filter(v => v !== null)
+    const woLift = woQ.map(l => dayLift(l, 'mood')!).filter(v => v !== null)
+    insights.push({
+      type: 'lift', id: 'lift_dailyquest_mood',
+      icon: '◆', title: 'Czy quest dnia realnie podnosi nastrój?',
+      subtitle: 'Test odwracający: quest powoduje wzrost — czy robisz go bo masz już dobry dzień?',
+      metric: 'mood',
+      withLabel: 'Z questem dnia',
+      withoutLabel: 'Bez questa dnia',
+      withLift: avg(wLift), withoutLift: avg(woLift),
+      withCount: wLift.length, withoutCount: woLift.length,
+      hasEnoughData: withLift.length >= MIN_LIFT_TOTAL
+        && wLift.length >= MIN_LIFT_GROUP
+        && woLift.length >= MIN_LIFT_GROUP,
+    })
+  }
+
   // ── Carryover — yesterday's evening → today's morning ──────────────────────
   // For each pair of consecutive logged days, compare today's first check-in
   // depending on whether yesterday had evening routine done.
@@ -388,6 +527,78 @@ export function computeCorrelations(logs: Record<string, DailyLog>): Correlation
       withCount: wMornings.length, withoutCount: woMornings.length,
       hasEnoughData: wMornings.length >= MIN_LIFT_GROUP
         && woMornings.length >= MIN_LIFT_GROUP,
+    })
+  }
+
+  // ─ C2. Wieczór z rutyną → poranna ENERGIA następnego dnia ────────────────
+  {
+    const pairs = consecutivePairs(logs)
+    const w: number[] = []
+    const wo: number[] = []
+    for (const { prev, today } of pairs) {
+      const first = firstCheckIn(today)
+      if (!first) continue
+      if (isEveningDone(prev)) w.push(first.energy)
+      else wo.push(first.energy)
+    }
+    insights.push({
+      type: 'carryover', id: 'carryover_evening_energy',
+      icon: '🌙→⚡', title: 'Wieczór → poranna energia',
+      subtitle: 'Czy rutyna wieczorna regeneruje — wpływa na energię, nie tylko nastrój następnego dnia.',
+      metric: 'energy',
+      withLabel: 'Po wieczorach z rutyną',
+      withoutLabel: 'Po wieczorach bez rutyny',
+      withMorning: avg(w), withoutMorning: avg(wo),
+      withCount: w.length, withoutCount: wo.length,
+      hasEnoughData: w.length >= MIN_LIFT_GROUP && wo.length >= MIN_LIFT_GROUP,
+    })
+  }
+
+  // ─ C3. Aktywność wczoraj → poranna energia dziś ──────────────────────────
+  {
+    const pairs = consecutivePairs(logs)
+    const w: number[] = []
+    const wo: number[] = []
+    for (const { prev, today } of pairs) {
+      const first = firstCheckIn(today)
+      if (!first) continue
+      if (prev.physicalActivity === true) w.push(first.energy)
+      else wo.push(first.energy)
+    }
+    insights.push({
+      type: 'carryover', id: 'carryover_activity_energy',
+      icon: '🏃→🌅', title: 'Aktywność wczoraj → energia rano',
+      subtitle: 'Czy wczorajszy ruch przekłada się na poranną energię dnia następnego?',
+      metric: 'energy',
+      withLabel: 'Po dniach z aktywnością',
+      withoutLabel: 'Po dniach bez aktywności',
+      withMorning: avg(w), withoutMorning: avg(wo),
+      withCount: w.length, withoutCount: wo.length,
+      hasEnoughData: w.length >= MIN_LIFT_GROUP && wo.length >= MIN_LIFT_GROUP,
+    })
+  }
+
+  // ─ C4. Wysoki XP wczoraj → poranna energia dziś (sustainable pace) ───────
+  {
+    const pairs = consecutivePairs(logs)
+    const w: number[] = []
+    const wo: number[] = []
+    for (const { prev, today } of pairs) {
+      const first = firstCheckIn(today)
+      if (!first) continue
+      if ((prev.totalXP ?? 0) > medianXP) w.push(first.energy)
+      else wo.push(first.energy)
+    }
+    insights.push({
+      type: 'carryover', id: 'carryover_xp_energy',
+      icon: '⚡→🌅', title: 'Mocny dzień wczoraj → energia rano',
+      subtitle: `Czy dni z XP > ${medianXP} regenerują, czy zużywają? Test trwałego tempa.`,
+      metric: 'energy',
+      withLabel: 'Po dniach z wysokim XP',
+      withoutLabel: 'Po dniach spokojnych',
+      withMorning: avg(w), withoutMorning: avg(wo),
+      withCount: w.length, withoutCount: wo.length,
+      hasEnoughData: w.length >= MIN_LIFT_GROUP && wo.length >= MIN_LIFT_GROUP,
     })
   }
 

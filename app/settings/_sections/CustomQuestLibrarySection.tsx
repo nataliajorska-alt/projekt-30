@@ -1,33 +1,8 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword,
-} from 'firebase/auth'
-import { LogOut, Lock, Mail, Download, Printer, Sun, Moon, Sparkles, Plus, X, RotateCcw, Bell, Phone, ShieldAlert, Swords, BrainCircuit } from 'lucide-react'
-import { useNominatedContacts } from '@/hooks/useNominatedContacts'
+import { useState } from 'react'
+import { Plus, X, Swords } from 'lucide-react'
 import { useCustomQuestLibrary } from '@/hooks/useCustomQuestLibrary'
-import type { NominatedContact } from '@/types'
-import { exportLogsAsCSV, exportQuestsAsCSV, exportReviewsAsCSV, exportStatsAsCSV, exportAllAsCSV, exportAsMarkdown } from '@/lib/exportData'
-import type { DateRange } from '@/lib/exportData'
-import { useRoutineConfig } from '@/hooks/useRoutineConfig'
-import { useSparkSchedule } from '@/hooks/useSparkSchedule'
-import { useGameData } from '@/hooks/useGameData'
-import {
-  loadPreferences,
-  savePreferences,
-  requestPermission,
-  getPermissionStatus,
-  scheduleWithTimeout,
-  scheduleRemindersViaSW,
-  DEFAULT_PREFERENCES,
-  type NotificationPreferences,
-  type ReminderType,
-} from '@/lib/notifications'
-import clsx from 'clsx'
+import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
 
 export default function CustomQuestLibrarySection() {
   const { quests, loading, addQuest, removeQuest } = useCustomQuestLibrary()
@@ -49,31 +24,38 @@ export default function CustomQuestLibrarySection() {
   if (loading) return null
 
   return (
-    <div className="bg-white rounded-2xl shadow-elegant p-6">
-      <h2 className="font-serif text-lg text-dark mb-1 flex items-center gap-2">
-        <Swords size={18} strokeWidth={1.5} className="text-gold" />
-        Moje side questy
-      </h2>
-      <p className="font-sans text-xs text-muted mb-5">
-        Wpisuj pomysły na side questy gdy coś Ci przyjdzie do głowy. Trafią do losowania obok standardowej biblioteki.
+    <section className="bg-ivory border border-gold-light/40 p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Swords size={14} strokeWidth={1.5} className="text-gold-deep" />
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+          Moje side questy
+        </SmallCaps>
+      </div>
+      <h2 className="font-heading text-dark text-xl mt-1">Biblioteka pomysłów</h2>
+      <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5 leading-relaxed">
+        wpisuj pomysły na side questy gdy coś ci przyjdzie do głowy.
+        trafią do losowania obok standardowej biblioteki.
       </p>
 
       {quests.length > 0 && (
         <div className="space-y-2 mb-4">
           {quests.map(q => (
-            <div key={q.id} className="flex items-start gap-3 bg-cream/50 rounded-xl px-4 py-3">
+            <div key={q.id} className="flex items-start gap-3 bg-cream/40 border border-hairline px-4 py-3">
+              <Diamond size={5} className="text-gold mt-1.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="font-sans text-sm text-dark font-medium">{q.title}</p>
+                <p className="font-heading text-dark text-[14px]">{q.title}</p>
                 {q.description && (
-                  <p className="font-sans text-xs text-muted mt-0.5 leading-relaxed">{q.description}</p>
+                  <p className="font-serif-body italic text-muted text-[12.5px] mt-1 leading-relaxed">
+                    {q.description}
+                  </p>
                 )}
               </div>
               <button
                 onClick={() => removeQuest(q.id)}
-                className="text-muted hover:text-red-500 transition-colors flex-shrink-0 mt-0.5"
+                className="text-muted hover:text-red-500 transition-colors shrink-0 mt-0.5"
                 aria-label="Usuń quest"
               >
-                <X size={14} strokeWidth={1.5} />
+                <X size={12} strokeWidth={1.5} />
               </button>
             </div>
           ))}
@@ -81,59 +63,65 @@ export default function CustomQuestLibrarySection() {
       )}
 
       {quests.length === 0 && !adding && (
-        <p className="font-sans text-xs text-muted-light italic mb-4">
-          Brak własnych questów. Dodaj pierwszy pomysł poniżej.
+        <p className="font-serif-body italic text-muted-light text-[13px] mb-4">
+          brak własnych questów. dodaj pierwszy pomysł poniżej.
         </p>
       )}
 
       {adding ? (
-        <div className="border border-border rounded-xl p-4 space-y-3">
+        <div className="border border-hairline p-4 space-y-3">
           <input
             type="text"
             value={newTitle}
             onChange={e => setNewTitle(e.target.value)}
-            placeholder="Nazwa questa..."
+            placeholder="nazwa questa…"
             maxLength={80}
             autoFocus
-            className="w-full border border-border rounded-xl px-4 py-2.5 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors"
+            className="w-full border border-hairline bg-cream/40 px-4 py-2.5 font-serif-body text-[14px] text-dark focus:outline-none focus:border-gold transition-colors"
           />
           <textarea
             rows={2}
             value={newDesc}
             onChange={e => setNewDesc(e.target.value)}
-            placeholder="Opis (opcjonalnie)..."
+            placeholder="opis (opcjonalnie)…"
             maxLength={200}
-            className="w-full border border-border rounded-xl px-4 py-2.5 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors resize-none"
+            className="w-full border border-hairline bg-cream/40 px-4 py-2.5 font-serif-body italic text-[14px] text-dark focus:outline-none focus:border-gold transition-colors resize-none"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <button
               onClick={() => { setAdding(false); setNewTitle(''); setNewDesc('') }}
-              className="font-sans text-xs text-muted hover:text-dark transition-colors"
+              className="font-ui uppercase tracking-luxury text-[10px] text-muted-light hover:text-dark transition-colors"
             >
-              Anuluj
+              anuluj
             </button>
+            <div className="flex-1" />
             <button
               onClick={handleAdd}
               disabled={!newTitle.trim() || saving}
-              className="bg-dark text-ivory font-sans text-xs py-2 px-4 rounded-lg hover:bg-forest transition-colors disabled:opacity-60 font-medium"
+              className="bg-dark-deep text-ivory border border-gold py-2 px-4 hover:bg-forest transition-colors disabled:opacity-60 flex items-center gap-2"
             >
-              {saving ? '...' : 'Dodaj'}
+              {saving ? (
+                <Fleuron size={9} className="text-gold animate-pulse" />
+              ) : (
+                <Diamond size={4} className="text-gold" />
+              )}
+              <SmallCaps tone="ivory" tracking="luxury" size="xs">
+                {saving ? '…' : 'dodaj'}
+              </SmallCaps>
             </button>
           </div>
         </div>
       ) : (
         <button
           onClick={() => setAdding(true)}
-          className="flex items-center gap-2 text-xs font-sans text-muted hover:text-gold transition-colors"
+          className="flex items-center gap-2 text-muted hover:text-gold-deep transition-colors"
         >
-          <Plus size={14} strokeWidth={1.5} />
-          Dodaj pomysł na quest
+          <Plus size={12} strokeWidth={1.5} />
+          <SmallCaps tone="muted" tracking="luxury" size="xs">
+            dodaj pomysł na quest
+          </SmallCaps>
         </button>
       )}
-    </div>
+    </section>
   )
 }
-
-/* ─── Iskry tygodnia ─── */
-
-const DAY_NAMES = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']

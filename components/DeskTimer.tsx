@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Play, Pause, RotateCcw } from 'lucide-react'
 import clsx from 'clsx'
+import { SmallCaps, Diamond } from '@/components/ui'
 
 const TARGET = 3600
 
@@ -92,26 +93,33 @@ export default function DeskTimer({ done, onComplete }: DeskTimerProps) {
   const remSS = ((TARGET - elapsed) % 60).toString().padStart(2, '0')
 
   return (
-    <div className="ml-11 -mt-0.5 mb-2">
+    <div className="ml-9 -mt-0.5 mb-2">
       <div className="flex items-center gap-3">
         {/* Circular progress */}
         <div className="relative flex-shrink-0">
-          <svg viewBox="0 0 32 32" className="w-8 h-8 -rotate-90">
-            <circle cx="16" cy="16" r="12" fill="none" stroke="#f5f0e8" strokeWidth="3" />
+          <svg viewBox="0 0 32 32" className="w-7 h-7 -rotate-90">
+            <circle cx="16" cy="16" r="13" fill="none" stroke="#C9BFB1" strokeWidth="1.2" />
             <circle
-              cx="16" cy="16" r="12"
+              cx="16" cy="16" r="13"
               fill="none"
-              stroke={isComplete ? '#6b9e7a' : '#c9a84c'}
-              strokeWidth="3"
-              strokeDasharray={`${2 * Math.PI * 12}`}
-              strokeDashoffset={`${2 * Math.PI * 12 * (1 - pct / 100)}`}
+              stroke={isComplete ? '#2C3B35' : '#B8963E'}
+              strokeWidth="1.2"
+              strokeDasharray={`${2 * Math.PI * 13}`}
+              strokeDashoffset={`${2 * Math.PI * 13 * (1 - pct / 100)}`}
               strokeLinecap="round"
               className="transition-all duration-500"
             />
           </svg>
           {running && (
             <span className="absolute inset-0 flex items-center justify-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+              <span className="text-gold animate-pulse">
+                <Diamond size={4} filled />
+              </span>
+            </span>
+          )}
+          {isComplete && (
+            <span className="absolute inset-0 flex items-center justify-center text-forest">
+              <Diamond size={5} filled />
             </span>
           )}
         </div>
@@ -119,46 +127,49 @@ export default function DeskTimer({ done, onComplete }: DeskTimerProps) {
         {/* Time display */}
         <div className="flex-1 min-w-0">
           {isComplete ? (
-            <p className="font-sans text-xs text-forest font-medium">Godzina zrobiona ✦</p>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              <span className="text-forest">Godzina zrobiona ◆</span>
+            </SmallCaps>
           ) : (
-            <p className="font-mono text-xs text-dark tabular-nums">
+            <p className="font-display text-dark text-sm tabular-nums leading-none">
               {elMM}:{elSS}
-              <span className="font-sans text-muted-light text-[10px] ml-1.5">
-                (zostało {remMM}:{remSS})
+              <span className="font-serif-body italic text-muted-light text-[11px] ml-2">
+                zostało {remMM}:{remSS}
               </span>
             </p>
           )}
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {!isComplete && (
             <button
               onClick={toggle}
-              className="h-6 px-2.5 rounded-full flex items-center gap-1 bg-gold/10 hover:bg-gold/20 text-gold transition-colors text-[10px] font-sans"
+              className="flex items-center gap-1.5 border border-gold-light/60 hover:border-gold px-2.5 py-1 text-gold-deep transition-colors"
             >
-              {running
-                ? <><Pause size={9} strokeWidth={2} />pauza</>
-                : <><Play size={9} strokeWidth={2} />start</>
-              }
+              {running ? <Pause size={9} strokeWidth={2} /> : <Play size={9} strokeWidth={2} />}
+              <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+                {running ? 'pauza' : 'start'}
+              </SmallCaps>
             </button>
           )}
           {elapsed > 0 && !isComplete && (
             <button
               onClick={reset}
-              className="w-6 h-6 rounded-full flex items-center justify-center bg-cream hover:bg-cream/80 text-muted-light transition-colors"
+              className="w-6 h-6 border border-hairline flex items-center justify-center text-muted hover:border-gold-light hover:text-gold-deep transition-colors"
+              aria-label="Reset"
             >
-              <RotateCcw size={9} strokeWidth={2} />
+              <RotateCcw size={9} strokeWidth={1.5} />
             </button>
           )}
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="mt-1.5 h-0.5 bg-cream rounded-full overflow-hidden">
+      {/* Progress hairline */}
+      <div className="mt-2 relative h-px w-full bg-hairline">
         <div
           className={clsx(
-            'h-full rounded-full transition-all duration-500',
+            'absolute left-0 top-0 h-px transition-all duration-500',
             isComplete ? 'bg-forest' : 'bg-gold'
           )}
           style={{ width: `${pct}%` }}

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { PILLARS } from '@/lib/pillars'
 import type { WeeklyReview, Pillar } from '@/types'
+import { SmallCaps, Diamond } from '@/components/ui'
 
 interface Props {
   reviews: WeeklyReview[]
@@ -28,7 +29,6 @@ const Y_MAX = 5
 function yPos(val: number): number {
   return PAD_TOP + ((Y_MAX - val) / (Y_MAX - Y_MIN)) * CHART_H
 }
-
 function xPos(idx: number, total: number): number {
   if (total <= 1) return PAD_LEFT + CHART_W / 2
   return PAD_LEFT + (idx / (total - 1)) * CHART_W
@@ -39,7 +39,6 @@ interface TooltipState {
   y: number
   pillarId: Pillar
   pillarName: string
-  pillarIcon: string
   pillarColor: string
   value: number
   weekLabel: string
@@ -49,7 +48,6 @@ export default function PillarTrendChart({ reviews }: Props) {
   const [hiddenPillars, setHiddenPillars] = useState<Set<Pillar>>(new Set())
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
 
-  // Reviews come in newest-first; chart should go left=oldest, right=newest
   const sorted = [...reviews].reverse()
   const n = sorted.length
 
@@ -65,13 +63,14 @@ export default function PillarTrendChart({ reviews }: Props) {
   const gridYValues = [1, 2, 3, 4, 5]
 
   return (
-    <div
-      className="rounded-2xl border p-5 mb-5"
-      style={{ background: '#FAF8F4', borderColor: 'rgba(184,150,62,0.2)' }}
-    >
+    <div className="bg-ivory border border-gold-light/40 p-5 mb-5">
       <div className="mb-4">
-        <p className="font-sans text-[10px] uppercase tracking-widest text-muted mb-0.5">Wizualizacja</p>
-        <h3 className="font-serif text-dark text-base">Trend filarów — {n} {n === 1 ? 'tydzień' : n < 5 ? 'tygodnie' : 'tygodni'}</h3>
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+          Wizualizacja
+        </SmallCaps>
+        <h3 className="font-heading text-dark text-lg mt-1">
+          Trend filarów · {n} {n === 1 ? 'tydzień' : n < 5 ? 'tygodnie' : 'tygodni'}
+        </h3>
       </div>
 
       {/* Legend */}
@@ -82,19 +81,19 @@ export default function PillarTrendChart({ reviews }: Props) {
             <button
               key={p.id}
               onClick={() => togglePillar(p.id)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-sans text-[11px] transition-all border"
+              className="flex items-center gap-2 px-3 py-1.5 border transition-all"
               style={{
-                borderColor: hidden ? 'rgba(0,0,0,0.08)' : p.color,
-                background: hidden ? 'transparent' : p.bgColor,
-                color: hidden ? '#9E9189' : p.color,
+                borderColor: hidden ? '#C9BFB1' : p.color,
+                background: hidden ? 'transparent' : `${p.color}0F`,
                 opacity: hidden ? 0.5 : 1,
               }}
             >
-              <span
-                className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: hidden ? '#CCC' : p.color }}
-              />
-              {p.shortName}
+              <span style={{ color: hidden ? '#9E9189' : p.color }}>
+                <Diamond size={4} filled={!hidden} />
+              </span>
+              <SmallCaps tracking="luxury" size="xs">
+                <span style={{ color: hidden ? '#9E9189' : p.color }}>{p.shortName}</span>
+              </SmallCaps>
             </button>
           )
         })}
@@ -108,7 +107,6 @@ export default function PillarTrendChart({ reviews }: Props) {
           style={{ minWidth: 280, display: 'block' }}
           onMouseLeave={() => setTooltip(null)}
         >
-          {/* Horizontal gridlines */}
           {gridYValues.map(v => (
             <g key={v}>
               <line
@@ -116,8 +114,9 @@ export default function PillarTrendChart({ reviews }: Props) {
                 x2={PAD_LEFT + CHART_W}
                 y1={yPos(v)}
                 y2={yPos(v)}
-                stroke="rgba(184,150,62,0.12)"
-                strokeWidth={1}
+                stroke="#C9BFB1"
+                strokeWidth={0.5}
+                strokeDasharray="2 3"
               />
               <text
                 x={PAD_LEFT - 6}
@@ -125,14 +124,13 @@ export default function PillarTrendChart({ reviews }: Props) {
                 textAnchor="end"
                 fontSize={9}
                 fill="#9E9189"
-                fontFamily="DM Sans, sans-serif"
+                fontFamily="Instrument Sans, sans-serif"
               >
                 {v}
               </text>
             </g>
           ))}
 
-          {/* X-axis labels */}
           {sorted.map((r, idx) => (
             <text
               key={r.weekStart}
@@ -141,13 +139,12 @@ export default function PillarTrendChart({ reviews }: Props) {
               textAnchor="middle"
               fontSize={9}
               fill="#9E9189"
-              fontFamily="DM Sans, sans-serif"
+              fontFamily="Instrument Sans, sans-serif"
             >
               {formatWeekLabel(r.weekStart)}
             </text>
           ))}
 
-          {/* Lines per pillar */}
           {PILLARS.map(pillar => {
             if (hiddenPillars.has(pillar.id)) return null
             const points = sorted.map((r, idx) => {
@@ -156,7 +153,6 @@ export default function PillarTrendChart({ reviews }: Props) {
               return { x: xPos(idx, n), y: yPos(val), val, weekLabel: formatWeekLabel(r.weekStart), idx }
             })
 
-            // Build path with gaps for missing data
             const segments: string[] = []
             let currentPath = ''
             for (let i = 0; i < points.length; i++) {
@@ -178,7 +174,7 @@ export default function PillarTrendChart({ reviews }: Props) {
                     d={d}
                     fill="none"
                     stroke={pillar.color}
-                    strokeWidth={2}
+                    strokeWidth={1.5}
                     strokeLinejoin="round"
                     strokeLinecap="round"
                   />
@@ -186,34 +182,36 @@ export default function PillarTrendChart({ reviews }: Props) {
                 {points.map((pt, i) => {
                   if (!pt) return null
                   return (
-                    <circle
-                      key={i}
-                      cx={pt.x}
-                      cy={pt.y}
-                      r={4}
-                      fill={pillar.color}
-                      stroke="#FAF8F4"
-                      strokeWidth={2}
-                      style={{ cursor: 'pointer' }}
-                      onMouseEnter={(e) => {
-                        const svg = (e.target as SVGElement).closest('svg')!
-                        const rect = svg.getBoundingClientRect()
-                        const svgW = rect.width
-                        const scaleX = svgW / SVG_WIDTH
-                        const scaleY = rect.height / SVG_HEIGHT
-                        setTooltip({
-                          x: pt.x * scaleX,
-                          y: pt.y * scaleY,
-                          pillarId: pillar.id,
-                          pillarName: pillar.name,
-                          pillarIcon: pillar.icon,
-                          pillarColor: pillar.color,
-                          value: pt.val,
-                          weekLabel: pt.weekLabel,
-                        })
-                      }}
-                      onMouseLeave={() => setTooltip(null)}
-                    />
+                    <g key={i}>
+                      {/* Diamond marker — rotate 45 square */}
+                      <rect
+                        x={pt.x - 3.5}
+                        y={pt.y - 3.5}
+                        width={7}
+                        height={7}
+                        fill={pillar.color}
+                        transform={`rotate(45 ${pt.x} ${pt.y})`}
+                        stroke="#FAF8F4"
+                        strokeWidth={1.2}
+                        style={{ cursor: 'pointer' }}
+                        onMouseEnter={(e) => {
+                          const svg = (e.target as SVGElement).closest('svg')!
+                          const rect = svg.getBoundingClientRect()
+                          const scaleX = rect.width / SVG_WIDTH
+                          const scaleY = rect.height / SVG_HEIGHT
+                          setTooltip({
+                            x: pt.x * scaleX,
+                            y: pt.y * scaleY,
+                            pillarId: pillar.id,
+                            pillarName: pillar.name,
+                            pillarColor: pillar.color,
+                            value: pt.val,
+                            weekLabel: pt.weekLabel,
+                          })
+                        }}
+                        onMouseLeave={() => setTooltip(null)}
+                      />
+                    </g>
                   )
                 })}
               </g>
@@ -225,22 +223,24 @@ export default function PillarTrendChart({ reviews }: Props) {
       {/* Tooltip */}
       <div className="mt-3 min-h-[28px]">
         {tooltip ? (
-          <div
-            className="inline-flex items-center gap-2 bg-white rounded-xl border px-3 py-1.5 shadow-elegant text-xs font-sans"
-            style={{ borderColor: 'rgba(184,150,62,0.25)' }}
-          >
-            <span>{tooltip.pillarIcon}</span>
-            <span className="text-dark font-medium">{tooltip.pillarName}</span>
-            <span
-              className="font-serif font-medium text-sm"
-              style={{ color: tooltip.pillarColor }}
-            >
+          <div className="inline-flex items-center gap-2.5 bg-ivory border border-gold-light/40 px-3 py-1.5">
+            <span style={{ color: tooltip.pillarColor }}>
+              <Diamond size={4} filled />
+            </span>
+            <SmallCaps tracking="luxury" size="xs">
+              <span style={{ color: tooltip.pillarColor }}>{tooltip.pillarName}</span>
+            </SmallCaps>
+            <span className="font-display text-sm" style={{ color: tooltip.pillarColor }}>
               {tooltip.value}/5
             </span>
-            <span className="text-muted-light">{tooltip.weekLabel}</span>
+            <SmallCaps tone="muted" size="xs">
+              {tooltip.weekLabel}
+            </SmallCaps>
           </div>
         ) : (
-          <p className="text-[11px] font-sans text-muted-light">Najedź na punkt, aby zobaczyć ocenę</p>
+          <p className="font-serif-body italic text-muted-light text-[12px]">
+            najedź na punkt, aby zobaczyć ocenę
+          </p>
         )}
       </div>
     </div>

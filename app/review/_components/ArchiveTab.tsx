@@ -1,24 +1,12 @@
 'use client'
-import { useState, useMemo } from 'react'
-import { useGameData } from '@/hooks/useGameData'
-import { useAuth } from '@/hooks/useAuth'
-import { useTimelineData } from '@/hooks/useTimelineData'
-import { PILLARS } from '@/lib/pillars'
-import { Pillar } from '@/types'
-import { db } from '@/lib/firebase'
-import { doc, setDoc } from 'firebase/firestore'
-import { getDaysElapsed, getDaysRemaining, getMonthKey, XP_VALUES } from '@/lib/gameLogic'
-import { getMonthAggregate, getRoutineItemCounts, getCompletedSideQuestDates, getRuleKeptCounts, aggregateXpByMonth } from '@/lib/analytics'
-import { MORNING_ROUTINE, EVENING_ROUTINE, DAILY_RULES, DAILY_HABITS, WEEKLY_HABITS } from '@/lib/routineData'
-import { SIDE_QUESTS } from '@/lib/questData'
-import { CheckCircle, Check, ChevronLeft, ChevronRight, ChevronDown, Eye, EyeOff } from 'lucide-react'
-import { useReviewHistory } from '@/hooks/useReviewHistory'
-import type { WeeklyReview, MonthlyReview } from '@/types'
-import PillarTrendChart from '@/components/PillarTrendChart'
+import { useState } from 'react'
 import clsx from 'clsx'
+import { useTimelineData } from '@/hooks/useTimelineData'
+import type { WeeklyReview, MonthlyReview } from '@/types'
 import ReviewHistoryTab from './ReviewHistoryTab'
 import MonthlySummaryTab from './MonthlySummaryTab'
 import SideQuestHistoryTab from './SideQuestHistoryTab'
+import { SmallCaps, RomanNumeral } from '@/components/ui'
 
 type ArchiveSubTab = 'przeglądy' | 'statystyki' | 'sidequesty'
 
@@ -29,31 +17,52 @@ interface ArchiveTabProps {
   loading: boolean
 }
 
+const SUB_TABS: { key: ArchiveSubTab; label: string; roman: number }[] = [
+  { key: 'przeglądy',   label: 'Przeglądy',   roman: 1 },
+  { key: 'statystyki',  label: 'Statystyki',  roman: 2 },
+  { key: 'sidequesty',  label: 'Side questy', roman: 3 },
+]
+
 export default function ArchiveTab({ logs, weeklyReviews, monthlyReviews, loading }: ArchiveTabProps) {
   const [sub, setSub] = useState<ArchiveSubTab>('przeglądy')
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        {([
-          { key: 'przeglądy' as const, label: 'Przeglądy' },
-          { key: 'statystyki' as const, label: 'Statystyki' },
-          { key: 'sidequesty' as const, label: 'Side questy' },
-        ]).map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setSub(key)}
-            className={clsx(
-              'flex-1 py-2 rounded-xl font-sans text-xs transition-all',
-              sub === key
-                ? 'bg-dark text-ivory'
-                : 'bg-white border border-border text-muted hover:bg-cream'
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <nav className="flex justify-center gap-8 md:gap-10">
+        {SUB_TABS.map(({ key, label, roman }) => {
+          const active = sub === key
+          return (
+            <button
+              key={key}
+              onClick={() => setSub(key)}
+              className="group flex flex-col items-center gap-1.5"
+            >
+              <span className="flex items-baseline gap-2">
+                <RomanNumeral
+                  value={roman}
+                  className={clsx(
+                    'text-sm transition-colors',
+                    active ? 'text-gold' : 'text-muted-light group-hover:text-gold-light'
+                  )}
+                />
+                <SmallCaps
+                  tone={active ? 'gold' : 'muted'}
+                  tracking="luxury"
+                  size="sm"
+                >
+                  {label}
+                </SmallCaps>
+              </span>
+              <span
+                className={clsx(
+                  'h-px w-10 transition-colors',
+                  active ? 'bg-gold' : 'bg-transparent'
+                )}
+              />
+            </button>
+          )
+        })}
+      </nav>
 
       {sub === 'przeglądy' && (
         <ReviewHistoryTab
@@ -67,5 +76,3 @@ export default function ArchiveTab({ logs, weeklyReviews, monthlyReviews, loadin
     </div>
   )
 }
-
-// ---------- All-time side quest history ----------

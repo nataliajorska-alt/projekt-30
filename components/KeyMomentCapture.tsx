@@ -1,7 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { useGameData } from '@/hooks/useGameData'
-import { Star, X } from 'lucide-react'
+import { X } from 'lucide-react'
+import { SmallCaps, Diamond, Fleuron, GoldRule } from '@/components/ui'
 
 export default function KeyMomentCapture() {
   const { todayLog, saveKeyMoment, clearKeyMoment } = useGameData()
@@ -35,23 +36,30 @@ export default function KeyMomentCapture() {
     await clearKeyMoment()
   }
 
-  // Already marked today
+  // Already marked today — editorial inscription card
   if (existing) {
     return (
-      <div className="bg-gold-pale border border-gold/30 rounded-2xl px-4 py-3 mb-4 flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2.5 min-w-0">
-          <Star size={14} className="text-gold mt-0.5 flex-shrink-0" fill="currentColor" strokeWidth={0} />
+      <div className="relative bg-ivory border border-gold px-5 py-4 mb-4 flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3 min-w-0">
+          <Fleuron size={14} className="text-gold mt-0.5 flex-shrink-0" />
           <div className="min-w-0">
-            <p className="font-sans text-[10px] text-gold uppercase tracking-widest mb-0.5">Kluczowy moment</p>
-            <p className="font-serif text-dark text-sm truncate">{existing.title}</p>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              Kluczowy moment · zapisany
+            </SmallCaps>
+            <p className="font-heading text-dark text-base mt-1 truncate">
+              {existing.title}
+            </p>
             {existing.note && (
-              <p className="font-sans text-xs text-muted mt-0.5 line-clamp-2">{existing.note}</p>
+              <p className="font-serif-body italic text-muted text-[13px] mt-1 leading-snug line-clamp-2">
+                {existing.note}
+              </p>
             )}
           </div>
         </div>
         <button
           onClick={handleClear}
           className="text-muted-light hover:text-dark transition-colors flex-shrink-0 mt-0.5"
+          aria-label="Usuń"
         >
           <X size={14} strokeWidth={1.5} />
         </button>
@@ -61,70 +69,92 @@ export default function KeyMomentCapture() {
 
   return (
     <>
-      {/* Subtle trigger */}
+      {/* Subtle trigger — editorial */}
       <button
         onClick={() => setOpen(true)}
-        className="w-full mb-4 flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-gold/30 text-gold/60 hover:border-gold/60 hover:text-gold transition-all font-sans text-xs tracking-wide"
+        className="w-full mb-4 flex items-center justify-center gap-3 py-3 border border-dashed border-gold/40 hover:border-gold transition-all group"
       >
-        <Star size={12} strokeWidth={1.5} />
-        <span>Oznacz ten dzień jako kluczowy moment</span>
+        <Fleuron size={10} className="text-gold/70 group-hover:text-gold transition-colors" />
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+          Oznacz ten dzień jako kluczowy moment
+        </SmallCaps>
+        <Fleuron size={10} className="text-gold/70 group-hover:text-gold transition-colors" />
       </button>
 
       {/* Modal */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-dark/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative w-full sm:max-w-sm mx-4 mb-4 sm:mb-0 bg-ivory rounded-2xl shadow-2xl border border-cream/60 p-6 animate-slide-up">
-            <div className="flex items-start justify-between mb-4">
+          <div
+            className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          />
+          <div className="relative w-full sm:max-w-sm mx-4 mb-4 sm:mb-0 bg-ivory border border-gold-light/40 p-7 animate-slide-up">
+            <div className="flex items-start justify-between mb-5">
               <div>
-                <p className="font-sans text-[10px] text-gold uppercase tracking-widest mb-0.5">Kluczowy moment</p>
-                <h2 className="font-serif text-dark text-lg">Co się wydarzyło?</h2>
+                <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+                  Kluczowy moment
+                </SmallCaps>
+                <h2 className="font-display text-dark text-2xl mt-2 leading-tight">
+                  Co się wydarzyło?
+                </h2>
               </div>
-              <button onClick={() => setOpen(false)} className="text-muted-light hover:text-dark transition-colors mt-1">
+              <button
+                onClick={() => setOpen(false)}
+                className="text-muted-light hover:text-dark transition-colors mt-1 flex-shrink-0"
+                aria-label="Zamknij"
+              >
                 <X size={18} strokeWidth={1.5} />
               </button>
             </div>
 
-            <p className="font-sans text-xs text-muted mb-4 leading-relaxed">
-              Ten wpis trafi do Twojego Annual Report. Jeden dzień, jedno zdanie — za rok będziesz wiedziała.
+            <p className="font-serif-body italic text-muted text-[13.5px] mb-5 leading-relaxed">
+              ten wpis trafi do twojego rocznego raportu —<br />
+              jeden dzień, jedno zdanie. za rok będziesz wiedziała.
             </p>
 
             <input
               type="text"
-              placeholder="Pierwsza randka z sobą / Awans / Przełom..."
+              placeholder="pierwsza randka z sobą / awans / przełom…"
               value={title}
               onChange={e => setTitle(e.target.value.slice(0, 80))}
-              className="w-full font-serif text-dark text-base bg-cream/50 rounded-xl px-4 py-2.5 border border-cream outline-none focus:border-gold/40 mb-3 placeholder:text-muted-light/50 transition-colors"
+              className="w-full font-serif-body text-dark text-[15px] bg-cream/40 px-4 py-3 border border-hairline outline-none focus:border-gold mb-3 placeholder:text-muted-light/60 transition-colors"
               autoFocus
             />
 
             <textarea
-              placeholder="Krótka notatka (opcjonalnie)..."
+              placeholder="krótka notatka (opcjonalnie)…"
               value={note}
               onChange={e => setNote(e.target.value.slice(0, 280))}
               rows={2}
-              className="w-full font-sans text-sm text-dark bg-cream/50 rounded-xl px-4 py-2.5 border border-cream outline-none focus:border-gold/40 mb-4 placeholder:text-muted-light/50 resize-none transition-colors leading-relaxed"
+              className="w-full font-serif-body text-[14px] text-dark bg-cream/40 px-4 py-3 border border-hairline outline-none focus:border-gold mb-5 placeholder:text-muted-light/60 resize-none transition-colors leading-relaxed"
             />
 
             {error && (
-              <p className="font-sans text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3">
+              <p className="font-serif-body italic text-red-700 bg-red-50 border border-red-100 px-3 py-2 mb-4 text-[13px]">
                 {error}
               </p>
             )}
+
+            <GoldRule variant="diamond" tone="gold-deep" className="mb-5 opacity-40" />
 
             <div className="flex gap-3">
               <button
                 onClick={handleSave}
                 disabled={!title.trim() || saving}
-                className="flex-1 py-2.5 rounded-xl bg-forest text-ivory font-sans text-sm disabled:opacity-40 hover:bg-forest/90 transition-colors"
+                className="flex-1 py-3 bg-dark-deep border border-gold text-ivory disabled:opacity-40 hover:bg-forest transition-colors flex items-center justify-center gap-2"
               >
-                {saving ? 'Zapisuję...' : 'Zapisz w raporcie ✦'}
+                <Diamond size={5} className="text-gold" />
+                <SmallCaps tone="ivory" tracking="luxury" size="xs">
+                  {saving ? 'zapisuję…' : 'zapisz w raporcie'}
+                </SmallCaps>
               </button>
               <button
                 onClick={() => setOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-cream font-sans text-sm text-muted hover:text-dark transition-colors"
+                className="px-4 py-3 border border-hairline text-muted hover:text-dark hover:border-gold transition-colors"
               >
-                Anuluj
+                <SmallCaps tone="muted" tracking="luxury" size="xs">
+                  Anuluj
+                </SmallCaps>
               </button>
             </div>
           </div>

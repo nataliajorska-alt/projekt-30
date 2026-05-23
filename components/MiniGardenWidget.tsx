@@ -6,13 +6,15 @@ import {
   getGardenStage,
   getStageProgress,
 } from '@/lib/gameLogic'
+import { Diamond, SmallCaps } from '@/components/ui'
+import { toRoman } from '@/lib/romanNumerals'
 
 export default function MiniGardenWidget() {
   const { stats, loading } = useGameData()
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl shadow-elegant px-3 py-3 animate-pulse h-[68px]" />
+      <div className="bg-ivory border border-gold-light/40 px-3 py-3 animate-pulse h-[68px]" />
     )
   }
 
@@ -24,27 +26,29 @@ export default function MiniGardenWidget() {
   return (
     <Link
       href="/progress"
-      className="block bg-white rounded-2xl shadow-elegant px-3 py-3 hover:shadow-md transition-shadow h-[68px]"
+      className="block bg-ivory border border-gold-light/40 hover:border-gold px-3 py-2.5 transition-colors h-[68px]"
       aria-label={`Poziom ${lvl.level}, ${stage.stageName}. Otwórz drzewko.`}
     >
-      <div className="flex items-center gap-2.5 h-full">
+      <div className="flex items-center gap-3 h-full">
         <div
-          className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xl"
-          style={{ background: `${stage.accentColor}18` }}
+          className="flex-shrink-0 w-9 h-9 border flex items-center justify-center text-base"
+          style={{ borderColor: `${stage.accentColor}55` }}
         >
           {stage.emoji}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-sans text-[9px] uppercase tracking-widest truncate" style={{ color: stage.accentColor }}>
-            Drzewko · L{lvl.level}
-          </p>
-          <p className="font-serif text-dark text-xs leading-tight truncate mb-1">
+          <SmallCaps tracking="luxury" size="xs">
+            <span style={{ color: stage.accentColor }}>
+              Drzewko · {toRoman(lvl.level)}
+            </span>
+          </SmallCaps>
+          <p className="font-heading text-dark text-[13px] leading-tight truncate mt-0.5">
             {stage.stageName}
           </p>
-          <div className="relative h-1 bg-cream rounded-full overflow-hidden">
+          <div className="relative h-px w-full bg-hairline mt-1.5">
             <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #B8963E 0%, #D4AF6B 100%)' }}
+              className="absolute left-0 top-0 h-px transition-all duration-700"
+              style={{ width: `${pct}%`, backgroundColor: stage.accentColor }}
             />
           </div>
         </div>

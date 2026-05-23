@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { useVault } from '@/hooks/useVault'
@@ -9,16 +10,19 @@ import { useReviewHistory } from '@/hooks/useReviewHistory'
 import { useAuth } from '@/hooks/useAuth'
 import { PILLARS } from '@/lib/pillars'
 import { GHOST_TRIGGER_TAGS, MOOD_STATES } from '@/types'
-import { getLevelFromXP, LEVELS, PROJECT_END, PROJECT_START, getDaysElapsed } from '@/lib/gameLogic'
+import { getLevelFromXP, LEVELS, PROJECT_END, getDaysElapsed } from '@/lib/gameLogic'
 import { aggregateXpByMonth } from '@/lib/analytics'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Printer, Lock, Star, Camera } from 'lucide-react'
-import clsx from 'clsx'
-import type { Pillar, DailyLog } from '@/types'
+import type { Pillar } from '@/types'
+import {
+  SmallCaps, GoldRule, Fleuron, Diamond, CornerBrackets,
+} from '@/components/ui'
+import { toRoman } from '@/lib/romanNumerals'
 
 const IS_REPORT_DAY = new Date() >= PROJECT_END
-const REPORT_DATE_STR = '5 kwietnia 2027'
+const REPORT_DATE_STR = 'V · IV · MMXXVII'
 
 const PL_MONTHS = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec',
                    'Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień']
@@ -28,26 +32,30 @@ function formatMonthShort(key: string) {
   return PL_MONTHS[m - 1]?.slice(0, 3) ?? key
 }
 
-// ── Section wrapper ─────────────────────────────────────────────
-function Section({ title, subtitle, children, dark = false }: {
-  title: string; subtitle?: string; children: React.ReactNode; dark?: boolean
+// ── Section wrapper ──────────────────────────────────────────────
+
+function Section({ num, title, subtitle, children }: {
+  num: number
+  title: string
+  subtitle?: string
+  children: React.ReactNode
 }) {
   return (
-    <div className={clsx(
-      'rounded-2xl p-6 sm:p-8 mb-6 print:break-inside-avoid',
-      dark ? 'bg-dark' : 'bg-white shadow-elegant'
-    )}>
-      <div className="mb-5">
-        <p className={clsx('font-sans text-[10px] uppercase tracking-widest mb-1',
-          dark ? 'text-gold/60' : 'text-muted')}>{subtitle ?? 'Annual Report · 2026–2027'}</p>
-        <h2 className={clsx('font-serif text-xl', dark ? 'text-ivory' : 'text-dark')}>{title}</h2>
+    <section className="bg-ivory border border-gold-light/40 p-6 sm:p-8 mb-6 print:break-inside-avoid">
+      <div className="flex items-baseline gap-3 mb-2">
+        <span className="font-display text-gold-deep text-sm">{toRoman(num)}</span>
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+          {subtitle ?? 'Annual Report · MMXXVI–MMXXVII'}
+        </SmallCaps>
       </div>
+      <h2 className="font-display text-dark text-2xl leading-tight mb-5">{title}</h2>
       {children}
-    </div>
+    </section>
   )
 }
 
 // ── Annual reflection form ──────────────────────────────────────
+
 interface ReflectionFormProps {
   uid: string
   existing: Record<string, string> | null
@@ -55,11 +63,11 @@ interface ReflectionFormProps {
 
 function ReflectionForm({ uid, existing }: ReflectionFormProps) {
   const fields = [
-    { key: 'wordOfTheYear',    label: 'Jedno słowo opisujące ten rok',              placeholder: 'np. klarowność, odwaga, fundament...' },
-    { key: 'biggestLesson',    label: 'Największa lekcja tego roku',                placeholder: 'Co zrozumiałaś, czego wcześniej nie wiedziałaś?' },
-    { key: 'proudestMoment',   label: 'Z czego jesteś najbardziej dumna?',          placeholder: 'Jeden moment, który definiuje rok.' },
-    { key: 'whatChanged',      label: 'Co realnie się zmieniło?',                   placeholder: 'Konkretnie — w sobie, w relacjach, w życiu.' },
-    { key: 'letterToNext',     label: 'List do Natalii 31',                         placeholder: 'Co chcesz, żeby wiedziała idąc dalej?' },
+    { key: 'wordOfTheYear',  label: 'Jedno słowo opisujące ten rok',     placeholder: 'np. klarowność, odwaga, fundament…' },
+    { key: 'biggestLesson',  label: 'Największa lekcja tego roku',       placeholder: 'co zrozumiałaś, czego wcześniej nie wiedziałaś?' },
+    { key: 'proudestMoment', label: 'Z czego jesteś najbardziej dumna?', placeholder: 'jeden moment, który definiuje rok.' },
+    { key: 'whatChanged',    label: 'Co realnie się zmieniło?',          placeholder: 'konkretnie — w sobie, w relacjach, w życiu.' },
+    { key: 'letterToNext',   label: 'List do Natalii 31',                placeholder: 'co chcesz, żeby wiedziała idąc dalej?' },
   ]
 
   const [values, setValues] = useState<Record<string, string>>(existing ?? {})
@@ -83,13 +91,13 @@ function ReflectionForm({ uid, existing }: ReflectionFormProps) {
 
   if (!IS_REPORT_DAY) {
     return (
-      <div className="bg-dark/5 rounded-xl p-5 text-center border border-dashed border-border">
-        <Lock size={18} className="text-muted-light mx-auto mb-2" strokeWidth={1.5} />
-        <p className="font-sans text-sm text-muted">
-          Formularz refleksji otwiera się {REPORT_DATE_STR}.
-        </p>
-        <p className="font-sans text-xs text-muted-light mt-1">
-          Na razie zbieraj dane i oznaczaj kluczowe momenty.
+      <div className="bg-cream/50 border border-dashed border-hairline p-6 text-center">
+        <Lock size={16} className="text-muted-light mx-auto mb-3" strokeWidth={1.5} />
+        <SmallCaps tone="muted" tracking="luxury" size="xs">
+          formularz refleksji otwiera się {REPORT_DATE_STR}
+        </SmallCaps>
+        <p className="font-serif-body italic text-muted-light text-[12.5px] mt-2 leading-relaxed">
+          na razie zbieraj dane i oznaczaj kluczowe momenty.
         </p>
       </div>
     )
@@ -99,28 +107,34 @@ function ReflectionForm({ uid, existing }: ReflectionFormProps) {
     <div className="space-y-5">
       {fields.map(({ key, label, placeholder }) => (
         <div key={key}>
-          <label className="font-sans text-xs text-muted uppercase tracking-widest block mb-2">{label}</label>
+          <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
+            {label}
+          </SmallCaps>
           <textarea
             value={values[key] ?? ''}
             onChange={e => setValues(prev => ({ ...prev, [key]: e.target.value }))}
             placeholder={placeholder}
             rows={key === 'letterToNext' ? 5 : 3}
-            className="w-full font-sans text-sm text-dark bg-cream/50 rounded-xl px-4 py-3 border border-cream outline-none focus:border-gold/40 resize-none placeholder:text-muted-light/50 transition-colors leading-relaxed"
+            className="w-full font-serif-body italic text-[14px] text-dark bg-cream/40 px-4 py-3 border border-hairline outline-none focus:border-gold resize-none placeholder:text-muted-light/60 transition-colors leading-relaxed"
           />
         </div>
       ))}
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full py-3 rounded-xl bg-forest text-ivory font-sans text-sm hover:bg-forest/90 transition-colors disabled:opacity-50"
+        className="w-full py-3 bg-dark-deep text-ivory border border-gold hover:bg-forest transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
       >
-        {saved ? 'Zapisane ✦' : saving ? 'Zapisuję...' : 'Zapisz refleksję roczną'}
+        <Diamond size={5} className="text-gold" />
+        <SmallCaps tone="ivory" tracking="luxury" size="xs">
+          {saved ? 'zapisane ◆' : saving ? 'zapisuję…' : 'zapisz refleksję roczną'}
+        </SmallCaps>
       </button>
     </div>
   )
 }
 
-// ── Main report ─────────────────────────────────────────────────
+// ── Page ────────────────────────────────────────────────────────
+
 export default function ReportPage() {
   const { user } = useAuth()
   const { stats, loading: gameLoading } = useGameData()
@@ -128,11 +142,10 @@ export default function ReportPage() {
   const { entries: vaultEntries, loading: vaultLoading } = useVault()
   const { photos, loading: photosLoading } = usePhotos()
   const { entries: ghostEntries } = useGhostLog()
-  const { monthlyReviews } = useReviewHistory()
+  useReviewHistory()
 
   const loading = gameLoading || logsLoading || vaultLoading || photosLoading
 
-  // ── Compute all report data ─────────────────────────────────
   const {
     currentLevel, activeDays, monthlyXP, maxMonthXP,
     keyMoments, avgMood, avgEnergy, dominantState,
@@ -143,16 +156,13 @@ export default function ReportPage() {
     const activeDays = logArray.filter(l => l.totalXP > 0).length
 
     const monthly = aggregateXpByMonth(logs)
-    const monthlyXP = Object.values(monthly)
-      .sort((a, b) => a.monthKey.localeCompare(b.monthKey))
+    const monthlyXP = Object.values(monthly).sort((a, b) => a.monthKey.localeCompare(b.monthKey))
     const maxMonthXP = Math.max(1, ...monthlyXP.map(m => m.totalXP))
 
-    // Key moments: logs that have keyMoment set
     const keyMoments = logArray
       .filter(l => l.keyMoment?.title)
       .sort((a, b) => a.date.localeCompare(b.date))
 
-    // Mood averages
     const allCheckIns = logArray.flatMap(l => l.moodCheckIns ?? [])
     const avgMood = allCheckIns.length
       ? Math.round((allCheckIns.reduce((s, c) => s + c.mood, 0) / allCheckIns.length) * 10) / 10
@@ -164,14 +174,12 @@ export default function ReportPage() {
     for (const ci of allCheckIns) stateCounts[ci.state]++
     const dominantState = Object.entries(stateCounts).sort((a, b) => b[1] - a[1])[0]?.[0]
 
-    // Ghost protocol
     const tagCounts = {} as Record<string, number>
     for (const e of ghostEntries) tagCounts[e.triggerTag] = (tagCounts[e.triggerTag] ?? 0) + 1
     const topGhostTag = GHOST_TRIGGER_TAGS
       .map(t => ({ ...t, count: tagCounts[t.value] ?? 0 }))
       .sort((a, b) => b.count - a.count)[0]
 
-    // Pillars
     const pillarData = PILLARS.map(p => ({
       ...p,
       xp: stats.pillarXP[p.id as Pillar] ?? 0,
@@ -193,134 +201,156 @@ export default function ReportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-ivory flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-ivory grain-parchment flex items-center justify-center">
+        <Fleuron size={20} className="text-gold animate-pulse" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-6 pb-16 animate-fade-in">
-
-      {/* Header + print button */}
-      <div className="flex items-end justify-between mb-8 print:hidden">
-        <div>
-          <p className="font-sans text-xs text-muted uppercase tracking-widest mb-1">
-            {IS_REPORT_DAY ? 'Annual Report' : 'Annual Report — Podgląd'}
+    <div className="max-w-3xl mx-auto px-4 pt-8 pb-16 animate-fade-in">
+      {/* Header + print */}
+      <header className="flex items-end justify-between gap-4 mb-8 print:hidden">
+        <div className="min-w-0">
+          <SmallCaps tone="muted" tracking="editorial" size="xs">
+            {IS_REPORT_DAY ? 'Annual Report' : 'Annual Report · podgląd'}
+          </SmallCaps>
+          <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.75rem)] leading-tight mt-2">
+            Rok Natalii
+          </h1>
+          <p className="font-serif-body italic text-muted text-[14px] mt-2">
+            V · IV · MMXXVI → V · IV · MMXXVII
           </p>
-          <h1 className="font-serif text-dark text-2xl">Rok Natalii</h1>
-          <p className="font-sans text-sm text-muted mt-0.5">5 kwietnia 2026 → 5 kwietnia 2027</p>
         </div>
         <button
           onClick={() => window.print()}
-          className="flex items-center gap-2 px-4 py-2.5 bg-dark text-ivory rounded-xl font-sans text-sm hover:bg-forest transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-dark-deep text-ivory border border-gold hover:bg-forest transition-colors shrink-0"
         >
-          <Printer size={14} strokeWidth={1.5} />
-          Drukuj / PDF
+          <Printer size={13} strokeWidth={1.5} />
+          <SmallCaps tone="ivory" tracking="luxury" size="xs">
+            drukuj · PDF
+          </SmallCaps>
         </button>
-      </div>
+      </header>
 
       {!IS_REPORT_DAY && (
-        <div className="bg-gold-pale border border-gold/30 rounded-2xl p-4 mb-6 print:hidden">
-          <p className="font-sans text-sm text-dark leading-relaxed">
-            <span className="font-semibold">Podgląd raportu</span> — dane w czasie rzeczywistym.
-            Pełny raport będzie gotowy {REPORT_DATE_STR}. Oznaczaj kluczowe momenty każdego dnia.
+        <div className="bg-gold-pale/40 border border-gold-light/60 px-5 py-4 mb-6 print:hidden flex items-start gap-3">
+          <Diamond size={5} className="text-gold mt-1.5 shrink-0" />
+          <p className="font-serif-body italic text-dark text-[13.5px] leading-relaxed">
+            <span className="not-italic font-heading">Podgląd raportu</span> — dane w czasie rzeczywistym.
+            pełny raport będzie gotowy {REPORT_DATE_STR}. oznaczaj kluczowe momenty każdego dnia.
           </p>
         </div>
       )}
 
-      {/* ── COVER ─────────────────────────────────── */}
-      <div className="bg-dark rounded-2xl p-8 sm:p-12 mb-6 text-center relative overflow-hidden print:break-after-page">
-        <div className="absolute inset-0 opacity-5"
-          style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 20px,rgba(255,255,255,.05) 20px,rgba(255,255,255,.05) 21px)' }}
-        />
+      {/* ── COVER (ritual V2) ─────────────────────────────── */}
+      <div className="relative bg-forest-deep grain-linen text-ivory p-8 sm:p-14 mb-6 text-center print:break-after-page">
+        <div className="pointer-events-none absolute inset-3 border border-gold-light/40" />
+        <div className="pointer-events-none absolute inset-[14px] border border-gold-light/15" />
+        <div className="pointer-events-none absolute inset-6">
+          <CornerBrackets size={20} tone="gold" weight={1} />
+        </div>
+
         <div className="relative z-10">
-          <p className="font-sans text-[10px] text-gold/60 uppercase tracking-[0.3em] mb-8">
+          <SmallCaps tone="gold-light" tracking="editorial" size="xs">
             Annual Report · Projekt 30
+          </SmallCaps>
+          <Fleuron size={22} className="text-gold mx-auto my-7 inline-block" />
+          <h2 className="font-display text-ivory text-5xl sm:text-6xl leading-none mb-3">
+            Rok Natalii
+          </h2>
+          <p className="font-display text-gold-light text-xl sm:text-2xl mb-7">
+            V · IV · MMXXVI — V · IV · MMXXVII
           </p>
-          <div className="text-5xl mb-6">✦</div>
-          <h2 className="font-serif text-ivory text-4xl sm:text-5xl mb-3">Rok Natalii</h2>
-          <p className="font-sans text-ivory/40 text-sm mb-8 tracking-wide">
-            5 kwietnia 2026 — 5 kwietnia 2027
-          </p>
-          <div className="inline-block border border-gold/30 rounded-full px-6 py-2 mb-8">
-            <p className="font-serif text-gold text-lg">{levelName}</p>
+          <div className="inline-block border border-gold/50 px-7 py-2.5 mb-8">
+            <SmallCaps tone="gold" tracking="editorial" size="sm">
+              {levelName}
+            </SmallCaps>
           </div>
-          <p className="font-serif text-ivory/40 text-sm italic">
-            &ldquo;Nie musisz być jutro inna niż dziś.<br />
-            Wystarczy, że jesteś tu — i działasz.&rdquo;
+          <GoldRule variant="diamond" tone="gold" className="max-w-xs mx-auto mb-7 opacity-60" />
+          <p className="font-serif-body italic text-parchment text-[14px] leading-relaxed max-w-md mx-auto">
+            „nie musisz być jutro inna niż dziś.
+            <br />
+            wystarczy, że jesteś tu — i działasz."
           </p>
         </div>
       </div>
 
-      {/* ── W LICZBACH ────────────────────────────── */}
-      <Section title="W liczbach" subtitle="365 dni transformacji">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      {/* ── I · W liczbach ──────────────────────────── */}
+      <Section num={1} title="W liczbach" subtitle="365 dni transformacji">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
-            { label: 'Dni aktywnych',        value: activeDays },
-            { label: 'Łączne XP',            value: totalXP.toLocaleString('pl-PL') },
-            { label: 'Poziom',               value: `${currentLevel.level} / 30` },
-            { label: 'Side questy',          value: totalSideQuests },
-            { label: 'Najdłuższa seria',     value: `${stats.longestStreak} dni` },
-            { label: 'Osiągnięcia',          value: stats.unlockedAchievements.length },
-          ].map(({ label, value }) => (
-            <div key={label} className="bg-cream rounded-xl p-4 text-center">
-              <p className="font-serif text-dark text-2xl mb-1">{value}</p>
-              <p className="font-sans text-[10px] text-muted uppercase tracking-wide">{label}</p>
+            { label: 'Dni aktywnych',    value: activeDays.toString() },
+            { label: 'Łączne XP',        value: totalXP.toLocaleString('pl-PL') },
+            { label: 'Poziom',           value: `${toRoman(currentLevel.level)} / XXX` },
+            { label: 'Side questy',      value: totalSideQuests.toString() },
+            { label: 'Najdłuższa seria', value: `${stats.longestStreak}`, sub: 'dni' },
+            { label: 'Osiągnięcia',      value: stats.unlockedAchievements.length.toString() },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="bg-cream/60 border border-gold-light/30 p-4 text-center">
+              <p className="font-display text-dark text-2xl leading-none">
+                {value}
+                {sub && (
+                  <span className="font-serif-body italic text-muted-light text-sm ml-1">{sub}</span>
+                )}
+              </p>
+              <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-2 block">
+                {label}
+              </SmallCaps>
             </div>
           ))}
         </div>
       </Section>
 
-      {/* ── ŁUK TRANSFORMACJI ─────────────────────── */}
+      {/* ── II · Łuk transformacji ──────────────── */}
       {monthlyXP.length > 0 && (
-        <Section title="Łuk transformacji" subtitle="XP miesiąc po miesiącu">
-          <div className="space-y-2">
+        <Section num={2} title="Łuk transformacji" subtitle="XP miesiąc po miesiącu">
+          <div className="space-y-3">
             {monthlyXP.map(m => {
               const pct = Math.round((m.totalXP / maxMonthXP) * 100)
               return (
                 <div key={m.monthKey} className="flex items-center gap-3">
-                  <span className="font-sans text-[11px] text-muted w-10 flex-shrink-0">
+                  <SmallCaps tone="muted" tracking="luxury" size="xs" className="w-10 shrink-0">
                     {formatMonthShort(m.monthKey)}
-                  </span>
-                  <div className="flex-1 h-3 bg-cream rounded-full overflow-hidden">
+                  </SmallCaps>
+                  <div className="flex-1 relative h-px bg-hairline">
                     <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${Math.max(pct > 0 ? 2 : 0, pct)}%`,
-                        background: 'linear-gradient(90deg, #B8963E 0%, #D4AF6B 100%)',
-                      }}
+                      className="absolute left-0 top-0 h-px bg-gold transition-all duration-700"
+                      style={{ width: `${Math.max(pct > 0 ? 2 : 0, pct)}%` }}
                     />
                   </div>
-                  <span className="font-sans text-xs text-muted-light w-20 text-right flex-shrink-0">
+                  <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="tabular-nums w-20 text-right shrink-0">
                     {m.totalXP.toLocaleString('pl-PL')} XP
-                  </span>
+                  </SmallCaps>
                 </div>
               )
             })}
           </div>
 
           {/* Level journey */}
-          <div className="mt-6 pt-5 border-t border-border">
-            <p className="font-sans text-xs text-muted uppercase tracking-widest mb-3">Droga przez poziomy</p>
-            <div className="flex flex-wrap gap-1.5">
+          <div className="mt-7 pt-5 border-t border-hairline">
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-3">
+              Droga przez poziomy
+            </SmallCaps>
+            <div className="flex flex-wrap gap-x-3 gap-y-2 items-baseline">
               {LEVELS.map(lvl => {
                 const done = totalXP >= lvl.xpRequired
                 const isCurrent = lvl.level === currentLevel.level
                 return (
-                  <div
-                    key={lvl.level}
-                    className={clsx(
-                      'px-2.5 py-1 rounded-full font-sans text-[10px] transition-all',
-                      isCurrent
-                        ? 'bg-gold text-ivory font-semibold'
-                        : done
-                          ? 'bg-forest/15 text-forest'
-                          : 'bg-cream text-muted-light'
-                    )}
-                  >
-                    {lvl.name}
-                  </div>
+                  <span key={lvl.level} className="inline-flex items-baseline gap-1.5">
+                    <span className={clsx(
+                      'font-display text-sm',
+                      isCurrent ? 'text-gold' : done ? 'text-gold-deep' : 'text-muted-light/40'
+                    )}>
+                      {toRoman(lvl.level)}
+                    </span>
+                    <span className={clsx(
+                      'font-serif-body text-[12.5px]',
+                      isCurrent ? 'text-dark italic' : done ? 'text-muted' : 'text-muted-light/40 italic'
+                    )}>
+                      {lvl.name}
+                    </span>
+                  </span>
                 )
               })}
             </div>
@@ -328,29 +358,33 @@ export default function ReportPage() {
         </Section>
       )}
 
-      {/* ── 7 FILARÓW ─────────────────────────────── */}
-      <Section title="7 Filarów" subtitle="Gdzie kierowałaś energię">
+      {/* ── III · Siedem filarów ─────────────────── */}
+      <Section num={3} title="Siedem filarów" subtitle="Gdzie kierowałaś energię">
         <div className="space-y-4">
           {pillarData.map(p => {
-            const totalPillarXP = pillarData.reduce((s, p) => s + p.xp, 0) || 1
+            const totalPillarXP = pillarData.reduce((s, x) => s + x.xp, 0) || 1
             const pct = Math.round((p.xp / totalPillarXP) * 100)
             return (
               <div key={p.id}>
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2">
-                    <span>{p.icon}</span>
-                    <span className="font-sans text-sm text-dark">{p.shortName}</span>
+                    <span style={{ color: p.color }}><Diamond size={5} /></span>
+                    <span className="font-heading text-dark text-[14px]" style={{ color: p.color }}>
+                      {p.shortName}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-sans text-xs text-muted">{pct}%</span>
-                    <span className="font-sans text-xs text-gold-dark w-20 text-right">
+                  <div className="flex items-baseline gap-3">
+                    <SmallCaps tone="muted" tracking="luxury" size="xs">
+                      {pct}%
+                    </SmallCaps>
+                    <span className="font-ui text-[11px] text-muted-light w-20 text-right tabular-nums">
                       {p.xp.toLocaleString('pl-PL')} XP
                     </span>
                   </div>
                 </div>
-                <div className="h-2 bg-cream rounded-full overflow-hidden">
+                <div className="relative h-px w-full bg-hairline">
                   <div
-                    className="h-full rounded-full"
+                    className="absolute left-0 top-0 h-px transition-all duration-700"
                     style={{ width: `${pct}%`, backgroundColor: p.color }}
                   />
                 </div>
@@ -360,56 +394,75 @@ export default function ReportPage() {
         </div>
       </Section>
 
-      {/* ── NASTRÓJ ROKU ──────────────────────────── */}
+      {/* ── IV · Nastrój roku ───────────────────── */}
       {(avgMood !== null || avgEnergy !== null) && (
-        <Section title="Nastrój roku" subtitle="Check-iny emocjonalne">
+        <Section num={4} title="Nastrój roku" subtitle="Check-iny emocjonalne">
           <div className="grid grid-cols-3 gap-4">
             {avgMood !== null && (
               <div className="text-center">
-                <p className="font-serif text-dark text-3xl mb-1">{avgMood.toFixed(1)}</p>
-                <p className="font-sans text-[10px] text-muted uppercase tracking-wide">Śr. nastrój / 5</p>
+                <p className="font-display text-dark text-4xl mb-1 leading-none">
+                  {avgMood.toFixed(1)}
+                </p>
+                <SmallCaps tone="muted" tracking="luxury" size="xs">
+                  śr. nastrój / 5
+                </SmallCaps>
               </div>
             )}
             {avgEnergy !== null && (
               <div className="text-center">
-                <p className="font-serif text-dark text-3xl mb-1">{avgEnergy.toFixed(1)}</p>
-                <p className="font-sans text-[10px] text-muted uppercase tracking-wide">Śr. energia / 5</p>
+                <p className="font-display text-dark text-4xl mb-1 leading-none">
+                  {avgEnergy.toFixed(1)}
+                </p>
+                <SmallCaps tone="muted" tracking="luxury" size="xs">
+                  śr. energia / 5
+                </SmallCaps>
               </div>
             )}
             {dominantStateMeta && (
               <div className="text-center">
-                <p className="text-3xl mb-1">{dominantStateMeta.emoji}</p>
-                <p className="font-sans text-[10px] text-muted uppercase tracking-wide capitalize">{dominantStateMeta.label}</p>
+                <p className="text-3xl mb-1 leading-none">{dominantStateMeta.emoji}</p>
+                <SmallCaps tone="muted" tracking="luxury" size="xs">
+                  {dominantStateMeta.label}
+                </SmallCaps>
               </div>
             )}
           </div>
         </Section>
       )}
 
-      {/* ── KLUCZOWE MOMENTY ──────────────────────── */}
-      <Section title="Kluczowe momenty" subtitle="Dni, które warto zapamiętać">
+      {/* ── V · Kluczowe momenty ─────────────────── */}
+      <Section num={5} title="Kluczowe momenty" subtitle="Dni, które warto zapamiętać">
         {keyMoments.length === 0 ? (
-          <div className="text-center py-6">
-            <Star size={24} className="text-muted-light mx-auto mb-3" strokeWidth={1.5} />
-            <p className="font-sans text-sm text-muted-light">
-              Oznaczaj ważne dni na dashboardzie — trafią tu automatycznie.
+          <div className="text-center py-8">
+            <Star size={20} className="text-muted-light mx-auto mb-3" strokeWidth={1.5} />
+            <p className="font-serif-body italic text-muted-light text-[13.5px]">
+              oznaczaj ważne dni na dashboardzie — trafią tu automatycznie.
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {keyMoments.map(log => {
               const [y, m, d] = log.date.split('-').map(Number)
               const dateStr = new Date(y, m - 1, d).toLocaleDateString('pl-PL', {
                 day: 'numeric', month: 'long', year: 'numeric'
               })
               return (
-                <div key={log.date} className="flex items-start gap-3 p-4 bg-gold-pale rounded-xl border border-gold/20">
-                  <Star size={14} className="text-gold mt-0.5 flex-shrink-0" fill="currentColor" strokeWidth={0} />
+                <div
+                  key={log.date}
+                  className="flex items-start gap-3 p-4 bg-gold-pale/40 border border-gold-light/50"
+                >
+                  <Fleuron size={11} className="text-gold mt-0.5 shrink-0" />
                   <div>
-                    <p className="font-sans text-[10px] text-gold uppercase tracking-widest mb-0.5">{dateStr}</p>
-                    <p className="font-serif text-dark text-sm font-medium">{log.keyMoment!.title}</p>
+                    <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+                      {dateStr}
+                    </SmallCaps>
+                    <p className="font-heading text-dark text-[15px] mt-1">
+                      {log.keyMoment!.title}
+                    </p>
                     {log.keyMoment!.note && (
-                      <p className="font-sans text-xs text-muted mt-1 leading-relaxed">{log.keyMoment!.note}</p>
+                      <p className="font-serif-body italic text-muted text-[13px] mt-1 leading-relaxed">
+                        {log.keyMoment!.note}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -419,19 +472,19 @@ export default function ReportPage() {
         )}
       </Section>
 
-      {/* ── PHOTO TIMELINE ────────────────────────── */}
-      <Section title="Photo Timeline" subtitle="Dokumentacja wizualna">
+      {/* ── VI · Photo Timeline ─────────────────── */}
+      <Section num={6} title="Photo Timeline" subtitle="Dokumentacja wizualna">
         {photos.length === 0 ? (
-          <div className="text-center py-6">
-            <Camera size={24} className="text-muted-light mx-auto mb-3" strokeWidth={1.5} />
-            <p className="font-sans text-sm text-muted-light">
-              Dodaj zdjęcia w Photo Timeline — pojawią się tutaj.
+          <div className="text-center py-8">
+            <Camera size={20} className="text-muted-light mx-auto mb-3" strokeWidth={1.5} />
+            <p className="font-serif-body italic text-muted-light text-[13.5px]">
+              dodaj zdjęcia w photo timeline — pojawią się tutaj.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {photos.slice(0, 12).map(photo => (
-              <div key={photo.id} className="aspect-square rounded-xl overflow-hidden">
+              <div key={photo.id} className="aspect-square overflow-hidden border border-hairline">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={photo.url}
@@ -441,77 +494,94 @@ export default function ReportPage() {
               </div>
             ))}
             {photos.length > 12 && (
-              <div className="aspect-square rounded-xl bg-cream flex items-center justify-center">
-                <p className="font-serif text-muted text-lg">+{photos.length - 12}</p>
+              <div className="aspect-square bg-cream/60 border border-hairline flex items-center justify-center">
+                <p className="font-display text-muted text-2xl">+{photos.length - 12}</p>
               </div>
             )}
           </div>
         )}
       </Section>
 
-      {/* ── SKARBIEC ──────────────────────────────── */}
+      {/* ── VII · Skarbiec ─────────────────────── */}
       {IS_REPORT_DAY && vaultEntries.filter(e => e.letterType !== 'vent' && e.content).length > 0 && (
-        <Section title="Ze Skarbca" subtitle="Listy od Natalii 30">
-          <div className="space-y-4">
+        <Section num={7} title="Ze Skarbca" subtitle="Listy od Natalii 30">
+          <div className="space-y-3">
             {vaultEntries
               .filter(e => e.letterType !== 'vent' && e.content)
               .slice(0, 5)
               .map(entry => (
-                <div key={entry.id} className="p-4 bg-gold-pale rounded-xl border border-gold/20">
-                  <p className="font-sans text-[10px] text-gold uppercase tracking-widest mb-1">
-                    Dzień {entry.dayOfProject}
+                <div key={entry.id} className="p-5 bg-gold-pale/40 border border-gold-light/50">
+                  <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+                    Dzień {entry.dayOfProject} · {toRoman(entry.dayOfProject)}
+                  </SmallCaps>
+                  <h3 className="font-heading text-dark text-[16px] mt-1">
+                    {entry.title || 'List bez tytułu'}
+                  </h3>
+                  <p className="font-serif-body italic text-muted text-[13px] mt-2 leading-relaxed line-clamp-3">
+                    {entry.content}
                   </p>
-                  <p className="font-serif text-dark text-sm font-medium mb-2">{entry.title || 'List bez tytułu'}</p>
-                  <p className="font-sans text-xs text-muted leading-relaxed line-clamp-3">{entry.content}</p>
                 </div>
               ))}
             {vaultEntries.filter(e => e.letterType !== 'vent' && e.content).length > 5 && (
-              <p className="font-sans text-xs text-muted-light text-center">
-                + {vaultEntries.filter(e => e.letterType !== 'vent' && e.content).length - 5} kolejnych listów w Skarbcu
+              <p className="font-serif-body italic text-muted-light text-[12.5px] text-center">
+                + {vaultEntries.filter(e => e.letterType !== 'vent' && e.content).length - 5} kolejnych listów w skarbcu
               </p>
             )}
           </div>
         </Section>
       )}
 
-      {/* ── GHOST PROTOCOL ────────────────────────── */}
+      {/* ── VIII · Ghost Protocol ─────────────── */}
       {ghostEntries.length >= 5 && (
-        <Section title="Ghost Protocol" subtitle="Dane operacyjne — prywatne">
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-cream rounded-xl p-4 text-center">
-              <p className="font-serif text-dark text-2xl mb-1">{ghostEntries.length}</p>
-              <p className="font-sans text-[10px] text-muted uppercase tracking-wide">Uruchomień protokołu</p>
+        <Section num={8} title="Ghost Protocol" subtitle="Dane operacyjne · prywatne">
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="bg-cream/60 border border-hairline p-4 text-center">
+              <p className="font-display text-dark text-3xl mb-1 leading-none">{ghostEntries.length}</p>
+              <SmallCaps tone="muted" tracking="luxury" size="xs">
+                uruchomień protokołu
+              </SmallCaps>
             </div>
-            <div className="bg-cream rounded-xl p-4 text-center">
-              <p className="text-2xl mb-1">{topGhostTag?.emoji}</p>
-              <p className="font-sans text-[10px] text-muted uppercase tracking-wide">{topGhostTag?.label}</p>
+            <div className="bg-cream/60 border border-hairline p-4 text-center">
+              <p className="text-2xl mb-1 leading-none">{topGhostTag?.emoji}</p>
+              <SmallCaps tone="muted" tracking="luxury" size="xs">
+                {topGhostTag?.label}
+              </SmallCaps>
             </div>
           </div>
-          <p className="font-sans text-xs text-muted leading-relaxed">
+          <p className="font-serif-body italic text-muted text-[13.5px] leading-relaxed">
             {ghostEntries.length}× uruchomiłaś protokół zamiast wysłać wiadomość.
-            {ghostEntries.length > 0 && ' To są dane o sile, nie o słabości.'}
+            {ghostEntries.length > 0 && ' to są dane o sile, nie o słabości.'}
           </p>
         </Section>
       )}
 
-      {/* ── ROCZNA REFLEKSJA ──────────────────────── */}
-      <Section title="Roczna refleksja" subtitle="Słowa zamknięcia">
+      {/* ── IX · Roczna refleksja ─────────────── */}
+      <Section num={9} title="Roczna refleksja" subtitle="Słowa zamknięcia">
         {user ? (
           <ReflectionForm uid={user.uid} existing={null} />
         ) : (
-          <p className="font-sans text-sm text-muted-light text-center py-4">Zaloguj się, aby zapisać refleksję.</p>
+          <p className="font-serif-body italic text-muted-light text-[13.5px] text-center py-4">
+            zaloguj się, aby zapisać refleksję.
+          </p>
         )}
       </Section>
 
-      {/* ── STOPKA ────────────────────────────────── */}
-      <div className="text-center mt-8 pt-6 border-t border-border">
-        <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-3">✦</p>
-        <p className="font-serif text-dark text-lg mb-2">Natalia 30.</p>
-        <p className="font-sans text-sm text-muted">
-          5 kwietnia 2026 — 5 kwietnia 2027 · {daysElapsed} dni projektu
+      {/* ── Footer ────────────────────────────── */}
+      <footer className="text-center mt-10 pt-7">
+        <GoldRule variant="diamond" tone="gold-deep" className="max-w-sm mx-auto mb-7 opacity-40" />
+        <Fleuron size={14} className="text-gold mx-auto mb-3 inline-block" />
+        <h3 className="font-display text-dark text-3xl">Natalia 30.</h3>
+        <p className="font-serif-body italic text-muted text-[13.5px] mt-3">
+          V · IV · MMXXVI — V · IV · MMXXVII · {daysElapsed} dni projektu
         </p>
-      </div>
-
+        <div className="mt-5 flex items-center justify-center gap-2">
+          <Fleuron size={9} className="text-gold-deep" />
+          <SmallCaps tone="muted" tracking="editorial" size="xs">
+            ex libris · natalia
+          </SmallCaps>
+          <Fleuron size={9} className="text-gold-deep" />
+        </div>
+      </footer>
     </div>
   )
 }

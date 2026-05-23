@@ -1,11 +1,17 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { X } from 'lucide-react'
 import { useGhostV2 } from '@/hooks/useGhostV2'
 import { useGameData } from '@/hooks/useGameData'
-import { analyzeSafeHours, getCurrentRiskWindow, isApproachingRiskWindow, formatWeeklyForecast } from '@/lib/safe-hours'
+import {
+  analyzeSafeHours,
+  getCurrentRiskWindow,
+  isApproachingRiskWindow,
+  formatWeeklyForecast,
+} from '@/lib/safe-hours'
 import type { SafeHoursWindow } from '@/types'
-import clsx from 'clsx'
+import { SmallCaps, Diamond } from '@/components/ui'
 
 const ACTIVITY_SUGGESTIONS = [
   'Włącz playlistę i zrób coś fizycznego przez 20 minut.',
@@ -15,9 +21,37 @@ const ACTIVITY_SUGGESTIONS = [
   'Otwórz Questy i zrób jeden szybki.',
 ]
 
+function Frame({
+  accentClass,
+  children,
+}: {
+  accentClass: string
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className={`relative bg-ivory border border-gold-light/40 px-5 py-4 mb-4 ${accentClass}`}
+    >
+      {children}
+    </div>
+  )
+}
+
+function CloseBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="text-muted-light hover:text-dark transition-colors flex-shrink-0"
+      aria-label="Zamknij"
+    >
+      <X size={13} strokeWidth={1.5} />
+    </button>
+  )
+}
+
 export default function SafeHoursBanner() {
   const { entries } = useGhostV2()
-  const { stats, recordGhostImpulseV2 } = useGameData()
+  const { recordGhostImpulseV2 } = useGameData()
   const [windows, setWindows] = useState<SafeHoursWindow[]>([])
   const [activeWindow, setActiveWindow] = useState<SafeHoursWindow | null>(null)
   const [approachingWindow, setApproachingWindow] = useState<SafeHoursWindow | null>(null)
@@ -38,7 +72,6 @@ export default function SafeHoursBanner() {
     setMode('confirmed')
     if (!xpGranted) {
       setXpGranted(true)
-      // +10 XP za gotowość (Safe Hours "mam plan")
       await recordGhostImpulseV2(false)
     }
   }, [xpGranted, recordGhostImpulseV2])
@@ -47,143 +80,144 @@ export default function SafeHoursBanner() {
 
   if (dismissed || !windows.length) return null
 
-  // ── Niedzielna prognoza tygodniowa ───────────────────────────────────────────
+  // ── Niedzielna prognoza ──
   if (isSunday && !activeWindow && !approachingWindow) {
     const forecast = formatWeeklyForecast(windows)
     return (
-      <div className="bg-white rounded-2xl shadow-elegant p-5 mb-4 border-l-2 border-l-gold/40">
+      <Frame accentClass="border-l-2 border-l-gold/40">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <p className="font-sans text-[11px] text-gold/70 uppercase tracking-widest mb-1">
+          <div className="flex-1 min-w-0">
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
               Prognoza tygodniowa
-            </p>
-            <p className="font-serif text-dark text-sm leading-snug">
+            </SmallCaps>
+            <p className="font-heading text-dark text-[15px] leading-snug mt-1">
               W tym tygodniu Twoje trudne momenty:
             </p>
-            <p className="font-sans text-muted text-xs mt-1 leading-relaxed">
-              {forecast}. Przygotuj plany.
+            <p className="font-serif-body italic text-muted text-[13px] mt-1 leading-relaxed">
+              {forecast}. przygotuj plany.
             </p>
           </div>
-          <button
-            onClick={() => setDismissed(true)}
-            className="font-sans text-[11px] text-muted-light hover:text-muted flex-shrink-0"
-          >
-            ✕
-          </button>
+          <CloseBtn onClick={() => setDismissed(true)} />
         </div>
-      </div>
+      </Frame>
     )
   }
 
-  // ── Nadchodzi okno ryzyka (30 min ostrzeżenie) ───────────────────────────────
+  // ── Approaching ──
   if (approachingWindow && !activeWindow && mode === 'idle') {
     return (
-      <div className="bg-white rounded-2xl shadow-elegant p-5 mb-4 border-l-2 border-l-gold/60">
+      <Frame accentClass="border-l-2 border-l-gold/70">
         <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex-1">
-            <p className="font-sans text-[11px] text-gold/70 uppercase tracking-widest mb-1">
+          <div className="flex-1 min-w-0">
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
               Safe Hours
-            </p>
-            <p className="font-serif text-dark text-sm leading-snug">
+            </SmallCaps>
+            <p className="font-heading text-dark text-[15px] leading-snug mt-1">
               Za pół godziny zaczyna się Twoja trudna pora.
             </p>
-            <p className="font-sans text-muted text-xs mt-1">Masz plan?</p>
+            <p className="font-serif-body italic text-muted text-[13px] mt-1">
+              masz plan?
+            </p>
           </div>
-          <button
-            onClick={() => setDismissed(true)}
-            className="font-sans text-[11px] text-muted-light hover:text-muted flex-shrink-0"
-          >
-            ✕
-          </button>
+          <CloseBtn onClick={() => setDismissed(true)} />
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleHavePlan}
-            className="flex-1 py-2.5 rounded-xl bg-dark text-ivory font-sans text-xs hover:bg-forest transition-all"
+            className="flex-1 py-2.5 bg-dark-deep text-ivory border border-gold hover:bg-forest transition-colors flex items-center justify-center gap-2"
           >
-            Mam plan +10 XP
+            <Diamond size={5} className="text-gold" />
+            <SmallCaps tone="ivory" tracking="luxury" size="xs">
+              mam plan · + 10 XP
+            </SmallCaps>
           </button>
           <button
             onClick={() => setMode('suggestions')}
-            className="flex-1 py-2.5 rounded-xl border border-border text-muted font-sans text-xs hover:border-dark hover:text-dark transition-all"
+            className="flex-1 py-2.5 border border-hairline text-muted hover:border-gold hover:text-dark transition-colors"
           >
-            Potrzebuję pomysłu
+            <SmallCaps tone="muted" tracking="luxury" size="xs">
+              potrzebuję pomysłu
+            </SmallCaps>
           </button>
         </div>
-      </div>
+      </Frame>
     )
   }
 
-  // ── Potrzebuję pomysłu ───────────────────────────────────────────────────────
+  // ── Suggestions ──
   if (mode === 'suggestions') {
     return (
-      <div className="bg-white rounded-2xl shadow-elegant p-5 mb-4 border-l-2 border-l-gold/60">
-        <p className="font-sans text-[11px] text-gold/70 uppercase tracking-widest mb-3">
-          Safe Hours — plan
-        </p>
+      <Frame accentClass="border-l-2 border-l-gold/70">
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-3">
+          Safe Hours · plan
+        </SmallCaps>
         <div className="space-y-2 mb-4">
           {ACTIVITY_SUGGESTIONS.slice(0, 3).map(s => (
-            <p key={s} className="font-sans text-xs text-muted bg-cream/60 rounded-xl px-4 py-2.5 leading-relaxed">
-              {s}
-            </p>
+            <div
+              key={s}
+              className="flex items-start gap-3 bg-cream/50 border border-hairline px-4 py-2.5"
+            >
+              <Diamond size={5} className="text-gold mt-1.5 shrink-0" />
+              <p className="font-serif-body italic text-dark text-[13px] leading-relaxed">
+                {s}
+              </p>
+            </div>
           ))}
         </div>
         <button
           onClick={handleHavePlan}
-          className="w-full py-2.5 rounded-xl bg-dark text-ivory font-sans text-xs hover:bg-forest transition-all"
+          className="w-full py-2.5 bg-dark-deep text-ivory border border-gold hover:bg-forest transition-colors flex items-center justify-center gap-2"
         >
-          Gotowe, mam plan +10 XP
+          <Diamond size={5} className="text-gold" />
+          <SmallCaps tone="ivory" tracking="luxury" size="xs">
+            gotowe, mam plan · + 10 XP
+          </SmallCaps>
         </button>
-      </div>
+      </Frame>
     )
   }
 
-  // ── Potwierdzenie planu ──────────────────────────────────────────────────────
+  // ── Confirmed ──
   if (mode === 'confirmed') {
     return (
-      <div className="bg-white rounded-2xl shadow-elegant p-5 mb-4 border-l-2 border-l-forest/50 animate-fade-in">
+      <Frame accentClass="border-l-2 border-l-forest/60 animate-fade-in">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="font-sans text-[11px] text-forest/70 uppercase tracking-widest mb-1">Safe Hours</p>
-            <p className="font-serif text-dark text-sm">Plan aktywowany. +10 XP ✦</p>
+          <div className="flex items-center gap-3">
+            <Diamond size={6} className="text-forest" filled />
+            <div>
+              <SmallCaps tone="dark" tracking="luxury" size="xs">
+                <span className="text-forest">Safe Hours</span>
+              </SmallCaps>
+              <p className="font-serif-body italic text-dark text-[14px] mt-0.5">
+                plan aktywowany · + 10 XP
+              </p>
+            </div>
           </div>
-          <button
-            onClick={() => setDismissed(true)}
-            className="font-sans text-[11px] text-muted-light hover:text-muted"
-          >
-            ✕
-          </button>
+          <CloseBtn onClick={() => setDismissed(true)} />
         </div>
-      </div>
+      </Frame>
     )
   }
 
-  // ── Aktywne okno ryzyka (jesteś w nim teraz) ──────────────────────────────────
+  // ── Active window ──
   if (activeWindow) {
     return (
-      <div className={clsx(
-        'bg-white rounded-2xl shadow-elegant p-5 mb-4 border-l-2 border-l-gold/80'
-      )}>
+      <Frame accentClass="border-l-2 border-l-gold">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <p className="font-sans text-[11px] text-gold/70 uppercase tracking-widest mb-1">
-              Safe Hours — aktywne
-            </p>
-            <p className="font-serif text-dark text-sm leading-snug">
+          <div className="flex-1 min-w-0">
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              Safe Hours · aktywne
+            </SmallCaps>
+            <p className="font-heading text-dark text-[15px] leading-snug mt-1">
               Jesteś teraz w swoim trudnym oknie.
             </p>
-            <p className="font-sans text-muted text-xs mt-1">
+            <p className="font-serif-body italic text-muted text-[13px] mt-1 leading-relaxed">
               {suggestion}
             </p>
           </div>
-          <button
-            onClick={() => setDismissed(true)}
-            className="font-sans text-[11px] text-muted-light hover:text-muted flex-shrink-0"
-          >
-            ✕
-          </button>
+          <CloseBtn onClick={() => setDismissed(true)} />
         </div>
-      </div>
+      </Frame>
     )
   }
 

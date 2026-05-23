@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react'
 import type { DailyLog } from '@/types'
 import { dateKey, PROJECT_START, PROJECT_END } from '@/lib/gameLogic'
+import { SmallCaps, Diamond } from '@/components/ui'
 
 interface Props {
   logs: Record<string, DailyLog>
@@ -76,14 +77,18 @@ export default function YearHeatmap({ logs }: Props) {
 
   return (
     <div className="w-full">
-      {/* Month labels row */}
-      <div className="flex pl-7 mb-1 relative text-[9px] font-sans text-muted uppercase tracking-wider">
+      {/* Month labels */}
+      <div className="flex pl-7 mb-1.5">
         <div className="flex gap-[2px]">
           {weeks.map((_, idx) => {
             const label = monthLabels.find(m => m.colIndex === idx)?.label
             return (
               <div key={idx} className="w-[13px] sm:w-[14px] text-left">
-                {label ?? ''}
+                {label && (
+                  <SmallCaps tone="muted" tracking="luxury" size="xs">
+                    {label}
+                  </SmallCaps>
+                )}
               </div>
             )
           })}
@@ -92,10 +97,14 @@ export default function YearHeatmap({ logs }: Props) {
 
       <div className="flex">
         {/* Day-of-week labels column */}
-        <div className="flex flex-col gap-[2px] pr-1 text-[9px] font-sans text-muted-light pt-[1px]">
+        <div className="flex flex-col gap-[2px] pr-1.5 pt-[1px]">
           {PL_DAYS.map((d, i) => (
             <div key={i} className="h-[13px] sm:h-[14px] leading-[13px] sm:leading-[14px] w-5 text-right">
-              {d}
+              {d && (
+                <SmallCaps tone="muted" tracking="luxury" size="xs">
+                  {d}
+                </SmallCaps>
+              )}
             </div>
           ))}
         </div>
@@ -118,7 +127,7 @@ export default function YearHeatmap({ logs }: Props) {
                   bg = 'transparent'
                   opacity = 0
                 } else if (isFuture) {
-                  bg = '#FAF8F4' // ivory
+                  bg = '#FAF8F4'
                   opacity = 0.5
                 }
 
@@ -127,11 +136,15 @@ export default function YearHeatmap({ logs }: Props) {
                     key={dIdx}
                     onMouseEnter={() => inProject && setHovered({ date: key, xp, log })}
                     onMouseLeave={() => setHovered(null)}
-                    className="w-[13px] h-[13px] sm:w-[14px] sm:h-[14px] rounded-[2px] transition-transform hover:scale-125"
+                    className="w-[13px] h-[13px] sm:w-[14px] sm:h-[14px] transition-transform hover:scale-125"
                     style={{
                       backgroundColor: bg,
                       opacity,
-                      border: isToday ? '1.5px solid #B8963E' : inProject && isFuture ? '1px dashed #E2D9CE' : 'none',
+                      border: isToday
+                        ? '1.5px solid #B8963E'
+                        : inProject && isFuture
+                          ? '1px dashed #C9BFB1'
+                          : 'none',
                       boxSizing: 'border-box',
                       visibility: inProject ? 'visible' : 'hidden',
                     }}
@@ -147,29 +160,36 @@ export default function YearHeatmap({ logs }: Props) {
       {/* Tooltip area */}
       <div className="mt-4 min-h-[32px]">
         {hovered && (
-          <div className="inline-flex items-center gap-3 bg-white rounded-lg border border-border px-3 py-1.5 shadow-elegant text-xs font-sans">
-            <span className="text-dark font-medium">{formatDatePL(new Date(hovered.date))}</span>
-            <span className="text-gold-dark">{hovered.xp} XP</span>
+          <div className="inline-flex items-center gap-3 bg-ivory border border-gold-light/40 px-3 py-1.5">
+            <Diamond size={4} className="text-gold" />
+            <SmallCaps tone="dark" tracking="luxury" size="xs">
+              {formatDatePL(new Date(hovered.date))}
+            </SmallCaps>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              {hovered.xp} XP
+            </SmallCaps>
             {hovered.log && (
-              <span className="text-muted-light">
-                {(hovered.log.completedRoutine?.length ?? 0) + (hovered.log.completedDailyQuests?.length ?? 0) + (hovered.log.completedSideQuests?.length ?? 0)} akcji
-              </span>
+              <SmallCaps tone="muted" size="xs">
+                {(hovered.log.completedRoutine?.length ?? 0)
+                  + (hovered.log.completedDailyQuests?.length ?? 0)
+                  + (hovered.log.completedSideQuests?.length ?? 0)} akcji
+              </SmallCaps>
             )}
           </div>
         )}
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-2 mt-3 text-[10px] font-sans text-muted-light">
-        <span>Mniej</span>
+      <div className="flex items-center gap-2 mt-4">
+        <SmallCaps tone="muted" tracking="luxury" size="xs">Mniej</SmallCaps>
         {[0, 30, 100, 200, 400].map((v, i) => (
           <div
             key={i}
-            className="w-[13px] h-[13px] rounded-[2px]"
+            className="w-[13px] h-[13px] border border-hairline/30"
             style={{ backgroundColor: colorForXp(v) }}
           />
         ))}
-        <span>Więcej</span>
+        <SmallCaps tone="muted" tracking="luxury" size="xs">Więcej</SmallCaps>
       </div>
     </div>
   )

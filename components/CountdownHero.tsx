@@ -1,13 +1,27 @@
 'use client'
-import { getDaysRemaining, getDaysElapsed, getProjectProgress, getLevelFromXP, getNextLevel, getLevelProgress } from '@/lib/gameLogic'
+import Link from 'next/link'
+import {
+  getDaysRemaining,
+  getDaysElapsed,
+  getProjectProgress,
+  getLevelFromXP,
+  getNextLevel,
+  getLevelProgress,
+  todayKey,
+} from '@/lib/gameLogic'
 import { useGameData } from '@/hooks/useGameData'
-import { todayKey } from '@/lib/gameLogic'
 import { getDailySpark } from '@/lib/questData'
 import { getCurrentMonthData } from '@/lib/seasonal/monthData'
 import { useSparkSchedule } from '@/hooks/useSparkSchedule'
+import { toRoman } from '@/lib/romanNumerals'
+import { SmallCaps, GoldRule, Fleuron, Diamond, CornerBrackets } from '@/components/ui'
+
+function pad3(n: number): string {
+  return n < 1000 ? n.toString().padStart(3, '0') : n.toString()
+}
 
 export default function CountdownHero() {
-  const { stats, streakFreezeAvailable } = useGameData()
+  const { stats } = useGameData()
   const { sparks } = useSparkSchedule()
   const daysLeft = getDaysRemaining()
   const daysElapsed = getDaysElapsed()
@@ -20,123 +34,147 @@ export default function CountdownHero() {
   const month = getCurrentMonthData()
 
   return (
-    <div className="bg-dark rounded-2xl p-6 text-ivory mb-6 relative overflow-hidden">
-      {/* Background texture */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 11px)',
-        }} />
+    <div className="relative bg-dark-deep text-ivory mb-6 grain-linen overflow-hidden">
+      {/* Double frame */}
+      <div className="pointer-events-none absolute inset-3 border border-gold-light/40" />
+      <div className="pointer-events-none absolute inset-[14px] border border-gold-light/15" />
+      {/* Corner brackets — slightly inside the double frame */}
+      <div className="pointer-events-none absolute inset-6">
+        <CornerBrackets size={14} tone="gold" weight={1} />
       </div>
 
-      <div className="relative z-10">
-        {/* Top row */}
-        <div className="flex items-start justify-between mb-5">
+      <div className="relative p-8 md:p-10">
+        {/* MONUMENTAL DAY NUMBER */}
+        <div className="flex items-end justify-between gap-6">
           <div>
-            <p className="text-gold-light/70 font-sans text-xs uppercase tracking-widest mb-1">
-              Dzień projektu
-            </p>
-            <div className="flex items-baseline gap-2">
-              <span className="font-serif text-5xl text-ivory">{daysElapsed}</span>
-              <span className="text-muted-light font-sans text-sm">z 365</span>
+            <div className="flex items-baseline gap-3">
+              <span className="font-display text-[clamp(2.25rem,7vw,3.75rem)] leading-[0.9] text-ivory">
+                {pad3(daysElapsed)}
+              </span>
+              <span className="font-serif-body italic text-parchment text-base md:text-lg whitespace-nowrap">
+                of {toRoman(365)}
+              </span>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-gold-light/70 font-sans text-xs uppercase tracking-widest mb-1">
-              Do urodzin
-            </p>
-            <div className="flex items-baseline gap-1 justify-end">
-              <span className="font-serif text-4xl text-gold-light">{daysLeft}</span>
-              <span className="text-muted-light font-sans text-sm">dni</span>
+          <Link
+            href="/30"
+            className="text-right shrink-0 group/birthday hover:opacity-95 transition-opacity"
+            title="Strona urodzin — V · IV · MMXXVII"
+          >
+            <div className="font-display text-3xl md:text-4xl text-gold-light group-hover/birthday:text-ivory transition-colors">
+              {daysLeft}
+              <span className="ml-2 font-serif-body italic text-parchment text-base">days</span>
             </div>
-          </div>
+          </Link>
         </div>
 
-        {/* Project progress bar */}
-        <div className="mb-5">
-          <div className="flex justify-between items-center mb-1.5">
-            <span className="font-sans text-xs text-muted-light">Postęp projektu</span>
-            <span className="font-sans text-xs text-gold-light">{projectProgress}%</span>
+        {/* Project progress — hairline with diamond head */}
+        <div className="mt-8">
+          <div className="flex justify-between items-center">
+            <SmallCaps tone="parchment" size="xs">
+              Project progress
+            </SmallCaps>
+            <SmallCaps tone="gold-light" size="xs">
+              {projectProgress}%
+            </SmallCaps>
           </div>
-          <div className="h-1.5 bg-forest rounded-full overflow-hidden">
+          <div className="relative mt-2 h-px w-full bg-forest">
             <div
-              className="h-full bg-gold-gradient rounded-full transition-all duration-700"
+              className="absolute left-0 top-0 h-px bg-gold transition-all duration-700"
               style={{ width: `${projectProgress}%` }}
             />
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                left: `calc(${projectProgress}% - 4px)`,
+                top: '-3.5px',
+                width: 8,
+                height: 8,
+                lineHeight: 0,
+              }}
+            >
+              <svg
+                width="8"
+                height="8"
+                viewBox="0 0 10 10"
+                className="text-gold"
+                style={{ display: 'block' }}
+              >
+                <path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor" />
+              </svg>
+            </div>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-forest/60 mb-5" />
+        <GoldRule variant="diamond" className="mt-8" tone="gold-deep" />
 
         {/* Level */}
-        <div className="mb-5">
-          <div className="flex justify-between items-center mb-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-gold font-sans text-xs uppercase tracking-widest">Poziom {level.level}</span>
-              <span className="font-serif text-ivory text-sm">— {level.name}</span>
+        <div className="mt-6">
+          <div className="flex justify-between items-baseline gap-3">
+            <div className="flex items-baseline gap-3 min-w-0">
+              <SmallCaps tone="gold" size="md" tracking="luxury">
+                Level {toRoman(level.level)}
+              </SmallCaps>
+              <span className="font-heading text-ivory text-base truncate">
+                {level.name}
+              </span>
             </div>
             {nextLevel && (
-              <span className="font-sans text-xs text-muted-light">
-                → {nextLevel.name} ({lvlProgress}%)
-              </span>
+              <SmallCaps tone="parchment" size="xs" className="shrink-0">
+                {lvlProgress}% → {nextLevel.name}
+              </SmallCaps>
             )}
           </div>
-          <div className="h-2 bg-forest rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${lvlProgress}%`,
-                background: 'linear-gradient(90deg, #B8963E, #D4AF6B)',
-              }}
-            />
+          {/* Segmented bar — 12 marks */}
+          <div className="mt-3 flex gap-[3px]">
+            {Array.from({ length: 24 }).map((_, i) => {
+              const filled = i < Math.round((lvlProgress / 100) * 24)
+              return (
+                <span
+                  key={i}
+                  className={`h-[3px] flex-1 transition-colors ${
+                    filled ? 'bg-gold' : 'bg-forest'
+                  }`}
+                />
+              )
+            })}
           </div>
-          <div className="flex justify-between mt-1">
-            <span className="font-sans text-[11px] text-muted-light">{stats.totalXP.toLocaleString('pl-PL')} XP</span>
+          <div className="mt-2 flex justify-between">
+            <span className="font-ui text-[10px] text-parchment">
+              {stats.totalXP.toLocaleString('pl-PL')} XP
+            </span>
             {nextLevel && (
-              <span className="font-sans text-[11px] text-muted-light">{nextLevel.xpRequired.toLocaleString('pl-PL')} XP</span>
-            )}
-          </div>
-        </div>
-
-        {/* Streak */}
-        <div className="bg-forest/40 rounded-xl px-4 py-2.5 border border-gold/20 mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-base">🔥</span>
-            <span className="text-[10px] font-sans text-gold-light/70 uppercase tracking-widest">Seria</span>
-          </div>
-          <div className="flex items-center gap-3">
-            {stats.currentStreak > 0 ? (
-              <span className="font-serif text-ivory text-sm">
-                <span className="text-gold-light">{stats.currentStreak}</span>
-                <span className="text-muted-light text-xs ml-1">dni</span>
+              <span className="font-ui text-[10px] text-parchment">
+                {nextLevel.xpRequired.toLocaleString('pl-PL')} XP
               </span>
-            ) : (
-              <span className="font-serif text-ivory/70 text-xs italic">Zacznij dziś</span>
             )}
-            <span className="font-sans text-[11px] text-muted-light">
-              Najlepsza: <span className="text-ivory/80">{stats.longestStreak}</span>
-            </span>
-            <span
-              title={streakFreezeAvailable ? 'Zamrożenie dostępne w tym miesiącu' : 'Zamrożenie użyte w tym miesiącu'}
-              className="text-base leading-none"
-            >
-              {streakFreezeAvailable ? '🛡️' : '🩶'}
-            </span>
           </div>
         </div>
 
-        {/* Monthly motto */}
-        <div className="bg-gold/15 rounded-xl px-4 py-3 border border-gold/30 mb-3">
-          <p className="text-[10px] font-sans text-gold uppercase tracking-widest mb-1">
-            Hasło miesiąca · {month.name}
-          </p>
-          <p className="font-serif text-sm text-ivory leading-relaxed italic">&ldquo;{month.motto}&rdquo;</p>
-        </div>
-
-        {/* Spark */}
-        <div className="bg-forest/50 rounded-xl px-4 py-3 border border-gold/20">
-          <p className="text-xs font-sans text-gold-light/70 uppercase tracking-widest mb-1">Iskra dnia</p>
-          <p className="font-serif text-sm text-ivory/90 leading-relaxed italic">&ldquo;{spark}&rdquo;</p>
+        {/* MARGINALIA — monthly motto + daily spark */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="relative border border-gold-light/25 px-4 py-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Fleuron size={10} className="text-gold" />
+              <SmallCaps tone="gold-light" size="xs" tracking="luxury">
+                Hasło · {month.name}
+              </SmallCaps>
+            </div>
+            <p className="font-serif-body italic text-ivory text-[13px] leading-relaxed">
+              &ldquo;{month.motto}&rdquo;
+            </p>
+          </div>
+          <div className="relative border border-gold-light/15 px-4 py-3 bg-forest/30">
+            <div className="flex items-center gap-2 mb-2">
+              <Diamond size={6} className="text-gold-light" />
+              <SmallCaps tone="gold-light" size="xs" tracking="luxury">
+                Iskra dnia
+              </SmallCaps>
+            </div>
+            <p className="font-serif-body italic text-parchment text-[13px] leading-relaxed">
+              &ldquo;{spark}&rdquo;
+            </p>
+          </div>
         </div>
       </div>
     </div>

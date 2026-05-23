@@ -1,8 +1,13 @@
 'use client'
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { SmallCaps, GoldRule, Fleuron, Diamond } from '@/components/ui'
+
+const PUBLIC_PATHS = ['/design-system']
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
   const { user, loading, error: authError, signIn, signUp } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
@@ -10,28 +15,39 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
+  if (pathname && PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+    return <>{children}</>
+  }
+
   if (loading) return (
-    <div className="min-h-screen bg-ivory flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-muted font-sans text-sm">Ładowanie...</p>
+    <div className="min-h-screen bg-ivory grain-parchment flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <Fleuron size={24} className="text-gold animate-pulse" />
+        <SmallCaps tone="muted" tracking="luxury" size="xs">
+          Ładowanie
+        </SmallCaps>
       </div>
     </div>
   )
 
   if (authError) return (
-    <div className="min-h-screen bg-ivory flex items-center justify-center px-4">
+    <div className="min-h-screen bg-ivory grain-parchment flex items-center justify-center px-4">
       <div className="text-center max-w-sm">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-4">
-          <span className="text-2xl">⚠️</span>
-        </div>
-        <h2 className="font-serif text-xl text-dark mb-2">Ups, coś nie działa</h2>
-        <p className="text-muted font-sans text-sm mb-6">{authError}</p>
+        <Diamond size={16} className="text-gold-deep mx-auto mb-4 inline-block" />
+        <h2 className="font-display text-3xl text-dark mb-2 leading-tight">
+          Ups, coś nie działa
+        </h2>
+        <p className="font-serif-body italic text-muted text-[14px] mb-6 leading-relaxed">
+          {authError}
+        </p>
         <button
           onClick={() => window.location.reload()}
-          className="bg-dark text-ivory font-sans text-sm py-3 px-8 rounded-xl hover:bg-forest transition-colors font-medium"
+          className="bg-dark-deep text-ivory border border-gold py-3 px-8 hover:bg-forest transition-colors inline-flex items-center gap-2"
         >
-          Odśwież stronę
+          <Diamond size={5} className="text-gold" />
+          <SmallCaps tone="ivory" tracking="luxury" size="xs">
+            Odśwież stronę
+          </SmallCaps>
         </button>
       </div>
     </div>
@@ -65,79 +81,94 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-ivory flex items-center justify-center px-4">
+    <div className="min-h-screen bg-ivory grain-parchment flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-dark mb-4">
-            <span className="text-2xl">👑</span>
-          </div>
-          <h1 className="font-serif text-3xl text-dark mb-1">Projekt 30</h1>
-          <p className="text-muted-light font-sans text-sm">5 kwietnia 2026 → 5 kwietnia 2027</p>
+        {/* Editorial masthead */}
+        <div className="text-center mb-12">
+          <SmallCaps tone="muted" tracking="editorial" size="xs">
+            Quiet Inheritance · MMXXVI
+          </SmallCaps>
+          <h1 className="font-display text-dark text-5xl mt-4 leading-none">
+            Projekt 30
+          </h1>
+          <GoldRule variant="fleuron" tone="gold" className="mt-5 max-w-[180px] mx-auto" />
+          <p className="font-serif-body italic text-muted text-[14px] mt-4">
+            5 kwietnia 2026 → 5 kwietnia 2027
+          </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-elegant p-8">
-          <h2 className="font-serif text-xl text-dark mb-6">
+        <div className="relative bg-ivory border border-gold-light/40 p-8">
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-3">
+            {mode === 'login' ? 'Powrót do transformacji' : 'Początek'}
+          </SmallCaps>
+          <h2 className="font-heading text-dark text-xl mb-6 leading-snug">
             {mode === 'login' ? 'Wróć do swojej transformacji' : 'Zacznij Projekt 30'}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-sans text-muted mb-1.5 uppercase tracking-wider">
+              <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-1.5">
                 E-mail
-              </label>
+              </SmallCaps>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="w-full border border-border rounded-xl px-4 py-3 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors"
+                className="w-full border border-hairline bg-cream/40 px-4 py-3 font-serif-body text-[14px] text-dark focus:outline-none focus:border-gold transition-colors placeholder:text-muted-light/60"
                 placeholder="twoj@email.com"
               />
             </div>
             <div>
-              <label className="block text-xs font-sans text-muted mb-1.5 uppercase tracking-wider">
+              <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-1.5">
                 Hasło
-              </label>
+              </SmallCaps>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full border border-border rounded-xl px-4 py-3 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors"
+                className="w-full border border-hairline bg-cream/40 px-4 py-3 font-serif-body text-[14px] text-dark focus:outline-none focus:border-gold transition-colors placeholder:text-muted-light/60"
                 placeholder="••••••••"
               />
             </div>
 
             {error && (
-              <p className="text-red-600 text-xs font-sans bg-red-50 px-3 py-2 rounded-lg">
-                {error}
-              </p>
+              <div className="flex items-start gap-2 border border-red-200 bg-red-50/60 px-3 py-2">
+                <Diamond size={5} className="text-red-700 mt-1.5 shrink-0" />
+                <p className="font-serif-body italic text-red-800 text-[13px] leading-snug">
+                  {error}
+                </p>
+              </div>
             )}
 
             <button
               type="submit"
               disabled={busy}
-              className="w-full bg-dark text-ivory font-sans text-sm py-3.5 rounded-xl hover:bg-forest transition-colors disabled:opacity-60 font-medium tracking-wide mt-2"
+              className="w-full bg-dark-deep text-ivory border border-gold py-3.5 hover:bg-forest transition-colors disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
             >
-              {busy ? '...' : mode === 'login' ? 'Zaloguj się' : 'Stwórz konto'}
+              <Diamond size={5} className="text-gold" />
+              <SmallCaps tone="ivory" tracking="luxury" size="xs">
+                {busy ? '...' : mode === 'login' ? 'Zaloguj się' : 'Stwórz konto'}
+              </SmallCaps>
+              <Diamond size={5} className="text-gold" />
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <button
               onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError('') }}
-              className="text-xs font-sans text-muted hover:text-gold transition-colors"
+              className="font-ui uppercase tracking-luxury text-[10px] text-muted hover:text-gold-deep transition-colors"
             >
-              {mode === 'login' ? 'Nie mam jeszcze konta →' : '← Mam już konto'}
+              {mode === 'login' ? 'Nie mam jeszcze konta  ›' : '‹  Mam już konto'}
             </button>
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted-light font-sans mt-6">
-          Twoje dane są prywatne i tylko Twoje.
+        <p className="text-center font-serif-body italic text-muted-light text-[12px] mt-6">
+          twoje dane są prywatne — i tylko twoje.
         </p>
       </div>
     </div>

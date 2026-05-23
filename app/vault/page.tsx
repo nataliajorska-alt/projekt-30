@@ -1,9 +1,9 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+import clsx from 'clsx'
 import { useVault, type NewLetterDraft } from '@/hooks/useVault'
 import { Lock, Trash2, X, PenLine, ChevronLeft, MessageCirclePlus } from 'lucide-react'
-import clsx from 'clsx'
 import {
   LETTER_TYPES, MOOD_STATES,
   type LetterType, type UnlockType, type MoodState, type VaultEntry, type VaultReply,
@@ -12,24 +12,39 @@ import {
   getUnlockStatus, getNextGlobalUnlock, daysUntil, countUnlocked, gratitudeUnlockDate,
 } from '@/lib/vaultUnlock'
 import { getRandomPrompt } from '@/lib/vaultPrompts'
+import { SmallCaps, GoldRule, Fleuron, Diamond, CornerBrackets } from '@/components/ui'
+import { toRoman } from '@/lib/romanNumerals'
 
-// ── Helpers ───────────────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────
 
 function formatDate(dateKey: string): string {
   const d = new Date(dateKey + 'T12:00:00')
   return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })
 }
-
 function moodMeta(state?: MoodState) {
   if (!state) return null
   return MOOD_STATES.find(m => m.value === state) ?? null
 }
-
 function letterTypeMeta(type: LetterType) {
   return LETTER_TYPES.find(t => t.value === type) ?? LETTER_TYPES[0]
 }
 
-// ── Banner ─────────────────────────────────────────────────────────
+// ── Ritual frame ─────────────────────────────────────────────────
+
+function RitualFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-[130] bg-forest-deep grain-linen animate-fade-in flex flex-col">
+      <div className="pointer-events-none absolute inset-6 border border-gold-light/40" />
+      <div className="pointer-events-none absolute inset-9 border border-gold-light/15" />
+      <div className="pointer-events-none absolute inset-12">
+        <CornerBrackets size={20} tone="gold" weight={1} />
+      </div>
+      <div className="relative flex-1 flex flex-col min-h-0">{children}</div>
+    </div>
+  )
+}
+
+// ── Banner ──────────────────────────────────────────────────────
 
 function NextUnlockBanner({ entries, unlockedCount }: { entries: VaultEntry[]; unlockedCount: number }) {
   const next = getNextGlobalUnlock(entries)
@@ -39,100 +54,96 @@ function NextUnlockBanner({ entries, unlockedCount }: { entries: VaultEntry[]; u
 
   if (allDone) {
     return (
-      <div className="bg-gold-pale border border-gold/30 rounded-2xl p-6 text-center mb-6">
-        <div className="text-4xl mb-3">🔓</div>
-        <p className="font-serif text-dark text-xl mb-1">Skarbiec otwarty</p>
-        <p className="font-sans text-sm text-muted">
-          Masz {unlockedCount} {unlockedCount === 1 ? 'list' : unlockedCount < 5 ? 'listy' : 'listów'} do odczytania.
+      <div className="bg-ivory border border-gold p-7 text-center mb-6">
+        <Fleuron size={16} className="text-gold mx-auto mb-3 inline-block" />
+        <h3 className="font-display text-dark text-2xl">Skarbiec otwarty</h3>
+        <p className="font-serif-body italic text-muted text-[14px] mt-2">
+          masz {unlockedCount} {unlockedCount === 1 ? 'list' : unlockedCount < 5 ? 'listy' : 'listów'} do odczytania.
         </p>
       </div>
     )
   }
-
-  if (!next) {
-    return null
-  }
+  if (!next) return null
 
   return (
-    <div className="bg-dark rounded-2xl p-6 text-center mb-6 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-5"
-        style={{ backgroundImage: 'repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,255,255,.1) 10px,rgba(255,255,255,.1) 11px)' }}
-      />
+    <div className="relative bg-forest-deep grain-linen text-ivory p-7 text-center mb-6 border border-gold-light/40">
+      <CornerBrackets size={14} tone="gold" weight={1} />
       <div className="relative z-10">
-        <div className="text-4xl mb-3">🔐</div>
-        <p className="font-sans text-[11px] text-gold/70 uppercase tracking-[0.2em] mb-2">
+        <Fleuron size={14} className="text-gold mx-auto mb-3 inline-block" />
+        <SmallCaps tone="gold-light" tracking="editorial" size="xs">
           {unlockedCount > 0 ? 'Następne otwarcie za' : 'Pierwsze otwarcie za'}
-        </p>
-        <p className="font-serif text-5xl text-ivory mb-1">
-          <span className="text-gold">{days}</span>
-        </p>
-        <p className="font-sans text-sm text-muted-light mb-4">
+        </SmallCaps>
+        <p className="font-display text-gold text-6xl leading-none mt-3 mb-1">{days}</p>
+        <p className="font-serif-body italic text-parchment text-[14px]">
           {days === 1 ? 'dzień' : days < 5 ? 'dni' : 'dni'} · {next.label}
         </p>
         {unlockedCount > 0 && (
-          <p className="font-sans text-xs text-gold-light mb-3">
-            Już otwarte: {unlockedCount}
-          </p>
+          <SmallCaps tone="gold-light" tracking="luxury" size="xs" className="mt-3 block opacity-70">
+            już otwarte · {unlockedCount}
+          </SmallCaps>
         )}
-        <p className="font-serif text-ivory/50 text-xs italic leading-relaxed max-w-xs mx-auto">
-          &ldquo;Piszesz jako Natalia 30 — ona już wie, jak się skończyło.&rdquo;
+        <GoldRule variant="diamond" tone="gold" className="my-5 max-w-xs mx-auto opacity-60" />
+        <p className="font-serif-body italic text-parchment/80 text-[13px] leading-relaxed max-w-xs mx-auto">
+          „piszesz jako natalia 30 — ona już wie, jak się skończyło."
         </p>
       </div>
     </div>
   )
 }
 
-// ── Letter Type Picker (krok 1 pisania) ───────────────────────────
+// ── Letter Type Picker ─────────────────────────────────────────
 
-interface TypePickerProps {
+function LetterTypePicker({ onPick, onClose }: {
   onPick: (type: LetterType) => void
   onClose: () => void
-}
-
-function LetterTypePicker({ onPick, onClose }: TypePickerProps) {
+}) {
   return (
-    <div className="fixed inset-0 z-[130] flex flex-col bg-ivory animate-fade-in">
-      <div className="flex items-center justify-between px-5 pt-6 pb-4 border-b border-border flex-shrink-0">
+    <RitualFrame>
+      <div className="flex items-center justify-between px-7 pt-8 pb-4 shrink-0">
         <div>
-          <p className="font-sans text-[10px] text-gold uppercase tracking-[0.2em]">Skarbiec · Nowy list</p>
-          <p className="font-serif text-dark text-base mt-0.5">Jaki to ma być list?</p>
+          <SmallCaps tone="gold-light" tracking="editorial" size="xs">
+            Skarbiec · Nowy list
+          </SmallCaps>
+          <h2 className="font-display text-ivory text-3xl mt-1 leading-tight">
+            Jaki to ma być list?
+          </h2>
         </div>
-        <button onClick={onClose} className="text-muted-light hover:text-dark transition-colors">
-          <X size={20} strokeWidth={1.5} />
+        <button onClick={onClose} className="text-parchment/50 hover:text-ivory transition-colors">
+          <X size={18} strokeWidth={1.5} />
         </button>
       </div>
-
-      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-3">
+      <GoldRule variant="plain" tone="gold-deep" className="opacity-40 mx-7" />
+      <div className="flex-1 overflow-y-auto px-7 py-6 space-y-3">
         {LETTER_TYPES.map(t => (
           <button
             key={t.value}
             onClick={() => onPick(t.value)}
-            className="w-full text-left bg-white rounded-2xl border border-border p-4 hover:border-gold/40 hover:shadow-elegant transition-all"
+            className="w-full text-left bg-forest/20 border border-gold-light/30 p-5 hover:bg-forest/40 hover:border-gold transition-all"
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-4">
               <div className="text-2xl flex-shrink-0">{t.emoji}</div>
               <div className="flex-1">
-                <p className="font-serif text-dark text-base mb-1">{t.label}</p>
-                <p className="font-sans text-sm text-muted leading-relaxed">{t.description}</p>
+                <h3 className="font-heading text-ivory text-lg leading-tight">{t.label}</h3>
+                <p className="font-serif-body italic text-parchment text-[13.5px] mt-2 leading-relaxed">
+                  {t.description}
+                </p>
               </div>
             </div>
           </button>
         ))}
       </div>
-    </div>
+    </RitualFrame>
   )
 }
 
-// ── Write Modal (krok 2 — mood + prompt + treść) ──────────────────
+// ── Write Modal ─────────────────────────────────────────────────
 
-interface WriteModalProps {
+function WriteModal({ letterType, onSave, onBack, onClose }: {
   letterType: LetterType
   onSave: (draft: NewLetterDraft) => Promise<void>
   onBack: () => void
   onClose: () => void
-}
-
-function WriteModal({ letterType, onSave, onBack, onClose }: WriteModalProps) {
+}) {
   const meta = letterTypeMeta(letterType)
   const isVent = letterType === 'vent'
   const isCustomDate = letterType === 'date'
@@ -146,9 +157,7 @@ function WriteModal({ letterType, onSave, onBack, onClose }: WriteModalProps) {
   const [saving, setSaving] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  useEffect(() => {
-    textareaRef.current?.focus()
-  }, [])
+  useEffect(() => { textareaRef.current?.focus() }, [])
 
   const canSave = (() => {
     if (!content.trim()) return false
@@ -159,7 +168,6 @@ function WriteModal({ letterType, onSave, onBack, onClose }: WriteModalProps) {
   const handleSave = async () => {
     if (!canSave) return
     setSaving(true)
-
     let finalUnlockDate: string | undefined
     if (letterType === 'gratitude') finalUnlockDate = gratitudeUnlockDate()
     else if (letterType === 'date')  finalUnlockDate = unlockDate
@@ -178,67 +186,77 @@ function WriteModal({ letterType, onSave, onBack, onClose }: WriteModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-[130] flex flex-col bg-ivory animate-fade-in">
+    <RitualFrame>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-6 pb-4 border-b border-border flex-shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <button onClick={onBack} className="text-muted-light hover:text-dark transition-colors flex-shrink-0">
-            <ChevronLeft size={20} strokeWidth={1.5} />
+      <div className="flex items-center justify-between px-7 pt-8 pb-4 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <button onClick={onBack} className="text-parchment/50 hover:text-ivory transition-colors shrink-0">
+            <ChevronLeft size={18} strokeWidth={1.5} />
           </button>
           <div className="min-w-0">
-            <p className="font-sans text-[10px] text-gold uppercase tracking-[0.2em] flex items-center gap-1.5">
-              <span>{meta.emoji}</span> {meta.label}
-            </p>
-            <p className="font-serif text-dark text-base mt-0.5 truncate">
+            <SmallCaps tone="gold-light" tracking="editorial" size="xs">
+              <span className="inline-flex items-center gap-1.5">
+                <span>{meta.emoji}</span> {meta.label}
+              </span>
+            </SmallCaps>
+            <h2 className="font-display text-ivory text-2xl mt-1 leading-tight truncate">
               {isVent ? 'Pisz. Nikt tego nie przeczyta.' : 'Piszę jako Natalia 30'}
-            </p>
+            </h2>
           </div>
         </div>
-        <button onClick={onClose} className="text-muted-light hover:text-dark transition-colors flex-shrink-0">
-          <X size={20} strokeWidth={1.5} />
+        <button onClick={onClose} className="text-parchment/50 hover:text-ivory transition-colors shrink-0">
+          <X size={18} strokeWidth={1.5} />
         </button>
       </div>
+      <GoldRule variant="plain" tone="gold-deep" className="opacity-40 mx-7" />
 
-      {/* Mood picker */}
-      <div className="px-5 py-3 border-b border-border flex-shrink-0">
-        <p className="font-sans text-[10px] text-muted uppercase tracking-widest mb-2">Jak się teraz czujesz?</p>
-        <div className="flex gap-2">
-          {MOOD_STATES.map(m => (
-            <button
-              key={m.value}
-              onClick={() => setMood(prev => prev === m.value ? null : m.value)}
-              className={clsx(
-                'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border text-sm transition-all',
-                mood === m.value
-                  ? 'bg-dark text-ivory border-dark'
-                  : 'bg-white text-muted border-border hover:border-gold/40',
-              )}
-            >
-              <span className="text-base">{m.emoji}</span>
-              <span className="font-sans text-xs">{m.label}</span>
-            </button>
-          ))}
+      {/* Mood */}
+      <div className="px-7 py-4 shrink-0">
+        <SmallCaps tone="parchment" tracking="luxury" size="xs" as="div" className="mb-2 opacity-70">
+          Jak się teraz czujesz?
+        </SmallCaps>
+        <div className="flex gap-2 flex-wrap">
+          {MOOD_STATES.map(m => {
+            const sel = mood === m.value
+            return (
+              <button
+                key={m.value}
+                onClick={() => setMood(prev => prev === m.value ? null : m.value)}
+                className={clsx(
+                  'flex-1 flex items-center justify-center gap-1.5 py-2 border transition-all',
+                  sel
+                    ? 'bg-forest/60 border-gold'
+                    : 'border-ivory/15 bg-forest/20 hover:bg-forest/30'
+                )}
+              >
+                <span className="text-base">{m.emoji}</span>
+                <SmallCaps tone={sel ? 'gold-light' : 'parchment'} tracking="luxury" size="xs">
+                  {m.label}
+                </SmallCaps>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Prompt card (ukryte dla venta — tam wystarcza sam zaproszenie do wypuszczenia) */}
+      {/* Prompt */}
       {!isVent && (
-        <div className="px-5 py-3 bg-gold-pale/60 border-b border-gold/10 flex-shrink-0">
+        <div className="px-7 py-4 bg-gold/8 border-y border-gold-light/20 shrink-0">
           {usePrompt && prompt ? (
             <>
-              <p className="font-serif text-sm text-dark/80 leading-relaxed italic">
-                &ldquo;{prompt}&rdquo;
+              <p className="font-serif-body italic text-parchment text-[13.5px] leading-relaxed">
+                „{prompt}"
               </p>
-              <div className="flex items-center gap-3 mt-2">
+              <div className="flex items-center gap-4 mt-3">
                 <button
                   onClick={() => setPrompt(getRandomPrompt(letterType, prompt ?? undefined))}
-                  className="font-sans text-[11px] text-gold hover:text-dark transition-colors"
+                  className="font-ui uppercase tracking-luxury text-[10px] text-gold-light hover:text-gold transition-colors"
                 >
                   Inny prompt ↻
                 </button>
                 <button
                   onClick={() => setUsePrompt(false)}
-                  className="font-sans text-[11px] text-muted hover:text-dark transition-colors"
+                  className="font-ui uppercase tracking-luxury text-[10px] text-parchment/60 hover:text-parchment transition-colors"
                 >
                   Pisz bez promptu
                 </button>
@@ -247,7 +265,7 @@ function WriteModal({ letterType, onSave, onBack, onClose }: WriteModalProps) {
           ) : (
             <button
               onClick={() => { setUsePrompt(true); setPrompt(getRandomPrompt(letterType)) }}
-              className="font-sans text-[11px] text-gold hover:text-dark transition-colors"
+              className="font-ui uppercase tracking-luxury text-[10px] text-gold-light hover:text-gold transition-colors"
             >
               Pokaż prompt ↻
             </button>
@@ -255,67 +273,70 @@ function WriteModal({ letterType, onSave, onBack, onClose }: WriteModalProps) {
         </div>
       )}
 
-      {/* Datepicker tylko dla 'date' */}
+      {/* Custom date */}
       {isCustomDate && (
-        <div className="px-5 py-3 border-b border-border flex-shrink-0">
-          <label className="block font-sans text-[10px] text-muted uppercase tracking-widest mb-1.5">
+        <div className="px-7 py-4 shrink-0">
+          <SmallCaps tone="parchment" tracking="luxury" size="xs" as="div" className="mb-2 opacity-70">
             Otwiera się w dniu
-          </label>
+          </SmallCaps>
           <input
             type="date"
             value={unlockDate}
             onChange={e => setUnlockDate(e.target.value)}
             min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
-            className="w-full font-sans text-sm text-dark bg-white border border-border rounded-xl px-3 py-2 outline-none focus:border-gold"
+            className="w-full font-serif-body text-[14px] text-ivory bg-forest/20 border border-ivory/15 px-3 py-2.5 outline-none focus:border-gold transition-colors"
           />
         </div>
       )}
 
       {/* Form */}
-      <div className="flex-1 flex flex-col px-5 py-4 gap-3 overflow-y-auto">
+      <div className="flex-1 flex flex-col px-7 py-5 gap-3 overflow-y-auto min-h-0">
         {!isVent && (
           <input
             type="text"
-            placeholder="Tytuł listu (opcjonalny)"
+            placeholder="tytuł listu (opcjonalny)"
             value={title}
             onChange={e => setTitle(e.target.value)}
-            className="w-full font-serif text-lg text-dark bg-transparent border-none outline-none placeholder:text-muted-light/60"
+            className="w-full font-display text-2xl text-ivory bg-transparent border-none outline-none placeholder:text-parchment/30"
           />
         )}
         <textarea
           ref={textareaRef}
-          placeholder={isVent ? 'Wypuść wszystko. Nic z tego nie zostanie zapisane.' : 'Zaczynam pisać...'}
+          placeholder={isVent ? 'wypuść wszystko. nic z tego nie zostanie zapisane.' : 'zaczynam pisać…'}
           value={content}
           onChange={e => setContent(e.target.value)}
-          className="flex-1 w-full font-sans text-sm text-dark bg-transparent border-none outline-none resize-none placeholder:text-muted-light/60 leading-relaxed min-h-[300px]"
+          className="flex-1 w-full font-serif-body text-[15px] text-ivory bg-transparent border-none outline-none resize-none placeholder:text-parchment/30 leading-relaxed min-h-[300px]"
         />
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-4 border-t border-border flex items-center justify-between flex-shrink-0">
-        <p className="font-sans text-xs text-muted-light">
-          {content.length > 0 ? `${content.length} znaków` : 'Zacznij pisać...'}
-        </p>
+      <GoldRule variant="plain" tone="gold-deep" className="opacity-40 mx-7" />
+      <div className="px-7 py-5 flex items-center justify-between shrink-0">
+        <SmallCaps tone="parchment" tracking="luxury" size="xs" className="opacity-60">
+          {content.length > 0 ? `${content.length} znaków` : 'zacznij pisać…'}
+        </SmallCaps>
         <button
           onClick={handleSave}
           disabled={!canSave || saving}
-          className="bg-dark text-ivory font-sans text-sm px-5 py-2.5 rounded-xl disabled:opacity-40 hover:bg-forest transition-colors"
+          className="bg-gold text-dark-deep border border-gold px-6 py-3 disabled:opacity-40 hover:bg-gold-light transition-colors flex items-center gap-2"
         >
-          {saving ? 'Zapisuję...' : isVent ? 'Wypuść 🌪️' : 'Zamknij w skarbcu ✦'}
+          <Diamond size={5} className="text-dark-deep" filled />
+          <SmallCaps tracking="luxury" size="xs" className="!text-dark-deep">
+            {saving ? 'zapisuję…' : isVent ? 'wypuść' : 'zamknij w skarbcu'}
+          </SmallCaps>
+          <Diamond size={5} className="text-dark-deep" filled />
         </button>
       </div>
-    </div>
+    </RitualFrame>
   )
 }
 
-// ── Reply composer (wewnątrz expanded entry) ──────────────────────
+// ── Reply composer ──────────────────────────────────────────────
 
-interface ReplyComposerProps {
+function ReplyComposer({ onSave, onCancel }: {
   onSave: (content: string, mood?: MoodState) => Promise<void>
   onCancel: () => void
-}
-
-function ReplyComposer({ onSave, onCancel }: ReplyComposerProps) {
+}) {
   const [content, setContent] = useState('')
   const [mood, setMood] = useState<MoodState | null>(null)
   const [saving, setSaving] = useState(false)
@@ -332,174 +353,191 @@ function ReplyComposer({ onSave, onCancel }: ReplyComposerProps) {
   }
 
   return (
-    <div className="bg-cream/60 border border-gold/20 rounded-2xl p-4 mb-3">
-      <p className="font-sans text-[10px] text-gold uppercase tracking-widest mb-2">Twoja odpowiedź</p>
-      <div className="flex gap-1.5 mb-3">
-        {MOOD_STATES.map(m => (
-          <button
-            key={m.value}
-            onClick={() => setMood(prev => prev === m.value ? null : m.value)}
-            className={clsx(
-              'flex items-center gap-1 px-2.5 py-1 rounded-full text-xs transition-all border',
-              mood === m.value
-                ? 'bg-dark text-ivory border-dark'
-                : 'bg-white text-muted border-border hover:border-gold/40',
-            )}
-          >
-            <span>{m.emoji}</span>
-            <span className="font-sans">{m.label}</span>
-          </button>
-        ))}
+    <div className="bg-cream/60 border border-gold-light/40 p-4 mb-3">
+      <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-2.5">
+        Twoja odpowiedź
+      </SmallCaps>
+      <div className="flex gap-1.5 flex-wrap mb-3">
+        {MOOD_STATES.map(m => {
+          const sel = mood === m.value
+          return (
+            <button
+              key={m.value}
+              onClick={() => setMood(prev => prev === m.value ? null : m.value)}
+              className={clsx(
+                'flex items-center gap-1 px-2.5 py-1 border transition-all',
+                sel
+                  ? 'bg-dark-deep text-ivory border-gold'
+                  : 'bg-ivory text-muted border-hairline hover:border-gold-light'
+              )}
+            >
+              <span className="text-xs">{m.emoji}</span>
+              <SmallCaps tone={sel ? 'ivory' : 'muted'} tracking="luxury" size="xs">
+                {m.label}
+              </SmallCaps>
+            </button>
+          )
+        })}
       </div>
       <textarea
         ref={textareaRef}
         value={content}
         onChange={e => setContent(e.target.value)}
-        placeholder="Co chcesz teraz powiedzieć tamtej Tobie?"
-        className="w-full bg-white rounded-xl border border-border outline-none p-3 font-sans text-sm text-dark min-h-[120px] resize-none focus:border-gold"
+        placeholder="co chcesz teraz powiedzieć tamtej tobie?"
+        className="w-full bg-ivory border border-hairline outline-none p-3 font-serif-body italic text-[14px] text-dark min-h-[120px] resize-none focus:border-gold"
       />
       <div className="flex justify-end gap-2 mt-2">
         <button
           onClick={onCancel}
-          className="font-sans text-xs text-muted-light hover:text-dark px-3 py-1.5"
+          className="font-ui uppercase tracking-luxury text-[10px] text-muted-light hover:text-dark px-3 py-1.5 transition-colors"
         >
-          Anuluj
+          anuluj
         </button>
         <button
           onClick={handleSave}
           disabled={!content.trim() || saving}
-          className="bg-dark text-ivory font-sans text-xs px-4 py-1.5 rounded-xl disabled:opacity-40 hover:bg-forest transition-colors"
+          className="bg-dark-deep text-ivory border border-gold px-4 py-1.5 disabled:opacity-40 hover:bg-forest transition-colors flex items-center gap-2"
         >
-          {saving ? 'Zapisuję...' : 'Dodaj odpowiedź'}
+          <Diamond size={4} className="text-gold" />
+          <SmallCaps tone="ivory" tracking="luxury" size="xs">
+            {saving ? 'zapisuję…' : 'dodaj odpowiedź'}
+          </SmallCaps>
         </button>
       </div>
     </div>
   )
 }
 
-// ── Reply card ────────────────────────────────────────────────────
+// ── Reply card ──────────────────────────────────────────────────
 
 function ReplyCard({ reply, onDelete }: { reply: VaultReply; onDelete: () => void }) {
   const [confirm, setConfirm] = useState(false)
   const moodInfo = moodMeta(reply.moodAtWriting)
   return (
-    <div className="bg-white rounded-2xl border border-border p-4 mb-3">
-      <div className="flex items-center justify-between mb-2">
+    <div className="bg-ivory border border-hairline p-4 mb-3">
+      <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-2">
-          <p className="font-sans text-[11px] text-muted">
+          <SmallCaps tone="muted" tracking="luxury" size="xs">
             {formatDate(reply.dateKey)} · dzień {reply.dayOfProject}
-          </p>
+          </SmallCaps>
           {moodInfo && (
-            <span className="text-xs flex items-center gap-1 bg-cream rounded-full px-2 py-0.5">
-              <span>{moodInfo.emoji}</span>
-              <span className="font-sans text-[10px] text-muted">{moodInfo.label}</span>
+            <span className="inline-flex items-center gap-1 border border-hairline px-2 py-0.5">
+              <span className="text-xs">{moodInfo.emoji}</span>
+              <SmallCaps tone="muted" tracking="luxury" size="xs">
+                {moodInfo.label}
+              </SmallCaps>
             </span>
           )}
         </div>
         {confirm ? (
           <div className="flex items-center gap-2">
-            <button onClick={onDelete} className="font-sans text-[11px] text-red-500">Usuń</button>
-            <button onClick={() => setConfirm(false)} className="font-sans text-[11px] text-muted-light">Anuluj</button>
+            <button onClick={onDelete} className="font-ui uppercase tracking-luxury text-[10px] text-red-500 hover:text-red-700">
+              usuń
+            </button>
+            <button onClick={() => setConfirm(false)} className="font-ui uppercase tracking-luxury text-[10px] text-muted-light hover:text-dark">
+              anuluj
+            </button>
           </div>
         ) : (
           <button onClick={() => setConfirm(true)} className="text-muted-light hover:text-dark">
-            <Trash2 size={12} strokeWidth={1.5} />
+            <Trash2 size={11} strokeWidth={1.5} />
           </button>
         )}
       </div>
-      <p className="font-sans text-sm text-dark leading-relaxed whitespace-pre-wrap">{reply.content}</p>
+      <p className="font-serif-body italic text-dark text-[14px] leading-relaxed whitespace-pre-wrap">
+        {reply.content}
+      </p>
     </div>
   )
 }
 
-// ── Entry Card (lista) ────────────────────────────────────────────
+// ── Entry card ──────────────────────────────────────────────────
 
-interface EntryCardProps {
+function EntryCard({ entry, allEntries, onOpen }: {
   entry: VaultEntry
   allEntries: VaultEntry[]
   onOpen: () => void
-}
-
-function EntryCard({ entry, allEntries, onOpen }: EntryCardProps) {
+}) {
   const status = getUnlockStatus(entry, allEntries)
   const meta = letterTypeMeta(entry.letterType)
   const isVent = entry.letterType === 'vent'
   const replyCount = entry.replies?.length ?? 0
-  const canOpen = status.unlocked || isVent  // vent — można "otworzyć" żeby zobaczyć meta
+  const canOpen = status.unlocked || isVent
 
   return (
     <button
       onClick={() => canOpen && onOpen()}
       className={clsx(
-        'w-full text-left bg-white rounded-2xl border p-5 transition-all',
+        'w-full text-left bg-ivory border p-5 transition-all',
         canOpen
-          ? 'border-gold/20 hover:border-gold/40 hover:shadow-elegant cursor-pointer'
-          : 'border-border cursor-default',
+          ? 'border-gold-light/60 hover:border-gold cursor-pointer'
+          : 'border-hairline cursor-default'
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            {!status.unlocked && !isVent && <Lock size={11} className="text-muted-light flex-shrink-0" strokeWidth={2} />}
-            <span className="text-base flex-shrink-0">{meta.emoji}</span>
-            <p className="font-serif text-dark text-base truncate">
+            {!status.unlocked && !isVent && (
+              <Lock size={11} className="text-muted-light shrink-0" strokeWidth={1.5} />
+            )}
+            <span className="text-base shrink-0">{meta.emoji}</span>
+            <h3 className="font-heading text-dark text-[16px] truncate">
               {isVent ? 'Vent' : (entry.title || 'List bez tytułu')}
-            </p>
+            </h3>
           </div>
-          <p className="font-sans text-xs text-muted-light">
+          <SmallCaps tone="muted" tracking="luxury" size="xs">
             {meta.label} · dzień {entry.dayOfProject} · {formatDate(entry.dateKey)}
-          </p>
+          </SmallCaps>
         </div>
-        <span className="font-sans text-[10px] text-gold bg-gold-pale px-2 py-1 rounded-full flex-shrink-0">
-          D{entry.dayOfProject}
+        <span className="font-display text-gold-deep text-sm border border-gold-light/40 px-2 py-0.5 shrink-0">
+          {toRoman(entry.dayOfProject)}
         </span>
       </div>
 
-      {/* Preview */}
       {isVent ? (
-        <p className="font-sans text-sm text-muted italic">
-          🌪️ Wypuszczone — treść nie istnieje. {entry.charCount ? `${entry.charCount} znaków uleciało.` : ''}
+        <p className="font-serif-body italic text-muted text-[13px] leading-snug">
+          ◆ wypuszczone — treść nie istnieje. {entry.charCount ? `${entry.charCount} znaków uleciało.` : ''}
         </p>
       ) : (
         <p className={clsx(
-          'font-sans text-sm text-muted leading-relaxed line-clamp-2 select-none',
-          !status.unlocked && 'blur-sm pointer-events-none',
+          'font-serif-body text-muted text-[13.5px] leading-relaxed line-clamp-2 select-none',
+          !status.unlocked && 'blur-sm pointer-events-none'
         )}>
           {entry.content}
         </p>
       )}
 
-      {/* Unlock date for locked letters */}
       {!status.unlocked && !isVent && status.nextUnlockLabel && (
-        <p className="mt-3 font-sans text-[11px] text-gold/80 flex items-center gap-1.5">
-          <Lock size={10} strokeWidth={2} />
-          Otwiera się {status.nextUnlockLabel}
-        </p>
+        <div className="mt-3 flex items-center gap-1.5">
+          <Lock size={9} strokeWidth={1.5} className="text-gold-deep" />
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+            otwiera się {status.nextUnlockLabel}
+          </SmallCaps>
+        </div>
       )}
 
-      {/* Reply badge */}
       {replyCount > 0 && status.unlocked && (
-        <p className="mt-3 font-sans text-[11px] text-gold flex items-center gap-1.5">
-          <MessageCirclePlus size={11} strokeWidth={2} />
-          {replyCount} {replyCount === 1 ? 'odpowiedź' : replyCount < 5 ? 'odpowiedzi' : 'odpowiedzi'}
-        </p>
+        <div className="mt-3 flex items-center gap-1.5">
+          <MessageCirclePlus size={10} strokeWidth={1.5} className="text-gold" />
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+            {replyCount} {replyCount === 1 ? 'odpowiedź' : replyCount < 5 ? 'odpowiedzi' : 'odpowiedzi'}
+          </SmallCaps>
+        </div>
       )}
     </button>
   )
 }
 
-// ── Expanded Entry View ───────────────────────────────────────────
+// ── Expanded entry ──────────────────────────────────────────────
 
-interface ExpandedEntryProps {
+function ExpandedEntry({ entry, onClose, onDelete, onAddReply, onDeleteReply }: {
   entry: VaultEntry
   allEntries: VaultEntry[]
   onClose: () => void
   onDelete: (id: string) => void
   onAddReply: (letterId: string, content: string, mood?: MoodState) => Promise<void>
   onDeleteReply: (letterId: string, replyId: string) => void
-}
-
-function ExpandedEntry({ entry, allEntries, onClose, onDelete, onAddReply, onDeleteReply }: ExpandedEntryProps) {
+}) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [composing, setComposing] = useState(false)
   const meta = letterTypeMeta(entry.letterType)
@@ -507,67 +545,77 @@ function ExpandedEntry({ entry, allEntries, onClose, onDelete, onAddReply, onDel
   const writingMoodInfo = moodMeta(entry.moodAtWriting)
 
   return (
-    <div className="fixed inset-0 z-[130] flex flex-col bg-ivory animate-fade-in">
-      <div className="flex items-center justify-between px-5 pt-6 pb-4 border-b border-border">
+    <RitualFrame>
+      <div className="flex items-center justify-between px-7 pt-8 pb-4 shrink-0">
         <div className="min-w-0">
-          <p className="font-sans text-[10px] text-gold uppercase tracking-[0.2em] flex items-center gap-1.5">
-            <span>{meta.emoji}</span> {meta.label}
-          </p>
-          <p className="font-serif text-dark text-lg mt-0.5 truncate">
+          <SmallCaps tone="gold-light" tracking="editorial" size="xs">
+            <span className="inline-flex items-center gap-1.5">
+              <span>{meta.emoji}</span> {meta.label}
+            </span>
+          </SmallCaps>
+          <h2 className="font-display text-ivory text-3xl mt-1 leading-tight truncate">
             {isVent ? 'Vent — bez treści' : (entry.title || 'List bez tytułu')}
-          </p>
+          </h2>
         </div>
-        <button onClick={onClose} className="text-muted-light hover:text-dark transition-colors flex-shrink-0">
-          <X size={20} strokeWidth={1.5} />
+        <button onClick={onClose} className="text-parchment/50 hover:text-ivory transition-colors shrink-0">
+          <X size={18} strokeWidth={1.5} />
         </button>
       </div>
+      <GoldRule variant="plain" tone="gold-deep" className="opacity-40 mx-7" />
 
-      <div className="flex-1 overflow-y-auto px-5 py-6">
+      <div className="flex-1 overflow-y-auto px-7 py-6">
         {/* Meta strip */}
-        <div className="bg-gold-pale/40 rounded-xl px-4 py-3 mb-5 border border-gold/10 space-y-1">
-          <p className="font-sans text-[11px] text-muted">
+        <div className="bg-forest/30 border border-gold-light/20 px-5 py-4 mb-6 space-y-1">
+          <SmallCaps tone="parchment" tracking="luxury" size="xs" className="opacity-80">
             Napisany {formatDate(entry.dateKey)} · dzień {entry.dayOfProject}
-          </p>
+          </SmallCaps>
           {writingMoodInfo && (
-            <p className="font-sans text-xs text-dark/80 flex items-center gap-1.5">
+            <p className="font-serif-body italic text-parchment text-[13px] flex items-center gap-1.5">
               <span>{writingMoodInfo.emoji}</span>
-              <span>Pisałaś gdy czułaś: <span className="font-medium">{writingMoodInfo.label}</span></span>
+              <span>pisałaś gdy czułaś: <span className="text-ivory not-italic">{writingMoodInfo.label}</span></span>
             </p>
           )}
           {entry.promptUsed && (
-            <p className="font-serif text-xs italic text-muted leading-relaxed pt-1">
-              &ldquo;{entry.promptUsed}&rdquo;
+            <p className="font-serif-body italic text-parchment/70 text-[12.5px] leading-relaxed pt-1">
+              „{entry.promptUsed}"
             </p>
           )}
         </div>
 
         {/* Content */}
         {isVent ? (
-          <div className="bg-cream/60 border border-border rounded-2xl p-6 text-center">
-            <div className="text-3xl mb-2">🌪️</div>
-            <p className="font-serif text-dark text-base mb-1">Treść nie istnieje</p>
-            <p className="font-sans text-sm text-muted leading-relaxed">
-              Tak miało być. {entry.charCount ? `Wypuściłaś ${entry.charCount} znaków` : 'Wypuściłaś to'} — i tyle.
+          <div className="bg-forest/20 border border-gold-light/20 p-7 text-center">
+            <Fleuron size={14} className="text-gold mx-auto mb-3 inline-block" />
+            <h3 className="font-display text-ivory text-2xl">Treść nie istnieje</h3>
+            <p className="font-serif-body italic text-parchment text-[14px] mt-2 leading-relaxed">
+              tak miało być. {entry.charCount ? `wypuściłaś ${entry.charCount} znaków` : 'wypuściłaś to'} — i tyle.
             </p>
           </div>
         ) : (
-          <p className="font-sans text-sm text-dark leading-relaxed whitespace-pre-wrap mb-6">{entry.content}</p>
+          <div className="relative bg-ivory/95 px-6 py-7 mb-6">
+            <Fleuron size={11} className="text-gold absolute -top-2 left-1/2 -translate-x-1/2 bg-forest-deep px-1" />
+            <p className="font-serif-body text-dark text-[15px] leading-relaxed whitespace-pre-wrap">
+              {entry.content}
+            </p>
+          </div>
         )}
 
         {/* Replies */}
         {!isVent && (
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-sans text-[10px] text-muted uppercase tracking-widest">
-                Twoje odpowiedzi {entry.replies && entry.replies.length > 0 ? `(${entry.replies.length})` : ''}
-              </p>
+          <div className="mt-7">
+            <div className="flex items-center justify-between mb-4">
+              <SmallCaps tone="gold-light" tracking="luxury" size="xs">
+                Twoje odpowiedzi {entry.replies && entry.replies.length > 0 ? `· ${entry.replies.length}` : ''}
+              </SmallCaps>
               {!composing && (
                 <button
                   onClick={() => setComposing(true)}
-                  className="flex items-center gap-1.5 font-sans text-xs text-gold hover:text-dark transition-colors"
+                  className="flex items-center gap-1.5 text-gold-light hover:text-ivory transition-colors"
                 >
-                  <MessageCirclePlus size={13} strokeWidth={1.5} />
-                  Odpowiedz
+                  <MessageCirclePlus size={11} strokeWidth={1.5} />
+                  <SmallCaps tone="gold-light" tracking="luxury" size="xs">
+                    odpowiedz
+                  </SmallCaps>
                 </button>
               )}
             </div>
@@ -588,48 +636,55 @@ function ExpandedEntry({ entry, allEntries, onClose, onDelete, onAddReply, onDel
             ))}
 
             {(!entry.replies || entry.replies.length === 0) && !composing && (
-              <p className="font-sans text-xs text-muted-light italic">
-                Możesz odpisać sobie z tego momentu — w rocznym raporcie zobaczysz cały dialog.
+              <p className="font-serif-body italic text-parchment/70 text-[12.5px]">
+                możesz odpisać sobie z tego momentu — w rocznym raporcie zobaczysz cały dialog.
               </p>
             )}
           </div>
         )}
       </div>
 
-      <div className="px-5 py-4 border-t border-border flex justify-between items-center">
+      <GoldRule variant="plain" tone="gold-deep" className="opacity-40 mx-7" />
+      <div className="px-7 py-5 flex justify-between items-center shrink-0">
         {confirmDelete ? (
           <div className="flex items-center gap-3">
-            <span className="font-sans text-xs text-muted">Na pewno usunąć?</span>
+            <SmallCaps tone="parchment" tracking="luxury" size="xs">na pewno usunąć?</SmallCaps>
             <button
               onClick={() => { onDelete(entry.id); onClose() }}
-              className="font-sans text-xs text-red-500 hover:text-red-700"
-            >Usuń</button>
+              className="font-ui uppercase tracking-luxury text-[10px] text-red-400 hover:text-red-300 transition-colors"
+            >
+              usuń
+            </button>
             <button
               onClick={() => setConfirmDelete(false)}
-              className="font-sans text-xs text-muted-light"
-            >Anuluj</button>
+              className="font-ui uppercase tracking-luxury text-[10px] text-parchment/50 hover:text-parchment"
+            >
+              anuluj
+            </button>
           </div>
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="flex items-center gap-1.5 text-muted-light hover:text-dark transition-colors"
+            className="flex items-center gap-1.5 text-parchment/50 hover:text-parchment transition-colors"
           >
-            <Trash2 size={14} strokeWidth={1.5} />
-            <span className="font-sans text-xs">Usuń</span>
+            <Trash2 size={12} strokeWidth={1.5} />
+            <SmallCaps tracking="luxury" size="xs">
+              <span className="!text-current">usuń</span>
+            </SmallCaps>
           </button>
         )}
         <button
           onClick={onClose}
-          className="font-sans text-sm text-muted-light hover:text-dark transition-colors"
+          className="font-ui uppercase tracking-luxury text-[10px] text-parchment/60 hover:text-parchment transition-colors"
         >
-          Zamknij
+          zamknij
         </button>
       </div>
-    </div>
+    </RitualFrame>
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────
+// ── Page ────────────────────────────────────────────────────────
 
 export default function VaultPage() {
   const { entries, loading, addEntry, removeEntry, addReply, removeReply } = useVault()
@@ -638,7 +693,6 @@ export default function VaultPage() {
   const [openEntryId, setOpenEntryId] = useState<string | null>(null)
   const searchParams = useSearchParams()
 
-  // ?action=write z FAB lub crisis nudge — od razu otwórz picker.
   useEffect(() => {
     const action = searchParams.get('action')
     if (action === 'write') setPickerOpen(true)
@@ -648,37 +702,47 @@ export default function VaultPage() {
   const openEntry = entries.find(e => e.id === openEntryId) ?? null
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-6 pb-8 animate-fade-in">
-      <div className="mb-6">
-        <p className="font-sans text-xs text-muted uppercase tracking-widest mb-1">Prywatne</p>
-        <h1 className="font-serif text-dark text-2xl mb-1">Skarbiec</h1>
-        <p className="font-sans text-sm text-muted">
-          Listy w 5 stanach: do siebie z przyszłości, na trudną chwilę, wdzięczność, vent, na konkretną datę.
+    <div className="max-w-2xl mx-auto px-4 pt-8 pb-12 animate-fade-in">
+      {/* Editorial header */}
+      <header className="mb-7">
+        <SmallCaps tone="muted" tracking="editorial" size="xs">
+          Prywatne · Vol. I
+        </SmallCaps>
+        <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.75rem)] leading-tight mt-2">
+          Skarbiec
+        </h1>
+        <p className="font-serif-body italic text-muted text-[14px] mt-2 leading-relaxed">
+          listy w pięciu stanach: do siebie z przyszłości, na trudną chwilę,
+          wdzięczność, vent, na konkretną datę.
         </p>
-      </div>
+        <GoldRule variant="diamond" tone="gold-deep" className="mt-5 opacity-50" />
+      </header>
 
       <NextUnlockBanner entries={entries} unlockedCount={unlockedCount} />
 
       <button
         onClick={() => setPickerOpen(true)}
-        className="w-full flex items-center justify-center gap-2.5 py-3.5 mb-6 rounded-2xl border border-dashed border-gold/40 text-gold hover:bg-gold-pale transition-all font-sans text-sm"
+        className="w-full flex items-center justify-center gap-3 py-4 mb-6 border border-dashed border-gold/50 text-gold-deep hover:border-gold hover:bg-gold-pale/30 transition-all group"
       >
-        <PenLine size={15} strokeWidth={1.5} />
-        Napisz nowy list
+        <PenLine size={13} strokeWidth={1.5} />
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+          Napisz nowy list
+        </SmallCaps>
+        <Fleuron size={9} className="text-gold-deep/70 group-hover:text-gold transition-colors" />
       </button>
 
       {loading ? (
         <div className="space-y-3">
           {[1,2].map(i => (
-            <div key={i} className="bg-cream rounded-2xl h-24 animate-pulse" />
+            <div key={i} className="bg-cream border border-hairline h-24 animate-pulse" />
           ))}
         </div>
       ) : entries.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-3xl mb-3">📜</p>
-          <p className="font-serif text-dark text-base mb-1">Skarbiec czeka</p>
-          <p className="font-sans text-sm text-muted">
-            Napisz pierwszy list — Natalia 30 ma już coś do powiedzenia.
+        <div className="bg-ivory border border-gold-light/40 px-6 py-14 text-center">
+          <Fleuron size={14} className="text-gold-deep mx-auto mb-3 inline-block" />
+          <h3 className="font-display text-dark text-2xl">Skarbiec czeka</h3>
+          <p className="font-serif-body italic text-muted text-[14px] mt-2">
+            napisz pierwszy list — natalia 30 ma już coś do powiedzenia.
           </p>
         </div>
       ) : (
@@ -694,7 +758,6 @@ export default function VaultPage() {
         </div>
       )}
 
-      {/* Pisanie — krok 1: wybór typu */}
       {pickerOpen && writingType === null && (
         <LetterTypePicker
           onPick={setWritingType}
@@ -702,7 +765,6 @@ export default function VaultPage() {
         />
       )}
 
-      {/* Pisanie — krok 2: mood + prompt + treść */}
       {pickerOpen && writingType !== null && (
         <WriteModal
           letterType={writingType}
@@ -712,7 +774,6 @@ export default function VaultPage() {
         />
       )}
 
-      {/* Expanded entry */}
       {openEntry && (
         <ExpandedEntry
           entry={openEntry}

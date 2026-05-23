@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v1';
+const CACHE_NAME = 'p30-v2-editorial';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {

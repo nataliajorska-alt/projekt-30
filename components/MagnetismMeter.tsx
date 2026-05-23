@@ -1,17 +1,18 @@
 'use client'
 
 import { useState } from 'react'
+import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { useMagnetismHistory } from '@/hooks/useMagnetismHistory'
 import { calcMagnetism, magnetismLabel, magnetismColor } from '@/lib/magnetism'
-import clsx from 'clsx'
+import { SmallCaps, Diamond, Fleuron, GoldRule } from '@/components/ui'
 
 const DIMS = [
-  { key: 'morning', label: 'Rutyna (ogółem)', max: 35, icon: '🌅' },
-  { key: 'cialo',   label: 'Ciało / ruch',   max: 25, icon: '⚡' },
-  { key: 'social',  label: 'Obecność',        max: 20, icon: '🌐' },
-  { key: 'ghost',   label: 'Ghost Protocol',  max: 10, icon: '🛡️' },
-  { key: 'style',   label: 'Wygląd',          max: 10, icon: '✨' },
+  { key: 'morning', label: 'Rutyna (ogółem)', max: 35 },
+  { key: 'cialo',   label: 'Ciało / ruch',   max: 25 },
+  { key: 'social',  label: 'Obecność',        max: 20 },
+  { key: 'ghost',   label: 'Ghost Protocol',  max: 10 },
+  { key: 'style',   label: 'Wygląd',          max: 10 },
 ] as const
 
 function dayLabel(dateStr: string): string {
@@ -37,33 +38,47 @@ function Report30({ history }: { history: ReturnType<typeof useMagnetismHistory>
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-border">
-      <p className="font-sans text-[11px] text-gold uppercase tracking-widest mb-3">
-        Twoje najlepsze dni
-      </p>
-      {top3.map((day, i) => (
-        <div key={day.date} className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <span className="font-sans text-xs text-muted-light w-4">{i + 1}.</span>
-            <span className="font-sans text-xs text-dark">
-              {new Date(day.date + 'T12:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-20 h-1.5 bg-cream rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${day.score.total}%`, backgroundColor: magnetismColor(day.score.total) }}
-              />
+    <div className="mt-5 pt-5 border-t border-hairline">
+      <div className="flex items-center gap-2 mb-3">
+        <Diamond size={5} className="text-gold" />
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+          Twoje najlepsze dni
+        </SmallCaps>
+      </div>
+      <div className="space-y-2">
+        {top3.map((day, i) => (
+          <div key={day.date} className="flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <span
+                className="font-display text-xs w-5 text-muted-light"
+                style={{ color: i === 0 ? '#B8963E' : undefined }}
+              >
+                {['I', 'II', 'III'][i]}
+              </span>
+              <span className="font-serif-body italic text-dark text-[13px]">
+                {new Date(day.date + 'T12:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}
+              </span>
             </div>
-            <span className="font-sans text-xs font-medium text-dark w-6 text-right">{day.score.total}</span>
+            <div className="flex items-center gap-3">
+              <div className="w-20 h-px bg-hairline relative">
+                <div
+                  className="absolute left-0 top-0 h-px"
+                  style={{ width: `${day.score.total}%`, backgroundColor: magnetismColor(day.score.total) }}
+                />
+              </div>
+              <span className="font-display text-sm text-dark w-7 text-right">
+                {day.score.total}
+              </span>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
       {patterns.length > 0 && (
-        <p className="font-sans text-xs text-muted mt-3 leading-relaxed">
-          Twoje szczyty łączyło: <span className="text-dark">{patterns.join(', ')}</span>.
-          Średni magnetyzm: <span className="text-gold font-medium">{avg}/100</span>.
+        <p className="font-serif-body italic text-muted text-[12.5px] mt-4 leading-relaxed">
+          twoje szczyty łączyło: <span className="text-dark not-italic">{patterns.join(', ')}</span>.
+          średni magnetyzm:{' '}
+          <span className="font-display text-gold not-italic">{avg}</span>
+          <span className="text-muted-light"> / 100</span>.
         </p>
       )}
     </div>
@@ -81,92 +96,112 @@ export default function MagnetismMeter() {
   const color = magnetismColor(score.total)
   const label = magnetismLabel(score.total)
 
-  // Last 7 days for sparkline
   const last7 = history.slice(-7)
 
   return (
-    <div className="bg-white rounded-2xl shadow-elegant overflow-hidden mb-4">
-      {/* Color top bar matching score */}
-      <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${color}40, ${color})` }} />
+    <div className="bg-ivory border border-gold-light/40 overflow-hidden mb-4">
+      {/* Hairline accent */}
+      <div className="h-px w-full" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
 
-      <div className="px-5 pt-4 pb-5">
-        {/* Header row */}
+      <div className="px-5 pt-5 pb-5">
         <button
           onClick={() => setExpanded(e => !e)}
-          className="w-full flex items-center justify-between mb-3"
+          className="w-full flex items-baseline justify-between mb-4"
         >
-          <div className="flex items-center gap-2">
-            <span className="text-base">⚡</span>
-            <h2 className="font-serif text-dark text-base">Magnetyzm</h2>
+          <div className="flex items-baseline gap-3">
+            <h2 className="font-heading text-dark text-xl">Magnetyzm</h2>
+            <SmallCaps tone="muted" tracking="luxury" size="xs">
+              {label}
+            </SmallCaps>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="font-sans text-xs text-muted-light">{label}</span>
-            <span className="font-serif text-2xl font-medium" style={{ color }}>
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-3xl leading-none" style={{ color }}>
               {score.total}
             </span>
+            <span className="font-serif-body italic text-muted-light text-sm">/ 100</span>
           </div>
         </button>
 
-        {/* Main bar */}
-        <div className="h-2 bg-cream rounded-full overflow-hidden mb-3">
+        {/* Main bar — hairline */}
+        <div className="relative h-px w-full bg-hairline mb-1">
           <div
-            className="h-full rounded-full transition-all duration-700"
+            className="absolute left-0 top-0 h-px transition-all duration-700"
             style={{ width: `${score.total}%`, backgroundColor: color }}
           />
+          {score.total > 0 && score.total < 100 && (
+            <div
+              className="absolute leading-none transition-all duration-700"
+              style={{
+                left: `${score.total}%`,
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                color,
+              }}
+            >
+              <Diamond size={7} filled className="block" />
+            </div>
+          )}
         </div>
 
-        {/* Expanded: dimensions breakdown + social toggle + history */}
         {expanded && (
-          <div className="animate-fade-in">
+          <div className="animate-fade-in mt-6">
             {/* Dimensions */}
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2.5 mb-5">
               {DIMS.map(dim => {
                 const val = score[dim.key]
                 const pct = Math.round((val / dim.max) * 100)
                 const isActive = val > 0
                 return (
                   <div key={dim.key} className="flex items-center gap-3">
-                    <span className="text-sm w-5 flex-shrink-0 text-center opacity-70">{dim.icon}</span>
-                    <span className="font-sans text-xs text-muted w-28 flex-shrink-0">{dim.label}</span>
-                    <div className="flex-1 h-1.5 bg-cream rounded-full overflow-hidden">
+                    <span className="font-serif-body italic text-muted text-[13px] w-32 flex-shrink-0">
+                      {dim.label}
+                    </span>
+                    <div className="flex-1 h-px bg-hairline relative">
                       <div
-                        className="h-full rounded-full transition-all duration-500"
+                        className="absolute left-0 top-0 h-px transition-all duration-500"
                         style={{
                           width: `${pct}%`,
-                          backgroundColor: isActive ? color : '#E5DDD3',
+                          backgroundColor: isActive ? color : '#C9BFB1',
                         }}
                       />
                     </div>
-                    <span className="font-sans text-[11px] text-muted-light w-10 text-right flex-shrink-0">
-                      {val}/{dim.max}
-                    </span>
+                    <SmallCaps tone="muted" tracking="luxury" size="xs" className="w-12 text-right shrink-0">
+                      {val} / {dim.max}
+                    </SmallCaps>
                   </div>
                 )
               })}
             </div>
 
             {/* Manual toggles */}
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2 mb-5">
               {[
-                { flag: todayLog.physicalActivity, toggle: togglePhysicalActivity, icon: '⚡', label: 'Ćwiczyłam dziś' },
-                { flag: todayLog.socialPresence,   toggle: toggleSocialPresence,   icon: '🌐', label: 'Byłam gdzieś / miałam kontakt z ludźmi' },
-              ].map(({ flag, toggle, icon, label }) => (
+                { flag: todayLog.physicalActivity, toggle: togglePhysicalActivity, label: 'Ćwiczyłam dziś' },
+                { flag: todayLog.socialPresence,   toggle: toggleSocialPresence,   label: 'Byłam gdzieś / miałam kontakt z ludźmi' },
+              ].map(({ flag, toggle, label }) => (
                 <button
                   key={label}
                   onClick={toggle}
                   className={clsx(
-                    'w-full flex items-start justify-between px-4 py-2.5 rounded-xl border transition-all',
-                    flag ? 'bg-gold-pale border-gold/20' : 'bg-cream/50 border-transparent hover:border-border'
+                    'w-full flex items-center gap-3 px-4 py-3 border transition-all',
+                    flag
+                      ? 'bg-gold-pale/40 border-gold'
+                      : 'bg-cream/30 border-hairline hover:border-gold-light'
                   )}
                 >
-                  <div className="flex items-start gap-2 text-left">
-                    <span className="text-sm mt-0.5 flex-shrink-0">{icon}</span>
-                    <span className="font-sans text-sm text-dark">{label}</span>
-                  </div>
-                  <div className={clsx(
-                    'w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 ml-2 transition-all',
-                    flag ? 'bg-gold border-gold' : 'border-border'
-                  )} />
+                  <Diamond
+                    size={9}
+                    filled={flag}
+                    className={flag ? 'text-gold' : 'text-hairline'}
+                  />
+                  <span
+                    className={clsx(
+                      'font-serif-body text-[14px] flex-1 text-left',
+                      flag ? 'text-dark italic' : 'text-dark'
+                    )}
+                  >
+                    {label}
+                  </span>
                 </button>
               ))}
             </div>
@@ -174,24 +209,27 @@ export default function MagnetismMeter() {
             {/* Weekly sparkline */}
             {last7.length > 1 && (
               <div>
-                <p className="font-sans text-[11px] text-muted uppercase tracking-widest mb-2">
-                  Ostatnie dni
-                </p>
-                <div className="flex items-end gap-1.5 h-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Diamond size={5} className="text-gold-deep" />
+                  <SmallCaps tone="muted" tracking="luxury" size="xs">
+                    Ostatnie dni
+                  </SmallCaps>
+                </div>
+                <div className="flex items-end gap-1.5 h-12">
                   {last7.map(day => {
-                    const h = Math.max(4, Math.round((day.score.total / 100) * 40))
+                    const h = Math.max(4, Math.round((day.score.total / 100) * 48))
                     const isToday = day.date === todayLog.date
                     return (
                       <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
                         <div
-                          className="w-full rounded-t-sm transition-all duration-500"
+                          className="w-full transition-all duration-500"
                           style={{
                             height: h,
                             backgroundColor: isToday ? color : magnetismColor(day.score.total) + '80',
                           }}
                           title={`${dayLabel(day.date)}: ${day.score.total}`}
                         />
-                        <span className="font-sans text-[9px] text-muted-light leading-none">
+                        <span className="font-ui uppercase tracking-wide text-[8.5px] text-muted-light leading-none">
                           {dayLabel(day.date)}
                         </span>
                       </div>
@@ -201,29 +239,38 @@ export default function MagnetismMeter() {
               </div>
             )}
 
-            {/* 30-day report */}
             {history.length >= 7 && <Report30 history={history} />}
           </div>
         )}
 
-        {/* Collapse hint */}
         {!expanded && last7.length > 1 && (
-          <div className="flex items-end gap-1 h-5 cursor-pointer" onClick={() => setExpanded(true)}>
-            {last7.map(day => {
-              const h = Math.max(2, Math.round((day.score.total / 100) * 20))
-              const isToday = day.date === todayLog.date
-              return (
-                <div
-                  key={day.date}
-                  className="flex-1 rounded-t-sm"
-                  style={{
-                    height: h,
-                    backgroundColor: isToday ? color : magnetismColor(day.score.total) + '60',
-                  }}
-                />
-              )
-            })}
-          </div>
+          <button
+            onClick={() => setExpanded(true)}
+            className="mt-4 w-full flex items-center justify-between gap-3 group"
+          >
+            <SmallCaps tone="muted" tracking="luxury" size="xs">
+              Ostatnie 7 dni
+            </SmallCaps>
+            <div className="flex items-end gap-[3px] h-3 flex-1 mx-2 opacity-70 group-hover:opacity-100 transition-opacity">
+              {last7.map(day => {
+                const h = Math.max(2, Math.round((day.score.total / 100) * 12))
+                const isToday = day.date === todayLog.date
+                return (
+                  <div
+                    key={day.date}
+                    className="flex-1"
+                    style={{
+                      height: h,
+                      backgroundColor: isToday ? color : '#C9BFB1',
+                    }}
+                  />
+                )
+              })}
+            </div>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="group-hover:text-gold transition-colors">
+              rozwiń ›
+            </SmallCaps>
+          </button>
         )}
       </div>
     </div>

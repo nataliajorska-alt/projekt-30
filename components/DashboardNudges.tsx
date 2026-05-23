@@ -7,11 +7,10 @@ import { useAuth } from '@/hooks/useAuth'
 import { todayKey } from '@/lib/gameLogic'
 import type { MoodCheckIn } from '@/types'
 import { Camera, ScrollText, Heart, X } from 'lucide-react'
+import { SmallCaps, Diamond } from '@/components/ui'
 
-// Thresholds in days
 const PHOTO_NUDGE_DAYS = 7
 const VAULT_NUDGE_DAYS = 14
-// Crisis: mood ≤ 2 we wszystkich 3 ostatnich dniach z check-inami → wypchnij list crisis.
 const CRISIS_MOOD_THRESHOLD = 2
 const CRISIS_LOOKBACK_DAYS = 3
 
@@ -32,20 +31,28 @@ interface NudgeCardProps {
 function NudgeCard({ icon, label, title, sub, href, onDismiss }: NudgeCardProps) {
   const router = useRouter()
   return (
-    <div className="flex items-center gap-3 bg-white border border-cream rounded-2xl px-4 py-3 shadow-sm">
-      <div className="w-9 h-9 rounded-xl bg-gold-pale flex items-center justify-center flex-shrink-0 text-gold">
+    <div className="flex items-center gap-3 bg-ivory border border-gold-light/40 px-4 py-3">
+      <div className="w-9 h-9 border border-gold-light/60 flex items-center justify-center flex-shrink-0 text-gold-deep">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-sans text-[9px] text-muted uppercase tracking-widest mb-0.5">{label}</p>
-        <p className="font-serif text-dark text-sm leading-snug">{title}</p>
-        <p className="font-sans text-xs text-muted leading-snug mt-0.5">{sub}</p>
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+          {label}
+        </SmallCaps>
+        <p className="font-heading text-dark text-[14px] leading-snug mt-0.5">
+          {title}
+        </p>
+        <p className="font-serif-body italic text-muted text-[12px] leading-snug mt-0.5">
+          {sub}
+        </p>
       </div>
       <button
         onClick={() => router.push(href)}
-        className="font-sans text-xs text-gold bg-gold-pale px-3 py-1.5 rounded-xl hover:opacity-80 transition-opacity flex-shrink-0"
+        className="border border-gold-light/60 px-3 py-1.5 hover:border-gold hover:bg-gold-pale/40 transition-colors flex-shrink-0"
       >
-        Przejdź
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+          Przejdź
+        </SmallCaps>
       </button>
       <button
         onClick={onDismiss}
@@ -75,19 +82,16 @@ export default function DashboardNudges() {
     const sessionVaultKey = `nudge_vault_${today}`
     const sessionCrisisKey = `nudge_crisis_${today}`
 
-    // Check session dismissals
     if (sessionStorage.getItem(sessionPhotoKey)) setPhotoDismissed(true)
     if (sessionStorage.getItem(sessionVaultKey)) setVaultDismissed(true)
     if (sessionStorage.getItem(sessionCrisisKey)) setCrisisDismissed(true)
 
-    // Query last photo
     ;(async () => {
       try {
         const photosRef = collection(db, 'users', user.uid, 'photos')
         const q = query(photosRef, orderBy('createdAt', 'desc'), limit(1))
         const snap = await getDocs(q)
         if (snap.empty) {
-          // No photos ever — gentle nudge after project starts (always show)
           setPhotoNudge({ daysSince: 999 })
         } else {
           const dateKey: string = snap.docs[0].data().dateKey ?? today
@@ -99,7 +103,6 @@ export default function DashboardNudges() {
       }
     })()
 
-    // Query last vault entry
     ;(async () => {
       try {
         const vaultRef = collection(db, 'users', user.uid, 'vault')
@@ -117,8 +120,6 @@ export default function DashboardNudges() {
       }
     })()
 
-    // Crisis: jeśli istnieje list typu 'crisis' i mood ≤ 2 we wszystkich
-    // ostatnich 3 dniach z check-inami → pokaż wskazówkę.
     ;(async () => {
       try {
         const crisisQuery = query(
@@ -129,7 +130,6 @@ export default function DashboardNudges() {
         const crisisSnap = await getDocs(crisisQuery)
         if (crisisSnap.empty) return
 
-        // Pobierz logi z dziś + 2 poprzednich dni; potrzebujemy 3 dni z check-inami.
         const dateKeys: string[] = []
         const baseDate = new Date(today + 'T12:00:00')
         for (let i = 0; i < CRISIS_LOOKBACK_DAYS; i++) {
@@ -150,7 +150,6 @@ export default function DashboardNudges() {
           dailyAverages.push(avg)
         }
 
-        // Wymagamy CRISIS_LOOKBACK_DAYS dni z check-inami i wszystkie ≤ progu.
         if (
           dailyAverages.length >= CRISIS_LOOKBACK_DAYS &&
           dailyAverages.every(a => a <= CRISIS_MOOD_THRESHOLD)
@@ -167,12 +166,10 @@ export default function DashboardNudges() {
     sessionStorage.setItem(`nudge_photo_${todayKey()}`, '1')
     setPhotoDismissed(true)
   }
-
   const dismissVault = () => {
     sessionStorage.setItem(`nudge_vault_${todayKey()}`, '1')
     setVaultDismissed(true)
   }
-
   const dismissCrisis = () => {
     sessionStorage.setItem(`nudge_crisis_${todayKey()}`, '1')
     setCrisisDismissed(true)
@@ -188,7 +185,7 @@ export default function DashboardNudges() {
     <div className="space-y-2 mb-4">
       {showCrisis && (
         <NudgeCard
-          icon={<Heart size={16} strokeWidth={1.5} />}
+          icon={<Heart size={15} strokeWidth={1.5} />}
           label="Skarbiec · trudna chwila"
           title="Masz list napisany na taki dzień jak ten"
           sub="Otwórz go — Natalia 30 zostawiła Ci coś."
@@ -198,12 +195,12 @@ export default function DashboardNudges() {
       )}
       {showPhoto && (
         <NudgeCard
-          icon={<Camera size={16} strokeWidth={1.5} />}
+          icon={<Camera size={15} strokeWidth={1.5} />}
           label="Photo Timeline"
           title={
             photoNudge!.daysSince >= 999
               ? 'Nie masz jeszcze żadnego zdjęcia'
-              : `Ostatnie zdjęcie: ${photoNudge!.daysSince} ${photoNudge!.daysSince === 1 ? 'dzień' : 'dni'} temu`
+              : `Ostatnie zdjęcie · ${photoNudge!.daysSince} ${photoNudge!.daysSince === 1 ? 'dzień' : 'dni'} temu`
           }
           sub={
             photoNudge!.daysSince >= 999
@@ -216,12 +213,12 @@ export default function DashboardNudges() {
       )}
       {showVault && (
         <NudgeCard
-          icon={<ScrollText size={16} strokeWidth={1.5} />}
+          icon={<ScrollText size={15} strokeWidth={1.5} />}
           label="Skarbiec"
           title={
             vaultNudge!.daysSince >= 999
               ? 'Nie napisałaś jeszcze do Skarbca'
-              : `Skarbiec czeka ${vaultNudge!.daysSince} ${vaultNudge!.daysSince === 1 ? 'dzień' : 'dni'}`
+              : `Skarbiec czeka · ${vaultNudge!.daysSince} ${vaultNudge!.daysSince === 1 ? 'dzień' : 'dni'}`
           }
           sub={
             vaultNudge!.daysSince >= 999

@@ -1,33 +1,35 @@
 'use client'
 import { useGameData } from '@/hooks/useGameData'
-import { Zap } from 'lucide-react'
+import { SmallCaps, Fleuron } from '@/components/ui'
 
 export default function DailyXPSummary() {
   const { todayLog, stats } = useGameData()
   const todayXP = todayLog?.totalXP ?? 0
 
-  const breakdown = [
-    { label: 'Rutyna', count: todayLog?.completedRoutine?.length ?? 0, xp: (todayLog?.completedRoutine?.length ?? 0) * 10 },
-    { label: 'Questy', count: todayLog?.completedDailyQuests?.length ?? 0, xp: (todayLog?.completedDailyQuests?.length ?? 0) * 50 },
-    { label: 'Side questy', count: todayLog?.completedSideQuests?.length ?? 0, xp: (todayLog?.completedSideQuests?.length ?? 0) * 120 },
-    { label: 'Zasady', count: todayLog?.keptRules?.length ?? 0, xp: (todayLog?.keptRules?.length ?? 0) * 20 },
-  ].filter(b => b.count > 0)
-
   return (
-    <div className="bg-cream rounded-2xl px-5 py-4 mb-4 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-gold/20 rounded-full flex items-center justify-center">
-          <Zap size={16} className="text-gold" strokeWidth={2} />
-        </div>
-        <div>
-          <p className="font-sans text-xs text-muted uppercase tracking-wider">XP dziś</p>
-          <p className="font-serif text-dark text-xl">+{todayXP.toLocaleString('pl-PL')}</p>
-        </div>
+    <div className="bg-cream border border-gold-light/30 px-4 sm:px-5 py-4 mb-4 flex items-center gap-3 sm:gap-4">
+      <div className="flex-1 min-w-0 text-left">
+        <SmallCaps tone="muted" tracking="luxury" size="xs">
+          XP dziś
+        </SmallCaps>
+        <p className="font-display text-dark text-2xl sm:text-3xl leading-none mt-1.5 tabular-nums">
+          + {todayXP.toLocaleString('pl-PL')}
+        </p>
       </div>
 
-      <div className="text-right">
-        <p className="font-sans text-xs text-muted uppercase tracking-wider">XP łącznie</p>
-        <p className="font-serif text-dark text-xl">{stats.totalXP.toLocaleString('pl-PL')}</p>
+      <div className="flex flex-col items-center gap-1.5 shrink-0 px-1">
+        <span className="h-3 w-px bg-gold-deep/40" />
+        <Fleuron size={10} className="text-gold" />
+        <span className="h-3 w-px bg-gold-deep/40" />
+      </div>
+
+      <div className="flex-1 min-w-0 text-right">
+        <SmallCaps tone="muted" tracking="luxury" size="xs">
+          XP łącznie
+        </SmallCaps>
+        <p className="font-display text-dark text-2xl sm:text-3xl leading-none mt-1.5 tabular-nums">
+          {stats.totalXP.toLocaleString('pl-PL')}
+        </p>
       </div>
     </div>
   )

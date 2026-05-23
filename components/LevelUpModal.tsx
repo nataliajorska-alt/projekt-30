@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react'
 import { LEVELS } from '@/lib/gameLogic'
+import { toRoman } from '@/lib/romanNumerals'
+import { SmallCaps, GoldRule, Fleuron, Diamond, CornerBrackets } from '@/components/ui'
 
 interface LevelUpContextType {
   showLevelUp: (levelNumber: number) => void
@@ -16,36 +18,25 @@ export function useLevelUp() {
 }
 
 const PARTICLES: { x: number; y: number; delay: string; size: number }[] = [
-  { x: -90,  y: -280, delay: '0s',     size: 5 },
+  { x: -90,  y: -280, delay: '0s',     size: 4 },
   { x: -20,  y: -295, delay: '0.1s',   size: 3 },
   { x:  45,  y: -290, delay: '0.25s',  size: 4 },
-  { x:  100, y: -270, delay: '0.05s',  size: 5 },
-  { x: -220, y: -160, delay: '0.18s',  size: 4 },
+  { x:  100, y: -270, delay: '0.05s',  size: 4 },
+  { x: -220, y: -160, delay: '0.18s',  size: 3 },
   { x: -225, y:  -35, delay: '0.38s',  size: 3 },
-  { x: -210, y:   70, delay: '0.08s',  size: 5 },
+  { x: -210, y:   70, delay: '0.08s',  size: 4 },
   { x:  220, y: -160, delay: '0.22s',  size: 3 },
   { x:  225, y:  -35, delay: '0.32s',  size: 4 },
-  { x:  210, y:   70, delay: '0.12s',  size: 5 },
-  { x:  -85, y:  260, delay: '0.15s',  size: 4 },
-  { x:   85, y:  260, delay: '0.28s',  size: 3 },
-  { x:    0, y: -300, delay: '0.42s',  size: 4 },
+  { x:  210, y:   70, delay: '0.12s',  size: 4 },
+  { x:  -85, y:  260, delay: '0.15s',  size: 3 },
+  { x:   85, y:  260, delay: '0.28s',  size: 4 },
+  { x:    0, y: -300, delay: '0.42s',  size: 3 },
   { x: -150, y:  200, delay: '0.06s',  size: 3 },
-  { x:  150, y:  200, delay: '0.35s',  size: 5 },
+  { x:  150, y:  200, delay: '0.35s',  size: 4 },
 ]
 
-// Emoji per level tier
-function getLevelEmoji(level: number): string {
-  if (level <= 3)  return '🌱'
-  if (level <= 6)  return '🌿'
-  if (level <= 9)  return '🌸'
-  if (level <= 12) return '🌺'
-  if (level <= 15) return '✨'
-  if (level <= 18) return '💎'
-  if (level <= 21) return '🔮'
-  if (level <= 24) return '👑'
-  if (level <= 27) return '⭐'
-  return '🌟'
-}
+// 16 radial diamonds for the level medallion (slightly denser than achievement)
+const RADIAL_ANGLES = Array.from({ length: 16 }, (_, i) => (i * 360) / 16)
 
 export function LevelUpProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<number[]>([])
@@ -90,18 +81,18 @@ export function LevelUpProvider({ children }: { children: ReactNode }) {
           aria-label={`Nowy poziom: ${levelData.name}`}
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-dark/90 backdrop-blur-sm animate-fade-in" />
+          <div className="absolute inset-0 bg-dark-deep/95 grain-linen animate-fade-in" />
 
-          {/* Gold particles */}
+          {/* Gold dust */}
           {PARTICLES.map((p, i) => (
             <span
               key={`${animKey}-${i}`}
               className="absolute rounded-full bg-gold pointer-events-none animate-sparkle-float"
               style={{
-                width:  p.size,
+                width: p.size,
                 height: p.size,
-                left:   `calc(50% + ${p.x}px)`,
-                top:    `calc(50% + ${p.y}px)`,
+                left: `calc(50% + ${p.x}px)`,
+                top: `calc(50% + ${p.y}px)`,
                 animationDelay: p.delay,
               }}
             />
@@ -110,51 +101,92 @@ export function LevelUpProvider({ children }: { children: ReactNode }) {
           {/* Card */}
           <div
             key={animKey}
-            className="relative z-10 mx-4 bg-ivory rounded-2xl shadow-elegant-lg max-w-sm w-full animate-achievement-enter overflow-hidden"
+            className="relative z-10 mx-4 max-w-sm w-full bg-forest-deep grain-linen text-ivory animate-achievement-enter"
             onClick={e => e.stopPropagation()}
           >
-            {/* Gold top bar */}
-            <div className="h-1.5 w-full bg-gold-gradient" />
+            <div className="pointer-events-none absolute inset-3 border border-gold-light/40" />
+            <div className="pointer-events-none absolute inset-[14px] border border-gold-light/15" />
+            <div className="pointer-events-none absolute inset-6">
+              <CornerBrackets size={14} tone="gold" weight={1} />
+            </div>
 
-            <div className="px-8 pt-7 pb-8 text-center">
-              {/* Label */}
-              <p className="text-gold text-[10px] font-sans font-semibold tracking-[0.22em] uppercase mb-5">
-                ✦ Nowy poziom ✦
-              </p>
+            <div className="relative px-8 pt-10 pb-9 text-center">
+              {/* Eyebrow */}
+              <SmallCaps tone="gold-light" tracking="editorial" size="xs" as="div">
+                Nowy stopień · ascensja
+              </SmallCaps>
 
-              {/* Level number badge */}
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gold-pale border-2 border-gold/40 mb-4">
-                <span className="font-serif text-gold font-bold text-lg leading-none">
-                  {currentLevel}
-                </span>
-              </div>
-
-              {/* Emoji icon */}
-              <div
-                key={`icon-${animKey}`}
-                className="text-5xl mb-4 inline-block animate-icon-float block"
-              >
-                {getLevelEmoji(currentLevel)}
+              {/* MEDALLION — denser, with Roman numeral in center */}
+              <div className="relative mx-auto mt-7 w-36 h-36" key={`medal-${animKey}`}>
+                {/* outer diamonds */}
+                <div className="absolute inset-0">
+                  {RADIAL_ANGLES.map((ang, i) => {
+                    const rad = (ang * Math.PI) / 180
+                    const r = 76
+                    const x = Math.cos(rad) * r
+                    const y = Math.sin(rad) * r
+                    return (
+                      <span
+                        key={i}
+                        className="absolute text-gold"
+                        style={{
+                          left: `calc(50% + ${x}px - 3px)`,
+                          top: `calc(50% + ${y}px - 3px)`,
+                        }}
+                      >
+                        <Diamond size={6} />
+                      </span>
+                    )
+                  })}
+                </div>
+                <div className="absolute inset-2 rounded-full border border-gold" />
+                <div className="absolute inset-4 rounded-full border border-gold-light/40" />
+                <div className="absolute inset-6 rounded-full border border-gold-light/20" />
+                {/* Roman numeral */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="font-display text-4xl text-ivory leading-none">
+                    {toRoman(currentLevel)}
+                  </span>
+                </div>
               </div>
 
               {/* Level name */}
-              <h2 className="font-serif text-3xl text-dark mb-2 leading-snug">
+              <h2 className="font-display text-[clamp(2rem,5vw,2.75rem)] text-ivory mt-7 leading-[1.05]">
                 {levelData.name}
               </h2>
 
-              {/* Subtitle */}
-              <p className="font-sans text-sm text-muted leading-relaxed mb-7">
-                Osiągasz nowy poziom w Projekcie 30.<br />
-                Każdy krok przybliża Cię do siebie.
+              {/* Level number subtitle in Arabic */}
+              <p className="font-serif-body italic text-gold-light text-sm mt-2">
+                stopień {currentLevel}
+              </p>
+
+              <GoldRule variant="fleuron" tone="gold" className="mt-6 max-w-[200px] mx-auto" />
+
+              {/* Description */}
+              <p className="font-serif-body italic text-parchment text-sm leading-relaxed mt-5 px-2">
+                osiągasz nowy stopień w Projekcie 30 —
+                <br />
+                każdy krok przybliża cię do siebie.
               </p>
 
               {/* Dismiss */}
-              <button
-                onClick={dismiss}
-                className="font-sans text-sm text-muted-light hover:text-dark transition-colors tracking-wide"
-              >
-                Dziękuję ✦
-              </button>
+              <div className="mt-8">
+                <button
+                  onClick={dismiss}
+                  className="font-ui uppercase tracking-luxury text-[10px] text-parchment hover:text-gold-light transition-colors"
+                >
+                  Dziękuję
+                </button>
+              </div>
+            </div>
+
+            {/* Ex libris signature */}
+            <div className="relative pb-5 flex items-center justify-center gap-2">
+              <Fleuron size={9} className="text-gold-deep" />
+              <SmallCaps tone="parchment" tracking="luxury" size="xs">
+                ex libris · natalia · {toRoman(currentLevel)}
+              </SmallCaps>
+              <Fleuron size={9} className="text-gold-deep" />
             </div>
           </div>
         </div>

@@ -29,7 +29,7 @@ const DEFAULT_LOG: AprilQuestLog = { completed: [], skips: [], postponed: [] }
 
 export function useAprilQuests() {
   const { user } = useAuth()
-  const { toggleDailyQuest } = useGameData()
+  const { toggleDailyQuest, todayLog } = useGameData()
   const [log, setLog] = useState<AprilQuestLog>(DEFAULT_LOG)
   const [loading, setLoading] = useState(true)
 
@@ -65,8 +65,13 @@ export function useAprilQuests() {
     if (!user || !logRef || log.completed.includes(questId)) return
     const updated = { ...log, completed: [...log.completed, questId] }
     await setDoc(logRef, updated, { merge: true })
-    await toggleDailyQuest(questId, pillar)
-  }, [user, logRef, log, toggleDailyQuest])
+    // If quest was already pre-completed "na zapas" (sits in todayLog.completedDailyQuests),
+    // XP was already awarded yesterday — skip toggleDailyQuest to prevent double-counting.
+    const alreadyInTodayLog = todayLog?.completedDailyQuests?.includes(questId) ?? false
+    if (!alreadyInTodayLog) {
+      await toggleDailyQuest(questId, pillar)
+    }
+  }, [user, logRef, log, todayLog, toggleDailyQuest])
 
   const skipQuest = useCallback(async (questId: string, reason: string) => {
     if (!user || !logRef) return

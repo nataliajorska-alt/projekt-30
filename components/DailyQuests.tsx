@@ -1,12 +1,17 @@
 'use client'
 import { useState } from 'react'
+import clsx from 'clsx'
 import { useAprilQuests } from '@/hooks/useAprilQuests'
 import { useGameData } from '@/hooks/useGameData'
-import { getAprilQuestsForDate, getOverdueAprilQuests, getPostponedQuestsForDate } from '@/lib/seasonal/aprilData'
+import {
+  getAprilQuestsForDate,
+  getOverdueAprilQuests,
+  getPostponedQuestsForDate,
+} from '@/lib/seasonal/aprilData'
 import { getPillar } from '@/lib/pillars'
 import { todayKey, dateKey } from '@/lib/gameLogic'
-import { Check, Clock, SkipForward, CalendarClock, X, Sparkles } from 'lucide-react'
-import clsx from 'clsx'
+import { Clock, SkipForward, CalendarClock, X } from 'lucide-react'
+import { SmallCaps, Fleuron, Diamond } from '@/components/ui'
 import type { AprilQuest } from '@/lib/seasonal/aprilData'
 
 const APRIL_LAST_DAY = '2026-04-30'
@@ -20,40 +25,53 @@ function SkipModal({ quest, onConfirm, onClose }: {
   const [reason, setReason] = useState('')
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0">
-      <div className="absolute inset-0 bg-dark/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-elegant-lg w-full max-w-sm p-6 animate-slide-up">
+      <div
+        className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative bg-ivory border border-gold-light/40 w-full max-w-sm p-6 animate-slide-up">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="font-sans text-xs text-muted uppercase tracking-widest mb-1">Pominięcie questa</p>
-            <h3 className="font-serif text-dark text-base">{quest.title}</h3>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              Pominięcie questa
+            </SmallCaps>
+            <h3 className="font-heading text-dark text-base mt-1">{quest.title}</h3>
           </div>
-          <button onClick={onClose} className="text-muted-light hover:text-dark transition-colors ml-3 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="text-muted-light hover:text-dark transition-colors ml-3 flex-shrink-0"
+          >
             <X size={18} strokeWidth={1.5} />
           </button>
         </div>
-        <p className="font-sans text-sm text-muted mb-4">
-          Dlaczego pomijasz to zadanie? (opcjonalnie)
+        <p className="font-serif-body italic text-muted text-[13px] mb-4">
+          dlaczego pomijasz to zadanie? (opcjonalnie)
         </p>
         <textarea
           value={reason}
           onChange={e => setReason(e.target.value)}
           rows={3}
-          placeholder="np. nie miałam czasu, zrobiłam to inaczej, nie pasuje na teraz..."
-          className="w-full border border-border rounded-xl px-4 py-3 font-sans text-sm text-dark bg-ivory focus:outline-none focus:border-gold transition-colors resize-none mb-4"
+          placeholder="np. nie miałam czasu, zrobiłam to inaczej, nie pasuje na teraz…"
+          className="w-full border border-hairline px-4 py-3 font-serif-body text-[14px] text-dark bg-cream/40 placeholder:text-muted-light/70 focus:outline-none focus:border-gold transition-colors resize-none mb-4"
           autoFocus
         />
         <div className="flex gap-2">
           <button
             onClick={() => onConfirm(reason)}
-            className="flex-1 bg-dark text-ivory font-sans text-sm py-3 rounded-xl hover:bg-forest transition-colors"
+            className="flex-1 bg-dark-deep text-ivory border border-gold py-3 hover:bg-forest transition-colors flex items-center justify-center gap-2"
           >
-            Pomiń zadanie
+            <Diamond size={5} className="text-gold" />
+            <SmallCaps tone="ivory" tracking="luxury" size="xs">
+              Pomiń zadanie
+            </SmallCaps>
           </button>
           <button
             onClick={onClose}
-            className="border border-border text-muted font-sans text-sm px-4 py-3 rounded-xl hover:border-dark hover:text-dark transition-colors"
+            className="border border-hairline text-muted px-4 py-3 hover:border-gold hover:text-dark transition-colors"
           >
-            Anuluj
+            <SmallCaps tone="muted" tracking="luxury" size="xs">
+              Anuluj
+            </SmallCaps>
           </button>
         </div>
       </div>
@@ -61,7 +79,9 @@ function SkipModal({ quest, onConfirm, onClose }: {
   )
 }
 
-function QuestCard({ quest, done, overdue, isMinimum, onComplete, onSkip, onPostpone }: {
+function QuestCard({
+  quest, done, overdue, isMinimum, onComplete, onSkip, onPostpone,
+}: {
   quest: AprilQuest
   done: boolean
   overdue: boolean
@@ -71,68 +91,98 @@ function QuestCard({ quest, done, overdue, isMinimum, onComplete, onSkip, onPost
   onPostpone: () => void
 }) {
   const pillar = getPillar(quest.pillar)
+  const borderClass = done
+    ? 'border-gold'
+    : overdue
+      ? 'border-amber-300/70'
+      : 'border-hairline'
+  const bgClass = done
+    ? 'bg-gold-pale/40'
+    : overdue
+      ? 'bg-amber-50/40'
+      : 'bg-cream/30'
 
   return (
-    <div className={clsx(
-      'rounded-xl border p-4 transition-all',
-      done ? 'border-gold/30 bg-gold-pale' :
-      overdue ? 'border-amber-200 bg-amber-50/60' :
-      'border-border bg-cream/30'
-    )}>
+    <div className={clsx('border p-4 transition-all', borderClass, bgClass)}>
       <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1.5">
             {overdue && (
-              <div className="flex items-center gap-1 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
-                <Clock size={10} className="text-amber-600" strokeWidth={2} />
-                <span className="font-sans text-[10px] text-amber-700 font-medium uppercase tracking-wide">
+              <div className="flex items-center gap-1 border border-amber-300 px-2 py-0.5">
+                <Clock size={9} className="text-amber-700" strokeWidth={2} />
+                <SmallCaps tone="dark" tracking="luxury" size="xs" className="text-amber-700">
                   zaległe · {quest.date.slice(5).replace('-', '.')}
-                </span>
+                </SmallCaps>
               </div>
             )}
-            <span className="text-[10px] font-sans uppercase tracking-widest font-medium" style={{ color: pillar.color }}>
-              {pillar.icon} {pillar.shortName}
+            <span
+              className="inline-flex items-center gap-1.5"
+              style={{ color: pillar.color }}
+            >
+              <Diamond size={5} />
+              <span className="font-ui uppercase tracking-luxury text-[10px]">
+                {pillar.shortName}
+              </span>
             </span>
           </div>
-          <h3 className={clsx('font-serif text-base', done ? 'text-muted line-through' : 'text-dark')}>
+          <h3
+            className={clsx(
+              'font-heading text-[17px] leading-snug',
+              done ? 'text-muted line-through decoration-1' : 'text-dark'
+            )}
+          >
             {quest.title}
           </h3>
         </div>
         <div className="flex flex-col items-end flex-shrink-0 mt-1 gap-0.5">
-          <span className={clsx('font-sans text-xs', done ? 'text-gold font-medium' : 'text-muted-light')}>
-            +{isMinimum ? quest.xp * 2 : quest.xp} XP
-          </span>
+          <SmallCaps
+            tone={done ? 'gold' : 'muted'}
+            tracking="luxury"
+            size="xs"
+          >
+            + {isMinimum ? quest.xp * 2 : quest.xp} XP
+          </SmallCaps>
           {isMinimum && !done && (
-            <span className="text-[9px] font-sans text-forest/60">×2</span>
+            <SmallCaps tone="muted" size="xs" className="opacity-70">
+              × II
+            </SmallCaps>
           )}
         </div>
       </div>
 
-      <p className="font-sans text-sm text-muted leading-relaxed mb-3">{quest.description}</p>
+      <p className="font-serif-body italic text-muted text-[13.5px] leading-relaxed mb-4">
+        {quest.description}
+      </p>
 
       {done ? (
-        <div className="flex items-center gap-2 text-gold font-sans text-xs font-medium">
-          <Check size={13} strokeWidth={2} /> Ukończone
+        <div className="flex items-center gap-2">
+          <Diamond size={6} className="text-gold" />
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+            ukończone
+          </SmallCaps>
         </div>
       ) : (
         <div className="flex gap-2">
           <button
             onClick={onComplete}
-            className="flex-1 flex items-center justify-center gap-2 bg-dark text-ivory font-sans text-sm py-2.5 rounded-xl hover:bg-forest transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 bg-dark-deep border border-gold text-ivory py-2.5 hover:bg-forest transition-colors"
           >
-            <Check size={13} strokeWidth={2} /> Zrobione
+            <Diamond size={5} className="text-gold" />
+            <SmallCaps tone="ivory" tracking="luxury" size="xs">
+              zrobione
+            </SmallCaps>
           </button>
           <button
             onClick={onPostpone}
             title="Przenieś na jutro"
-            className="flex items-center gap-1.5 border border-border text-muted font-sans text-xs px-3 py-2.5 rounded-xl hover:border-dark hover:text-dark transition-colors"
+            className="flex items-center gap-1.5 border border-hairline text-muted px-3 py-2.5 hover:border-gold hover:text-dark transition-colors"
           >
             <CalendarClock size={13} strokeWidth={1.5} />
           </button>
           <button
             onClick={onSkip}
             title="Pomiń (podaj powód)"
-            className="flex items-center gap-1.5 border border-border text-muted font-sans text-xs px-3 py-2.5 rounded-xl hover:border-dark hover:text-dark transition-colors"
+            className="flex items-center gap-1.5 border border-hairline text-muted px-3 py-2.5 hover:border-gold hover:text-dark transition-colors"
           >
             <SkipForward size={13} strokeWidth={1.5} />
           </button>
@@ -149,47 +199,40 @@ export default function DailyQuests() {
   const [skipTarget, setSkipTarget] = useState<AprilQuest | null>(null)
   const today = todayKey()
 
-  // Questy natywnie przypisane do dziś
   const nativeToday = getAprilQuestsForDate(today)
-  // Questy przeniesione NA dziś z innych dni
   const postponedToToday = getPostponedQuestsForDate(today, log.postponed)
-  // ID questów przeniesionych z dziś na później
-  const postponedAwayIds = log.postponed
-    .filter(p => p.targetDate > today)
-    .map(p => p.questId)
+  const postponedAwayIds = log.postponed.filter(p => p.targetDate > today).map(p => p.questId)
 
-  // Dzisiejsze questy = natywne (minus przeniesione dalej) + przeniesione na dziś, bez pominiętych
   const todayQuests = [
     ...nativeToday.filter(q => !postponedAwayIds.includes(q.id)),
     ...postponedToToday.filter(q => !nativeToday.some(n => n.id === q.id)),
   ].filter(q => !skippedIds.includes(q.id))
   const overdueQuests = getOverdueAprilQuests(today, log.completed, skippedIds, log.postponed)
 
-  // Postponed questy z poprzednich dni wracają w overdue automatycznie
-
   if (loading) return null
 
-  // Po 30 kwietnia: pokazujemy elegancki placeholder zamiast ukrywać sekcję.
   if (todayQuests.length === 0 && overdueQuests.length === 0) {
     if (today > APRIL_LAST_DAY) {
       return (
-        <div className="bg-white rounded-2xl shadow-elegant overflow-hidden mb-4">
-          <div className="px-5 pt-5 pb-3">
-            <h2 className="font-serif text-dark text-lg">Questy dnia</h2>
+        <div className="bg-ivory border border-gold-light/40 mb-4">
+          <div className="px-5 pt-5 pb-3 flex items-baseline gap-3">
+            <h2 className="font-heading text-dark text-xl whitespace-nowrap">Questy dnia</h2>
+            <SmallCaps tone="muted" tracking="luxury" size="xs" className="hidden sm:inline">
+              today's quests
+            </SmallCaps>
           </div>
           <div className="px-5 pb-5">
-            <div className="rounded-xl border border-gold/30 bg-gold-pale/60 p-5 text-center">
-              <Sparkles size={20} className="text-gold mx-auto mb-2" strokeWidth={1.5} />
-              <p className="font-serif text-dark text-base mb-1">Nowy rozdział wkrótce</p>
-              <p className="font-sans text-xs text-muted leading-relaxed">
-                Treść na ten miesiąc jest w przygotowaniu. W międzyczasie skup się na rutynie, zasadach i side questach.
+            <div className="border border-gold-light/30 bg-gold-pale/30 p-6 text-center">
+              <Fleuron size={14} className="text-gold mx-auto mb-3 inline-block" />
+              <h3 className="font-heading text-dark text-lg">Nowy rozdział wkrótce</h3>
+              <p className="font-serif-body italic text-muted text-[13px] mt-2 leading-relaxed">
+                treść na ten miesiąc jest w przygotowaniu. w międzyczasie skup się na rutynie, zasadach i side questach.
               </p>
             </div>
           </div>
         </div>
       )
     }
-    // Przed startem projektu — ukrywamy sekcję jak dotąd.
     if (today < APRIL_FIRST_DAY) return null
     return null
   }
@@ -214,23 +257,28 @@ export default function DailyQuests() {
         />
       )}
 
-      <div className="bg-white rounded-2xl shadow-elegant overflow-hidden mb-4">
+      <div className="bg-ivory border border-gold-light/40 mb-4">
+        {/* Header */}
         <div className="px-5 pt-5 pb-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-serif text-dark text-lg">Questy dnia</h2>
-            <div className="flex items-center gap-2">
-              {overdueQuests.length > 0 && (
-                <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
-                  <Clock size={11} className="text-amber-600" strokeWidth={2} />
-                  <span className="font-sans text-xs text-amber-700 font-medium">{overdueQuests.length} zaległe</span>
-                </div>
-              )}
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="flex items-baseline gap-3 min-w-0">
+              <h2 className="font-heading text-dark text-xl whitespace-nowrap">Questy dnia</h2>
+              <SmallCaps tone="muted" tracking="luxury" size="xs" className="hidden sm:inline">
+                today's quests
+              </SmallCaps>
             </div>
+            {overdueQuests.length > 0 && (
+              <div className="flex items-center gap-1.5 border border-amber-300 px-2.5 py-1 shrink-0">
+                <Clock size={10} className="text-amber-700" strokeWidth={2} />
+                <SmallCaps tracking="luxury" size="xs" className="!text-amber-700">
+                  {overdueQuests.length} zaległe
+                </SmallCaps>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="px-5 pb-5 space-y-3">
-          {/* Zaległe */}
           {overdueQuests.map(quest => (
             <QuestCard
               key={quest.id}
@@ -244,7 +292,6 @@ export default function DailyQuests() {
             />
           ))}
 
-          {/* Dzisiejsze */}
           {todayQuests.map(quest => (
             <QuestCard
               key={quest.id}
@@ -258,10 +305,10 @@ export default function DailyQuests() {
             />
           ))}
 
-          {/* Info o przeniesionych */}
           {postponedAwayIds.length > 0 && (
-            <p className="font-sans text-xs text-muted-light text-center pt-1">
-              {postponedAwayIds.length} {postponedAwayIds.length === 1 ? 'quest przeniesiony' : 'questy przeniesione'} na jutro
+            <p className="font-serif-body italic text-muted-light text-[12px] text-center pt-1">
+              {postponedAwayIds.length}{' '}
+              {postponedAwayIds.length === 1 ? 'quest przeniesiony' : 'questy przeniesione'} na jutro
             </p>
           )}
         </div>

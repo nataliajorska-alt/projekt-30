@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { useHeartBlock } from '@/hooks/useHeartBlock'
 import { useGameData } from '@/hooks/useGameData'
 import { XP_VALUES } from '@/lib/gameLogic'
-import { Heart, ChevronRight, Check, Sparkles } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
+import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
 
 export default function HeartBlockCard() {
   const { block, loading, weekKey } = useHeartBlock()
@@ -17,37 +18,50 @@ export default function HeartBlockCard() {
   const status = isComplete ? 'done' : hasContent ? 'started' : 'todo'
 
   const statusText: Record<typeof status, string> = {
-    done: 'Domknięte w tym tygodniu',
-    started: 'W toku — wróć i dokończ',
-    todo: 'W tym tygodniu jeszcze nieotwarte',
+    done: 'domknięte w tym tygodniu',
+    started: 'w toku — wróć i dokończ',
+    todo: 'w tym tygodniu jeszcze nieotwarte',
   }
 
   return (
     <Link
       href="/serce"
-      className="block bg-white rounded-2xl shadow-elegant p-4 mb-4 hover:shadow-md transition-shadow"
+      className="block bg-ivory border border-gold-light/40 px-5 py-4 mb-4 hover:border-gold transition-colors group"
     >
-      <div className="flex items-center gap-3">
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gold-pale flex items-center justify-center">
+      <div className="flex items-center gap-4">
+        <div className="flex-shrink-0 w-11 h-11 border border-gold flex items-center justify-center">
           {isComplete ? (
-            <Check size={16} className="text-gold-dark" strokeWidth={2.5} />
+            <Diamond size={10} filled className="text-gold" />
           ) : (
-            <Heart size={16} className="text-gold-dark" />
+            <Fleuron size={16} className="text-gold-deep group-hover:text-gold transition-colors" />
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-0.5">
-            <h3 className="font-serif text-dark text-base">Blok serca</h3>
-            <span className="font-sans text-[10px] text-muted uppercase tracking-wide">{weekKey}</span>
+          <div className="flex items-center justify-between gap-3 mb-0.5">
+            <h3 className="font-heading text-dark text-lg leading-tight whitespace-nowrap">
+              Blok serca
+            </h3>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="whitespace-nowrap">
+              {weekKey}
+            </SmallCaps>
           </div>
-          <p className="font-sans text-xs text-muted leading-snug">{statusText[status]}</p>
+          <p className="font-serif-body italic text-muted text-[13px] leading-snug">
+            {statusText[status]}
+          </p>
         </div>
         {!xpAwarded && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-sans text-gold-dark bg-gold-pale border border-gold/15 px-2 py-0.5 rounded-full flex-shrink-0">
-            <Sparkles size={9} /> +{XP_VALUES.heartBlock}
-          </span>
+          <div className="flex items-center gap-1.5 border border-gold-light/40 px-2.5 py-1 flex-shrink-0">
+            <Diamond size={5} className="text-gold" />
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              + {XP_VALUES.heartBlock}
+            </SmallCaps>
+          </div>
         )}
-        <ChevronRight size={16} className="text-muted-light flex-shrink-0" />
+        <ChevronRight
+          size={14}
+          strokeWidth={1.5}
+          className="text-muted-light group-hover:text-gold transition-colors flex-shrink-0"
+        />
       </div>
     </Link>
   )

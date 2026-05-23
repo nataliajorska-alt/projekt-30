@@ -5,15 +5,12 @@ import { Undo2, X } from 'lucide-react'
 import { useGameData } from '@/hooks/useGameData'
 import { CIGARETTE_CONTEXTS } from '@/lib/smoke-data'
 import type { CigaretteContext } from '@/types'
+import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
 
 interface SmokeButtonProps {
   onClose: () => void
 }
 
-// Patrz PLAN_PALENIE.md sekcja 3.3.
-// Nie ma czerwonych alertów, nie ma „skuś mnie nie!". Spokojny licznik.
-// 1 tap = +1 bez kontekstu. „Dodaj kontekst" otwiera ekran wyboru.
-// „Cofnij" usuwa ostatni wpis (omyłka, podwójne tapnięcie).
 export default function SmokeButton({ onClose }: SmokeButtonProps) {
   const { todayLog, logCigarette, removeLastCigarette } = useGameData()
   const [showContextPicker, setShowContextPicker] = useState(false)
@@ -22,7 +19,6 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
   const todayCount = todayLog?.cigarettes?.length ?? 0
   const lastContext = todayLog?.cigarettes?.[todayLog.cigarettes.length - 1]?.context
 
-  // Krótka pozytywna informacja zwrotna po tapnięciu — nie nagroda, tylko potwierdzenie.
   useEffect(() => {
     if (!justLogged) return
     const t = setTimeout(() => setJustLogged(false), 1200)
@@ -40,108 +36,134 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
     setJustLogged(true)
   }
 
-  const handleUndo = async () => {
-    await removeLastCigarette()
-  }
-
   return (
     <div
-      className="fixed inset-0 z-50 bg-dark/40 backdrop-blur-sm flex items-end md:items-center justify-center animate-fade-in"
+      className="fixed inset-0 z-50 bg-forest-deep/85 backdrop-blur-sm flex items-end md:items-center justify-center animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-ivory w-full md:max-w-md md:rounded-2xl rounded-t-3xl shadow-elegant border border-border/60 overflow-hidden"
+        className="bg-ivory border border-gold-light/40 w-full md:max-w-md overflow-hidden animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 pt-5 pb-3 flex items-start justify-between border-b border-border/40">
+        <div className="px-6 pt-6 pb-4 flex items-start justify-between border-b border-hairline">
           <div>
-            <h2 className="font-serif text-lg text-dark">Papieros</h2>
-            <p className="font-sans text-xs text-muted mt-0.5">
-              Spokojny licznik. To są dane, nie ocena.
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              Papieros
+            </SmallCaps>
+            <h2 className="font-heading text-dark text-xl mt-1">Spokojny licznik</h2>
+            <p className="font-serif-body italic text-muted text-[12.5px] mt-1">
+              to są dane, nie ocena.
             </p>
           </div>
           <button
             onClick={onClose}
             aria-label="Zamknij"
-            className="text-muted hover:text-dark transition-colors p-1"
+            className="text-muted-light hover:text-dark transition-colors"
           >
-            <X size={18} strokeWidth={1.6} />
+            <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
         {!showContextPicker ? (
-          <div className="px-5 py-6">
-            {/* Dzisiejszy licznik — duży, ale spokojny. Nie ma porównania do wczoraj. */}
-            <div className="text-center mb-6">
-              <div className="font-serif text-5xl text-dark tabular-nums">
+          <div className="px-6 py-6">
+            {/* Licznik */}
+            <div className="text-center mb-7">
+              <p className="font-display text-dark text-6xl leading-none tabular-nums">
                 {todayCount}
-              </div>
-              <div className="font-sans text-[11px] uppercase tracking-wider text-muted mt-1">
+              </p>
+              <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-3 block">
                 dzisiaj
-              </div>
+              </SmallCaps>
               {lastContext && (
-                <div className="font-sans text-xs text-muted/80 mt-2">
+                <p className="font-serif-body italic text-muted text-[12.5px] mt-3">
                   ostatni: {CIGARETTE_CONTEXTS.find(c => c.id === lastContext)?.label.toLowerCase()}
-                </div>
+                </p>
               )}
             </div>
 
-            {/* Główna akcja: +1 */}
+            {/* Główna akcja */}
             <button
               onClick={handleQuickLog}
               className={clsx(
-                'w-full py-4 rounded-xl bg-dark text-ivory font-sans text-sm transition-all',
-                'hover:bg-forest active:scale-[0.98]',
-                justLogged && 'bg-forest'
+                'w-full py-4 border transition-all flex items-center justify-center gap-2 active:scale-[0.98]',
+                justLogged
+                  ? 'bg-forest text-ivory border-gold'
+                  : 'bg-dark-deep text-ivory border-gold hover:bg-forest'
               )}
             >
-              {justLogged ? 'Zapisane' : '+1 papieros'}
+              {justLogged ? (
+                <>
+                  <Diamond size={5} className="text-gold" filled />
+                  <SmallCaps tone="ivory" tracking="luxury" size="sm">
+                    zapisane
+                  </SmallCaps>
+                </>
+              ) : (
+                <>
+                  <Diamond size={5} className="text-gold" />
+                  <SmallCaps tone="ivory" tracking="luxury" size="sm">
+                    + I papieros
+                  </SmallCaps>
+                </>
+              )}
             </button>
 
-            {/* Sekundarna akcja: kontekst */}
+            {/* Dodaj kontekst */}
             <button
               onClick={() => setShowContextPicker(true)}
-              className="w-full py-3 mt-2 rounded-xl border border-border text-dark font-sans text-xs hover:bg-cream transition-colors"
+              className="w-full py-3 mt-2 border border-hairline text-dark hover:border-gold transition-colors"
             >
-              + dodaj z kontekstem
+              <SmallCaps tone="muted" tracking="luxury" size="xs">
+                + dodaj z kontekstem
+              </SmallCaps>
             </button>
 
-            {/* Cofnij — tylko gdy jest co cofnąć */}
+            {/* Cofnij */}
             {todayCount > 0 && (
               <button
-                onClick={handleUndo}
-                className="w-full py-2 mt-3 text-muted hover:text-dark font-sans text-xs flex items-center justify-center gap-1.5 transition-colors"
+                onClick={() => removeLastCigarette()}
+                className="w-full py-2 mt-3 text-muted-light hover:text-dark transition-colors flex items-center justify-center gap-2"
               >
-                <Undo2 size={12} strokeWidth={1.6} />
-                cofnij ostatni
+                <Undo2 size={10} strokeWidth={1.5} />
+                <SmallCaps tone="muted" tracking="luxury" size="xs">
+                  cofnij ostatni
+                </SmallCaps>
               </button>
             )}
           </div>
         ) : (
-          <div className="px-5 py-5">
-            <p className="font-sans text-xs text-muted mb-4">
-              Co go wywołało? (Im więcej takich, tym wyraźniejszy wzorzec po fazie 1.)
+          <div className="px-6 py-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Fleuron size={9} className="text-gold-deep" />
+              <SmallCaps tone="muted" tracking="luxury" size="xs">
+                co go wywołało?
+              </SmallCaps>
+            </div>
+            <p className="font-serif-body italic text-muted-light text-[12.5px] mb-4">
+              im więcej takich, tym wyraźniejszy wzorzec po fazie I.
             </p>
             <div className="grid grid-cols-3 gap-2">
               {CIGARETTE_CONTEXTS.map((ctx) => (
                 <button
                   key={ctx.id}
                   onClick={() => handleContextLog(ctx.id)}
-                  className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border border-border/60 bg-white hover:border-gold/60 hover:bg-cream transition-all"
+                  className="flex flex-col items-center gap-1.5 py-3 px-2 border border-hairline bg-ivory hover:border-gold transition-all"
                 >
                   <span className="text-xl leading-none">{ctx.icon}</span>
-                  <span className="font-sans text-[11px] text-dark leading-tight text-center">
+                  <SmallCaps tone="dark" tracking="luxury" size="xs">
                     {ctx.label}
-                  </span>
+                  </SmallCaps>
                 </button>
               ))}
             </div>
             <button
               onClick={() => setShowContextPicker(false)}
-              className="w-full py-2 mt-4 text-muted hover:text-dark font-sans text-xs transition-colors"
+              className="w-full py-2 mt-4 text-muted-light hover:text-dark transition-colors"
             >
-              ← wróć
+              <SmallCaps tone="muted" tracking="luxury" size="xs">
+                ‹ wróć
+              </SmallCaps>
             </button>
           </div>
         )}
