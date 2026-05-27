@@ -1,13 +1,16 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { Play, Pause, RotateCcw } from 'lucide-react'
-import clsx from 'clsx'
-import { SmallCaps, Diamond } from '@/components/ui'
 
-const TARGET = 3600
+const TARGET = 3600 // 60 minutes
 
-function todayKey() {
+function storageKey() {
   return `desk-timer-${new Date().toISOString().slice(0, 10)}`
+}
+
+function formatMMSS(s: number): string {
+  const m = Math.floor(s / 60).toString().padStart(2, '0')
+  const ss = (s % 60).toString().padStart(2, '0')
+  return `${m}:${ss}`
 }
 
 interface DeskTimerProps {
@@ -15,15 +18,21 @@ interface DeskTimerProps {
   onComplete: () => void
 }
 
+/**
+ * Compact inline timer pill (matches design `.routine .timer`):
+ *   [ 60:00 ▶ START ]  /  [ 12:34 ⏸ PAUSE ]  /  [ ◆ ZROBIONE ]
+ * Click the pill to toggle play/pause. A tiny × reset appears once started.
+ */
 export default function DeskTimer({ done, onComplete }: DeskTimerProps) {
   const [elapsed, setElapsed] = useState(0)
   const [running, setRunning] = useState(false)
   const [mounted, setMounted] = useState(false)
   const completedRef = useRef(false)
 
+  // Hydrate from localStorage
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(todayKey())
+      const raw = localStorage.getItem(storageKey())
       if (raw) {
         const { elapsed: e, running: r, ts } = JSON.parse(raw)
         const extra = r && ts ? Math.floor((Date.now() - ts) / 1000) : 0
@@ -36,7 +45,7 @@ export default function DeskTimer({ done, onComplete }: DeskTimerProps) {
     setMounted(true)
   }, [])
 
-  // Tick — base captured at the moment running flips to true
+  // Tick
   useEffect(() => {
     if (!running || !mounted) return
     const start = Date.now()
@@ -53,15 +62,13 @@ export default function DeskTimer({ done, onComplete }: DeskTimerProps) {
   useEffect(() => {
     if (!mounted) return
     try {
-      localStorage.setItem(todayKey(), JSON.stringify({
-        elapsed,
-        running,
-        ts: running ? Date.now() : null,
+      localStorage.setItem(storageKey(), JSON.stringify({
+        elapsed, running, ts: running ? Date.now() : null,
       }))
     } catch {}
   }, [elapsed, running, mounted])
 
-  // Auto-complete
+  // Auto-complete the routine item when target reached
   useEffect(() => {
     if (elapsed >= TARGET && !done && !completedRef.current) {
       completedRef.current = true
@@ -69,112 +76,61 @@ export default function DeskTimer({ done, onComplete }: DeskTimerProps) {
     }
   }, [elapsed, done, onComplete])
 
+  if (!mounted) return null
+
+  const isComplete = elapsed >= TARGET || done
+  const remaining = Math.max(0, TARGET - elapsed)
+  const stateLabel = isComplete
+    ? 'Zrobione'
+    : running
+      ? 'Pause'
+      : elapsed > 0
+        ? 'Resume'
+        : 'Start'
+  const stateGlyph = isComplete ? '◆' : running ? '⏸' : '▶'
+
   const toggle = () => {
-    if (elapsed >= TARGET) return
+    if (isComplete) return
     setRunning(r => !r)
   }
 
-  const reset = () => {
+  const reset = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setRunning(false)
     setElapsed(0)
     completedRef.current = false
     try {
-      localStorage.setItem(todayKey(), JSON.stringify({ elapsed: 0, running: false, ts: null }))
+      localStorage.setItem(storageKey(), JSON.stringify({ elapsed: 0, running: false, ts: null }))
     } catch {}
   }
 
-  if (!mounted) return null
-
-  const isComplete = elapsed >= TARGET
-  const pct = Math.min((elapsed / TARGET) * 100, 100)
-  const elMM = Math.floor(elapsed / 60).toString().padStart(2, '0')
-  const elSS = (elapsed % 60).toString().padStart(2, '0')
-  const remMM = Math.floor((TARGET - elapsed) / 60).toString().padStart(2, '0')
-  const remSS = ((TARGET - elapsed) % 60).toString().padStart(2, '0')
-
   return (
-    <div className="ml-9 -mt-0.5 mb-2">
-      <div className="flex items-center gap-3">
-        {/* Circular progress */}
-        <div className="relative flex-shrink-0">
-          <svg viewBox="0 0 32 32" className="w-7 h-7 -rotate-90">
-            <circle cx="16" cy="16" r="13" fill="none" stroke="#C9BFB1" strokeWidth="1.2" />
-            <circle
-              cx="16" cy="16" r="13"
-              fill="none"
-              stroke={isComplete ? '#2C3B35' : '#B8963E'}
-              strokeWidth="1.2"
-              strokeDasharray={`${2 * Math.PI * 13}`}
-              strokeDashoffset={`${2 * Math.PI * 13 * (1 - pct / 100)}`}
-              strokeLinecap="round"
-              className="transition-all duration-500"
-            />
-          </svg>
-          {running && (
-            <span className="absolute inset-0 flex items-center justify-center">
-              <span className="text-gold animate-pulse">
-                <Diamond size={4} filled />
-              </span>
-            </span>
-          )}
-          {isComplete && (
-            <span className="absolute inset-0 flex items-center justify-center text-forest">
-              <Diamond size={5} filled />
-            </span>
-          )}
-        </div>
-
-        {/* Time display */}
-        <div className="flex-1 min-w-0">
-          {isComplete ? (
-            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-              <span className="text-forest">Godzina zrobiona ◆</span>
-            </SmallCaps>
-          ) : (
-            <p className="font-display text-dark text-sm tabular-nums leading-none">
-              {elMM}:{elSS}
-              <span className="font-serif-body italic text-muted-light text-[11px] ml-2">
-                zostało {remMM}:{remSS}
-              </span>
-            </p>
-          )}
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center gap-1.5">
-          {!isComplete && (
-            <button
-              onClick={toggle}
-              className="flex items-center gap-1.5 border border-gold-light/60 hover:border-gold px-2.5 py-1 text-gold-deep transition-colors"
-            >
-              {running ? <Pause size={9} strokeWidth={2} /> : <Play size={9} strokeWidth={2} />}
-              <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-                {running ? 'pauza' : 'start'}
-              </SmallCaps>
-            </button>
-          )}
-          {elapsed > 0 && !isComplete && (
-            <button
-              onClick={reset}
-              className="w-6 h-6 border border-hairline flex items-center justify-center text-muted hover:border-gold-light hover:text-gold-deep transition-colors"
-              aria-label="Reset"
-            >
-              <RotateCcw size={9} strokeWidth={1.5} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Progress hairline */}
-      <div className="mt-2 relative h-px w-full bg-hairline">
-        <div
-          className={clsx(
-            'absolute left-0 top-0 h-px transition-all duration-500',
-            isComplete ? 'bg-forest' : 'bg-gold'
-          )}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
+    <span className="inline-flex items-center gap-1.5 shrink-0">
+      <button
+        onClick={toggle}
+        className="inline-flex items-center gap-2 border border-hairline hover:border-gold px-2.5 py-1 transition-colors"
+        aria-label={`Timer ${stateLabel}`}
+      >
+        {!isComplete && (
+          <span className="font-display italic text-gold-deep text-[12px] leading-none tabular-nums">
+            {formatMMSS(remaining)}
+          </span>
+        )}
+        <span className="text-gold text-[8px] leading-none">{stateGlyph}</span>
+        <span className="font-ui uppercase tracking-[0.26em] text-[9px] text-muted leading-none">
+          {stateLabel}
+        </span>
+      </button>
+      {elapsed > 0 && !isComplete && (
+        <button
+          onClick={reset}
+          aria-label="Zresetuj timer"
+          title="Reset"
+          className="text-muted-light hover:text-dark font-ui text-[12px] leading-none px-1"
+        >
+          ×
+        </button>
+      )}
+    </span>
   )
 }

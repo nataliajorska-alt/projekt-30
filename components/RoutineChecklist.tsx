@@ -58,30 +58,36 @@ interface ItemRowProps {
   isMinimum: boolean
   isOptional: boolean
   onToggle: () => void
+  /** Optional inline element rendered between label and XP (e.g. timer pill). */
+  inlineExtra?: React.ReactNode
 }
 
-function ItemRow({ item, done, isMinimum, isOptional, onToggle }: ItemRowProps) {
+function ItemRow({ item, done, isMinimum, isOptional, onToggle, inlineExtra }: ItemRowProps) {
   const accent = isMinimum ? 'forest' : 'gold'
   const xp = isMinimum ? item.xp * 2 : item.xp
   return (
-    <button
-      onClick={onToggle}
+    <div
       className={clsx(
-        'w-full flex items-center gap-3.5 py-2.5 text-left transition-colors',
+        'flex items-center gap-3.5 py-2.5 transition-colors',
         'border-b border-border/60 last:border-b-0',
-        'group hover:bg-cream/30',
         isOptional && 'opacity-90',
       )}
     >
-      <CheckSquare done={done} accent={accent} />
-      <span
-        className={clsx(
-          'font-serif-body text-[15px] leading-snug flex-1',
-          done ? 'text-muted-light italic' : isOptional ? 'text-muted' : 'text-dark',
-        )}
+      <button
+        onClick={onToggle}
+        className="flex items-center gap-3.5 flex-1 min-w-0 text-left group hover:opacity-95"
       >
-        {item.text}
-      </span>
+        <CheckSquare done={done} accent={accent} />
+        <span
+          className={clsx(
+            'font-serif-body text-[15px] leading-snug flex-1',
+            done ? 'text-muted-light italic' : isOptional ? 'text-muted' : 'text-dark',
+          )}
+        >
+          {item.text}
+        </span>
+      </button>
+      {inlineExtra}
       <span
         className={clsx(
           'font-ui uppercase tracking-luxury text-[10px] shrink-0',
@@ -89,11 +95,9 @@ function ItemRow({ item, done, isMinimum, isOptional, onToggle }: ItemRowProps) 
         )}
       >
         +{xp}
-        {isMinimum && !done && (
-          <span className="ml-1.5 opacity-70">× II</span>
-        )}
+        {isMinimum && !done && <span className="ml-1.5 opacity-70">× II</span>}
       </span>
-    </button>
+    </div>
   )
 }
 
@@ -346,17 +350,17 @@ export default function RoutineChecklist() {
                   isMinimum={isMinimum}
                   isOptional={false}
                   onToggle={() => toggleRoutine(item.id, item.xp)}
+                  inlineExtra={
+                    item.id === 'd1' ? (
+                      <DeskTimer
+                        done={done}
+                        onComplete={() => toggleRoutine(item.id, item.xp)}
+                      />
+                    ) : undefined
+                  }
                 />
                 {(item.id === 'm7' || item.id === 'e2') && (
                   <SkincareGuide itemId={item.id as 'm7' | 'e2'} dow={dow} />
-                )}
-                {item.id === 'd1' && (
-                  <div className="-mt-1 mb-1 ml-[26px]">
-                    <DeskTimer
-                      done={done}
-                      onComplete={() => toggleRoutine(item.id, item.xp)}
-                    />
-                  </div>
                 )}
               </div>
             )

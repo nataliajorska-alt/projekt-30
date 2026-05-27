@@ -16,8 +16,8 @@
   }
 
   body {
-    /* font-serif → Cormorant Garamond, matches design's base body type */
-    @apply bg-ivory text-dark font-serif;
+    /* bg-cream = design --paper #F4EFE3 ; font-serif = Cormorant Garamond */
+    @apply bg-cream text-dark font-serif;
     overflow-x: hidden;
     max-width: 100%;
   }
