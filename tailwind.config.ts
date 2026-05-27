@@ -9,32 +9,38 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // ── Editorial design tokens (1:1 with handoff mockup) ──
         ivory: '#FAF8F4',
-        cream: '#F0EBE3',
+        cream: '#F4EFE3',         // design --paper  (was #F0EBE3)
+        'cream-warm': '#EBE3CF',  // design --paper-warm
         parchment: '#E7DFD0',
-        dark: '#1A2420',
-        'dark-deep': '#0F1714',
+        dark: '#1D231F',          // design --ink   (was #1A2420)
+        'dark-deep': '#161B18',   // design --ink-deep (was #0F1714)
         forest: '#2C3B35',
         'forest-light': '#3D5247',
         'forest-deep': '#1E2A25',
-        gold: '#B8963E',
-        'gold-light': '#D4AF6B',
+        gold: '#B29355',          // design --gold   (was #B8963E — yellower)
+        'gold-light': '#C9B27F',  // design --gold-soft (was #D4AF6B)
         'gold-dark': '#8B6914',
-        'gold-deep': '#8A6F2A',
-        'gold-pale': '#F5EDD8',
-        muted: '#6B5E52',
-        'muted-light': '#9B8E84',
-        hairline: '#C9BFB1',
-        border: '#E2D9CE',
-        wine: '#5C2A2A',
+        'gold-deep': '#8E7338',   // design --gold-deep (was #8A6F2A)
+        'gold-pale': '#F3E9C8',   // matches design level text color (was #F5EDD8)
+        muted: '#8A7A55',         // design --muted   (was #6B5E52 — cooler gray)
+        'muted-light': '#B7A787', // design --quiet   (was #9B8E84)
+        hairline: '#D9CDA8',      // design --line   (was #C9BFB1 — gray)
+        border: '#E5DCC1',        // design --line-soft (was #E2D9CE)
+        wine: '#8A3A2C',          // design --rust   (was #5C2A2A — darker burgundy)
+        rose: '#B56A6A',          // design --rose (Magnetism score color)
+        sage: '#6B7D59',          // design --sage
       },
       fontFamily: {
-        serif: ['Playfair Display', 'Georgia', 'serif'],
-        sans: ['DM Sans', 'system-ui', 'sans-serif'],
-        display: ['Italiana', 'Playfair Display', 'serif'],
-        heading: ['Gloock', 'Playfair Display', 'serif'],
-        'serif-body': ['"Crimson Pro"', 'Georgia', 'serif'],
-        ui: ['"Instrument Sans"', 'system-ui', 'sans-serif'],
+        // ── Design system fonts (Bodoni Moda + Cormorant Garamond + Inter) ──
+        // All three have full Polish glyph coverage — fixes ą/ę/ł/ó/ż rendering.
+        serif: ['"Cormorant Garamond"', '"EB Garamond"', 'Georgia', 'serif'],
+        sans: ['Inter', '"DM Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Bodoni Moda"', 'Didot', 'Italiana', 'Playfair Display', 'serif'],
+        heading: ['"Bodoni Moda"', 'Gloock', 'Playfair Display', 'serif'],
+        'serif-body': ['"Cormorant Garamond"', '"Crimson Pro"', 'Georgia', 'serif'],
+        ui: ['Inter', '"Instrument Sans"', 'system-ui', 'sans-serif'],
       },
       letterSpacing: {
         luxury: '0.22em',

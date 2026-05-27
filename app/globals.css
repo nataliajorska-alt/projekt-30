@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Italiana&family=Gloock&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+/* Design system fonts (Bodoni Moda + Cormorant Garamond + Inter) — handle Polish glyphs natively */
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,400;1,6..96,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -14,7 +16,8 @@
   }
 
   body {
-    @apply bg-ivory text-dark font-sans;
+    /* font-serif → Cormorant Garamond, matches design's base body type */
+    @apply bg-ivory text-dark font-serif;
     overflow-x: hidden;
     max-width: 100%;
   }
