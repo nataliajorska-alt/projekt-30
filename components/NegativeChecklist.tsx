@@ -45,24 +45,34 @@ export default function NegativeChecklist() {
         {DAILY_RULES.map((rule, idx) => {
           const done = todayLog?.keptRules?.includes(rule.id) ?? false
           const xp = isMinimum ? rule.xp * 2 : rule.xp
+          // Only the FIRST rule (r1) gets the Ghost Protocol twin inline.
+          // SoothingPicker (r3) keeps its own collapsible below-row treatment
+          // because its suggestion card expands and doesn't fit inline.
+          const hasInlineGhost = rule.id === 'r1'
+          const hasBelowSoothing = rule.id === 'r3'
           return (
             <div key={rule.id}>
-              <button
-                onClick={() => toggleRule(rule.id)}
+              <div
                 className={clsx(
-                  'w-full flex items-center gap-3.5 py-2.5 text-left transition-colors group hover:bg-cream/30',
+                  'flex items-center gap-3.5 py-2.5 transition-colors',
                   idx > 0 && 'border-t border-border/60',
                 )}
               >
-                <CheckSquare done={done} />
-                <span
-                  className={clsx(
-                    'font-serif-body italic text-[15px] leading-snug flex-1',
-                    done ? 'text-muted-light' : 'text-dark',
-                  )}
+                <button
+                  onClick={() => toggleRule(rule.id)}
+                  className="flex items-center gap-3.5 flex-1 min-w-0 text-left group hover:opacity-95"
                 >
-                  {rule.text}
-                </span>
+                  <CheckSquare done={done} />
+                  <span
+                    className={clsx(
+                      'font-serif-body italic text-[15px] leading-snug flex-1',
+                      done ? 'text-muted-light' : 'text-dark',
+                    )}
+                  >
+                    {rule.text}
+                  </span>
+                </button>
+                {hasInlineGhost && <GhostProtocolV2 />}
                 <span
                   className={clsx(
                     'font-ui uppercase tracking-luxury text-[10px] shrink-0',
@@ -72,9 +82,8 @@ export default function NegativeChecklist() {
                   +{xp}
                   {isMinimum && !done && <span className="ml-1.5 opacity-70">× II</span>}
                 </span>
-              </button>
-              {rule.id === 'r1' && <GhostProtocolV2 />}
-              {rule.id === 'r3' && <SoothingPicker />}
+              </div>
+              {hasBelowSoothing && <SoothingPicker />}
             </div>
           )
         })}

@@ -195,25 +195,22 @@ export default function GhostProtocolV2() {
   // ─── Trigger row ────────────────────────────────────────────────
 
   if (!flow) {
+    // Inline twin buttons matching design `.zasada .twin .btn` — solid border, compact, gold glyph
     return (
-      <div className="flex gap-2 mt-2">
+      <div className="inline-flex items-center gap-2 shrink-0">
         <button
           onClick={() => setFlow({ type: 'impulse', phase: 'category' })}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-dashed border-hairline hover:border-gold-light transition-all group"
+          className="inline-flex items-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
         >
-          <Diamond size={5} className="text-muted-light group-hover:text-gold transition-colors" />
-          <SmallCaps tone="muted" tracking="luxury" size="xs" className="group-hover:text-gold-deep transition-colors">
-            Mam impuls
-          </SmallCaps>
+          <span className="text-gold text-[9px] leading-none">◆</span>
+          <span>Mam impuls</span>
         </button>
         <button
           onClick={startHonest}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-dashed border-hairline hover:border-gold-light transition-all group"
+          className="inline-flex items-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
         >
-          <Fleuron size={9} className="text-muted-light group-hover:text-gold-deep transition-colors" />
-          <SmallCaps tone="muted" tracking="luxury" size="xs" className="group-hover:text-gold-deep transition-colors">
-            Już zrobiłam
-          </SmallCaps>
+          <span className="text-gold text-[9px] leading-none">∴</span>
+          <span>Już zrobiłam</span>
         </button>
       </div>
     )
