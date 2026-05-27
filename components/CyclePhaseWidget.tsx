@@ -26,29 +26,28 @@ export default function CyclePhaseWidget() {
   return (
     <Link
       href="/cycle"
-      className="block bg-ivory border border-gold-light/40 hover:border-gold px-3 py-2.5 transition-colors h-[68px]"
+      className="flex items-center gap-2.5 border border-border/70 hover:border-gold px-3 py-2 transition-colors"
     >
-      <div className="flex items-center gap-3 h-full">
-        <div
-          className="flex-shrink-0 w-9 h-9 border flex items-center justify-center text-base"
-          style={{ borderColor: `${phase.color}55` }}
+      <span
+        className="flex-shrink-0 w-[26px] h-[26px] bg-cream flex items-center justify-center text-[13px]"
+        style={{ color: phase.color }}
+      >
+        {phase.emoji}
+      </span>
+      <span className="flex-1 min-w-0 leading-tight">
+        <span
+          className="block font-ui uppercase tracking-[0.3em] text-[8px]"
+          style={{ color: phase.color }}
         >
-          {phase.emoji}
-        </div>
-        <div className="flex-1 min-w-0">
-          <SmallCaps tracking="luxury" size="xs">
-            <span style={{ color: phase.color }}>
-              Rytm · {toRoman(cycleDay)}
-            </span>
-          </SmallCaps>
-          <p className="font-heading text-dark text-[13px] leading-tight truncate mt-0.5">
-            {phase.name}
-          </p>
-          <p className="font-serif-body italic text-muted text-[11px] leading-snug truncate">
+          Rytm · {toRoman(cycleDay)}
+        </span>
+        <span className="block font-display text-dark text-[13px] font-medium mt-0.5 truncate">
+          {phase.name}
+          <span className="ml-1.5 font-serif-body italic text-muted text-[11px]">
             {phase.energy}
-          </p>
-        </div>
-      </div>
+          </span>
+        </span>
+      </span>
     </Link>
   )
 }

@@ -77,6 +77,16 @@ export const DailyLogSchema = z.object({
   moodCheckIns: z.array(MoodCheckInSchema).optional(),
   keyMoment: KeyMomentSchema.optional(),
   cigarettes: z.array(CigaretteEntrySchema).optional(),
+  // XP z zewnętrznych aplikacji (na razie The Learning Vault), per filar.
+  externalXP: z.object({
+    pozycja:   z.number().nonnegative().optional(),
+    cialo:     z.number().nonnegative().optional(),
+    styl:      z.number().nonnegative().optional(),
+    kapital:   z.number().nonnegative().optional(),
+    kariera:   z.number().nonnegative().optional(),
+    tozsamosc: z.number().nonnegative().optional(),
+    milosc:    z.number().nonnegative().optional(),
+  }).optional(),
 })
 
 // ── UserStats ────────────────────────────────────────────────────────────────

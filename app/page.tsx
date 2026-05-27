@@ -23,7 +23,7 @@ import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/Skel
 import { useGameData } from '@/hooks/useGameData'
 import { todayKey, tomorrowDate } from '@/lib/gameLogic'
 import { toRoman } from '@/lib/romanNumerals'
-import { SmallCaps, GoldRule, Fleuron, RomanNumeral } from '@/components/ui'
+import { SmallCaps, Fleuron } from '@/components/ui'
 import type { MoodState } from '@/types'
 
 const PROJECT_START = '2026-04-05'
@@ -36,16 +36,22 @@ function dayOfProject(): number {
   return Math.max(1, diff + 1)
 }
 
-function SectionLabel({ num, title }: { num: number; title: string }) {
+function SectionLabel({ num, name, sub }: { num: number; name: string; sub?: string }) {
   return (
-    <div className="mt-8 mb-6">
-      <div className="flex items-baseline gap-3">
-        <RomanNumeral value={num} className="text-gold-deep text-base" />
-        <SmallCaps tone="gold-deep" tracking="editorial" size="sm">
-          {title}
-        </SmallCaps>
+    <div className="mt-8 mb-4 flex items-baseline gap-4 pb-2.5 border-b border-hairline">
+      <span className="font-display italic text-wine text-lg leading-none w-[22px] shrink-0">
+        {toRoman(num)}
+      </span>
+      <div className="flex items-baseline gap-3 flex-wrap">
+        <span className="font-ui uppercase tracking-[0.36em] text-[11px] text-dark">
+          {name}
+        </span>
+        {sub && (
+          <span className="font-serif-body italic text-muted text-[14px]">
+            {sub}
+          </span>
+        )}
       </div>
-      <div className="hairline-gold mt-2 opacity-30" />
     </div>
   )
 }
@@ -133,7 +139,7 @@ export default function Dashboard() {
   const day = dayOfProject()
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-8 pb-12 animate-fade-in">
+    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 md:pt-10 pb-12 md:pb-20 animate-fade-in">
       {/* Editorial date header */}
       <header className="mb-8">
         <div className="flex items-start justify-between gap-3">
@@ -179,29 +185,37 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
-        <GoldRule variant="fleuron" className="mt-6" tone="gold-deep" />
+        {/* Ornament — ─ ∴ ─ */}
+        <div className="mt-6 flex items-center gap-3.5">
+          <span className="flex-1 h-px bg-hairline" />
+          <span className="text-gold text-sm leading-none">∴</span>
+          <span className="flex-1 h-px bg-hairline" />
+        </div>
       </header>
 
       {/* I — THE COUNTDOWN: today within the year */}
-      <SectionLabel num={1} title="The Countdown · gdzie jesteś" />
+      <SectionLabel num={1} name="The Countdown" sub="punkt w roku" />
       <CountdownHero />
 
       {/* II — THE GLANCE: orientation widgets */}
-      <SectionLabel num={2} title="The Glance · zorientuj się" />
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+      <SectionLabel num={2} name="The Glance" sub="stan rzeczy" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
         <ErrorBoundary label="Drzewko"><MiniGardenWidget /></ErrorBoundary>
         <ErrorBoundary label="Cykl"><CyclePhaseWidget /></ErrorBoundary>
         <ErrorBoundary label="Wzorzec tygodnia"><PatternOfTheWeek /></ErrorBoundary>
       </div>
-      <ErrorBoundary label="Magnetyzm"><MagnetismMeter /></ErrorBoundary>
+      <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-6 md:gap-8">
+        <ErrorBoundary label="Magnetyzm"><MagnetismMeter /></ErrorBoundary>
+        <ErrorBoundary label="Podsumowanie XP"><DailyXPSummary /></ErrorBoundary>
+      </div>
       <SafeHoursBanner />
       <DashboardNudges />
-      <ErrorBoundary label="Podsumowanie XP"><DailyXPSummary /></ErrorBoundary>
 
       {/* III — TODAY'S PRACTICE: routine + quests */}
       <SectionLabel
         num={3}
-        title={viewingTomorrow ? "Tomorrow's Practice" : "Today's Practice"}
+        name={viewingTomorrow ? "Tomorrow's Practice" : "Today's Practice"}
+        sub="ćwiczenie dnia"
       />
       {viewingTomorrow ? (
         <>
@@ -215,7 +229,7 @@ export default function Dashboard() {
           <ErrorBoundary label="Side quest"><SideQuestPicker /></ErrorBoundary>
 
           {/* IV — THE MARGIN: reflection */}
-          <SectionLabel num={4} title="The Margin · refleksja" />
+          <SectionLabel num={4} name="The Margin" sub="na marginesie" />
           <ErrorBoundary label="Moment dnia"><KeyMomentCapture /></ErrorBoundary>
           <ErrorBoundary label="Negative checklist"><NegativeChecklist /></ErrorBoundary>
           <ErrorBoundary label="Heart Block"><HeartBlockCard /></ErrorBoundary>

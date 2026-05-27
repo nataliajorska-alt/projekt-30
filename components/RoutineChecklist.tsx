@@ -10,31 +10,26 @@ import {
 } from '@/lib/routineData'
 import { filterItemsForMinimumDay } from '@/lib/minimumDayLogic'
 import { MINIMUM_DAY_REASONS } from '@/types'
-import { Sun, Moon, Sparkles, BatteryLow, ChevronDown } from 'lucide-react'
+import { BatteryLow, ChevronDown } from 'lucide-react'
 import MinimumDayModal from '@/components/MinimumDayModal'
 import DeskTimer from '@/components/DeskTimer'
-import {
-  SmallCaps,
-  Diamond,
-  Fleuron,
-  RomanNumeral,
-} from '@/components/ui'
+import { SmallCaps, Fleuron, RomanNumeral } from '@/components/ui'
 import { toRoman } from '@/lib/romanNumerals'
 import type { MinimumDayReason, RoutineItem } from '@/types'
 
 type Tab = 'morning' | 'daily' | 'evening'
 
-function getNextTab(current: Tab, visible: typeof TABS): Tab | null {
-  const ids = visible.map(t => t.id)
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'morning', label: 'Ranek' },
+  { id: 'daily',   label: 'Dzień' },
+  { id: 'evening', label: 'Wieczór' },
+]
+
+function getNextTab(current: Tab): Tab | null {
+  const ids = TABS.map(t => t.id)
   const idx = ids.indexOf(current)
   return idx >= 0 && idx < ids.length - 1 ? ids[idx + 1] : null
 }
-
-const TABS: { id: Tab; label: string; icon: typeof Sun; roman: number }[] = [
-  { id: 'morning', label: 'Ranek',   icon: Sun,       roman: 1 },
-  { id: 'daily',   label: 'Dzień',   icon: Sparkles,  roman: 2 },
-  { id: 'evening', label: 'Wieczór', icon: Moon,      roman: 3 },
-]
 
 function getDefaultTab(): Tab {
   const now = new Date()
@@ -43,7 +38,21 @@ function getDefaultTab(): Tab {
   return 'morning'
 }
 
-interface ItemButtonProps {
+/* ── Rotated-square check (matches design .check) ──────────────────── */
+function CheckSquare({ done, accent }: { done: boolean; accent: 'gold' | 'forest' }) {
+  return (
+    <span
+      className={clsx(
+        'inline-block w-[14px] h-[14px] rotate-45 border shrink-0 transition-colors',
+        accent === 'gold'
+          ? done ? 'bg-gold border-gold' : 'border-gold/70'
+          : done ? 'bg-forest border-forest' : 'border-forest/70',
+      )}
+    />
+  )
+}
+
+interface ItemRowProps {
   item: RoutineItem
   done: boolean
   isMinimum: boolean
@@ -51,56 +60,39 @@ interface ItemButtonProps {
   onToggle: () => void
 }
 
-function ItemButton({ item, done, isMinimum, isOptional, onToggle }: ItemButtonProps) {
-  const accentColor = isMinimum ? 'text-forest' : 'text-gold'
+function ItemRow({ item, done, isMinimum, isOptional, onToggle }: ItemRowProps) {
+  const accent = isMinimum ? 'forest' : 'gold'
+  const xp = isMinimum ? item.xp * 2 : item.xp
   return (
     <button
       onClick={onToggle}
       className={clsx(
-        'w-full flex items-center gap-3 px-3 py-3 text-left transition-all group',
-        done
-          ? isMinimum
-            ? 'bg-forest/5'
-            : 'bg-gold-pale/60'
-          : isOptional
-            ? 'hover:bg-cream/60'
-            : 'hover:bg-cream'
+        'w-full flex items-center gap-3.5 py-2.5 text-left transition-colors',
+        'border-b border-border/60 last:border-b-0',
+        'group hover:bg-cream/30',
+        isOptional && 'opacity-90',
       )}
     >
+      <CheckSquare done={done} accent={accent} />
       <span
         className={clsx(
-          'flex-shrink-0 transition-all',
-          done
-            ? accentColor
-            : isOptional
-              ? 'text-muted-light/60 group-hover:text-gold-light'
-              : 'text-hairline group-hover:text-gold-light'
-        )}
-      >
-        <Diamond size={10} filled={done} />
-      </span>
-      <p
-        className={clsx(
-          'font-serif-body text-[14.5px] leading-snug flex-1',
-          done ? 'text-muted italic line-through decoration-1' : isOptional ? 'text-muted' : 'text-dark'
+          'font-serif-body text-[15px] leading-snug flex-1',
+          done ? 'text-muted-light italic' : isOptional ? 'text-muted' : 'text-dark',
         )}
       >
         {item.text}
-      </p>
-      <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
-        <SmallCaps
-          tone={done ? (isMinimum ? 'dark' : 'gold') : 'muted'}
-          tracking="luxury"
-          size="xs"
-        >
-          + {isMinimum ? item.xp * 2 : item.xp}
-        </SmallCaps>
-        {isMinimum && !done && (
-          <SmallCaps tone="muted" size="xs" className="opacity-70">
-            × II
-          </SmallCaps>
+      </span>
+      <span
+        className={clsx(
+          'font-ui uppercase tracking-luxury text-[10px] shrink-0',
+          done ? 'text-muted-light' : 'text-gold-deep',
         )}
-      </div>
+      >
+        +{xp}
+        {isMinimum && !done && (
+          <span className="ml-1.5 opacity-70">× II</span>
+        )}
+      </span>
     </button>
   )
 }
@@ -112,7 +104,7 @@ function SkincareGuide({ itemId, dow }: { itemId: 'm7' | 'e2'; dow: number }) {
   const theme = isEvening ? EVENING_SKINCARE[dow]?.theme : undefined
 
   return (
-    <div className="ml-9 -mt-0.5 mb-1">
+    <div className="ml-[26px] -mt-1 mb-1">
       <button
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 text-[10px] font-ui uppercase tracking-luxury text-muted-light hover:text-gold-deep transition-colors py-0.5"
@@ -200,7 +192,7 @@ export default function RoutineChecklist() {
   useEffect(() => {
     const prev = prevProgressByTab.current[tab] ?? 0
     if (prev < 100 && progress === 100) {
-      const next = getNextTab(tab, TABS)
+      const next = getNextTab(tab)
       if (next) {
         const t = setTimeout(() => setTab(next), 1500)
         return () => clearTimeout(t)
@@ -217,6 +209,11 @@ export default function RoutineChecklist() {
   const toggleOptional = (t: Tab) => setShowOptional(prev => ({ ...prev, [t]: !prev[t] }))
 
   const accentLine = isMinimum ? 'bg-forest' : 'bg-gold'
+  const accentText = isMinimum ? 'text-forest' : 'text-gold'
+
+  // Group base daily items vs weekly+study (only on daily tab, non-minimum)
+  const isDailyTab = tab === 'daily' && !isMinimum
+  const dailyBaseCount = isDailyTab ? getEffectiveItems('daily', false).length : 0
 
   return (
     <>
@@ -227,10 +224,10 @@ export default function RoutineChecklist() {
         />
       )}
 
-      <div className="bg-ivory border border-gold-light/40 overflow-hidden mb-4">
+      <section className="mb-4 border-t border-b border-hairline/70 py-1">
         {/* Minimum banner */}
         {isMinimum && (
-          <div className="bg-forest/8 border-b border-forest/20 px-5 py-3 flex items-center gap-3">
+          <div className="bg-forest/8 border-b border-forest/20 px-1 py-2.5 flex items-center gap-3">
             <BatteryLow size={13} className="text-forest shrink-0" strokeWidth={1.5} />
             <p className="font-serif-body italic text-forest text-[13px] flex-1">
               {reasonMeta ? `${reasonMeta.label} — dasz radę.` : 'Tryb minimum aktywny — dasz radę.'}
@@ -245,130 +242,105 @@ export default function RoutineChecklist() {
         )}
 
         {/* Header */}
-        <div className="px-5 pt-5 pb-4">
-          <div className="flex items-baseline justify-between gap-3 mb-3">
-            <div className="flex items-baseline gap-3 min-w-0">
-              <h2 className="font-heading text-dark text-xl whitespace-nowrap">Rutyna</h2>
-              <SmallCaps tone="muted" tracking="luxury" size="xs" className="hidden sm:inline">
-                today's practice
-              </SmallCaps>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              {!isMinimum && (
-                <button
-                  onClick={() => setShowMinimumModal(true)}
-                  className="flex items-center gap-1.5 border border-hairline px-3 py-1 transition-colors hover:border-gold"
-                  title="Włącz tryb minimum"
-                >
-                  <BatteryLow size={10} strokeWidth={1.5} className="text-muted" />
-                  <SmallCaps tone="muted" tracking="luxury" size="xs">
-                    minimum
-                  </SmallCaps>
-                </button>
-              )}
-              <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
-                {toRoman(completedCount)} / {toRoman(essential.length)}
-              </SmallCaps>
-            </div>
+        <div className="flex items-baseline justify-between gap-3 py-4">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h2 className="font-display text-dark text-2xl sm:text-[26px] leading-none tracking-tight whitespace-nowrap">
+              Rutyna
+            </h2>
+            <span className="hidden sm:inline font-serif-body italic text-muted text-[13px]">
+              today&apos;s practice
+            </span>
           </div>
-
-          {/* Hairline progress with diamond head */}
-          <div className="relative mt-2 h-px w-full bg-hairline">
-            <div
-              className={clsx('absolute left-0 top-0 h-px transition-all duration-500', accentLine)}
-              style={{ width: `${progress}%` }}
-            />
-            {progress > 0 && progress < 100 && (
-              <div
-                className="absolute leading-none transition-all duration-500"
-                style={{
-                  left: `${progress}%`,
-                  top: '50%',
-                  transform: 'translate(-50%, -50%)',
-                }}
+          <div className="flex items-center gap-3 shrink-0">
+            {!isMinimum && (
+              <button
+                onClick={() => setShowMinimumModal(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 border border-hairline px-3 py-1 transition-colors hover:border-gold"
+                title="Włącz tryb minimum"
               >
-                <Diamond
-                  size={7}
-                  filled
-                  className={clsx('block', isMinimum ? 'text-forest' : 'text-gold')}
-                />
-              </div>
+                <span className="text-gold text-[10px] leading-none">◇</span>
+                <SmallCaps tone="muted" tracking="luxury" size="xs">
+                  Minimum
+                </SmallCaps>
+              </button>
             )}
+            <span className="font-ui uppercase tracking-luxury text-[10px] text-muted">
+              {toRoman(completedCount)} / {toRoman(essential.length)}
+            </span>
           </div>
         </div>
 
-        {/* Tabs — editorial */}
-        <div className="flex border-t border-hairline mt-2">
-          {TABS.map(({ id, label, roman }) => {
+        {/* Hairline progress */}
+        <div className="relative h-px w-full bg-border/60 mb-1">
+          <div
+            className={clsx('absolute left-0 -top-px h-[3px] transition-all duration-500', accentLine)}
+            style={{ width: `${progress}%` }}
+          />
+          {progress > 0 && progress < 100 && (
+            <span
+              className={clsx(
+                'absolute top-1/2 w-[6px] h-[6px] rotate-45 transition-all duration-500',
+                accentLine,
+              )}
+              style={{ left: `${progress}%`, transform: 'translate(-50%, -50%) rotate(45deg)' }}
+            />
+          )}
+        </div>
+
+        {/* Tabs — clean: Ranek / Dzień / Wieczór with gold underline */}
+        <div className="flex border-b border-border/60">
+          {TABS.map(({ id, label }) => {
             const active = tab === id
-            const activeColor = isMinimum ? 'text-forest' : 'text-gold'
-            const activeLine = isMinimum ? 'bg-forest' : 'bg-gold'
             return (
               <button
                 key={id}
-                onClick={() => setTab(id as Tab)}
-                className="flex-1 group flex flex-col items-center gap-1.5 py-3 transition-colors"
+                onClick={() => setTab(id)}
+                className={clsx(
+                  'flex-1 py-2.5 text-center relative font-ui uppercase tracking-[0.32em] text-[11px] transition-colors',
+                  active ? 'text-dark' : 'text-muted hover:text-dark',
+                )}
               >
-                <span className="flex items-baseline gap-2">
-                  <RomanNumeral
-                    value={roman}
+                {label}
+                {active && (
+                  <span
                     className={clsx(
-                      'text-sm transition-colors',
-                      active ? activeColor : 'text-muted-light group-hover:text-gold-light'
+                      'absolute left-1/2 -bottom-px h-[2px] w-7 -translate-x-1/2',
+                      accentLine,
                     )}
                   />
-                  <SmallCaps
-                    tone={active ? (isMinimum ? 'dark' : 'gold') : 'muted'}
-                    tracking="luxury"
-                    size="sm"
-                    className={clsx('transition-colors', !active && 'group-hover:text-gold-deep')}
-                  >
-                    {label}
-                  </SmallCaps>
-                  {isMinimum && id !== 'daily' && (
-                    <SmallCaps tone="muted" size="xs" className="opacity-50">
-                      min
-                    </SmallCaps>
-                  )}
-                </span>
-                <span
-                  className={clsx(
-                    'h-px w-10 transition-colors',
-                    active ? activeLine : 'bg-transparent'
-                  )}
-                />
+                )}
               </button>
             )
           })}
         </div>
 
         {/* Items */}
-        <div className="px-3 py-3 space-y-1">
-          {tab === 'daily' && !isMinimum && isWeekday && weeklyToday.length > 0 && (
-            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="block px-3 pb-1 pt-1">
-              codzienne
-            </SmallCaps>
+        <div className="pt-3">
+          {/* Group label for daily tab on weekdays */}
+          {isDailyTab && weeklyToday.length > 0 && (
+            <div className="font-ui uppercase tracking-[0.36em] text-[9px] text-gold-deep mb-1.5 mt-1">
+              Codzienne
+            </div>
           )}
 
           {essential.map((item, idx) => {
             const isFirstWeekly =
-              tab === 'daily' && !isMinimum && weeklyToday.length > 0 &&
-              idx === getEffectiveItems('daily', false).length
-            const isStudyItem = tab === 'daily' && item.id === studyItem.id
+              isDailyTab && weeklyToday.length > 0 && idx === dailyBaseCount
+            const isStudyItem = isDailyTab && item.id === studyItem.id
             const done = todayLog?.completedRoutine?.includes(item.id) ?? false
             return (
               <div key={item.id}>
                 {isFirstWeekly && (
-                  <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="block px-3 pb-1 pt-3">
+                  <div className="font-ui uppercase tracking-[0.36em] text-[9px] text-gold-deep mt-4 mb-1.5">
                     {todayName}
-                  </SmallCaps>
+                  </div>
                 )}
                 {isStudyItem && (
-                  <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="block px-3 pb-1 pt-3">
+                  <div className="font-ui uppercase tracking-[0.36em] text-[9px] text-gold-deep mt-4 mb-1.5">
                     temat tygodnia · {studyLabel}
-                  </SmallCaps>
+                  </div>
                 )}
-                <ItemButton
+                <ItemRow
                   item={item}
                   done={done}
                   isMinimum={isMinimum}
@@ -379,10 +351,12 @@ export default function RoutineChecklist() {
                   <SkincareGuide itemId={item.id as 'm7' | 'e2'} dow={dow} />
                 )}
                 {item.id === 'd1' && (
-                  <DeskTimer
-                    done={done}
-                    onComplete={() => toggleRoutine(item.id, item.xp)}
-                  />
+                  <div className="-mt-1 mb-1 ml-[26px]">
+                    <DeskTimer
+                      done={done}
+                      onComplete={() => toggleRoutine(item.id, item.xp)}
+                    />
+                  </div>
                 )}
               </div>
             )
@@ -390,15 +364,16 @@ export default function RoutineChecklist() {
 
           {/* Optional */}
           {optional.length > 0 && (
-            <div className="pt-2 border-t border-hairline mt-3">
+            <div className="pt-3 mt-3 border-t border-border/60">
               <button
                 onClick={() => toggleOptional(tab)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-left group"
+                className="w-full flex items-center gap-2 py-1 text-left group"
               >
-                <SmallCaps tone="muted" tracking="luxury" size="xs" className="flex-1 text-left">
-                  opcjonalnie · {optional.filter(i => todayLog?.completedRoutine?.includes(i.id)).length}
+                <span className="flex-1 text-left font-ui uppercase tracking-luxury text-[10px] text-muted">
+                  opcjonalnie ·{' '}
+                  {optional.filter(i => todayLog?.completedRoutine?.includes(i.id)).length}
                   /{optional.length}
-                </SmallCaps>
+                </span>
                 <ChevronDown
                   size={12}
                   strokeWidth={1.5}
@@ -409,16 +384,16 @@ export default function RoutineChecklist() {
                 />
               </button>
               {showOptional[tab] && (
-                <div className="space-y-1 mt-1">
+                <div className="mt-1">
                   {optional.map(item => {
                     const done = todayLog?.completedRoutine?.includes(item.id) ?? false
                     return (
-                      <ItemButton
+                      <ItemRow
                         key={item.id}
                         item={item}
                         done={done}
                         isMinimum={isMinimum}
-                        isOptional={true}
+                        isOptional
                         onToggle={() => toggleRoutine(item.id, item.xp)}
                       />
                     )
@@ -431,10 +406,10 @@ export default function RoutineChecklist() {
 
         {/* Celebration */}
         {progress === 100 && (
-          <div className="mx-5 mb-5 border border-gold-light/30 px-5 py-3 text-center">
+          <div className="mt-4 border border-gold-light/30 px-5 py-3 text-center">
             <Fleuron
               size={10}
-              className={clsx('inline-block mb-1', isMinimum ? 'text-forest' : 'text-gold')}
+              className={clsx('inline-block mb-1', accentText)}
             />
             <p
               className={clsx(
@@ -448,7 +423,7 @@ export default function RoutineChecklist() {
             </p>
           </div>
         )}
-      </div>
+      </section>
     </>
   )
 }

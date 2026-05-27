@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="flex min-h-screen">
                 <Navigation />
                 {/* Main content — offset for sidebar on desktop, padding for bottom nav on mobile */}
-                <main className="flex-1 md:ml-56 pb-24 md:pb-0 min-h-screen overflow-x-hidden">
+                <main className="flex-1 md:ml-[280px] pb-24 md:pb-0 min-h-screen overflow-x-hidden">
                   {children}
                 </main>
                 <QuickActionsFab />

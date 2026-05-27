@@ -5,7 +5,7 @@ import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { useMagnetismHistory } from '@/hooks/useMagnetismHistory'
 import { calcMagnetism, magnetismLabel, magnetismColor } from '@/lib/magnetism'
-import { SmallCaps, Diamond, Fleuron, GoldRule } from '@/components/ui'
+import { SmallCaps, Diamond } from '@/components/ui'
 
 const DIMS = [
   { key: 'morning', label: 'Rutyna (ogółem)', max: 35 },
@@ -15,7 +15,7 @@ const DIMS = [
   { key: 'style',   label: 'Wygląd',          max: 10 },
 ] as const
 
-function dayLabel(dateStr: string): string {
+function dayShort(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00')
   return d.toLocaleDateString('pl-PL', { weekday: 'short' })
 }
@@ -85,6 +85,68 @@ function Report30({ history }: { history: ReturnType<typeof useMagnetismHistory>
   )
 }
 
+/* ── Sparkline SVG built from last 7 days ─────────────────────────── */
+function Sparkline({
+  history,
+  color,
+  deepColor,
+}: {
+  history: { date: string; score: { total: number } }[]
+  color: string
+  deepColor: string
+}) {
+  // Always render 7 slots; pad with zeros at the start if fewer days
+  const filled = [...Array(Math.max(0, 7 - history.length)).fill(null), ...history].slice(-7)
+  const W = 280
+  const H = 64
+  const baseY = H - 6 // baseline a bit above bottom edge
+
+  // y at given value (0..100): 18 (top) → baseY (bottom). Higher value → lower y.
+  const yAt = (v: number) => baseY - (Math.min(100, Math.max(0, v)) / 100) * (baseY - 18)
+  const xAt = (i: number) => (i / 6) * W
+
+  const points = filled.map((d, i) => ({
+    x: xAt(i),
+    y: d ? yAt(d.score.total) : baseY, // missing day = baseline
+    has: !!d,
+  }))
+
+  const lineD = points
+    .map((p, i) => (i === 0 ? `M ${p.x},${p.y}` : `L ${p.x},${p.y}`))
+    .join(' ')
+  const fillD = `${lineD} L ${W},${H} L 0,${H} Z`
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      className="w-full h-12"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="magn-spark-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <line x1="0" y1={baseY} x2={W} y2={baseY} stroke="#e5dcc1" strokeWidth="1" />
+      <path d={fillD} fill="url(#magn-spark-fill)" />
+      <path d={lineD} fill="none" stroke={color} strokeWidth="1.5" />
+      {points.map((p, i) =>
+        p.has ? (
+          <circle
+            key={i}
+            cx={p.x}
+            cy={p.y}
+            r={i === points.length - 1 ? 3 : 2}
+            fill={i === points.length - 1 ? deepColor : color}
+          />
+        ) : null,
+      )}
+    </svg>
+  )
+}
+
 export default function MagnetismMeter() {
   const { todayLog, toggleSocialPresence, togglePhysicalActivity } = useGameData()
   const { history } = useMagnetismHistory(30)
@@ -97,182 +159,175 @@ export default function MagnetismMeter() {
   const label = magnetismLabel(score.total)
 
   const last7 = history.slice(-7)
+  const last7Labels = last7.map(d => dayShort(d.date))
 
   return (
-    <div className="bg-ivory border border-gold-light/40 overflow-hidden mb-4">
-      {/* Hairline accent */}
-      <div className="h-px w-full" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
-
-      <div className="px-5 pt-5 pb-5">
-        <button
-          onClick={() => setExpanded(e => !e)}
-          className="w-full flex items-baseline justify-between mb-4"
+    <div className="border-t border-b border-hairline px-1 py-4 sm:py-5 flex flex-col">
+      {/* Top row */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex justify-between items-baseline mb-3.5 min-h-[38px]"
+      >
+        <h3 className="font-display text-dark text-2xl sm:text-[26px] leading-none tracking-tight">
+          Magnetyzm{' '}
+          <span className="font-serif-body italic text-muted text-[13px] ml-2.5 font-normal align-baseline">
+            {label}
+          </span>
+        </h3>
+        <span
+          className="font-display italic text-[28px] sm:text-[32px] leading-none"
+          style={{ color }}
         >
-          <div className="flex items-baseline gap-3">
-            <h2 className="font-heading text-dark text-xl">Magnetyzm</h2>
-            <SmallCaps tone="muted" tracking="luxury" size="xs">
-              {label}
-            </SmallCaps>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-display text-3xl leading-none" style={{ color }}>
-              {score.total}
-            </span>
-            <span className="font-serif-body italic text-muted-light text-sm">/ 100</span>
-          </div>
-        </button>
+          {score.total}
+          <span className="font-ui not-italic text-base text-muted-light tracking-[0.2em] ml-1.5">
+            / 100
+          </span>
+        </span>
+      </button>
 
-        {/* Main bar — hairline */}
-        <div className="relative h-px w-full bg-hairline mb-1">
-          <div
-            className="absolute left-0 top-0 h-px transition-all duration-700"
-            style={{ width: `${score.total}%`, backgroundColor: color }}
-          />
-          {score.total > 0 && score.total < 100 && (
-            <div
-              className="absolute leading-none transition-all duration-700"
-              style={{
-                left: `${score.total}%`,
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                color,
-              }}
+      {/* Collapsed: editorial sparkline */}
+      {!expanded && (
+        <div className="mt-auto">
+          <div className="flex justify-between items-center font-ui uppercase tracking-luxury text-[10px] text-muted mb-1">
+            <span>Ostatnie 7 dni</span>
+            <button
+              onClick={() => setExpanded(true)}
+              className="font-serif-body italic text-gold-deep text-[13px] normal-case tracking-normal hover:text-gold transition-colors"
             >
-              <Diamond size={7} filled className="block" />
+              Rozwiń ›
+            </button>
+          </div>
+          {last7.length > 1 ? (
+            <Sparkline
+              history={last7}
+              color={color}
+              deepColor="#8A3A2C"
+            />
+          ) : (
+            <div className="h-12 flex items-center font-serif-body italic text-muted-light text-[12.5px]">
+              jeszcze za mało danych, ale to się zbiera.
             </div>
           )}
+          <div className="grid grid-cols-7 mt-1 font-ui uppercase tracking-[0.2em] text-[9px] text-muted-light text-center">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <span key={i}>
+                {last7Labels[i] ?? ''}
+              </span>
+            ))}
+          </div>
         </div>
+      )}
 
-        {expanded && (
-          <div className="animate-fade-in mt-6">
-            {/* Dimensions */}
-            <div className="space-y-2.5 mb-5">
-              {DIMS.map(dim => {
-                const val = score[dim.key]
-                const pct = Math.round((val / dim.max) * 100)
-                const isActive = val > 0
-                return (
-                  <div key={dim.key} className="flex items-center gap-3">
-                    <span className="font-serif-body italic text-muted text-[13px] w-32 flex-shrink-0">
-                      {dim.label}
-                    </span>
-                    <div className="flex-1 h-px bg-hairline relative">
-                      <div
-                        className="absolute left-0 top-0 h-px transition-all duration-500"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: isActive ? color : '#C9BFB1',
-                        }}
-                      />
-                    </div>
-                    <SmallCaps tone="muted" tracking="luxury" size="xs" className="w-12 text-right shrink-0">
-                      {val} / {dim.max}
-                    </SmallCaps>
-                  </div>
-                )
-              })}
-            </div>
+      {/* Expanded view */}
+      {expanded && (
+        <div className="animate-fade-in">
+          {/* Main bar — hairline */}
+          <div className="relative h-px w-full bg-hairline mb-4 mt-2">
+            <div
+              className="absolute left-0 -top-px h-[3px] transition-all duration-700"
+              style={{ width: `${score.total}%`, backgroundColor: color }}
+            />
+            {score.total > 0 && score.total < 100 && (
+              <span
+                className="absolute top-1/2 w-[6px] h-[6px] rotate-45 transition-all duration-700"
+                style={{
+                  left: `${score.total}%`,
+                  transform: 'translate(-50%, -50%) rotate(45deg)',
+                  backgroundColor: color,
+                }}
+              />
+            )}
+          </div>
 
-            {/* Manual toggles */}
-            <div className="space-y-2 mb-5">
-              {[
-                { flag: todayLog.physicalActivity, toggle: togglePhysicalActivity, label: 'Ćwiczyłam dziś' },
-                { flag: todayLog.socialPresence,   toggle: toggleSocialPresence,   label: 'Byłam gdzieś / miałam kontakt z ludźmi' },
-              ].map(({ flag, toggle, label }) => (
-                <button
-                  key={label}
-                  onClick={toggle}
-                  className={clsx(
-                    'w-full flex items-center gap-3 px-4 py-3 border transition-all',
-                    flag
-                      ? 'bg-gold-pale/40 border-gold'
-                      : 'bg-cream/30 border-hairline hover:border-gold-light'
-                  )}
-                >
-                  <Diamond
-                    size={9}
-                    filled={flag}
-                    className={flag ? 'text-gold' : 'text-hairline'}
-                  />
-                  <span
-                    className={clsx(
-                      'font-serif-body text-[14px] flex-1 text-left',
-                      flag ? 'text-dark italic' : 'text-dark'
-                    )}
-                  >
-                    {label}
+          {/* Dimensions */}
+          <div className="space-y-2.5 mb-5">
+            {DIMS.map(dim => {
+              const val = score[dim.key]
+              const pct = Math.round((val / dim.max) * 100)
+              const isActive = val > 0
+              return (
+                <div key={dim.key} className="flex items-center gap-3">
+                  <span className="font-serif-body italic text-muted text-[13px] w-32 flex-shrink-0">
+                    {dim.label}
                   </span>
-                </button>
-              ))}
-            </div>
-
-            {/* Weekly sparkline */}
-            {last7.length > 1 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Diamond size={5} className="text-gold-deep" />
-                  <SmallCaps tone="muted" tracking="luxury" size="xs">
-                    Ostatnie dni
+                  <div className="flex-1 h-px bg-hairline relative">
+                    <div
+                      className="absolute left-0 top-0 h-px transition-all duration-500"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: isActive ? color : '#C9BFB1',
+                      }}
+                    />
+                  </div>
+                  <SmallCaps tone="muted" tracking="luxury" size="xs" className="w-12 text-right shrink-0">
+                    {val} / {dim.max}
                   </SmallCaps>
                 </div>
-                <div className="flex items-end gap-1.5 h-12">
-                  {last7.map(day => {
-                    const h = Math.max(4, Math.round((day.score.total / 100) * 48))
-                    const isToday = day.date === todayLog.date
-                    return (
-                      <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
-                        <div
-                          className="w-full transition-all duration-500"
-                          style={{
-                            height: h,
-                            backgroundColor: isToday ? color : magnetismColor(day.score.total) + '80',
-                          }}
-                          title={`${dayLabel(day.date)}: ${day.score.total}`}
-                        />
-                        <span className="font-ui uppercase tracking-wide text-[8.5px] text-muted-light leading-none">
-                          {dayLabel(day.date)}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {history.length >= 7 && <Report30 history={history} />}
+              )
+            })}
           </div>
-        )}
 
-        {!expanded && last7.length > 1 && (
-          <button
-            onClick={() => setExpanded(true)}
-            className="mt-4 w-full flex items-center justify-between gap-3 group"
-          >
-            <SmallCaps tone="muted" tracking="luxury" size="xs">
-              Ostatnie 7 dni
-            </SmallCaps>
-            <div className="flex items-end gap-[3px] h-3 flex-1 mx-2 opacity-70 group-hover:opacity-100 transition-opacity">
-              {last7.map(day => {
-                const h = Math.max(2, Math.round((day.score.total / 100) * 12))
-                const isToday = day.date === todayLog.date
-                return (
-                  <div
-                    key={day.date}
-                    className="flex-1"
-                    style={{
-                      height: h,
-                      backgroundColor: isToday ? color : '#C9BFB1',
-                    }}
-                  />
-                )
-              })}
+          {/* Manual toggles */}
+          <div className="space-y-2 mb-5">
+            {[
+              { flag: todayLog.physicalActivity, toggle: togglePhysicalActivity, label: 'Ćwiczyłam dziś' },
+              { flag: todayLog.socialPresence,   toggle: toggleSocialPresence,   label: 'Byłam gdzieś / miałam kontakt z ludźmi' },
+            ].map(({ flag, toggle, label }) => (
+              <button
+                key={label}
+                onClick={toggle}
+                className={clsx(
+                  'w-full flex items-center gap-3 px-4 py-3 border transition-all',
+                  flag
+                    ? 'bg-gold-pale/40 border-gold'
+                    : 'bg-cream/30 border-hairline hover:border-gold-light'
+                )}
+              >
+                <Diamond
+                  size={9}
+                  filled={flag}
+                  className={flag ? 'text-gold' : 'text-hairline'}
+                />
+                <span
+                  className={clsx(
+                    'font-serif-body text-[14px] flex-1 text-left',
+                    flag ? 'text-dark italic' : 'text-dark'
+                  )}
+                >
+                  {label}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Sparkline inline (also in collapsed but shown here for context) */}
+          {last7.length > 1 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Diamond size={5} className="text-gold-deep" />
+                <SmallCaps tone="muted" tracking="luxury" size="xs">
+                  Ostatnie dni
+                </SmallCaps>
+              </div>
+              <Sparkline history={last7} color={color} deepColor="#8A3A2C" />
+              <div className="grid grid-cols-7 mt-1 font-ui uppercase tracking-[0.2em] text-[9px] text-muted-light text-center">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <span key={i}>{last7Labels[i] ?? ''}</span>
+                ))}
+              </div>
             </div>
-            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="group-hover:text-gold transition-colors">
-              rozwiń ›
-            </SmallCaps>
+          )}
+
+          {history.length >= 7 && <Report30 history={history} />}
+
+          <button
+            onClick={() => setExpanded(false)}
+            className="mt-4 w-full text-center font-serif-body italic text-muted hover:text-dark transition-colors text-[13px]"
+          >
+            Zwiń ‹
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

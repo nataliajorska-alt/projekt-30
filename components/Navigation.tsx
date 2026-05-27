@@ -8,10 +8,10 @@ import { useWeeklyInsightBadge } from '@/hooks/useWeeklyInsightBadge'
 import {
   Home, Sword, Trophy, BookOpen, CalendarDays,
   LogOut, Settings, Lock, Camera, Scroll,
-  Archive, ChevronRight, Moon, Heart,
+  Archive, Moon, Heart,
   Sprout, TreePine, Columns3,
 } from 'lucide-react'
-import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
+import { SmallCaps, Diamond } from '@/components/ui'
 
 // ── Nav structure ────────────────────────────────────────────────
 
@@ -87,49 +87,48 @@ function DesktopNav({ pathname }: { pathname: string }) {
   })
 
   return (
-    <aside className="hidden md:flex flex-col w-56 min-h-screen bg-forest-deep grain-linen fixed left-0 top-0 z-40 py-8 px-4">
-      {/* gold inset frame */}
-      <div className="pointer-events-none absolute inset-3 border-r border-gold-light/20" />
+    <aside className="hidden md:flex flex-col w-[280px] min-h-screen bg-dark fixed left-0 top-0 z-40 py-9 pb-6">
+      {/* Subtle gold right edge thread */}
+      <span className="pointer-events-none absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gold/25 to-transparent" />
 
-      <div className="relative mb-10 px-2 text-center">
-        <h1 className="font-display text-ivory text-2xl leading-none">Projekt 30</h1>
-        <div className="flex items-center justify-center gap-2 mt-3">
-          <span className="h-px w-8 bg-gold-light/40" />
-          <Fleuron size={9} className="text-gold" />
-          <span className="h-px w-8 bg-gold-light/40" />
+      {/* Brand */}
+      <div className="relative px-6 pb-7 text-center">
+        <h1 className="font-display italic text-gold-pale text-[28px] leading-none tracking-wide">
+          Projekt 30
+        </h1>
+        <div className="relative w-11 h-px bg-gold mx-auto mt-2.5 mb-2">
+          <span
+            className="absolute left-1/2 top-1/2 bg-dark text-gold text-[10px] px-1.5 leading-none"
+            style={{ transform: 'translate(-50%, -50%)' }}
+          >
+            ∴
+          </span>
         </div>
-        <SmallCaps tone="parchment" tracking="editorial" size="xs" as="div" className="mt-3 opacity-80">
-          a year of becoming
-        </SmallCaps>
+        <div className="font-ui uppercase tracking-[0.28em] text-[9px] text-gold-light/85">
+          A year of becoming
+        </div>
       </div>
 
-      <nav className="relative flex-1 space-y-0.5">
+      {/* Nav */}
+      <nav className="relative flex-1 overflow-y-auto">
         {NAV.map(item => {
           if (item.kind === 'single') {
             const active = pathname === item.href
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={clsx(
-                  'flex items-center gap-3 px-3 py-2.5 transition-all group',
-                  active ? 'bg-forest text-gold-light' : 'text-parchment hover:text-ivory hover:bg-forest/40'
+              <div key={item.href} className="relative">
+                {active && (
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-gold" />
                 )}
-              >
-                <Diamond
-                  size={6}
-                  filled={active}
-                  className={active ? 'text-gold' : 'text-gold/40 group-hover:text-gold-light'}
-                />
-                <span
+                <Link
+                  href={item.href}
                   className={clsx(
-                    'font-ui text-[12px] uppercase tracking-luxury transition-colors',
-                    active ? 'text-gold-light' : ''
+                    'block px-8 py-3 font-ui uppercase tracking-[0.3em] text-[12px] transition-colors',
+                    active ? 'text-gold-pale' : 'text-parchment/80 hover:text-gold-pale',
                   )}
                 >
                   {item.label}
-                </span>
-              </Link>
+                </Link>
+              </div>
             )
           }
 
@@ -137,73 +136,66 @@ function DesktopNav({ pathname }: { pathname: string }) {
           const open = openGroup === item.label || active
 
           return (
-            <div key={item.label}>
+            <div key={item.label} className="relative">
+              {active && (
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-gold" />
+              )}
               <button
                 onClick={() => setOpenGroup(open && !active ? null : item.label)}
                 className={clsx(
-                  'w-full flex items-center gap-3 px-3 py-2.5 transition-all group',
-                  active ? 'text-gold-light' : 'text-parchment hover:text-ivory hover:bg-forest/40'
+                  'w-full px-8 py-3 flex items-center font-ui uppercase tracking-[0.3em] text-[12px] transition-colors',
+                  active ? 'text-gold-pale' : 'text-parchment/80 hover:text-gold-pale',
                 )}
               >
-                <span className="relative flex items-center">
-                  <Diamond
-                    size={6}
-                    filled={active}
-                    className={active ? 'text-gold' : 'text-gold/40 group-hover:text-gold-light'}
-                  />
+                <span className="flex-1 text-left relative">
+                  {item.label}
                   {item.label === 'Wzrost' && insightBadge && (
                     <span
-                      className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-gold ring-2 ring-forest-deep"
+                      className="absolute -top-1 -right-2.5 w-1.5 h-1.5 rounded-full bg-gold ring-2 ring-dark"
                       aria-label="Nowy insight"
                     />
                   )}
                 </span>
-                <span className="flex-1 text-left font-ui text-[12px] uppercase tracking-luxury">
-                  {item.label}
-                </span>
-                <ChevronRight
-                  size={11}
-                  strokeWidth={1.5}
-                  className={clsx('transition-transform duration-200', open && 'rotate-90')}
-                />
+                <span className="opacity-50 text-[10px]">{open ? '∨' : '›'}</span>
               </button>
 
               {open && (
-                <div className="ml-3 pl-3 border-l border-gold-deep/30 mt-1 mb-2 space-y-0.5">
+                <ul className="pl-16 pr-4 pt-1 pb-3 space-y-0">
                   {item.children.map(child => {
                     const childActive = pathname === pathOnly(child.href)
                     return (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={clsx(
-                          'flex items-center gap-3 px-3 py-2 transition-all',
-                          childActive
-                            ? 'bg-forest text-gold-light'
-                            : 'text-parchment/80 hover:text-ivory hover:bg-forest/30'
-                        )}
-                      >
-                        <Diamond size={4} className={childActive ? 'text-gold' : 'text-gold-deep/60'} />
-                        <span className="font-serif-body italic text-[13px]">{child.label}</span>
-                      </Link>
+                      <li key={child.href}>
+                        <Link
+                          href={child.href}
+                          className={clsx(
+                            'block py-[7px] font-serif-body italic text-[14px] transition-colors',
+                            childActive
+                              ? 'text-gold-pale'
+                              : 'text-parchment/70 hover:text-gold-pale',
+                          )}
+                        >
+                          {child.label}
+                        </Link>
+                      </li>
                     )
                   })}
-                </div>
+                </ul>
               )}
             </div>
           )
         })}
       </nav>
 
-      <div className="relative mt-6 pt-5 border-t border-gold-deep/30">
+      {/* Logout */}
+      <div className="relative px-8 pt-5 mt-2 border-t border-gold/20">
         <button
           onClick={logOut}
-          className="flex items-center gap-3 px-3 py-2 text-parchment hover:text-ivory transition-colors"
+          className="flex items-center gap-3 text-parchment/80 hover:text-gold-pale transition-colors"
         >
-          <LogOut size={11} strokeWidth={1.5} />
-          <SmallCaps tone="parchment" tracking="luxury" size="xs">
-            wyloguj
-          </SmallCaps>
+          <LogOut size={13} strokeWidth={1.5} className="opacity-70" />
+          <span className="font-ui uppercase tracking-[0.32em] text-[11px]">
+            Wyloguj
+          </span>
         </button>
       </div>
     </aside>

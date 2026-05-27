@@ -51,24 +51,22 @@ export default function PatternOfTheWeek() {
   return (
     <Link
       href="/timeline?tab=patterns"
-      className="block bg-ivory border border-gold-light/40 hover:border-gold px-3 py-2.5 transition-colors h-[68px]"
+      className="flex items-center gap-2.5 border border-border/70 hover:border-gold px-3 py-2 transition-colors"
     >
-      <div className="flex items-center gap-3 h-full">
-        <div className="flex-shrink-0 w-9 h-9 border border-gold-light/60 flex items-center justify-center">
-          <Fleuron size={12} className="text-gold" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-            Wzorzec
-          </SmallCaps>
-          <p className="font-heading text-dark text-[13px] leading-tight truncate mt-0.5">
-            {pattern.short}
-          </p>
-          <p className="font-serif-body italic text-muted text-[11px] truncate">
+      <span className="flex-shrink-0 w-[26px] h-[26px] bg-cream flex items-center justify-center">
+        <Fleuron size={10} className="text-gold" />
+      </span>
+      <span className="flex-1 min-w-0 leading-tight">
+        <span className="block font-ui uppercase tracking-[0.3em] text-[8px] text-gold-deep">
+          Wzorzec
+        </span>
+        <span className="block font-display text-dark text-[13px] font-medium mt-0.5 truncate">
+          {pattern.short}
+          <span className="ml-1.5 font-serif-body italic text-muted text-[11px]">
             {pattern.detail}
-          </p>
-        </div>
-      </div>
+          </span>
+        </span>
+      </span>
     </Link>
   )
 }

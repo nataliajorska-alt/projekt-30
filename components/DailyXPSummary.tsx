@@ -1,35 +1,77 @@
 'use client'
 import { useGameData } from '@/hooks/useGameData'
-import { SmallCaps, Fleuron } from '@/components/ui'
+import { getLevelFromXP, getNextLevel, getLevelProgress } from '@/lib/gameLogic'
+import { toRoman } from '@/lib/romanNumerals'
 
 export default function DailyXPSummary() {
   const { todayLog, stats } = useGameData()
   const todayXP = todayLog?.totalXP ?? 0
+  const vaultXP = todayLog?.externalXP
+    ? Object.values(todayLog.externalXP).reduce<number>((a, b) => a + (b ?? 0), 0)
+    : 0
+  const total = stats.totalXP
+
+  const level = getLevelFromXP(total)
+  const next = getNextLevel(total)
+  const lvlProgress = getLevelProgress(total)
+  const xpToNext = next ? Math.max(0, next.xpRequired - total) : 0
 
   return (
-    <div className="bg-cream border border-gold-light/30 px-4 sm:px-5 py-4 mb-4 flex items-center gap-3 sm:gap-4">
-      <div className="flex-1 min-w-0 text-left">
-        <SmallCaps tone="muted" tracking="luxury" size="xs">
-          XP dziś
-        </SmallCaps>
-        <p className="font-display text-dark text-2xl sm:text-3xl leading-none mt-1.5 tabular-nums">
-          + {todayXP.toLocaleString('pl-PL')}
-        </p>
+    <div className="border-t border-b border-hairline px-1 py-4 sm:py-5 flex flex-col">
+      {/* Top — title + total (mirrors Magnetism) */}
+      <div className="flex justify-between items-baseline mb-3.5 min-h-[38px]">
+        <h3 className="font-display text-dark text-2xl sm:text-[26px] leading-none tracking-tight">
+          XP{' '}
+          <span className="font-serif-body italic text-muted text-[13px] ml-2.5 font-normal align-baseline">
+            łącznie
+          </span>
+        </h3>
+        <span className="font-display text-dark text-[22px] sm:text-[26px] leading-none tracking-tight tabular-nums">
+          {total.toLocaleString('pl-PL')}
+        </span>
       </div>
 
-      <div className="flex flex-col items-center gap-1.5 shrink-0 px-1">
-        <span className="h-3 w-px bg-gold-deep/40" />
-        <Fleuron size={10} className="text-gold" />
-        <span className="h-3 w-px bg-gold-deep/40" />
-      </div>
+      {/* Bottom — two stats stitched by a thin rule */}
+      <div className="mt-auto pt-3 border-t border-border/60 flex justify-between items-end">
+        <div>
+          <div className="font-ui uppercase tracking-luxury text-[9px] text-muted mb-1">
+            Dziś
+          </div>
+          <div className="font-display italic font-medium text-gold-deep text-[20px] leading-none tabular-nums">
+            +{todayXP.toLocaleString('pl-PL')}
+          </div>
+          {vaultXP > 0 && (
+            <div
+              className="mt-1 inline-flex items-center gap-1.5"
+              title={`z The Learning Vault: +${vaultXP} XP`}
+            >
+              <span className="text-gold text-[8px] leading-none">◆</span>
+              <span className="font-serif-body italic text-gold-deep text-[11px] tabular-nums">
+                vault · +{vaultXP}
+              </span>
+            </div>
+          )}
+        </div>
 
-      <div className="flex-1 min-w-0 text-right">
-        <SmallCaps tone="muted" tracking="luxury" size="xs">
-          XP łącznie
-        </SmallCaps>
-        <p className="font-display text-dark text-2xl sm:text-3xl leading-none mt-1.5 tabular-nums">
-          {stats.totalXP.toLocaleString('pl-PL')}
-        </p>
+        <div className="text-right">
+          {next ? (
+            <>
+              <div className="font-ui uppercase tracking-luxury text-[9px] text-muted mb-1">
+                Do level {toRoman(level.level + 1)}
+              </div>
+              <div className="font-display italic font-medium text-gold-deep text-[20px] leading-none tabular-nums">
+                {xpToNext.toLocaleString('pl-PL')}
+              </div>
+              <div className="font-serif-body italic text-muted-light text-[11px] mt-1">
+                {lvlProgress}% → {next.name}
+              </div>
+            </>
+          ) : (
+            <div className="font-serif-body italic text-gold-deep text-[14px]">
+              ostatni poziom — Natalia 30
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

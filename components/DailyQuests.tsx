@@ -10,14 +10,58 @@ import {
 } from '@/lib/seasonal/aprilData'
 import { getPillar } from '@/lib/pillars'
 import { todayKey, dateKey } from '@/lib/gameLogic'
-import { Clock, SkipForward, CalendarClock, X } from 'lucide-react'
+import { Clock, X } from 'lucide-react'
 import { SmallCaps, Fleuron, Diamond } from '@/components/ui'
 import type { AprilQuest } from '@/lib/seasonal/aprilData'
 
 const APRIL_LAST_DAY = '2026-04-30'
 const APRIL_FIRST_DAY = '2026-04-05'
 
-function SkipModal({ quest, onConfirm, onClose }: {
+/* ── Inline SVG icons matching the design ─────────────────────────── */
+function PostponeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3.5" y="5.5" width="17" height="15" rx="0.5" />
+      <line x1="3.5" y1="10" x2="20.5" y2="10" />
+      <line x1="8" y1="3" x2="8" y2="7" />
+      <line x1="16" y1="3" x2="16" y2="7" />
+      <path d="M 12 13 L 16 16 L 12 19" />
+    </svg>
+  )
+}
+function SkipIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M 5 6 L 14 12 L 5 18 Z" />
+      <line x1="18" y1="6" x2="18" y2="18" />
+    </svg>
+  )
+}
+
+/* ── Skip modal (unchanged behavior) ───────────────────────────────── */
+function SkipModal({
+  quest,
+  onConfirm,
+  onClose,
+}: {
   quest: AprilQuest
   onConfirm: (reason: string) => void
   onClose: () => void
@@ -25,10 +69,7 @@ function SkipModal({ quest, onConfirm, onClose }: {
   const [reason, setReason] = useState('')
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0">
-      <div
-        className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-ivory border border-gold-light/40 w-full max-w-sm p-6 animate-slide-up">
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -79,115 +120,126 @@ function SkipModal({ quest, onConfirm, onClose }: {
   )
 }
 
-function QuestCard({
-  quest, done, overdue, isMinimum, onComplete, onSkip, onPostpone,
+/* ── Quest row — editorial, no card-in-card ───────────────────────── */
+function QuestRow({
+  quest,
+  done,
+  overdue,
+  isMinimum,
+  isLast,
+  onComplete,
+  onSkip,
+  onPostpone,
 }: {
   quest: AprilQuest
   done: boolean
   overdue: boolean
   isMinimum: boolean
+  isLast: boolean
   onComplete: () => void
   onSkip: () => void
   onPostpone: () => void
 }) {
   const pillar = getPillar(quest.pillar)
-  const borderClass = done
-    ? 'border-gold'
-    : overdue
-      ? 'border-amber-300/70'
-      : 'border-hairline'
-  const bgClass = done
-    ? 'bg-gold-pale/40'
-    : overdue
-      ? 'bg-amber-50/40'
-      : 'bg-cream/30'
+  const xp = isMinimum && !done ? quest.xp * 2 : quest.xp
 
   return (
-    <div className={clsx('border p-4 transition-all', borderClass, bgClass)}>
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1.5">
-            {overdue && (
-              <div className="flex items-center gap-1 border border-amber-300 px-2 py-0.5">
-                <Clock size={9} className="text-amber-700" strokeWidth={2} />
-                <SmallCaps tone="dark" tracking="luxury" size="xs" className="text-amber-700">
-                  zaległe · {quest.date.slice(5).replace('-', '.')}
-                </SmallCaps>
-              </div>
-            )}
-            <span
-              className="inline-flex items-center gap-1.5"
-              style={{ color: pillar.color }}
-            >
-              <Diamond size={5} />
-              <span className="font-ui uppercase tracking-luxury text-[10px]">
-                {pillar.shortName}
+    <div
+      className={clsx(
+        'grid grid-cols-[1fr_auto] gap-4 sm:gap-5 py-4 items-start',
+        !isLast && 'border-b border-border/60',
+      )}
+    >
+      {/* Main column */}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+          {overdue && (
+            <span className="inline-flex items-center gap-1 border border-amber-300/60 px-1.5 py-0.5">
+              <Clock size={9} className="text-amber-700" strokeWidth={2} />
+              <span className="font-ui uppercase tracking-luxury text-[9px] text-amber-700">
+                zaległe · {quest.date.slice(5).replace('-', '.')}
               </span>
             </span>
-          </div>
-          <h3
-            className={clsx(
-              'font-heading text-[17px] leading-snug',
-              done ? 'text-muted line-through decoration-1' : 'text-dark'
-            )}
-          >
-            {quest.title}
-          </h3>
-        </div>
-        <div className="flex flex-col items-end flex-shrink-0 mt-1 gap-0.5">
-          <SmallCaps
-            tone={done ? 'gold' : 'muted'}
-            tracking="luxury"
-            size="xs"
-          >
-            + {isMinimum ? quest.xp * 2 : quest.xp} XP
-          </SmallCaps>
-          {isMinimum && !done && (
-            <SmallCaps tone="muted" size="xs" className="opacity-70">
-              × II
-            </SmallCaps>
           )}
+          <span
+            className={clsx(
+              'inline-flex items-center gap-2 font-ui uppercase tracking-[0.36em] text-[10px] before:content-["◆"] before:text-[8px]',
+              done ? 'text-muted-light' : '',
+            )}
+            style={!done ? { color: pillar.color } : undefined}
+          >
+            <span className="ml-0">{pillar.shortName}</span>
+          </span>
         </div>
+        <h3
+          className={clsx(
+            'font-display text-[18px] sm:text-[20px] leading-tight tracking-tight',
+            done ? 'text-muted-light italic' : 'text-dark',
+          )}
+        >
+          {quest.title}
+        </h3>
+        <p
+          className={clsx(
+            'font-serif-body italic text-[13.5px] leading-relaxed mt-1.5 max-w-[64ch]',
+            done ? 'text-muted-light' : 'text-muted',
+          )}
+        >
+          {quest.description}
+        </p>
       </div>
 
-      <p className="font-serif-body italic text-muted text-[13.5px] leading-relaxed mb-4">
-        {quest.description}
-      </p>
+      {/* Right column — XP + actions or check-mark */}
+      <div className="flex flex-col items-end gap-2.5 text-right shrink-0">
+        <div
+          className={clsx(
+            'font-display italic font-medium text-[18px] tracking-tight',
+            done ? 'text-muted-light' : 'text-gold-deep',
+          )}
+        >
+          +{xp}
+          <span className="ml-1 font-ui not-italic uppercase tracking-luxury text-[9px] text-muted-light">
+            XP
+          </span>
+          {isMinimum && !done && (
+            <span className="ml-1.5 font-ui not-italic uppercase tracking-luxury text-[9px] text-muted-light">
+              ×&nbsp;II
+            </span>
+          )}
+        </div>
 
-      {done ? (
-        <div className="flex items-center gap-2">
-          <Diamond size={6} className="text-gold" />
-          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-            ukończone
-          </SmallCaps>
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          <button
-            onClick={onComplete}
-            className="flex-1 flex items-center justify-center gap-2 bg-dark-deep border border-gold text-ivory py-2.5 hover:bg-forest transition-colors"
-          >
-            <Diamond size={5} className="text-gold" />
-            <SmallCaps tone="ivory" tracking="luxury" size="xs">
-              zrobione
-            </SmallCaps>
-          </button>
-          <button
-            onClick={onPostpone}
-            title="Przenieś na jutro"
-            className="flex items-center gap-1.5 border border-hairline text-muted px-3 py-2.5 hover:border-gold hover:text-dark transition-colors"
-          >
-            <CalendarClock size={13} strokeWidth={1.5} />
-          </button>
-          <button
-            onClick={onSkip}
-            title="Pomiń (podaj powód)"
-            className="flex items-center gap-1.5 border border-hairline text-muted px-3 py-2.5 hover:border-gold hover:text-dark transition-colors"
-          >
-            <SkipForward size={13} strokeWidth={1.5} />
-          </button>
-        </div>
-      )}
+        {done ? (
+          <span className="font-display italic text-gold text-[15px] leading-none">
+            ∴ ukończone
+          </span>
+        ) : (
+          <div className="flex gap-1.5">
+            <button
+              onClick={onPostpone}
+              title="Przenieś na jutro"
+              aria-label="Przenieś na jutro"
+              className="inline-flex items-center justify-center border border-hairline text-gold-deep px-2 py-1.5 hover:border-gold hover:text-dark transition-colors"
+            >
+              <PostponeIcon />
+            </button>
+            <button
+              onClick={onSkip}
+              title="Pomiń"
+              aria-label="Pomiń quest"
+              className="inline-flex items-center justify-center border border-hairline text-gold-deep px-2 py-1.5 hover:border-gold hover:text-dark transition-colors"
+            >
+              <SkipIcon />
+            </button>
+            <button
+              onClick={onComplete}
+              className="inline-flex items-center gap-1.5 bg-dark text-ivory border border-dark hover:bg-gold-deep hover:border-gold-deep transition-colors px-3 py-1.5"
+            >
+              <span className="text-gold text-[9px] leading-none">◆</span>
+              <span className="font-ui uppercase tracking-luxury text-[10px]">Zrobione</span>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -218,7 +270,7 @@ export default function DailyQuests() {
           <div className="px-5 pt-5 pb-3 flex items-baseline gap-3">
             <h2 className="font-heading text-dark text-xl whitespace-nowrap">Questy dnia</h2>
             <SmallCaps tone="muted" tracking="luxury" size="xs" className="hidden sm:inline">
-              today's quests
+              today&apos;s quests
             </SmallCaps>
           </div>
           <div className="px-5 pb-5">
@@ -244,6 +296,12 @@ export default function DailyQuests() {
     await postponeQuest(quest.id, quest.date, tomorrowKey)
   }
 
+  const allQuests = [...overdueQuests, ...todayQuests]
+  const completedCount = allQuests.filter(q => log.completed.includes(q.id)).length
+  const earnedXP = allQuests
+    .filter(q => log.completed.includes(q.id))
+    .reduce((s, q) => s + (isMinimum ? q.xp * 2 : q.xp), 0)
+
   return (
     <>
       {skipTarget && (
@@ -257,62 +315,59 @@ export default function DailyQuests() {
         />
       )}
 
-      <div className="bg-ivory border border-gold-light/40 mb-4">
+      <section className="mb-4 border-t border-b border-hairline/70 py-1">
         {/* Header */}
-        <div className="px-5 pt-5 pb-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="flex items-baseline gap-3 min-w-0">
-              <h2 className="font-heading text-dark text-xl whitespace-nowrap">Questy dnia</h2>
-              <SmallCaps tone="muted" tracking="luxury" size="xs" className="hidden sm:inline">
-                today's quests
-              </SmallCaps>
-            </div>
-            {overdueQuests.length > 0 && (
-              <div className="flex items-center gap-1.5 border border-amber-300 px-2.5 py-1 shrink-0">
-                <Clock size={10} className="text-amber-700" strokeWidth={2} />
-                <SmallCaps tracking="luxury" size="xs" className="!text-amber-700">
-                  {overdueQuests.length} zaległe
-                </SmallCaps>
-              </div>
+        <div className="flex items-baseline justify-between gap-3 py-4 border-b border-border/60">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h2 className="font-display text-dark text-2xl sm:text-[26px] leading-none tracking-tight whitespace-nowrap">
+              Questy dnia
+            </h2>
+            <span className="hidden sm:inline font-serif-body italic text-muted text-[13px]">
+              today&apos;s quests
+            </span>
+          </div>
+          <div className="font-ui uppercase tracking-luxury text-[10px] text-muted text-right shrink-0">
+            <span className="font-display not-italic text-gold-deep text-sm tracking-normal normal-case mr-1">
+              {completedCount} / {allQuests.length}
+            </span>
+            ukończone
+            {earnedXP > 0 && (
+              <>
+                {' '}
+                ·{' '}
+                <span className="font-display not-italic text-gold-deep text-sm tracking-normal normal-case">
+                  +{earnedXP}
+                </span>{' '}
+                XP
+              </>
             )}
           </div>
         </div>
 
-        <div className="px-5 pb-5 space-y-3">
-          {overdueQuests.map(quest => (
-            <QuestCard
+        {/* Quest rows */}
+        <div>
+          {allQuests.map((quest, i) => (
+            <QuestRow
               key={quest.id}
               quest={quest}
               done={log.completed.includes(quest.id)}
-              overdue={true}
+              overdue={overdueQuests.some(o => o.id === quest.id)}
               isMinimum={isMinimum}
+              isLast={i === allQuests.length - 1}
               onComplete={() => completeQuest(quest.id, quest.pillar)}
               onSkip={() => setSkipTarget(quest)}
               onPostpone={() => handlePostpone(quest)}
             />
           ))}
-
-          {todayQuests.map(quest => (
-            <QuestCard
-              key={quest.id}
-              quest={quest}
-              done={log.completed.includes(quest.id)}
-              overdue={false}
-              isMinimum={isMinimum}
-              onComplete={() => completeQuest(quest.id, quest.pillar)}
-              onSkip={() => setSkipTarget(quest)}
-              onPostpone={() => handlePostpone(quest)}
-            />
-          ))}
-
-          {postponedAwayIds.length > 0 && (
-            <p className="font-serif-body italic text-muted-light text-[12px] text-center pt-1">
-              {postponedAwayIds.length}{' '}
-              {postponedAwayIds.length === 1 ? 'quest przeniesiony' : 'questy przeniesione'} na jutro
-            </p>
-          )}
         </div>
-      </div>
+
+        {postponedAwayIds.length > 0 && (
+          <p className="text-center py-4 font-serif-body italic text-muted-light text-[13px]">
+            — {postponedAwayIds.length}{' '}
+            {postponedAwayIds.length === 1 ? 'quest przeniesiony' : 'questy przeniesione'} na jutro —
+          </p>
+        )}
+      </section>
     </>
   )
 }
