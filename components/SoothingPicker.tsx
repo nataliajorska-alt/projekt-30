@@ -37,8 +37,14 @@ export default function SoothingPicker() {
         {suggestion}
       </p>
       <button
-        onClick={() => setSuggestion(pickRandom(suggestion))}
-        className="shrink-0 inline-flex items-center gap-1.5 border border-hairline hover:border-gold active:border-gold active:bg-cream px-2.5 py-1.5 text-muted hover:text-dark active:text-gold-deep transition-colors"
+        type="button"
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          // Functional updater — guarantees we use the latest state, not a stale closure.
+          setSuggestion(prev => pickRandom(prev))
+        }}
+        className="shrink-0 inline-flex items-center gap-1.5 border border-hairline hover:border-gold active:border-gold active:bg-cream px-2.5 py-1.5 text-muted hover:text-dark active:text-gold-deep transition-colors cursor-pointer"
         aria-label="Wylosuj inną"
         title="Wylosuj inną propozycję"
       >
