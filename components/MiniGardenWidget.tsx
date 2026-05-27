@@ -30,10 +30,9 @@ export default function MiniGardenWidget() {
       aria-label={`Poziom ${lvl.level}, ${stage.stageName}. Otwórz drzewko.`}
     >
       <span
-        className="flex-shrink-0 w-[26px] h-[26px] bg-cream flex items-center justify-center text-[13px]"
-        style={{ color: stage.accentColor }}
+        className="flex-shrink-0 w-[26px] h-[26px] bg-cream-warm flex items-center justify-center text-[14px] leading-none text-rose"
       >
-        {stage.emoji}
+        ✿
       </span>
       <span className="flex-1 min-w-0 leading-tight">
         <span

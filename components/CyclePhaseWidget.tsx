@@ -43,10 +43,9 @@ export default function CyclePhaseWidget() {
       className="flex items-center gap-2.5 border border-border/70 hover:border-gold px-3 py-2 transition-colors"
     >
       <span
-        className="flex-shrink-0 w-[26px] h-[26px] bg-cream flex items-center justify-center text-[13px]"
-        style={{ color: phase.color }}
+        className="flex-shrink-0 w-[26px] h-[26px] bg-cream-warm flex items-center justify-center text-[14px] leading-none text-sage"
       >
-        {phase.emoji}
+        ❦
       </span>
       <span className="flex-1 min-w-0 leading-tight">
         <span

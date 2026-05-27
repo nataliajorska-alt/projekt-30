@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { useMemo } from 'react'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { dateKey } from '@/lib/gameLogic'
-import { Fleuron, SmallCaps } from '@/components/ui'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -53,8 +52,8 @@ export default function PatternOfTheWeek() {
       href="/timeline?tab=patterns"
       className="flex items-center gap-2.5 border border-border/70 hover:border-gold px-3 py-2 transition-colors"
     >
-      <span className="flex-shrink-0 w-[26px] h-[26px] bg-cream flex items-center justify-center">
-        <Fleuron size={10} className="text-gold" />
+      <span className="flex-shrink-0 w-[26px] h-[26px] bg-cream-warm flex items-center justify-center text-[14px] leading-none text-gold">
+        ∴
       </span>
       <span className="flex-1 min-w-0 leading-tight">
         <span className="block font-ui uppercase tracking-[0.3em] text-[8px] text-gold-deep">
