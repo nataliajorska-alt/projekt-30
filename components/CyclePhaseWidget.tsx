@@ -4,8 +4,22 @@ import { useCycleData } from '@/hooks/useCycleData'
 import { useCycleSettings } from '@/hooks/useCycleSettings'
 import { getPhaseForDate } from '@/lib/cycle-data'
 import { useMemo } from 'react'
-import { SmallCaps } from '@/components/ui'
 import { toRoman } from '@/lib/romanNumerals'
+
+// Phase + energy translations — only for the dashboard chip.
+// `/cycle` page keeps Polish since it's a dedicated cycle area.
+const PHASE_EN: Record<string, string> = {
+  'Menstruacja': 'Menstrual',
+  'Folikularna': 'Follicular',
+  'Owulacyjna': 'Ovulatory',
+  'Lutealna': 'Luteal',
+}
+const ENERGY_EN: Record<string, string> = {
+  'niska': 'low',
+  'rosnąca': 'rising',
+  'szczyt': 'peak',
+  'opadająca': 'falling',
+}
 
 export default function CyclePhaseWidget() {
   const { logs, loading } = useCycleData()
@@ -39,12 +53,12 @@ export default function CyclePhaseWidget() {
           className="block font-ui uppercase tracking-[0.3em] text-[8px]"
           style={{ color: phase.color }}
         >
-          Rytm · {toRoman(cycleDay)}
+          Cycle · {toRoman(cycleDay)}
         </span>
         <span className="block font-display text-dark text-[13px] font-medium mt-0.5 truncate">
-          {phase.name}
+          {PHASE_EN[phase.name] ?? phase.name}
           <span className="ml-1.5 font-serif-body italic text-muted text-[11px]">
-            {phase.energy}
+            {ENERGY_EN[phase.energy] ?? phase.energy}
           </span>
         </span>
       </span>

@@ -38,7 +38,7 @@ function computePattern(logs: Record<string, { totalXP?: number }>): Pattern | n
 
   return {
     short: `Best day · ${WEEKDAYS[bestIdx]}`,
-    detail: `avg. ${bestAvg} XP · 28d`,
+    detail: `avg ${bestAvg} XP · 28d`,
   }
 }
 

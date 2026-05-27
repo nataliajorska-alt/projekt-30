@@ -40,7 +40,7 @@ export default function MiniGardenWidget() {
           className="block font-ui uppercase tracking-[0.3em] text-[8px]"
           style={{ color: stage.accentColor }}
         >
-          Drzewko · {toRoman(lvl.level)}
+          Tree · {toRoman(lvl.level)}
         </span>
         <span className="block font-display text-dark text-[13px] font-medium mt-0.5 truncate">
           {stage.stageName}
