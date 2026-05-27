@@ -18,8 +18,9 @@ export default function DailyXPSummary() {
 
   return (
     <div className="border-t border-b border-hairline px-1 py-4 sm:py-5 flex flex-col">
-      {/* Top — title + total (mirrors Magnetism) */}
-      <div className="flex justify-between items-baseline mb-3.5 min-h-[38px]">
+      {/* Top — title + total. my-auto = vertical centering inside flex-col
+         (matches design `.xp-card .top { margin: auto 0; }`). */}
+      <div className="flex justify-between items-baseline my-auto min-h-[38px] py-1.5">
         <h3 className="font-display text-dark text-2xl sm:text-[26px] leading-none tracking-tight">
           XP{' '}
           <span className="font-serif-body italic text-muted text-[13px] ml-2.5 font-normal align-baseline">
