@@ -195,19 +195,20 @@ export default function GhostProtocolV2() {
   // ─── Trigger row ────────────────────────────────────────────────
 
   if (!flow) {
-    // Inline twin buttons matching design `.zasada .twin .btn` — solid border, compact, gold glyph
+    // Inline twin buttons matching design `.zasada .twin .btn` — solid border, compact.
+    // Mobile: full-width row (each button flex-1). Desktop: compact inline (shrink-0).
     return (
-      <div className="inline-flex items-center gap-2 shrink-0">
+      <div className="flex sm:inline-flex w-full sm:w-auto items-center gap-2 sm:shrink-0">
         <button
           onClick={() => setFlow({ type: 'impulse', phase: 'category' })}
-          className="inline-flex items-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
+          className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
         >
           <span className="text-gold text-[9px] leading-none">◆</span>
           <span>Mam impuls</span>
         </button>
         <button
           onClick={startHonest}
-          className="inline-flex items-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
+          className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
         >
           <span className="text-gold text-[9px] leading-none">∴</span>
           <span>Już zrobiłam</span>

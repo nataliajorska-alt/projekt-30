@@ -54,13 +54,15 @@ export default function NegativeChecklist() {
             <div key={rule.id}>
               <div
                 className={clsx(
-                  'flex items-center gap-3.5 py-2.5 transition-colors',
+                  // flex-wrap + ordering: on mobile twin wraps to a second row
+                  // (label + xp stay together on the first row). On sm+: all inline.
+                  'flex flex-wrap items-center gap-x-3.5 gap-y-2 py-2.5 transition-colors',
                   idx > 0 && 'border-t border-border/60',
                 )}
               >
                 <button
                   onClick={() => toggleRule(rule.id)}
-                  className="flex items-center gap-3.5 flex-1 min-w-0 text-left group hover:opacity-95"
+                  className="order-1 flex items-center gap-3.5 flex-1 min-w-0 text-left group hover:opacity-95"
                 >
                   <CheckSquare done={done} />
                   <span
@@ -72,16 +74,20 @@ export default function NegativeChecklist() {
                     {rule.text}
                   </span>
                 </button>
-                {hasInlineGhost && <GhostProtocolV2 />}
                 <span
                   className={clsx(
-                    'font-ui uppercase tracking-luxury text-[10px] shrink-0',
+                    'order-2 sm:order-3 font-ui uppercase tracking-luxury text-[10px] shrink-0',
                     done ? 'text-muted-light' : 'text-gold-deep',
                   )}
                 >
                   +{xp}
                   {isMinimum && !done && <span className="ml-1.5 opacity-70">× II</span>}
                 </span>
+                {hasInlineGhost && (
+                  <div className="order-3 sm:order-2 w-full sm:w-auto pl-[26px] sm:pl-0">
+                    <GhostProtocolV2 />
+                  </div>
+                )}
               </div>
               {hasBelowSoothing && <SoothingPicker />}
             </div>
