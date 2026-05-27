@@ -5,7 +5,7 @@ import { useTimelineData } from '@/hooks/useTimelineData'
 import { dateKey } from '@/lib/gameLogic'
 import { Fleuron, SmallCaps } from '@/components/ui'
 
-const WEEKDAYS = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota']
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 interface Pattern {
   short: string
@@ -37,8 +37,8 @@ function computePattern(logs: Record<string, { totalXP?: number }>): Pattern | n
   const bestAvg = Math.round(avgs[bestIdx])
 
   return {
-    short: `Najlepszy dzień · ${WEEKDAYS[bestIdx]}`,
-    detail: `śr. ${bestAvg} XP · 28 dni`,
+    short: `Best day · ${WEEKDAYS[bestIdx]}`,
+    detail: `avg. ${bestAvg} XP · 28d`,
   }
 }
 
@@ -58,7 +58,7 @@ export default function PatternOfTheWeek() {
       </span>
       <span className="flex-1 min-w-0 leading-tight">
         <span className="block font-ui uppercase tracking-[0.3em] text-[8px] text-gold-deep">
-          Wzorzec
+          Pattern
         </span>
         <span className="block font-display text-dark text-[13px] font-medium mt-0.5 truncate">
           {pattern.short}
