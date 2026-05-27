@@ -31,18 +31,19 @@ export default function SoothingPicker() {
   }
 
   return (
-    <div className="mt-1.5 ml-8 mr-1 bg-cream/40 border border-gold-light/40 px-3 py-2.5 flex items-start gap-3">
-      <Diamond size={5} className="text-gold mt-1.5 shrink-0" />
-      <p className="font-serif-body italic text-dark text-[13px] leading-snug flex-1">
+    <div className="mt-1.5 ml-8 mr-1 bg-cream-warm/50 border border-gold-light/50 px-3 py-2 flex items-center gap-3">
+      <Diamond size={5} className="text-gold shrink-0" />
+      <p className="font-serif-body italic text-dark text-[13.5px] leading-snug flex-1">
         {suggestion}
       </p>
       <button
         onClick={() => setSuggestion(pickRandom(suggestion))}
-        className="shrink-0 text-muted hover:text-gold transition-colors"
+        className="shrink-0 inline-flex items-center gap-1.5 border border-hairline hover:border-gold active:border-gold active:bg-cream px-2.5 py-1.5 text-muted hover:text-dark active:text-gold-deep transition-colors"
         aria-label="Wylosuj inną"
-        title="Wylosuj inną"
+        title="Wylosuj inną propozycję"
       >
-        <RotateCw size={11} />
+        <RotateCw size={12} strokeWidth={1.5} />
+        <span className="font-ui uppercase tracking-luxury text-[10px]">Losuj</span>
       </button>
     </div>
   )
