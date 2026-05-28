@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
+import { parseSafe, DailyLogSchema } from '@/lib/schemas'
 import type { DailyLog } from '@/types'
 
 export function useTimelineData() {
@@ -15,22 +16,22 @@ export function useTimelineData() {
     try {
       const snap = await getDocs(collection(db, 'users', user.uid, 'logs'))
       const map: Record<string, DailyLog> = {}
-      const defaults = {
-        completedRoutine: [] as string[],
-        completedDailyQuests: [] as string[],
-        completedSideQuests: [] as string[],
-        keptRules: [] as string[],
-        dayMode: 'normal' as const,
-      }
       snap.forEach(doc => {
-        const data = doc.data() as DailyLog
-        const safeXP = Number.isFinite(data.totalXP) && data.totalXP >= 0 ? data.totalXP : 0
-        map[doc.id] = {
-          ...defaults,
-          ...data,
-          date: doc.id,   // zawsze doc.id jako date — source of truth
-          totalXP: safeXP,
-        }
+        const parsed = parseSafe<DailyLog>(
+          DailyLogSchema,
+          doc.data(),
+          {
+            date: doc.id,
+            completedRoutine: [],
+            completedDailyQuests: [],
+            completedSideQuests: [],
+            keptRules: [],
+            totalXP: 0,
+            dayMode: 'normal',
+          } as DailyLog,
+          `DailyLog ${doc.id}`,
+        )
+        map[doc.id] = { ...parsed, date: doc.id }   // doc.id jako source of truth dla date
       })
       setLogs(map)
     } catch (err) {

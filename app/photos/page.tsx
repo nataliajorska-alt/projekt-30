@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import clsx from 'clsx'
 import { usePhotos } from '@/hooks/usePhotos'
@@ -195,11 +196,12 @@ function Lightbox({ photo, onClose, onDelete }: LightboxProps) {
         className="flex-1 flex items-center justify-center px-4 overflow-hidden relative"
         onClick={e => e.stopPropagation()}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={photo.url}
           alt={photo.caption ?? ''}
-          className="max-w-full max-h-full object-contain"
+          fill
+          sizes="100vw"
+          className="object-contain"
         />
       </div>
 
@@ -338,12 +340,12 @@ export default function PhotosPage() {
                     onClick={() => setLightbox(photo)}
                     className="aspect-square overflow-hidden hover:opacity-90 transition-opacity relative group border border-hairline"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={photo.url}
                       alt={photo.caption ?? ''}
-                      loading="lazy"
-                      className="absolute inset-0 w-full h-full object-cover"
+                      fill
+                      sizes="(min-width: 640px) 25vw, 33vw"
+                      className="object-cover"
                     />
                     <div className="absolute inset-0 bg-forest-deep/0 group-hover:bg-forest-deep/15 transition-colors" />
                     {photo.caption && (

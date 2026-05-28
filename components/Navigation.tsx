@@ -9,7 +9,7 @@ import {
   Home, Sword, Trophy, BookOpen, CalendarDays,
   LogOut, Settings, Lock, Camera, Scroll,
   Archive, Moon, Heart,
-  Sprout, TreePine, Columns3,
+  Sprout, TreePine, Columns3, Sparkles,
 } from 'lucide-react'
 import { SmallCaps, Diamond } from '@/components/ui'
 
@@ -56,9 +56,10 @@ const NAV: NavItem[] = [
   {
     kind: 'group', icon: Archive, label: 'Archiwum',
     children: [
-      { href: '/vault',  icon: Lock,   label: 'Skarbiec' },
-      { href: '/photos', icon: Camera, label: 'Zdjęcia' },
-      { href: '/report', icon: Scroll, label: 'Raport' },
+      { href: '/vault',  icon: Lock,     label: 'Skarbiec' },
+      { href: '/photos', icon: Camera,   label: 'Zdjęcia' },
+      { href: '/report', icon: Scroll,   label: 'Raport' },
+      { href: '/30',     icon: Sparkles, label: 'Urodziny' },
     ],
   },
   { kind: 'single', href: '/settings', icon: Settings, label: 'Ustawienia' },

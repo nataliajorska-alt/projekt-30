@@ -5,11 +5,12 @@ import { useGameData } from '@/hooks/useGameData'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { useVault } from '@/hooks/useVault'
 import { usePhotos } from '@/hooks/usePhotos'
-import { useGhostLog } from '@/hooks/useGhostLog'
+import { useGhostV2 } from '@/hooks/useGhostV2'
 import { useReviewHistory } from '@/hooks/useReviewHistory'
 import { useAuth } from '@/hooks/useAuth'
 import { PILLARS } from '@/lib/pillars'
-import { GHOST_TRIGGER_TAGS, MOOD_STATES } from '@/types'
+import { GHOST_CATEGORIES } from '@/lib/ghost-data'
+import { MOOD_STATES } from '@/types'
 import { getLevelFromXP, LEVELS, PROJECT_END, getDaysElapsed } from '@/lib/gameLogic'
 import { aggregateXpByMonth } from '@/lib/analytics'
 import { doc, setDoc } from 'firebase/firestore'
@@ -141,7 +142,7 @@ export default function ReportPage() {
   const { logs, loading: logsLoading } = useTimelineData()
   const { entries: vaultEntries, loading: vaultLoading } = useVault()
   const { photos, loading: photosLoading } = usePhotos()
-  const { entries: ghostEntries } = useGhostLog()
+  const { entries: ghostEntries } = useGhostV2()
   useReviewHistory()
 
   const loading = gameLoading || logsLoading || vaultLoading || photosLoading
@@ -149,7 +150,7 @@ export default function ReportPage() {
   const {
     currentLevel, activeDays, monthlyXP, maxMonthXP,
     keyMoments, avgMood, avgEnergy, dominantState,
-    topGhostTag, pillarData, totalSideQuests,
+    topGhostCategory, pillarData, totalSideQuests,
   } = useMemo(() => {
     const currentLevel = getLevelFromXP(stats.totalXP)
     const logArray = Object.values(logs)
@@ -174,10 +175,10 @@ export default function ReportPage() {
     for (const ci of allCheckIns) stateCounts[ci.state]++
     const dominantState = Object.entries(stateCounts).sort((a, b) => b[1] - a[1])[0]?.[0]
 
-    const tagCounts = {} as Record<string, number>
-    for (const e of ghostEntries) tagCounts[e.triggerTag] = (tagCounts[e.triggerTag] ?? 0) + 1
-    const topGhostTag = GHOST_TRIGGER_TAGS
-      .map(t => ({ ...t, count: tagCounts[t.value] ?? 0 }))
+    const categoryCounts = {} as Record<string, number>
+    for (const e of ghostEntries) categoryCounts[e.category] = (categoryCounts[e.category] ?? 0) + 1
+    const topGhostCategory = GHOST_CATEGORIES
+      .map(c => ({ ...c, count: categoryCounts[c.id] ?? 0 }))
       .sort((a, b) => b.count - a.count)[0]
 
     const pillarData = PILLARS.map(p => ({
@@ -190,7 +191,7 @@ export default function ReportPage() {
     return {
       currentLevel, activeDays, monthlyXP, maxMonthXP,
       keyMoments, avgMood, avgEnergy, dominantState,
-      topGhostTag, pillarData, totalSideQuests,
+      topGhostCategory, pillarData, totalSideQuests,
     }
   }, [stats, logs, ghostEntries])
 
@@ -542,9 +543,9 @@ export default function ReportPage() {
               </SmallCaps>
             </div>
             <div className="bg-cream/60 border border-hairline p-4 text-center">
-              <p className="text-2xl mb-1 leading-none">{topGhostTag?.emoji}</p>
+              <p className="text-2xl mb-1 leading-none">{topGhostCategory?.icon}</p>
               <SmallCaps tone="muted" tracking="luxury" size="xs">
-                {topGhostTag?.label}
+                {topGhostCategory?.label}
               </SmallCaps>
             </div>
           </div>
