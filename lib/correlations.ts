@@ -332,6 +332,44 @@ export function computeCorrelations(logs: Record<string, DailyLog>): Correlation
       && cigsWithout.length >= MIN_PER_GROUP,
   })
 
+  // ─ 9b/9c. Mniej vs więcej papierosów → nastrój / energia ───────────────
+  // W fazie 1 (obserwacja) zwykle nie ma dni "zero", więc porównanie z/bez
+  // się nie odpali. Split po medianie dziennej liczby papierosów daje sygnał
+  // już w trakcie fazy 1. Insight #9 zostaje — odpali się sam, gdy pojawią
+  // się dni bez papierosów (faza 2+).
+  const cigCountsSorted = withMood
+    .map(l => l.cigarettes?.length ?? 0)
+    .sort((a, b) => a - b)
+  const cigMedian = cigCountsSorted[Math.floor(cigCountsSorted.length / 2)] ?? 0
+  const cigsLess  = withMood.filter(l => (l.cigarettes?.length ?? 0) <= cigMedian)
+  const cigsMore  = withMood.filter(l => (l.cigarettes?.length ?? 0) >  cigMedian)
+  insights.push({
+    type: 'comparison', id: 'cigarettes_less_more_mood',
+    icon: '🚬', title: 'Mniej vs więcej papierosów → nastrój',
+    withLabel: `Dni z ≤ ${cigMedian} papierosami`,
+    withoutLabel: `Dni z > ${cigMedian} papierosami`,
+    metric: 'mood',
+    withValue:    avg(cigsLess.map(logAvgMood)),
+    withoutValue: avg(cigsMore.map(logAvgMood)),
+    withCount: cigsLess.length, withoutCount: cigsMore.length,
+    hasEnoughData: withMood.length >= MIN_TOTAL
+      && cigsLess.length >= MIN_PER_GROUP
+      && cigsMore.length >= MIN_PER_GROUP,
+  })
+  insights.push({
+    type: 'comparison', id: 'cigarettes_less_more_energy',
+    icon: '🚬', title: 'Mniej vs więcej papierosów → energia',
+    withLabel: `Dni z ≤ ${cigMedian} papierosami`,
+    withoutLabel: `Dni z > ${cigMedian} papierosami`,
+    metric: 'energy',
+    withValue:    avg(cigsLess.map(logAvgEnergy)),
+    withoutValue: avg(cigsMore.map(logAvgEnergy)),
+    withCount: cigsLess.length, withoutCount: cigsMore.length,
+    hasEnoughData: withMood.length >= MIN_TOTAL
+      && cigsLess.length >= MIN_PER_GROUP
+      && cigsMore.length >= MIN_PER_GROUP,
+  })
+
   // ── Lift insights — controlled directional comparisons ──────────────────────
   // Only days with ≥2 check-ins (so we can measure within-day lift).
   const withLift = Object.values(logs).filter(
