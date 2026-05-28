@@ -48,12 +48,20 @@ const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const db = getFirestore(app)
 
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+// Tryb nieinteraktywny (CI): jeśli BACKUP_EMAIL i BACKUP_PASSWORD są w env,
+// użyj ich i pomiń pytania. Inaczej — pytaj interaktywnie (uruchomienie lokalne).
+const envEmail = process.env.BACKUP_EMAIL
+const envPassword = process.env.BACKUP_PASSWORD
+const nonInteractive = Boolean(envEmail && envPassword)
+
+const rl = nonInteractive
+  ? null
+  : readline.createInterface({ input: process.stdin, output: process.stdout })
 const ask = (q) => new Promise(r => rl.question(q, r))
 
 async function main() {
-  const email = await ask('Email: ')
-  const password = await ask('Hasło: ')
+  const email = nonInteractive ? envEmail : await ask('Email: ')
+  const password = nonInteractive ? envPassword : await ask('Hasło: ')
 
   await setPersistence(auth, inMemoryPersistence)
   const { user } = await signInWithEmailAndPassword(auth, email, password)
@@ -89,12 +97,12 @@ async function main() {
   const sizeKB = (JSON.stringify(dump).length / 1024).toFixed(1)
   console.log(`\n✓ Backup zapisany: ${path} (${sizeKB} kB)`)
 
-  rl.close()
+  rl?.close()
   process.exit(0)
 }
 
 main().catch(err => {
   console.error('\n✗ Backup nieudany:', err.message)
-  rl.close()
+  rl?.close()
   process.exit(1)
 })
