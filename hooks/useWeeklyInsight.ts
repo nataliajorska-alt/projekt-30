@@ -6,6 +6,7 @@ import { useAuth } from './useAuth'
 import { useTimelineData } from './useTimelineData'
 import { getISOWeekKey } from '@/lib/gameLogic'
 import { computeWeeklyInsight, type WeeklyInsight } from '@/lib/weeklyInsight'
+import { parseSafe, WeeklyInsightSchema } from '@/lib/schemas'
 import { fireInsightSeen } from './useWeeklyInsightBadge'
 
 // Lazy generation: tylko od niedzieli (lokalny dzień tygodnia 0) lub poniedziałku (1)
@@ -32,7 +33,12 @@ export function useWeeklyInsight() {
     const snap = await getDoc(ref)
 
     if (snap.exists()) {
-      const data = snap.data() as WeeklyInsight
+      const data = parseSafe<WeeklyInsight>(
+        WeeklyInsightSchema,
+        snap.data(),
+        { weekKey, generatedAt: new Date().toISOString(), totalHypotheses: 0, testsRun: 0, passedCount: 0, outcomes: [], headline: '', body: '', hasContent: false },
+        `WeeklyInsight ${weekKey}`,
+      )
       setInsight(data)
       // Badge: "nowy" gdy sessionStorage nie pamięta że już widział tego tygodnia.
       const seenKey = `insight_seen_${weekKey}`

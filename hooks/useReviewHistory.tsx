@@ -4,6 +4,7 @@ import { collection, getDocs, query, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
 import type { WeeklyReview, MonthlyReview } from '@/types'
+import { parseSafe, WeeklyReviewSchema, MonthlyReviewSchema, ZERO_PILLAR_RATING } from '@/lib/schemas'
 import { getMonthKey } from '@/lib/gameLogic'
 
 function getCurrentWeekStart(): string {
@@ -34,8 +35,18 @@ export function useReviewHistory() {
           getDocs(query(collection(db, 'users', user.uid, 'monthlyReviews'), orderBy('month', 'desc'))),
         ])
 
-        setWeeklyReviews(weeklySnap.docs.map(d => d.data() as WeeklyReview))
-        setMonthlyReviews(monthlySnap.docs.map(d => d.data() as MonthlyReview))
+        setWeeklyReviews(weeklySnap.docs.map(d => parseSafe<WeeklyReview>(
+          WeeklyReviewSchema,
+          d.data(),
+          { weekStart: d.id, highlights: '', challenges: '', pillarsRated: { ...ZERO_PILLAR_RATING }, nextWeekFocus: '', xpEarned: 0 },
+          `WeeklyReview ${d.id}`,
+        )))
+        setMonthlyReviews(monthlySnap.docs.map(d => parseSafe<MonthlyReview>(
+          MonthlyReviewSchema,
+          d.data(),
+          { month: d.id, highlights: '', challenges: '', pillarsRated: { ...ZERO_PILLAR_RATING }, intentionNextMonth: '', xpEarned: 0, savedAt: new Date().toISOString() },
+          `MonthlyReview ${d.id}`,
+        )))
       } finally {
         setLoading(false)
       }

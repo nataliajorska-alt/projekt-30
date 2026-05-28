@@ -170,6 +170,82 @@ export const VaultEntrySchema = z.object({
   charCount:     z.number().nonnegative().optional(),
 })
 
+// ── Reviews (weekly / monthly) ─────────────────────────────────────────────────
+
+// Oceny filarów 1–5; każdy filar z .catch(0) — brakujący/zepsuty filar nie wywala recenzji.
+const PillarRatingSchema = z.object({
+  pozycja:   z.number().catch(0),
+  cialo:     z.number().catch(0),
+  styl:      z.number().catch(0),
+  kapital:   z.number().catch(0),
+  kariera:   z.number().catch(0),
+  tozsamosc: z.number().catch(0),
+  milosc:    z.number().catch(0),
+})
+
+/** Domyślne (zerowe) oceny filarów — fallback dla recenzji bez danych. */
+export const ZERO_PILLAR_RATING = {
+  pozycja: 0, cialo: 0, styl: 0, kapital: 0, kariera: 0, tozsamosc: 0, milosc: 0,
+} as const
+
+export const WeeklyReviewSchema = z.object({
+  weekStart:     z.string().catch(''),
+  highlights:    z.string().catch(''),
+  challenges:    z.string().catch(''),
+  pillarsRated:  PillarRatingSchema,
+  nextWeekFocus: z.string().catch(''),
+  xpEarned:      z.number().nonnegative().catch(0),
+  savedAt:       z.string().optional(),
+})
+
+export const MonthlyReviewSchema = z.object({
+  month:              z.string().catch(''),
+  highlights:         z.string().catch(''),
+  challenges:         z.string().catch(''),
+  pillarsRated:       PillarRatingSchema,
+  intentionNextMonth: z.string().catch(''),
+  xpEarned:           z.number().nonnegative().catch(0),
+  savedAt:            z.string().catch(() => new Date().toISOString()),
+})
+
+// ── HeartBlock ─────────────────────────────────────────────────────────────────
+
+const HeartBlockRitualsSchema = z.object({
+  gratitude:    z.boolean().catch(false),
+  prayer:       z.boolean().catch(false),
+  planTomorrow: z.boolean().catch(false),
+  breath:       z.boolean().catch(false),
+}).catch({ gratitude: false, prayer: false, planTomorrow: false, breath: false })
+
+export const HeartBlockSchema = z.object({
+  weekKey:        z.string().catch(''),
+  startedDateKey: z.string().catch(''),
+  pain:           z.string().catch(''),
+  thoughts:       z.tuple([z.string(), z.string(), z.string()]).catch(['', '', '']),
+  steps:          z.tuple([z.string(), z.string(), z.string()]).catch(['', '', '']),
+  closing:        z.string().catch(''),
+  rituals:        HeartBlockRitualsSchema,
+  completedAt:    z.string().nullable().catch(null),
+  updatedAt:      z.string().catch(() => new Date().toISOString()),
+})
+
+// ── WeeklyInsight (cache regenerowalny) ─────────────────────────────────────────
+// Łagodny schemat: chroni pola konsumowane przez UI (headline/body/hasContent/liczby).
+// outcomes trzymane luźno (z.any) — to złożony, deterministycznie odtwarzalny output
+// pipeline'u; przy psuciu wystarczy że karta się nie wywali, a niedzielna regeneracja
+// i tak nadpisze cache.
+export const WeeklyInsightSchema = z.object({
+  weekKey:         z.string().catch(''),
+  generatedAt:     z.string().catch(() => new Date().toISOString()),
+  totalHypotheses: z.number().catch(0),
+  testsRun:        z.number().catch(0),
+  passedCount:     z.number().catch(0),
+  outcomes:        z.array(z.any()).catch([]),
+  headline:        z.string().catch(''),
+  body:            z.string().catch(''),
+  hasContent:      z.boolean().catch(false),
+})
+
 // ── Safe parse helper ────────────────────────────────────────────────────────
 
 /**

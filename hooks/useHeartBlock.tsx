@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
+import { parseSafe, HeartBlockSchema } from '@/lib/schemas'
 import { todayKey, getISOWeekKey } from '@/lib/gameLogic'
 
 export interface HeartBlockRituals {
@@ -51,12 +52,14 @@ export function useHeartBlock() {
     if (!user) { setLoading(false); return }
     const ref = doc(db, 'users', user.uid, 'heartBlocks', weekKey)
     const snap = await getDoc(ref)
-    setBlock(snap.exists() ? (snap.data() as HeartBlock) : emptyBlock(weekKey))
+    setBlock(snap.exists()
+      ? parseSafe<HeartBlock>(HeartBlockSchema, snap.data(), emptyBlock(weekKey), `HeartBlock ${weekKey}`)
+      : emptyBlock(weekKey))
 
     const histRef = collection(db, 'users', user.uid, 'heartBlocks')
     const q = query(histRef, orderBy('weekKey', 'desc'))
     const histSnap = await getDocs(q)
-    setHistory(histSnap.docs.map(d => d.data() as HeartBlock))
+    setHistory(histSnap.docs.map(d => parseSafe<HeartBlock>(HeartBlockSchema, d.data(), emptyBlock(d.id), `HeartBlock ${d.id}`)))
     setLoading(false)
   }, [user?.uid, weekKey])
 
