@@ -197,6 +197,32 @@ export const PINNED_SPARKS: Record<string, string> = {
   '2026-05-29': 'Standard buduje się w ciszy, nie w awanturze.',
   '2026-05-30': 'Wychodzę dziś z energii „mam życie", a nie „patrz, co straciłeś".',
   '2026-05-31': 'Nadal mnie boli, ale już nie jestem tylko bólem. To jest pozycja.',
+
+  // ── CZERWIEC 2026 — ZAKORZENIENIE ─────────────────────────────
+
+  '2026-06-08': 'Nazywam emocje, zanim one zaczną nazywać mnie.',
+  '2026-06-09': 'Telefon do bliskiej osoby też jest aktem zakorzenienia.',
+  '2026-06-10': 'Mniej w okres to nie ustępstwo. To mądrość.',
+  '2026-06-11': 'Wersja minimum dnia to nadal wybór siebie.',
+  '2026-06-12': 'Idę na wesele z miłością do siebie, nie z lękiem.',
+  '2026-06-13': 'Godność nie męczy. Negocjowanie miłości tak.',
+  '2026-06-14': 'Dom rodzinny też ma miejsce na mój slot Wnętrza.',
+  '2026-06-15': 'Po okresie wracam do siebie, nie do ścigania się.',
+  '2026-06-16': 'Daję sobie dziś to, co Natalia z 30. urodzin chciałaby mieć już teraz.',
+  '2026-06-17': 'Trenuję dla siebie, nie dla widowni.',
+  '2026-06-18': 'Trzecia aktywność tygodnia to dowód, że ciało jest priorytetem.',
+  '2026-06-19': 'Oddech głębiej, sen wcześniej, zaufanie do ciała.',
+  '2026-06-20': 'Występuję dla siebie. Moja wartość nie zależy od reakcji widowni.',
+  '2026-06-21': 'Spokój po występie to moja nagroda, nie kolejny sprint.',
+  '2026-06-22': 'Po szczycie wracam ze świadomością, nie z porażką.',
+  '2026-06-23': 'Krok po kroku, oddech po oddechu.',
+  '2026-06-24': 'Energia owulacji idzie w to, co buduję, nie w to, co udowadniam.',
+  '2026-06-25': 'Dokumentuję swoją historię, bo jestem jej główną bohaterką.',
+  '2026-06-26': 'Kontakt twarzą w twarz uziemia mocniej niż dziesięć wiadomości.',
+  '2026-06-27': 'Moje standardy są definicją mojej wartości, nie atakiem.',
+  '2026-06-28': 'Czterotygodniowa lekcja jest mądrzejsza niż jeden dzień zachwytu.',
+  '2026-06-29': 'Dane czerwca to dane, nie ocena mnie.',
+  '2026-06-30': 'Kończę fazę 1 jako kobieta z pozycją, nie z głodem.',
 }
 
 // ─── TEMAT TYGODNIA (rotacja co 7 dni) ────────────────────────
