@@ -177,7 +177,7 @@ export default function HeartBlockPage() {
 
   return (
     <RitualSurface tone="forest-deep" frame="double" className="animate-fade-in">
-      <div className="max-w-2xl mx-auto px-6 pt-10 pb-16">
+      <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-10 pb-16">
         {/* Back link */}
         <Link
           href="/"

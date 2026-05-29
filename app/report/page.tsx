@@ -209,7 +209,7 @@ export default function ReportPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-8 pb-16 animate-fade-in">
+    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-16 animate-fade-in">
       {/* Header + print */}
       <header className="flex items-end justify-between gap-4 mb-8 print:hidden">
         <div className="min-w-0">
