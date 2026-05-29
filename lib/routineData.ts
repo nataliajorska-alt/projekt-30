@@ -111,7 +111,7 @@ export function getTodayWeeklyHabits(forDate?: Date): RoutineItem[] {
 export const DAILY_RULES = [
   { id: 'r1', text: 'Nie wróciłam do starych wzorców', xp: 20 },
   { id: 'r2', text: 'Zrobiłam coś dla swojej przyszłości', xp: 20 },
-  { id: 'r3', text: 'Zrobiłam jedną rzecz dla spokoju', xp: 20 },
+  { id: 'r3', text: 'Zrobiłam jedną rzecz dla siebie, bez czekania na reakcję', xp: 20 },
 ]
 
 // Mała pula podpowiedzi pod zasadę 3 — gdy nie wiesz, co zrobić dla siebie.
