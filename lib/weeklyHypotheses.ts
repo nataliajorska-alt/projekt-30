@@ -1,4 +1,4 @@
-// 9 pre-registered hipotez + extractory + szablony tekstowe.
+// 10 pre-registered hipotez + extractory + szablony tekstowe.
 //
 // Reguły:
 //   • Hipotezy są zdefiniowane Z GÓRY — żadnego "data dredgingu".
@@ -121,7 +121,7 @@ function effectStrength(abs: number): string {
   return 'słaba'
 }
 
-// ── 9 hipotez ─────────────────────────────────────────────────────────────
+// ── 10 hipotez ────────────────────────────────────────────────────────────
 
 export const HYPOTHESES: Hypothesis[] = [
   // ─ 1. Rutyna poranna → poranny mood ─────────────────────────────────────
@@ -393,6 +393,48 @@ export const HYPOTHESES: Hypothesis[] = [
     reflectionQuestions: [
       'Co Cię dzisiaj zaskoczyło w tej liczbie?',
       'Co o Tobie mówi to, że *zauważasz* impuls?',
+    ],
+  },
+
+  // ─ 10. Samotny weekend a Ghost Protocol ──────────────────────────────────
+  {
+    id: 'weekend_solo_ghost',
+    category: 'trudność',
+    shortLabel: 'Samotny weekend a Ghost Protocol',
+    extract: (logs) => {
+      // Grupa A: weekend bez kontaktu społecznego.
+      // Grupa B: pozostałe dni (poniedziałek-piątek, lub weekend z kontaktem).
+      // Zmienna: ghostProtocolCompleted jako 0/1.
+      const groupA: number[] = []
+      const groupB: number[] = []
+      for (const [key, log] of Object.entries(logs)) {
+        const [y, m, d] = key.split('-').map(Number)
+        const dow = new Date(y, m - 1, d).getDay()  // 0=Nd, 6=Sob
+        const isWeekend = dow === 0 || dow === 6
+        const isSolo = log.socialPresence === false
+        const gp = log.ghostProtocolCompleted ? 1 : 0
+        if (isWeekend && isSolo) groupA.push(gp)
+        else groupB.push(gp)
+      }
+      if (groupA.length === 0 || groupB.length === 0) return null
+      return {
+        test: 'mwu',
+        groupA,
+        groupB,
+        labelA: 'samotne weekendy',
+        labelB: 'pozostałe dni',
+      }
+    },
+    template: (r) => {
+      const pctA = Math.round(r.facts.primary.value * 100)
+      const pctB = Math.round(r.facts.secondary!.value * 100)
+      const which = pctA > pctB ? 'częściej' : 'rzadziej'
+      return `W samotne weekendy Ghost Protocol aktywował się ${which} niż w pozostałe dni (${pctA}% vs ${pctB}%, n=${r.n}). Effect ${fmt(Math.abs(r.effectSize), 2)} — ${effectStrength(Math.abs(r.effectSize))}. Wzorzec z maja (4 z 6 aktywacji w oknie samotny weekend / okres) zgadza się ze statystyką, czy nie?`
+    },
+    reflectionQuestions: [
+      'Co się dzieje z Tobą w sobotę wieczorem, kiedy nikt nie pisze?',
+      'Czy umawiasz weekendy z wyprzedzeniem, czy improwizujesz?',
+      'A co jeśli "samotny weekend" to nie problem, tylko zaproszenie do choreografii?',
     ],
   },
 ]
