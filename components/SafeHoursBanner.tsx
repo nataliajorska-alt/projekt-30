@@ -4,6 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { X } from 'lucide-react'
 import { useGhostV2 } from '@/hooks/useGhostV2'
 import { useGameData } from '@/hooks/useGameData'
+import { useCycleData } from '@/hooks/useCycleData'
+import { useCycleSettings } from '@/hooks/useCycleSettings'
+import { getPhaseIdForDate } from '@/lib/cycle-data'
+import { todayKey } from '@/lib/gameLogic'
 import {
   analyzeSafeHours,
   getCurrentRiskWindow,
@@ -52,6 +56,8 @@ function CloseBtn({ onClick }: { onClick: () => void }) {
 export default function SafeHoursBanner() {
   const { entries } = useGhostV2()
   const { recordGhostImpulseV2 } = useGameData()
+  const { logs: cycleLogs } = useCycleData()
+  const { settings: cycleSettings } = useCycleSettings()
   const [windows, setWindows] = useState<SafeHoursWindow[]>([])
   const [activeWindow, setActiveWindow] = useState<SafeHoursWindow | null>(null)
   const [approachingWindow, setApproachingWindow] = useState<SafeHoursWindow | null>(null)
@@ -61,12 +67,15 @@ export default function SafeHoursBanner() {
   const [isSunday, setIsSunday] = useState(false)
 
   useEffect(() => {
-    const analyzed = analyzeSafeHours(entries)
+    const analyzed = analyzeSafeHours(entries, cycleLogs, cycleSettings)
     setWindows(analyzed)
-    setActiveWindow(getCurrentRiskWindow(analyzed))
-    setApproachingWindow(isApproachingRiskWindow(analyzed))
+    const currentPhase = cycleLogs.length
+      ? (getPhaseIdForDate(cycleLogs, todayKey(), cycleSettings) ?? undefined)
+      : undefined
+    setActiveWindow(getCurrentRiskWindow(analyzed, currentPhase))
+    setApproachingWindow(isApproachingRiskWindow(analyzed, currentPhase))
     setIsSunday(new Date().getDay() === 0)
-  }, [entries])
+  }, [entries, cycleLogs, cycleSettings])
 
   const handleHavePlan = useCallback(async () => {
     setMode('confirmed')

@@ -334,8 +334,9 @@ export interface NominatedContact {
 export interface SafeHoursWindow {
   dayOfWeek: number   // 0=Pon … 6=Nd
   hourStart: number   // 0-23 (2-godzinny bucket)
+  cyclePhase?: 'menstruacja' | 'folikularna' | 'owulacyjna' | 'lutealna'  // trzecia oś analizy (opcjonalna)
   score: number
-  label: string       // np. "Wt 22:00"
+  label: string       // np. "Wt 22:00" lub "Sob 22:00 (okres)"
 }
 
 export interface MonthlyReview {
