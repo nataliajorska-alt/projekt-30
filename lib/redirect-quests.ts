@@ -122,8 +122,24 @@ function hashCode(str: string): number {
   return hash
 }
 
+// Miksowanie hasha pozycji z hashem dnia (FNV-style avalanche).
+// WAŻNE: wcześniej sortowano po hashCode(id + dateKey). Ponieważ dateKey był
+// sufiksem o stałej długości, jego wkład sprowadzał się do tej samej stałej
+// dla wszystkich pozycji — kolejność praktycznie się nie zmieniała i codziennie
+// wychodził ten sam zestaw 4 questów. Tu dzień realnie przetasowuje pulę.
+function mixSeed(itemHash: number, dayHash: number): number {
+  let h = 0x811c9dc5 | 0
+  for (const v of [itemHash & 0xffff, (itemHash >>> 16) & 0xffff, dayHash & 0xffff, (dayHash >>> 16) & 0xffff]) {
+    h = Math.imul(h ^ v, 0x01000193)
+  }
+  return h | 0
+}
+
 export function getDailyRedirectQuests(dateKey: string, count = 4): RedirectQuest[] {
+  const dayHash = hashCode(dateKey)
   return [...REDIRECT_QUESTS]
-    .sort((a, b) => hashCode(a.id + dateKey) - hashCode(b.id + dateKey))
+    .map(q => ({ q, score: mixSeed(hashCode(q.id), dayHash) }))
+    .sort((a, b) => a.score - b.score)
     .slice(0, count)
+    .map(x => x.q)
 }
