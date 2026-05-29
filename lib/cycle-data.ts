@@ -77,8 +77,9 @@ export const CYCLE_PHASES: CyclePhase[] = [
       'Kończ rzeczy, nie zaczynaj nowych',
       'Dbaj szczególnie o rutynę wieczorną',
       'Bądź łagodna dla siebie w drugiej połowie tej fazy',
+      'Otwórz Blok Serca, jeśli nie został domknięty w tym tygodniu',
     ],
-    questHint: 'Side questy z filaru Miłość i Pozycja wewnętrzna. Pod koniec fazy — minimum mode.',
+    questHint: 'Side questy z filaru Miłość i Pozycja wewnętrzna. Pod koniec fazy — minimum mode. Rozważ Blok Serca.',
     suggestMinimum: false,
   },
 ]
