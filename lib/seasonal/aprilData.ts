@@ -104,10 +104,11 @@ const APRIL_ONLY_QUESTS: AprilQuest[] = [
   { id: 'apr_30_1', date: '2026-04-30', title: 'Wielkie podsumowanie miesiąca', description: 'Przegląd 6 obszarów: psychika / serce po rozstaniu / wizerunek / kariera i finanse / relacje / tożsamość. Napisz: 10 rzeczy zrobionych dobrze, 5 do poprawy, 3 priorytety maja.', pillar: 'pozycja', xp: 200 },
 ]
 
-// Import po definicji APRIL_ONLY_QUESTS — mayData reużywa typu AprilQuest
+// Import po definicji APRIL_ONLY_QUESTS — mayData/juneData reużywają typu AprilQuest
 import { MAY_QUESTS } from './mayData'
+import { JUNE_QUESTS } from './juneData'
 
-export const APRIL_QUESTS: AprilQuest[] = [...APRIL_ONLY_QUESTS, ...MAY_QUESTS]
+export const APRIL_QUESTS: AprilQuest[] = [...APRIL_ONLY_QUESTS, ...MAY_QUESTS, ...JUNE_QUESTS]
 
 export function getAprilQuestsForDate(dateKey: string): AprilQuest[] {
   return APRIL_QUESTS.filter(q => q.date === dateKey)

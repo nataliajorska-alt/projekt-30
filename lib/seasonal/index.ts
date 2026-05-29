@@ -5,3 +5,4 @@
 export * from './monthData'
 export * from './aprilData'
 export * from './mayData'
+export * from './juneData'

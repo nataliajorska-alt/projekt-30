@@ -15,6 +15,10 @@ export const MONTHLY_DATA: Record<string, MonthData> = {
     name: 'Ukojenie',
     motto: 'Nie uciekam od bólu, ale już nie pozwalam mu prowadzić mojego życia.',
   },
+  '2026-06': {
+    name: 'Zakorzenienie',
+    motto: 'Ufam sobie. Najpierw odzyskuję siebie, potem zwiększam zasięg.',
+  },
 }
 
 const FALLBACK: MonthData = {
