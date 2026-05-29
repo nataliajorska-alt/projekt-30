@@ -4,9 +4,25 @@ import type { DailyLog, WeeklyReview, MonthlyReview, UserStats } from '@/types'
 import { SIDE_QUESTS, getDailyQuests } from '@/lib/questData'
 import { DAILY_RULES } from '@/lib/routineData'
 import { APRIL_QUESTS } from '@/lib/seasonal/aprilData'
+import { MONTHLY_DATA } from '@/lib/seasonal/monthData'
+import { CIGARETTE_CONTEXTS } from '@/lib/smoke-data'
 
 const PILLAR_KEYS = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc'] as const
 const PILLAR_LABELS = ['Pozycja', 'Ciało', 'Styl', 'Kapitał', 'Kariera', 'Tożsamość', 'Miłość']
+
+const PL_MONTHS: Record<string, string> = {
+  '01': 'Styczeń', '02': 'Luty', '03': 'Marzec', '04': 'Kwiecień', '05': 'Maj', '06': 'Czerwiec',
+  '07': 'Lipiec', '08': 'Sierpień', '09': 'Wrzesień', '10': 'Październik', '11': 'Listopad', '12': 'Grudzień',
+}
+const WEEKDAYS_PL = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd']
+const CIG_CTX_LABEL: Record<string, string> = Object.fromEntries(CIGARETTE_CONTEXTS.map(c => [c.id, c.label]))
+function cigCtxLabel(id?: string): string { return (id && CIG_CTX_LABEL[id]) || 'Inne' }
+// "2026-06" → "Czerwiec 2026 „Zakorzenienie""
+function monthLabel(monthKey: string): string {
+  const [y, m] = monthKey.split('-')
+  const name = MONTHLY_DATA[monthKey]?.name
+  return `${PL_MONTHS[m] ?? m} ${y}${name ? ` „${name}"` : ''}`
+}
 
 function downloadCSV(csv: string, filename: string) {
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -77,6 +93,8 @@ export async function exportLogsAsCSV(uid: string, range: DateRange = { from: nu
     'Nastrój — stany (calm/storm/fog/clarity)',
     'Kluczowy moment — tytuł',
     'Kluczowy moment — notatka',
+    'Papierosy (liczba)',
+    'Papierosy — konteksty',
     'Notatka',
   ]
 
@@ -99,6 +117,14 @@ export async function exportLogsAsCSV(uid: string, range: DateRange = { from: nu
       : ''
     const moodStates = moodCheckIns.map(m => m.state).join('; ')
 
+    const cigs = d.cigarettes ?? []
+    let cigCtx = ''
+    if (cigs.length > 0) {
+      const m = new Map<string, number>()
+      for (const c of cigs) m.set(c.context ?? 'inne', (m.get(c.context ?? 'inne') ?? 0) + 1)
+      cigCtx = Array.from(m.entries()).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k}:${n}`).join('; ')
+    }
+
     rows.push([
       d.date,
       String(d.totalXP ?? 0),
@@ -120,6 +146,8 @@ export async function exportLogsAsCSV(uid: string, range: DateRange = { from: nu
       moodStates,
       d.keyMoment?.title ?? '',
       d.keyMoment?.note ?? '',
+      String(cigs.length),
+      cigCtx,
       d.notes ?? '',
     ])
   })
@@ -393,18 +421,99 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
     lines.push(``)
   }
 
-  // ── QUESTY MIESIĘCZNE (kwiecień) ─────────────────────────────
-  const aprilInRange = APRIL_QUESTS.filter(q => aprilCompleted.includes(q.id) && inRange(q.date, range.from, range.to))
-  if (aprilInRange.length > 0) {
-    lines.push(`## Questy miesięczne — Kwiecień 2026 "Przejęcie steru"`)
+  // ── PAPIEROSY — dane obserwacyjne ────────────────────────────
+  const cigDayLogs = logsSnap.docs
+    .map(d => d.data() as DailyLog)
+    .filter(d => inRange(d.date, range.from, range.to))
+  const cigEntries: { date: string; c: NonNullable<DailyLog['cigarettes']>[number] }[] = []
+  const cigPerDay: { date: string; n: number }[] = []
+  for (const d of cigDayLogs) {
+    const cs = d.cigarettes ?? []
+    if (cs.length > 0) cigPerDay.push({ date: d.date, n: cs.length })
+    for (const c of cs) cigEntries.push({ date: d.date, c })
+  }
+
+  const hasPhaseInfo = !!s && (s.cigarettesPhase != null || s.cigarettesBaseline != null || s.smokingTrackingEnabled != null)
+  if (cigEntries.length > 0 || hasPhaseInfo) {
+    lines.push(`## Papierosy — dane obserwacyjne`)
     lines.push(``)
-    lines.push(`_Motto: W kwietniu nie proszę świata o miejsce. Zaczynam stawać się kobietą, której miejsce się robi._`)
+    lines.push(`_Filozofia planu: papieros to dane, nie porażka. Brak licznika „dni bez", brak ocen — czysta obserwacja pod baseline._`)
     lines.push(``)
-    for (const q of aprilInRange) {
-      lines.push(`- **${q.date}** · ${q.title} · ${pillarName(q.pillar)} · +${q.xp} XP`)
-      if (q.description) lines.push(`  > ${q.description}`)
+
+    if (hasPhaseInfo && s) {
+      const phaseBits: string[] = []
+      if (s.cigarettesPhase != null) phaseBits.push(`faza ${s.cigarettesPhase}`)
+      if (s.cigarettesPhaseStartDate) phaseBits.push(`start fazy: ${s.cigarettesPhaseStartDate}`)
+      if (s.cigarettesBaseline != null) phaseBits.push(`baseline: ${s.cigarettesBaseline}/dzień`)
+      if (s.smokingTrackingEnabled != null) phaseBits.push(`tracking: ${s.smokingTrackingEnabled ? 'włączony' : 'wyłączony'}`)
+      if (phaseBits.length > 0) { lines.push(`**Stan planu:** ${phaseBits.join(' · ')}`); lines.push(``) }
     }
+
+    if (cigEntries.length > 0) {
+      const total = cigEntries.length
+      const daysLogged = cigPerDay.length
+      const avg = daysLogged ? (total / daysLogged).toFixed(1) : '0'
+      const maxDay = cigPerDay.reduce((m, x) => (x.n > m.n ? x : m), cigPerDay[0])
+      const minDay = cigPerDay.reduce((m, x) => (x.n < m.n ? x : m), cigPerDay[0])
+      lines.push(`**Podsumowanie:** ${total} papierosów · ${daysLogged} dni z logiem · śr. ${avg}/dzień · max ${maxDay.n} (${maxDay.date}) · min ${minDay.n} (${minDay.date})`)
+      lines.push(``)
+
+      const byCtx = new Map<string, number>()
+      for (const e of cigEntries) byCtx.set(e.c.context ?? 'inne', (byCtx.get(e.c.context ?? 'inne') ?? 0) + 1)
+      lines.push(`**Wg kontekstu:**`)
+      lines.push(``)
+      for (const [k, n] of Array.from(byCtx.entries()).sort((a, b) => b[1] - a[1])) {
+        lines.push(`- ${cigCtxLabel(k)}: ${n} (${Math.round((n / total) * 100)}%)`)
+      }
+      lines.push(``)
+
+      const byWd = new Array(7).fill(0)
+      for (const e of cigEntries) if (typeof e.c.weekday === 'number') byWd[e.c.weekday]++
+      lines.push(`**Wg dnia tygodnia:** ${WEEKDAYS_PL.map((w, i) => `${w} ${byWd[i]}`).join(' · ')}`)
+      lines.push(``)
+
+      const buckets: Record<string, number> = { 'noc 0–6': 0, 'rano 6–12': 0, 'popoł. 12–18': 0, 'wieczór 18–24': 0 }
+      for (const e of cigEntries) {
+        const h = e.c.hour ?? 0
+        if (h < 6) buckets['noc 0–6']++
+        else if (h < 12) buckets['rano 6–12']++
+        else if (h < 18) buckets['popoł. 12–18']++
+        else buckets['wieczór 18–24']++
+      }
+      lines.push(`**Wg pory dnia:** ${Object.entries(buckets).map(([k, n]) => `${k}: ${n}`).join(' · ')}`)
+      lines.push(``)
+
+      lines.push(`**Dzienne liczby:**`)
+      lines.push(``)
+      for (const x of cigPerDay) lines.push(`- ${x.date}: ${x.n}`)
+      lines.push(``)
+    }
+    lines.push(`---`)
     lines.push(``)
+  }
+
+  // ── QUESTY MIESIĘCZNE ─────────────────────────────────────────
+  const monthlyInRange = APRIL_QUESTS.filter(q => aprilCompleted.includes(q.id) && inRange(q.date, range.from, range.to))
+  if (monthlyInRange.length > 0) {
+    const byMonth = new Map<string, typeof monthlyInRange>()
+    for (const q of monthlyInRange) {
+      const k = q.date.slice(0, 7)
+      if (!byMonth.has(k)) byMonth.set(k, [])
+      byMonth.get(k)!.push(q)
+    }
+    lines.push(`## Questy miesięczne`)
+    lines.push(``)
+    for (const k of Array.from(byMonth.keys()).sort()) {
+      lines.push(`### ${monthLabel(k)}`)
+      const motto = MONTHLY_DATA[k]?.motto
+      if (motto) { lines.push(``); lines.push(`_Motto: ${motto}_`) }
+      lines.push(``)
+      for (const q of byMonth.get(k)!) {
+        lines.push(`- **${q.date}** · ${q.title} · ${pillarName(q.pillar)} · +${q.xp} XP`)
+        if (q.description) lines.push(`  > ${q.description}`)
+      }
+      lines.push(``)
+    }
     lines.push(`---`)
     lines.push(``)
   }
@@ -580,6 +689,12 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
         if (pp.length > 0) { lines.push(`_XP per filar: ${pp.join(' · ')}_`); lines.push(``) }
       }
 
+      // XP z zewnętrznych aplikacji (Learning Vault)
+      if (d.externalXP) {
+        const ext = Object.entries(d.externalXP).filter(([, v]) => (v ?? 0) > 0).map(([k, v]) => `${pillarName(k)}: ${v}`)
+        if (ext.length > 0) { lines.push(`_XP z Learning Vault: ${ext.join(' · ')}_`); lines.push(``) }
+      }
+
       // Rutyna — pełne nazwy
       const routineNames = (d.completedRoutine ?? []).map((id: string) => routineMap.get(id) ?? id).filter(Boolean)
       if (routineNames.length > 0) { lines.push(`**Rutyna:** ${routineNames.join(', ')}`); lines.push(``) }
@@ -594,7 +709,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
       if ((d.completedDailyQuests?.length ?? 0) > 0) {
         const titles = d.completedDailyQuests!.map((qId: string) => {
           const aprilQ = APRIL_QUESTS.find(q => q.id === qId)
-          if (aprilQ) return `${aprilQ.title} [kwiecień]`
+          if (aprilQ) return `${aprilQ.title} [${(PL_MONTHS[aprilQ.date.slice(5, 7)] ?? '').toLowerCase()}]`
           return findQuestTitle(qId, d.date)
         })
         lines.push(`**Questy dzienne:** ${titles.join(', ')}`)
@@ -622,6 +737,18 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
         const stateSet = new Set(d.moodCheckIns!.map(m => m.state))
         const stateLabels = Array.from(stateSet).map(s => stateMap[s] ?? s).join(', ')
         lines.push(`**Nastrój:** energia śr. ${avg(energies)}/5 · emocje śr. ${avg(moods)}/5 · ${stateLabels} (${d.moodCheckIns!.length} check-in${d.moodCheckIns!.length > 1 ? 'y' : ''})`)
+        lines.push(``)
+      }
+
+      // Papierosy tego dnia
+      if ((d.cigarettes?.length ?? 0) > 0) {
+        const cs = d.cigarettes!
+        const m = new Map<string, number>()
+        for (const c of cs) m.set(c.context ?? 'inne', (m.get(c.context ?? 'inne') ?? 0) + 1)
+        const ctxStr = Array.from(m.entries()).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${cigCtxLabel(k)} ×${n}`).join(', ')
+        const hours = cs.map(c => c.hour).sort((a, b) => a - b).join(', ')
+        lines.push(`**Papierosy:** ${cs.length} · ${ctxStr}`)
+        if (hours) lines.push(`_Godziny: ${hours}_`)
         lines.push(``)
       }
 
