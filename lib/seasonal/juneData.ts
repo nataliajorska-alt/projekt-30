@@ -116,7 +116,7 @@ export const JUNE_QUESTS: AprilQuest[] = [
 
   // ── 20 czerwca, sobota | WYSTĘP | T, C | folikularna szczyt ──
   { id: 'jun_20_1', date: '2026-06-20', title: 'Poranek z protokołem', description: '10 min światła słonecznego + ciepły prysznic + 5 min self-compassion: "występuję dla siebie, nie dla oceny. Wartość mojej obecności nie zależy od reakcji widowni."', pillar: 'pozycja', xp: 100 },
-  { id: 'jun_20_2', date: '2026-06-20', title: 'WYSTĘP', description: 'Bucket-list wykonana, marzenie miesiąca dowiezione. Występuję dla siebie, nie dla oceny.', pillar: 'tozsamosc', xp: 200 },
+  { id: 'jun_20_2', date: '2026-06-20', title: 'Twoja scena, Twoja godzina', description: 'Wejdź jako kobieta, która już wie, że nie potrzebuje aprobaty, żeby błyszczeć. Świadomość ciała od pierwszej do ostatniej sekundy. Wartość Twojej obecności nie zależy od reakcji widowni.', pillar: 'tozsamosc', xp: 200 },
   { id: 'jun_20_3', date: '2026-06-20', title: 'Po występie — 1 zdanie', description: '"Co mi się dzisiaj udało, niezależnie od oceny innych?"', pillar: 'pozycja', xp: 60 },
 
   // ── 21 czerwca, niedziela (dzień po występie) | SLOT WNĘTRZA 3 | W, C ──
