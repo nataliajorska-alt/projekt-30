@@ -130,16 +130,20 @@ function CycleTimeline({ cycleDay, settings }: {
         </div>
       </div>
 
-      <div className="flex justify-between">
-        {CYCLE_PHASES.map(p => (
-          <span
-            key={p.id}
-            className="font-ui uppercase tracking-luxury text-[9px]"
-            style={{ color: p.color }}
-          >
-            {p.name.slice(0, 3)}.
-          </span>
-        ))}
+      <div className="flex">
+        {CYCLE_PHASES.map(p => {
+          const [from, to] = ranges[p.id]
+          const width = ((to - from + 1) / settings.cycleLength) * 100
+          return (
+            <span
+              key={p.id}
+              className="font-ui uppercase tracking-luxury text-[9px] text-center"
+              style={{ width: `${width}%`, color: p.color }}
+            >
+              {p.name.slice(0, 3)}.
+            </span>
+          )
+        })}
       </div>
     </div>
   )
