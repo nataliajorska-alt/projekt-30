@@ -95,7 +95,7 @@ export const JUNE_QUESTS: AprilQuest[] = [
   { id: 'jun_15_3', date: '2026-06-15', title: 'Dokumentacja HR — przegląd i decyzja', description: 'Przejrzyj i potnij warstwy. Decyzja: rozmowa z HR w lipcu czy później. Zapisz decyzję + termin.', pillar: 'kariera', xp: 100 },
 
   // ── 16 czerwca, wtorek | T, W | folikularna ──
-  { id: 'jun_16_1', date: '2026-06-16', title: '"Future self" letter 20 min', description: 'List od siebie z 30. urodzin (kwiecień 2027): co dziś zrobiłaś, że dotarłaś tam jako kobieta z pozycją.', pillar: 'tozsamosc', xp: 100 },
+  { id: 'jun_16_1', date: '2026-06-16', title: '"Future self" letter 20 min', description: 'List od siebie z 30. urodzin (kwiecień 2027): co dziś zrobiłaś, że dotarłaś tam jako kobieta z pozycją. Wpisz w /vault jako typ "future" — wróci do Ciebie falą kwartalną (5.07 / 5.10 / 5.01 / 5.04, zależnie od kolejności listów).', pillar: 'tozsamosc', xp: 100 },
   { id: 'jun_16_2', date: '2026-06-16', title: 'Mikro-krok finansowy', description: 'Sprawdź saldo karty 12k, wypisz konkretny plan spłaty z perspektywą McKinseya od września: kwoty miesięczne, termin spłaty.', pillar: 'kariera', xp: 80 },
   { id: 'jun_16_3', date: '2026-06-16', title: 'Wieczór bez scrolla od 21:30', description: 'Telefon poza sypialnią.', pillar: 'cialo', xp: 60 },
 
