@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v11-mies-ceremonia';
+const CACHE_NAME = 'p30-v12-archiwum';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {

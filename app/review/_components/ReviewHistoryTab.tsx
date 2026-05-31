@@ -167,23 +167,26 @@ function ReviewCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-ivory border border-gold-light/40 overflow-hidden">
-      <button onClick={onToggle} className="w-full flex items-center justify-between p-5 text-left">
-        <div>
-          <h3 className="font-heading text-dark text-base leading-tight">{title}</h3>
-          <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-1 block opacity-80">
-            {sub}
-          </SmallCaps>
+    <div className="border border-gold-light/30 overflow-hidden" style={{ background: 'rgba(244,239,227,0.045)' }}>
+      <button onClick={onToggle} className="w-full flex items-center justify-between px-6 py-4 text-left">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-[8px] shrink-0" style={{ color: '#b56a82' }}>◆</span>
+          <div className="min-w-0">
+            <h3 className="font-display text-ivory text-[16px] leading-tight">{title}</h3>
+            <SmallCaps tone="gold-light" tracking="luxury" size="xs" className="mt-1 block opacity-70">
+              {sub}
+            </SmallCaps>
+          </div>
         </div>
         <ChevronDown
           size={14}
-          className={clsx('text-muted transition-transform', isOpen && 'rotate-180')}
+          className={clsx('text-gold-light transition-transform shrink-0', isOpen && 'rotate-180')}
           strokeWidth={1.5}
         />
       </button>
 
       {isOpen && (
-        <div className="px-5 pb-5 space-y-4 border-t border-hairline pt-4">
+        <div className="px-6 pb-5 space-y-4 border-t border-gold-light/20 pt-4">
           {children}
         </div>
       )}
@@ -198,7 +201,7 @@ function Block({ label, body, italic = false }: { label: string; body: string; i
         {label}
       </SmallCaps>
       <p className={clsx(
-        'font-serif-body text-[14px] text-dark leading-relaxed',
+        'font-serif-body text-[14px] text-parchment leading-relaxed',
         italic && 'italic'
       )}>
         {italic ? `„${body}"` : body}
@@ -222,17 +225,15 @@ function PillarsGrid({ pillarsRated, prevRated }: {
           const prevVal = prevRated?.[p.id as Pillar] ?? null
           const delta = prevVal !== null ? val - prevVal : null
           return (
-            <div key={p.id} className="flex items-center gap-2 bg-cream/50 border border-hairline px-3 py-2">
-              <span style={{ color: p.color }}><Diamond size={4} filled /></span>
-              <span className="font-serif-body text-[12.5px] text-dark flex-1">{p.shortName}</span>
-              <span className="font-display text-sm" style={{ color: p.color }}>
-                {val}
-              </span>
+            <div key={p.id} className="flex items-center gap-2 border px-3 py-2" style={{ background: 'rgba(244,239,227,0.04)', borderColor: 'rgba(201,178,127,0.2)' }}>
+              <Diamond size={4} filled className="text-gold-light/60" />
+              <span className="font-serif-body text-[12.5px] text-parchment flex-1">{p.shortName}</span>
+              <span className="font-display text-sm text-ivory">{val}</span>
               {delta !== null && delta !== 0 && (
                 <span
                   className={clsx(
                     'font-ui uppercase tracking-luxury text-[9px]',
-                    delta > 0 ? 'text-forest' : 'text-red-500'
+                    delta > 0 ? 'text-gold-light' : 'text-rose'
                   )}
                 >
                   {delta > 0 ? '+' : ''}{delta}
