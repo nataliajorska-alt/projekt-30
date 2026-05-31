@@ -107,3 +107,12 @@
     background-size: 200px 200px;
   }
 }
+
+/* ── Pergaminowe karty rytualne (Serce / Przegląd) ─────────────── */
+.ritual-card { position: relative; background: #dcd5bc; color: #2a2a26; border: 1px solid rgba(178,147,85,.20); box-shadow: 0 14px 34px -28px rgba(0,0,0,.5); }
+.ritual-card::before, .ritual-card::after { content: ""; position: absolute; width: 11px; height: 11px; border: 1px solid #c9b27f; opacity: .85; pointer-events: none; }
+.ritual-card::before { top: 9px; left: 9px; border-right: 0; border-bottom: 0; }
+.ritual-card::after { bottom: 9px; right: 9px; border-left: 0; border-top: 0; }
+.ritual-ta { width: 100%; resize: vertical; color: #2a2a26; font-family: 'Cormorant Garamond','EB Garamond',serif; font-size: 14px; line-height: 28px; padding: 7px 18px 14px; outline: none; background-color: #d2cab0; background-image: repeating-linear-gradient(#d2cab0, #d2cab0 27px, #c3b994 27px, #c3b994 28px); border: 1px solid #d9cda8; transition: border-color .15s, box-shadow .15s; }
+.ritual-ta::placeholder { color: #b7a787; font-style: italic; }
+.ritual-ta:focus { border-color: #b29355; box-shadow: 0 0 0 3px rgba(178,147,85,.14); }

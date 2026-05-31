@@ -67,7 +67,7 @@ export default function WeeklyReviewForm({ user, stats, submitWeeklyReview, last
 
   if (saved) {
     return (
-      <div className="bg-ivory border border-gold p-10 text-center">
+      <div className="ritual-card p-10 text-center">
         <Fleuron size={20} className="text-gold mx-auto mb-4 inline-block" />
         <h2 className="font-display text-dark text-3xl leading-tight">Przegląd zapisany</h2>
         <GoldRule variant="diamond" tone="gold-deep" className="max-w-xs mx-auto my-5 opacity-50" />
@@ -93,7 +93,7 @@ export default function WeeklyReviewForm({ user, stats, submitWeeklyReview, last
         />
       )}
 
-      <section className="bg-ivory border border-gold-light/40 p-5">
+      <section className="ritual-card p-6 md:p-8">
         <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
           Filary tygodnia
         </SmallCaps>
@@ -139,7 +139,7 @@ export default function WeeklyReviewForm({ user, stats, submitWeeklyReview, last
         </div>
       </section>
 
-      <section className="bg-ivory border border-gold-light/40 p-5 space-y-5">
+      <section className="ritual-card p-6 md:p-8 space-y-5">
         <div>
           <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
             Refleksja pisana
@@ -160,7 +160,7 @@ export default function WeeklyReviewForm({ user, stats, submitWeeklyReview, last
               value={f.value}
               onChange={e => f.set(e.target.value)}
               rows={f.rows}
-              className="w-full border border-hairline bg-cream/40 px-4 py-3 font-serif-body italic text-[14px] text-dark focus:outline-none focus:border-gold transition-colors resize-none placeholder:text-muted-light/60 leading-relaxed"
+              className="ritual-ta"
               placeholder={f.placeholder}
             />
           </div>
