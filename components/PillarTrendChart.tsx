@@ -63,7 +63,7 @@ export default function PillarTrendChart({ reviews }: Props) {
   const gridYValues = [1, 2, 3, 4, 5]
 
   return (
-    <div className="bg-ivory border border-gold-light/40 p-5 mb-5">
+    <div className="bg-[#dcd5bc] border border-gold-light/25 p-5 mb-5">
       <div className="mb-4">
         <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
           Wizualizacja
@@ -223,7 +223,7 @@ export default function PillarTrendChart({ reviews }: Props) {
       {/* Tooltip */}
       <div className="mt-3 min-h-[28px]">
         {tooltip ? (
-          <div className="inline-flex items-center gap-2.5 bg-ivory border border-gold-light/40 px-3 py-1.5">
+          <div className="inline-flex items-center gap-2.5 bg-[#dcd5bc] border border-gold-light/25 px-3 py-1.5">
             <span style={{ color: tooltip.pillarColor }}>
               <Diamond size={4} filled />
             </span>

@@ -4,7 +4,7 @@ import type { Pillar } from '@/types'
 
 // Klejnotowe tony filarów (z mocka Przegląd) — czytelne na pergaminie,
 // inne niż surowe pillar.color (część jest za jasna/za ciemna na papierze).
-const JEWEL: Record<string, string> = {
+export const JEWEL: Record<string, string> = {
   pozycja: '#2f3c31',
   cialo: '#7c5a32',
   styl: '#a9842c',

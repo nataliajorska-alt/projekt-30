@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v12-archiwum';
+const CACHE_NAME = 'p30-v13-archiwum2';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {

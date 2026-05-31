@@ -7,7 +7,8 @@ import { ChevronDown } from 'lucide-react'
 import type { WeeklyReview, MonthlyReview } from '@/types'
 import PillarTrendChart from '@/components/PillarTrendChart'
 import { formatMonthPL, formatWeekRange } from './shared'
-import { SmallCaps, Diamond, Fleuron, RomanNumeral } from '@/components/ui'
+import { SmallCaps, Fleuron, RomanNumeral } from '@/components/ui'
+import { JEWEL } from './PillarRating'
 
 interface ReviewHistoryTabProps {
   weeklyReviews: WeeklyReview[]
@@ -167,26 +168,21 @@ function ReviewCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="border border-gold-light/30 overflow-hidden" style={{ background: 'rgba(244,239,227,0.045)' }}>
-      <button onClick={onToggle} className="w-full flex items-center justify-between px-6 py-4 text-left">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="text-[8px] shrink-0" style={{ color: '#b56a82' }}>◆</span>
-          <div className="min-w-0">
-            <h3 className="font-display text-ivory text-[16px] leading-tight">{title}</h3>
-            <SmallCaps tone="gold-light" tracking="luxury" size="xs" className="mt-1 block opacity-70">
-              {sub}
-            </SmallCaps>
-          </div>
+    <div className="overflow-hidden border border-gold-light/20" style={{ background: '#dcd5bc' }}>
+      <button onClick={onToggle} className="w-full flex items-center justify-between gap-3 px-6 py-5 text-left">
+        <div className="min-w-0">
+          <h3 className="font-display font-medium text-[19px] text-dark leading-none tracking-[-0.2px]">{title}</h3>
+          <div className="font-ui uppercase tracking-[0.26em] text-[9px] text-muted mt-2">{sub}</div>
         </div>
         <ChevronDown
-          size={14}
-          className={clsx('text-gold-light transition-transform shrink-0', isOpen && 'rotate-180')}
+          size={15}
+          className={clsx('text-gold-deep transition-transform shrink-0', isOpen && 'rotate-180')}
           strokeWidth={1.5}
         />
       </button>
 
       {isOpen && (
-        <div className="px-6 pb-5 space-y-4 border-t border-gold-light/20 pt-4">
+        <div className="px-6 pb-6 border-t" style={{ borderColor: '#cfc4a0' }}>
           {children}
         </div>
       )}
@@ -197,12 +193,10 @@ function ReviewCard({
 function Block({ label, body, italic = false }: { label: string; body: string; italic?: boolean }) {
   return (
     <div>
-      <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-1.5">
-        {label}
-      </SmallCaps>
+      <div className="font-ui uppercase tracking-[0.3em] text-[10px] text-gold-deep mt-[18px] mb-2">{label}</div>
       <p className={clsx(
-        'font-serif-body text-[14px] text-parchment leading-relaxed',
-        italic && 'italic'
+        'font-serif-body text-[15px] leading-[1.62]',
+        italic ? 'italic text-muted' : 'text-dark'
       )}>
         {italic ? `„${body}"` : body}
       </p>
@@ -216,29 +210,26 @@ function PillarsGrid({ pillarsRated, prevRated }: {
 }) {
   return (
     <div>
-      <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
-        Filary
-      </SmallCaps>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="font-ui uppercase tracking-[0.3em] text-[10px] text-gold-deep mt-[18px] mb-3">Filary</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         {PILLARS.map(p => {
+          const c = JEWEL[p.id] ?? p.color
           const val = pillarsRated[p.id as Pillar] ?? 0
           const prevVal = prevRated?.[p.id as Pillar] ?? null
           const delta = prevVal !== null ? val - prevVal : null
           return (
-            <div key={p.id} className="flex items-center gap-2 border px-3 py-2" style={{ background: 'rgba(244,239,227,0.04)', borderColor: 'rgba(201,178,127,0.2)' }}>
-              <Diamond size={4} filled className="text-gold-light/60" />
-              <span className="font-serif-body text-[12.5px] text-parchment flex-1">{p.shortName}</span>
-              <span className="font-display text-sm text-ivory">{val}</span>
-              {delta !== null && delta !== 0 && (
-                <span
-                  className={clsx(
-                    'font-ui uppercase tracking-luxury text-[9px]',
-                    delta > 0 ? 'text-gold-light' : 'text-rose'
-                  )}
-                >
-                  {delta > 0 ? '+' : ''}{delta}
-                </span>
-              )}
+            <div key={p.id} className="flex items-center justify-between gap-2 border px-3.5 py-3" style={{ borderColor: '#cfc4a0' }}>
+              <span className="font-serif-body text-[14px] text-dark flex items-center gap-2.5">
+                <span className="text-[8px]" style={{ color: c }}>◆</span>{p.shortName}
+              </span>
+              <span className="font-display font-medium text-[14px] flex items-baseline gap-1.5" style={{ color: c }}>
+                {val}
+                {delta !== null && delta !== 0 && (
+                  <span className="font-ui text-[9px]" style={{ color: delta > 0 ? '#5d7356' : '#9c413a' }}>
+                    {delta > 0 ? '+' : ''}{delta}
+                  </span>
+                )}
+              </span>
             </div>
           )
         })}

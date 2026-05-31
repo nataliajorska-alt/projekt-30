@@ -35,7 +35,7 @@ export default function SideQuestHistoryTab({ logs }: { logs: ReturnType<typeof 
 
   if (allCompleted.length === 0) {
     return (
-      <div className="bg-ivory border border-gold-light/40 p-8 text-center">
+      <div className="bg-[#dcd5bc] border border-gold-light/25 p-8 text-center">
         <Fleuron size={12} className="text-gold-deep mx-auto mb-3 inline-block" />
         <p className="font-serif-body italic text-muted text-[13.5px]">
           brak ukończonych side questów w logach.
@@ -48,7 +48,7 @@ export default function SideQuestHistoryTab({ logs }: { logs: ReturnType<typeof 
 
   return (
     <div className="space-y-3">
-      <div className="bg-ivory border border-gold-light/40 p-4 flex justify-between items-center">
+      <div className="bg-[#dcd5bc] border border-gold-light/25 p-4 flex justify-between items-center">
         <div className="flex items-baseline gap-2">
           <SmallCaps tone="muted" tracking="luxury" size="xs">
             Łącznie ukończonych
@@ -65,7 +65,7 @@ export default function SideQuestHistoryTab({ logs }: { logs: ReturnType<typeof 
         return (
           <div
             key={`${entry.questId}-${entry.date}-${i}`}
-            className="bg-ivory border border-hairline px-4 py-3 flex items-center justify-between gap-3"
+            className="bg-[#dcd5bc] border border-gold-light/20 px-4 py-3 flex items-center justify-between gap-3"
           >
             <div className="flex items-start gap-3 flex-1 min-w-0">
               <span

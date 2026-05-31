@@ -87,7 +87,7 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
   return (
     <div className="space-y-5">
       {/* Month selector */}
-      <div className="flex items-center justify-between bg-ivory border border-gold-light/40 p-4">
+      <div className="flex items-center justify-between bg-[#dcd5bc] border border-gold-light/25 p-4">
         <button
           onClick={() => canGoPrev && setMonthKey(shiftMonth(monthKey, -1))}
           disabled={!canGoPrev}
@@ -117,7 +117,7 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
           { label: 'XP miesiąca', value: agg.totalXP.toLocaleString('pl-PL') },
           { label: 'Side questy', value: String(agg.totalSideQuests) },
         ].map(c => (
-          <div key={c.label} className="bg-ivory border border-gold-light/40 p-3 text-center">
+          <div key={c.label} className="bg-[#dcd5bc] border border-gold-light/25 p-3 text-center">
             <p className="font-display text-dark text-2xl leading-none">{c.value}</p>
             <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-2 block">
               {c.label}
@@ -127,7 +127,7 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
       </div>
 
       {/* Morning */}
-      <section className="bg-ivory border border-gold-light/40 p-5">
+      <section className="bg-[#dcd5bc] border border-gold-light/25 p-5">
         <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
           Rutyna poranna
         </SmallCaps>
@@ -148,7 +148,7 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
       </section>
 
       {/* Evening */}
-      <section className="bg-ivory border border-gold-light/40 p-5">
+      <section className="bg-[#dcd5bc] border border-gold-light/25 p-5">
         <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
           Rutyna wieczorna
         </SmallCaps>
@@ -190,7 +190,7 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
         }
 
         return (
-          <section className="bg-ivory border border-gold-light/40 p-5">
+          <section className="bg-[#dcd5bc] border border-gold-light/25 p-5">
             <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
               Rutyna dzienna
             </SmallCaps>
@@ -261,7 +261,7 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
       })()}
 
       {/* Rules */}
-      <section className="bg-ivory border border-gold-light/40 p-5">
+      <section className="bg-[#dcd5bc] border border-gold-light/25 p-5">
         <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
           Zasady
         </SmallCaps>
@@ -298,7 +298,7 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
       </section>
 
       {/* Daily quests */}
-      <section className="bg-ivory border border-gold-light/40 p-5">
+      <section className="bg-[#dcd5bc] border border-gold-light/25 p-5">
         <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
           Daily questy
         </SmallCaps>
@@ -325,7 +325,7 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
 
       {/* Side quests list */}
       {completedSideQuests.length > 0 && (
-        <section className="bg-ivory border border-gold-light/40 p-5">
+        <section className="bg-[#dcd5bc] border border-gold-light/25 p-5">
           <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
             Side questy
           </SmallCaps>
