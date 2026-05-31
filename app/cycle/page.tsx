@@ -179,8 +179,29 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
   const bandX = (from: number) => ((from - 1) / C) * W
   const bandW = (from: number, to: number) => ((to - from + 1) / C) * W
   const y = (val: number) => H - ((val - 1) / 4) * (H - 16)
-  const line = (key: 'energy' | 'mood') =>
-    points.filter(p => p[key] != null).map(p => `${x(p.day).toFixed(1)},${y(p[key] as number).toFixed(1)}`).join(' ')
+  // Wygładzona ścieżka (Catmull-Rom → bezier) — krzywa płynie jak wzór, nie zygzak
+  const smooth = (pts: { x: number; y: number }[]) => {
+    if (pts.length < 2) return ''
+    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] ?? pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] ?? p2
+      const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6
+      const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6
+      d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+    }
+    return d
+  }
+  const measured = (key: 'energy' | 'mood') =>
+    smooth(points.filter(p => p[key] != null).map(p => ({ x: x(p.day), y: y(p[key] as number) })))
+
+  // Typowy wzór cyklu (tło) — gaussowski szczyt w owulacji, wypełnia też przyszłość
+  const ovuMid = (ranges.owulacyjna[0] + ranges.owulacyjna[1]) / 2
+  const sigma = C / 5
+  const modelPath = smooth(Array.from({ length: C }, (_, i) => {
+    const day = i + 1
+    const val = 2.5 + 1.7 * Math.exp(-((day - ovuMid) ** 2) / (2 * sigma * sigma))
+    return { x: x(day), y: y(val) }
+  }))
 
   if (points.length < 2) {
     return (
@@ -202,9 +223,12 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
           <span className="flex items-center gap-2 font-ui uppercase tracking-[0.22em] text-[9px] text-muted">
             <i className="inline-block w-4 border-t-2 border-dashed" style={{ borderColor: '#B56A6A' }} /> Nastrój
           </span>
+          <span className="flex items-center gap-2 font-ui uppercase tracking-[0.22em] text-[9px] text-muted-light">
+            <i className="inline-block w-4 border-t-2" style={{ borderColor: MAUVE, opacity: 0.4 }} /> Wzór
+          </span>
         </div>
       </div>
-      <p className="font-serif-body italic text-[13px] text-muted mb-3">z Twoich pomiarów · ten cykl · dzień {cycleDay} z {C}</p>
+      <p className="font-serif-body italic text-[13px] text-muted mb-3">linia — Twoje pomiary (ten cykl, dzień {cycleDay} z {C}) · tło — typowy wzór cyklu</p>
       <svg viewBox={`0 0 ${W} ${H + 4}`} className="w-full h-auto block">
         {ORDER.map(id => {
           const [from, to] = ranges[id]
@@ -213,10 +237,11 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
         {[50, 100, 150, 205].map(gy => <line key={gy} x1={0} y1={gy} x2={W} y2={gy} stroke="#e5dcc1" strokeWidth={1} />)}
         <line x1={todayX} y1={6} x2={todayX} y2={H} stroke={MAUVE_D} strokeWidth={1.2} strokeDasharray="4 5" />
         <text x={todayX} y={4} textAnchor="middle" fontFamily="Inter,sans-serif" fontSize={9} letterSpacing={2} fill={MAUVE_D}>DZIŚ</text>
-        <polyline points={line('mood')} fill="none" stroke="#B56A6A" strokeWidth={1.8} strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
-        <polyline points={line('energy')} fill="none" stroke={MAUVE_D} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+        <path d={modelPath} fill="none" stroke={MAUVE} strokeWidth={2} opacity={0.22} strokeLinecap="round" />
+        <path d={measured('mood')} fill="none" stroke="#B56A6A" strokeWidth={1.8} strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={measured('energy')} fill="none" stroke={MAUVE_D} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
         {points.filter(p => p.energy != null).map(p => (
-          <circle key={p.day} cx={x(p.day)} cy={y(p.energy as number)} r={2.6} fill={MAUVE_D} />
+          <circle key={p.day} cx={x(p.day)} cy={y(p.energy as number)} r={2.2} fill={MAUVE_D} />
         ))}
       </svg>
       <div className="relative h-5 mt-2">
