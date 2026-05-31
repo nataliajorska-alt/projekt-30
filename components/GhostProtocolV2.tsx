@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { useGhostV2 } from '@/hooks/useGhostV2'
-import { GHOST_CATEGORIES, INTENSITY_LABELS } from '@/lib/ghost-data'
+import { GHOST_CATEGORIES, INTENSITY_LABELS, intensityTier } from '@/lib/ghost-data'
 import type { GhostCategory, GhostLogEntryV2, HonestFailureEntry, GhostOutcome } from '@/types'
 import EmergencyLock from './EmergencyLock'
 import RedirectEnergyWidget from './RedirectEnergyWidget'
@@ -278,12 +278,12 @@ export default function GhostProtocolV2() {
             <div className="space-y-2.5">
               {categoryMeta.subcategories.map(sub => (
                 <button
-                  key={sub}
-                  onClick={() => pickSubcategory(sub)}
+                  key={sub.text}
+                  onClick={() => pickSubcategory(sub.text)}
                   className="w-full flex items-center gap-3 text-left px-5 py-3.5 border border-ivory/15 bg-forest/20 hover:bg-forest/40 hover:border-gold/40 transition-all"
                 >
                   <Diamond size={5} className="text-gold-light/50 shrink-0" />
-                  <span className="font-serif-body text-[14px] text-ivory/85">{sub}</span>
+                  <span className="font-serif-body text-[14px] text-ivory/85">{sub.text}</span>
                 </button>
               ))}
             </div>
@@ -360,6 +360,9 @@ export default function GhostProtocolV2() {
     // Intervention
     if (phase === 'intervention' && categoryMeta && selectedIntensity !== null) {
       const intensityInfo = INTENSITY_LABELS[selectedIntensity]
+      const subMeta = categoryMeta.subcategories.find(s => s.text === selectedSubcategory)
+      const reframe = subMeta?.reframe ?? categoryMeta.intervention
+      const action = categoryMeta.actions[intensityTier(selectedIntensity)]
       return (
         <Frame>
           <div className="w-full max-w-sm text-center">
@@ -379,19 +382,23 @@ export default function GhostProtocolV2() {
                 size={11}
                 className="text-gold absolute -top-2 left-1/2 -translate-x-1/2 bg-forest-deep px-1"
               />
-              {categoryMeta.intervention.split('\n\n').map((paragraph, i) => (
-                <p
-                  key={i}
-                  className={clsx(
-                    'leading-relaxed',
-                    i === 0
-                      ? 'font-serif-body italic text-ivory text-[15px] mb-4'
-                      : 'font-serif-body text-parchment text-[13px]'
-                  )}
-                >
-                  {paragraph}
-                </p>
-              ))}
+              {subMeta && (
+                <SmallCaps tone="parchment" tracking="luxury" size="xs" as="div" className="mb-2 opacity-60">
+                  {subMeta.text}
+                </SmallCaps>
+              )}
+              <p className="font-serif-body italic text-ivory text-[15px] leading-relaxed">
+                {reframe}
+              </p>
+
+              <div className="h-px bg-gold-light/20 my-5" />
+
+              <SmallCaps tone="gold-light" tracking="luxury" size="xs" as="div" className="mb-2">
+                co teraz
+              </SmallCaps>
+              <p className="font-serif-body text-parchment text-[13px] leading-relaxed">
+                {action}
+              </p>
             </div>
 
             <RedirectEnergyWidget compact />
@@ -628,11 +635,11 @@ export default function GhostProtocolV2() {
                 </SmallCaps>
                 <div className="space-y-2 mb-6">
                   {hCategoryMeta.subcategories.map(sub => {
-                    const sel = hSubcategory === sub
+                    const sel = hSubcategory === sub.text
                     return (
                       <button
-                        key={sub}
-                        onClick={() => setHSubcategory(sub)}
+                        key={sub.text}
+                        onClick={() => setHSubcategory(sub.text)}
                         className={clsx(
                           'w-full flex items-center gap-3 text-left px-4 py-2.5 border transition-all',
                           sel
@@ -645,7 +652,7 @@ export default function GhostProtocolV2() {
                           'font-serif-body text-[13px]',
                           sel ? 'text-ivory italic' : 'text-parchment/85'
                         )}>
-                          {sub}
+                          {sub.text}
                         </span>
                       </button>
                     )
