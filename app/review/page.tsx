@@ -44,9 +44,9 @@ export default function ReviewPage() {
           <SmallCaps tone="gold-light" tracking="editorial" size="xs">
             Library at Dusk · Vol. II
           </SmallCaps>
-          <h1 className="font-display text-ivory text-[clamp(2.25rem,6vw,3.5rem)] leading-[1.05] mt-4">
+          <h1 className="font-display text-ivory text-[clamp(1.9rem,5vw,2.5rem)] leading-[1.05] mt-4">
             Przegląd
-            <span className="block font-serif-body italic text-parchment text-[clamp(1.25rem,2.5vw,1.5rem)] mt-1">
+            <span className="block font-display italic font-normal text-gold-light text-[16px] mt-1">
               & korekta
             </span>
           </h1>
@@ -173,12 +173,12 @@ export default function ReviewPage() {
 
 function SpecimenCard({ label, primary, sub }: { label: string; primary: string; sub: string }) {
   return (
-    <div className="relative bg-ivory text-dark border border-gold-light/40 px-3 py-4 md:py-5 text-center">
+    <div className="ritual-card text-dark px-3 py-4 md:py-5 text-center">
       <SmallCaps tone="muted" tracking="luxury" size="xs">
         {label}
       </SmallCaps>
-      <p className="font-display text-2xl md:text-3xl mt-2 leading-none">{primary}</p>
-      <p className="font-serif-body italic text-muted text-[11px] mt-1">{sub}</p>
+      <p className="font-display text-2xl md:text-[28px] mt-2 leading-none">{primary}</p>
+      <p className="font-serif-body italic text-muted text-[11px] mt-1.5">{sub}</p>
     </div>
   )
 }

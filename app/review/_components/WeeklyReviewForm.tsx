@@ -1,10 +1,9 @@
 'use client'
 import { useState } from 'react'
-import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { useAuth } from '@/hooks/useAuth'
-import { PILLARS } from '@/lib/pillars'
 import { Pillar } from '@/types'
+import PillarRating from './PillarRating'
 import { db } from '@/lib/firebase'
 import { doc, setDoc } from 'firebase/firestore'
 import { XP_VALUES } from '@/lib/gameLogic'
@@ -98,45 +97,10 @@ export default function WeeklyReviewForm({ user, stats, submitWeeklyReview, last
           Filary tygodnia
         </SmallCaps>
         <h2 className="font-heading text-dark text-xl mt-1">Oceń każdy</h2>
-        <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
-          I = zaniedbany, V = zadbany.
+        <p className="font-serif-body italic text-muted text-[13px] mt-1">
+          puste = zaniedbany · pełne = zadbany.
         </p>
-        <div className="space-y-4">
-          {PILLARS.map(p => (
-            <div key={p.id}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span style={{ color: p.color }}><Diamond size={5} /></span>
-                  <span className="font-heading text-dark text-[14px]" style={{ color: p.color }}>
-                    {p.shortName}
-                  </span>
-                </div>
-                <span className="font-display text-base" style={{ color: p.color }}>
-                  {ratings[p.id as Pillar]}/5
-                </span>
-              </div>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setRatings(r => ({ ...r, [p.id]: n }))}
-                    className={clsx(
-                      'flex-1 h-9 border transition-all flex items-center justify-center',
-                      ratings[p.id as Pillar] >= n
-                        ? 'text-ivory'
-                        : 'bg-cream/40 border-hairline text-muted-light hover:border-gold-light'
-                    )}
-                    style={ratings[p.id as Pillar] >= n
-                      ? { backgroundColor: p.color, borderColor: p.color }
-                      : {}}
-                  >
-                    <span className="font-display text-sm">{n}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <PillarRating ratings={ratings} onChange={(id, v) => setRatings(r => ({ ...r, [id]: v }))} />
       </section>
 
       <section className="ritual-card p-6 md:p-8 space-y-5">
