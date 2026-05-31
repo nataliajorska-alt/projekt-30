@@ -38,7 +38,7 @@ export default function ReviewPage() {
 
   return (
     <RitualSurface tone="forest-deep" frame="double" className="animate-fade-in">
-      <div className="max-w-2xl md:max-w-4xl mx-auto px-4 md:px-10 pt-12 pb-16">
+      <div className="max-w-2xl md:max-w-[960px] mx-auto px-4 md:px-10 pt-12 pb-16">
         {/* EDITORIAL HEADER */}
         <header className="text-center">
           <SmallCaps tone="gold-light" tracking="editorial" size="xs">
