@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v13-archiwum2';
+const CACHE_NAME = 'p30-v14-cykl-labels';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {

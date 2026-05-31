@@ -262,8 +262,9 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
           const [from, to] = ranges[id]
           const mid = ((from - 1 + to) / 2) / C * 100
           return (
-            <span key={id} className="absolute -translate-x-1/2 font-ui uppercase tracking-[0.16em] text-[9px]" style={{ left: `${mid}%`, color: ACCENT[id].cd }}>
-              {CYCLE_PHASES.find(p => p.id === id)!.name}
+            <span key={id} className="absolute -translate-x-1/2 font-ui uppercase tracking-[0.16em] text-[9px] whitespace-nowrap" style={{ left: `${mid}%`, color: ACCENT[id].cd }}>
+              <span className="sm:hidden">{CYCLE_PHASES.find(p => p.id === id)!.name.slice(0, 3)}.</span>
+              <span className="hidden sm:inline">{CYCLE_PHASES.find(p => p.id === id)!.name}</span>
             </span>
           )
         })}
