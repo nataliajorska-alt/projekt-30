@@ -13,7 +13,7 @@ import { getMonthAggregate } from '@/lib/analytics'
 import type { MonthlyReview } from '@/types'
 import { formatMonthPL } from './shared'
 import ContinuityBanner from './ContinuityBanner'
-import { SmallCaps, GoldRule, Fleuron, Diamond, CornerBrackets } from '@/components/ui'
+import { SmallCaps, GoldRule, Fleuron, Diamond } from '@/components/ui'
 
 interface MonthlyFormProps {
   user: ReturnType<typeof useAuth>['user']
@@ -79,36 +79,33 @@ export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyRevi
 
   return (
     <div className="space-y-5">
-      {/* Month summary — ritual dark */}
-      <div className="relative bg-forest-deep grain-linen text-ivory p-6">
-        <CornerBrackets size={14} tone="gold" weight={1} />
-        <div className="relative z-10">
-          <SmallCaps tone="gold-light" tracking="editorial" size="xs">
-            Ceremonia miesiąca
-          </SmallCaps>
-          <h2 className="font-display text-ivory text-3xl leading-tight mt-2 mb-5">
-            {formatMonthPL(monthKey)}
-          </h2>
-          <GoldRule variant="diamond" tone="gold" className="max-w-xs mb-5 opacity-50" />
-          <div className="grid grid-cols-2 gap-x-5 gap-y-4">
-            {[
-              { label: 'XP miesiąca',  value: agg.totalXP.toLocaleString('pl-PL'), gold: true },
-              { label: 'Dni aktywne',  value: String(agg.activeDays) },
-              { label: 'Rutyny',       value: String(agg.totalRoutines) },
-              { label: 'Side questy',  value: String(agg.totalSideQuests) },
-              { label: 'Daily questy', value: String(agg.totalDailyQuests) },
-              { label: 'Zasady',       value: String(agg.totalRulesKept) },
-            ].map(({ label, value, gold }) => (
-              <div key={label}>
-                <SmallCaps tone="parchment" tracking="luxury" size="xs" className="opacity-60">
-                  {label}
-                </SmallCaps>
-                <p className={clsx('font-display text-2xl leading-none mt-1', gold ? 'text-gold-light' : 'text-ivory')}>
-                  {value}
-                </p>
+      {/* Ceremonia miesiąca — otwarta na ciemnej scenie (jak mock) */}
+      <div className="pt-1 pb-2">
+        <SmallCaps tone="gold-light" tracking="editorial" size="xs">Ceremonia miesiąca</SmallCaps>
+        <h2 className="font-display text-ivory text-[23px] leading-tight mt-1.5 tracking-[-0.4px]">
+          {formatMonthPL(monthKey)}
+        </h2>
+        <div className="flex items-center gap-3.5 my-4 max-w-[380px]">
+          <span className="flex-1 h-px bg-gradient-to-r from-transparent to-gold-light/50" />
+          <span className="text-gold text-[9px] leading-none">◆</span>
+          <span className="flex-1 h-px bg-gradient-to-l from-transparent to-gold-light/50" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 md:gap-[18px]">
+          {[
+            { label: 'XP miesiąca',  value: agg.totalXP.toLocaleString('pl-PL'), gold: true },
+            { label: 'Dni aktywne',  value: String(agg.activeDays) },
+            { label: 'Rutyny',       value: String(agg.totalRoutines) },
+            { label: 'Side questy',  value: String(agg.totalSideQuests) },
+            { label: 'Daily questy', value: String(agg.totalDailyQuests) },
+            { label: 'Zasady',       value: String(agg.totalRulesKept) },
+          ].map(({ label, value, gold }) => (
+            <div key={label}>
+              <div className="font-ui uppercase tracking-[0.2em] text-[8px] text-gold-light/85 whitespace-nowrap">{label}</div>
+              <div className={clsx('font-display font-medium text-[20px] leading-none mt-1.5 tabular-nums', gold ? 'text-gold-light' : 'text-parchment')}>
+                {value}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
 
