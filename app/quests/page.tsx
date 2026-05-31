@@ -1,25 +1,32 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import clsx from 'clsx'
 import { SIDE_QUESTS } from '@/lib/questData'
 import { PILLARS, getPillar } from '@/lib/pillars'
 import { useGameData } from '@/hooks/useGameData'
 import { Pillar } from '@/types'
-import { Check, Undo2 } from 'lucide-react'
 import QuestSteps from '@/components/QuestSteps'
-import { SmallCaps, Diamond, GoldRule, Fleuron } from '@/components/ui'
+import { SmallCaps, Fleuron } from '@/components/ui'
 import { toRoman } from '@/lib/romanNumerals'
 
 const DIFFICULTY_LABELS = { easy: 'Łatwy', medium: 'Średni', hard: 'Wymagający' }
-const DIFFICULTY_DIAMONDS = { easy: 1, medium: 2, hard: 3 }
+const DIFFICULTY_FILLED = { easy: 1, medium: 2, hard: 3 }
 type Filter = Pillar | 'all'
+type Diff = keyof typeof DIFFICULTY_LABELS
 
-function DifficultyMarks({ d }: { d: keyof typeof DIFFICULTY_LABELS }) {
-  const filled = DIFFICULTY_DIAMONDS[d]
+// Romby trudności — wypełnione/puste, jak w redesignie (rotowane kwadraty)
+function DifficultyPips({ d }: { d: Diff }) {
+  const filled = DIFFICULTY_FILLED[d]
   return (
-    <span className="inline-flex items-center gap-0.5 text-gold">
+    <span className="inline-flex items-center gap-[3px]">
       {[1, 2, 3].map(i => (
-        <Diamond key={i} size={5} filled={i <= filled} className={i <= filled ? 'text-gold' : 'text-gold/30'} />
+        <i
+          key={i}
+          className={clsx(
+            'w-[5px] h-[5px] rotate-45 border',
+            i <= filled ? 'bg-gold border-gold' : 'border-gold-light'
+          )}
+        />
       ))}
     </span>
   )
@@ -28,13 +35,25 @@ function DifficultyMarks({ d }: { d: keyof typeof DIFFICULTY_LABELS }) {
 export default function QuestsPage() {
   const { todayLog, toggleSideQuest } = useGameData()
   const [filter, setFilter] = useState<Filter>('all')
+  const [sortByReward, setSortByReward] = useState(false)
   const [completing, setCompleting] = useState<string | null>(null)
 
-  const filtered = filter === 'all'
-    ? SIDE_QUESTS
-    : SIDE_QUESTS.filter(q => q.pillar === filter)
+  const completedIds = todayLog?.completedSideQuests ?? []
+  const totalCompleted = completedIds.length
 
-  const totalCompleted = todayLog?.completedSideQuests?.length ?? 0
+  // Liczniki per filar (do chipów filtrów)
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {}
+    for (const q of SIDE_QUESTS) c[q.pillar] = (c[q.pillar] ?? 0) + 1
+    return c
+  }, [])
+
+  const filtered = useMemo(() => {
+    const base = filter === 'all' ? SIDE_QUESTS : SIDE_QUESTS.filter(q => q.pillar === filter)
+    return sortByReward ? [...base].sort((a, b) => b.xp - a.xp) : base
+  }, [filter, sortByReward])
+
+  const completedInView = filtered.filter(q => completedIds.includes(q.id)).length
 
   const handleComplete = async (questId: string, pillar: Pillar, xp: number) => {
     setCompleting(questId)
@@ -44,177 +63,201 @@ export default function QuestsPage() {
 
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
-      {/* Editorial header */}
-      <header className="mb-8">
-        <SmallCaps tone="muted" tracking="editorial" size="xs">
-          Biblioteka · Vol. I
-        </SmallCaps>
-        <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.75rem)] leading-tight mt-2">
-          Side Questy
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <header>
+        <div className="flex items-center gap-3 font-ui uppercase tracking-editorial text-[10px] text-muted mb-3.5">
+          Biblioteka <span className="text-gold">∴</span> Vol. I
+        </div>
+        <h1 className="font-display font-medium text-dark leading-[1] tracking-[-1.4px] text-[clamp(2.5rem,6vw,3.75rem)]">
+          Side <em className="italic font-normal text-gold-deep">Questy</em>
         </h1>
-        <p className="font-serif-body italic text-muted text-[14px] mt-2">
-          {toRoman(SIDE_QUESTS.length)} questów w bibliotece · {totalCompleted} ukończonych dziś
+        <p className="mt-4 font-serif-body italic text-[18px] text-muted">
+          <strong className="font-display not-italic font-medium text-gold-deep">{toRoman(SIDE_QUESTS.length)}</strong> questów w bibliotece
+          <span className="text-gold mx-2">·</span>
+          <strong className="font-display not-italic font-medium text-gold-deep">{toRoman(totalCompleted)}</strong> {totalCompleted === 1 ? 'ukończony' : 'ukończone'} dziś
         </p>
-        <GoldRule variant="diamond" tone="gold-deep" className="mt-5 opacity-50" />
       </header>
 
-      {/* Filter — editorial pills */}
-      <div className="flex gap-2 overflow-x-auto pb-3 mb-6 scrollbar-hide">
+      {/* Ornament */}
+      <div className="flex items-center gap-3.5 my-7">
+        <span className="flex-1 h-px bg-hairline" />
+        <span className="text-gold text-[13px] leading-none">∴</span>
+        <span className="flex-1 h-px bg-hairline" />
+      </div>
+
+      {/* ── Filters (równy grid z licznikami) ──────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
         <button
           onClick={() => setFilter('all')}
           className={clsx(
-            'flex-shrink-0 px-3.5 py-1.5 border transition-all',
+            'flex items-center justify-center gap-2 border px-4 py-2.5 font-ui uppercase tracking-[0.3em] text-[10px] transition-colors',
             filter === 'all'
-              ? 'bg-dark-deep text-ivory border-gold'
-              : 'border-hairline text-muted hover:border-gold-light'
+              ? 'bg-dark text-cream border-dark'
+              : 'border-hairline text-muted hover:text-dark hover:border-gold-light'
           )}
         >
-          <SmallCaps tone={filter === 'all' ? 'ivory' : 'muted'} tracking="luxury" size="xs">
-            Wszystkie
-          </SmallCaps>
+          Wszystkie
+          <span className={clsx('font-display italic text-[12px] ml-0.5', filter === 'all' ? 'text-gold-light' : 'text-muted-light')}>
+            {SIDE_QUESTS.length}
+          </span>
         </button>
         {PILLARS.map(p => {
-          const sel = filter === p.id
+          const on = filter === p.id
           return (
             <button
               key={p.id}
               onClick={() => setFilter(p.id as Filter)}
               className={clsx(
-                'flex-shrink-0 flex items-center gap-2 px-3.5 py-1.5 border transition-all',
-                sel
-                  ? 'bg-dark-deep text-ivory border-gold'
-                  : 'border-hairline text-muted hover:border-gold-light'
+                'flex items-center justify-center gap-2 border px-4 py-2.5 font-ui uppercase tracking-[0.3em] text-[10px] transition-colors',
+                on ? 'bg-dark text-cream border-dark' : 'border-hairline text-muted hover:text-dark hover:border-gold-light'
               )}
             >
-              <span style={sel ? undefined : { color: p.color }}>
-                <Diamond size={5} filled={sel} />
+              <span className={clsx('text-[8px]', on ? 'text-gold' : 'text-gold-light')}>◇</span>
+              {p.shortName}
+              <span className={clsx('font-display italic text-[12px] ml-0.5', on ? 'text-gold-light' : 'text-muted-light')}>
+                {counts[p.id] ?? 0}
               </span>
-              <SmallCaps
-                tone={sel ? 'ivory' : 'muted'}
-                tracking="luxury"
-                size="xs"
-              >
-                {p.shortName}
-              </SmallCaps>
             </button>
           )
         })}
       </div>
 
-      {/* Quest list */}
-      <div className="space-y-3">
+      {/* ── Results meta + sort ────────────────────────────────── */}
+      <div className="flex items-baseline justify-between border-t border-hairline pt-3.5 pb-1 mb-6 gap-3">
+        <div className="font-ui uppercase tracking-editorial text-[10px] text-muted">
+          Pokazuję <strong className="font-display not-italic normal-case italic text-gold-deep text-[14px] mx-0.5">{filtered.length}</strong> z{' '}
+          <strong className="font-display not-italic normal-case italic text-gold-deep text-[14px] mx-0.5">{SIDE_QUESTS.length}</strong>
+          <span className="text-gold mx-1.5">·</span>
+          <strong className="font-display not-italic normal-case italic text-gold-deep text-[14px] mx-0.5">{completedInView}</strong> ukończone
+        </div>
+        <button
+          onClick={() => setSortByReward(v => !v)}
+          className="font-serif-body italic text-[14px] text-gold-deep hover:text-dark transition-colors shrink-0 whitespace-nowrap"
+        >
+          Sortuj · {sortByReward ? 'wg nagrody' : 'domyślnie'} ›
+        </button>
+      </div>
+
+      {/* ── Quest grid ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[18px]">
         {filtered.map(quest => {
-          const done = todayLog?.completedSideQuests?.includes(quest.id) ?? false
+          const done = completedIds.includes(quest.id)
           const pillar = getPillar(quest.pillar)
           const isCompleting = completing === quest.id
+          const diff = quest.difficulty as Diff
 
           return (
-            <div
+            <article
               key={quest.id}
               className={clsx(
-                'border bg-ivory p-5 transition-all',
-                done ? 'border-gold' : 'border-hairline'
+                'relative border p-6 pb-5 flex flex-col md:min-h-[232px] transition-colors',
+                done ? 'bg-cream border-hairline' : 'bg-ivory border-hairline'
               )}
             >
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-3 flex-wrap mb-2">
-                    <span
-                      className="inline-flex items-center gap-1.5"
-                      style={{ color: pillar.color }}
-                    >
-                      <Diamond size={5} />
-                      <span className="font-ui uppercase tracking-luxury text-[10px]">
-                        {pillar.shortName}
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <DifficultyMarks d={quest.difficulty as keyof typeof DIFFICULTY_LABELS} />
-                      <SmallCaps tone="muted" tracking="luxury" size="xs">
-                        {DIFFICULTY_LABELS[quest.difficulty as keyof typeof DIFFICULTY_LABELS]}
-                      </SmallCaps>
-                    </span>
-                  </div>
-                  <h3
-                    className={clsx(
-                      'font-heading text-lg leading-snug',
-                      done ? 'text-muted line-through decoration-1' : 'text-dark'
-                    )}
+              {/* corner ornaments — top-left + bottom-right */}
+              <span aria-hidden className={clsx('pointer-events-none absolute top-2 left-2 w-2 h-2 border-t border-l', done ? 'border-gold' : 'border-gold-light/75')} />
+              <span aria-hidden className={clsx('pointer-events-none absolute bottom-2 right-2 w-2 h-2 border-b border-r', done ? 'border-gold' : 'border-gold-light/75')} />
+
+              {/* top: taxonomy + reward */}
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <div className="flex items-center gap-3.5 flex-wrap min-w-0">
+                  <span
+                    className="inline-flex items-center gap-2 font-ui uppercase tracking-editorial text-[10px]"
+                    style={{ color: done ? undefined : pillar.color }}
                   >
-                    {quest.title}
-                  </h3>
+                    <span className="text-gold text-[8px]">◆</span>
+                    <span className={done ? 'text-muted' : undefined}>{pillar.shortName}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-2 font-ui uppercase tracking-[0.3em] text-[9px] text-muted">
+                    <DifficultyPips d={diff} />
+                    {DIFFICULTY_LABELS[diff]}
+                  </span>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <SmallCaps tone="muted" tracking="luxury" size="xs">
-                    nagroda
-                  </SmallCaps>
-                  <p className={clsx('font-display text-2xl leading-none mt-1', done ? 'text-gold' : 'text-dark')}>
-                    + {quest.xp}
-                  </p>
-                  <SmallCaps tone={done ? 'gold-deep' : 'muted'} tracking="luxury" size="xs">
-                    XP
-                  </SmallCaps>
+                <div className="text-right leading-none shrink-0">
+                  <div className="font-ui uppercase tracking-editorial text-[8px] text-muted-light">Nagroda</div>
+                  <div className="font-display font-medium text-[30px] text-gold-deep tracking-[-0.5px] mt-1.5">
+                    <span className="font-serif-body italic font-normal text-[20px] text-gold mr-px">+</span>{quest.xp}
+                    <small className="block mt-0.5 font-ui not-italic text-[8px] tracking-editorial text-muted-light uppercase">xp</small>
+                  </div>
                 </div>
               </div>
 
-              <p className="font-serif-body italic text-muted text-[14px] leading-relaxed mb-3">
+              {/* title + desc */}
+              <h2 className={clsx('font-display font-medium text-[26px] leading-[1.08] tracking-[-0.4px]', done ? 'text-muted' : 'text-dark')}>
+                {quest.title}
+              </h2>
+              <p className={clsx('font-serif-body italic text-[16px] leading-[1.45] mt-2 max-w-[42ch]', done ? 'text-muted-light' : 'text-muted')}>
                 {quest.description}
               </p>
 
-              {quest.tags && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {quest.tags.map(tag => (
+              {quest.steps && quest.steps.length > 0 && (
+                <div className="mt-3">
+                  <QuestSteps questId={quest.id} steps={quest.steps} />
+                </div>
+              )}
+
+              {/* footer: tags + action */}
+              <div className="mt-auto pt-[18px] flex items-center justify-between gap-3.5">
+                <div className="flex flex-wrap gap-[7px]">
+                  {(quest.tags ?? []).map(tag => (
                     <span
                       key={tag}
-                      className="font-ui uppercase tracking-luxury text-[9px] text-muted border border-hairline px-2 py-0.5"
+                      className="border border-border px-2.5 py-[5px] font-ui uppercase tracking-[0.26em] text-[9px] text-muted"
                     >
                       {tag}
                     </span>
                   ))}
                 </div>
-              )}
 
-              {quest.steps && quest.steps.length > 0 && (
-                <QuestSteps questId={quest.id} steps={quest.steps} />
-              )}
-
-              {done ? (
-                <button
-                  onClick={() => handleComplete(quest.id, quest.pillar, quest.xp)}
-                  className="inline-flex items-center gap-2 mt-4 group"
-                >
-                  <Diamond size={6} className="text-gold group-hover:hidden" filled />
-                  <Undo2 size={11} strokeWidth={1.5} className="text-red-500 hidden group-hover:block" />
-                  <SmallCaps tone="gold" tracking="luxury" size="xs" className="group-hover:hidden">
-                    Ukończone dziś
-                  </SmallCaps>
-                  <span className="hidden group-hover:inline-block">
-                    <SmallCaps tracking="luxury" size="xs" className="!text-red-500">
-                      Cofnij ukończenie
-                    </SmallCaps>
-                  </span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleComplete(quest.id, quest.pillar, quest.xp)}
-                  disabled={isCompleting}
-                  className="mt-4 inline-flex items-center gap-2 bg-dark-deep text-ivory border border-gold px-4 py-2.5 hover:bg-forest transition-colors disabled:opacity-60"
-                >
-                  {isCompleting ? (
-                    <Fleuron size={11} className="text-gold animate-pulse" />
-                  ) : (
-                    <>
-                      <Diamond size={5} className="text-gold" />
-                      <SmallCaps tone="ivory" tracking="luxury" size="xs">
-                        ukończone
-                      </SmallCaps>
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
+                {done ? (
+                  <button
+                    onClick={() => handleComplete(quest.id, quest.pillar, quest.xp)}
+                    className="group inline-flex items-center gap-2.5 shrink-0"
+                    title="Cofnij ukończenie"
+                  >
+                    <span className="w-[18px] h-[18px] bg-gold border border-gold rotate-45 inline-flex items-center justify-center shrink-0">
+                      <span className="-rotate-45 text-[10px] leading-none text-cream font-ui">✓</span>
+                    </span>
+                    <span className="font-display italic font-medium text-[16px] text-gold-deep group-hover:hidden">ukończone</span>
+                    <span className="hidden group-hover:inline font-ui uppercase tracking-luxury text-[10px] text-wine">cofnij</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleComplete(quest.id, quest.pillar, quest.xp)}
+                    disabled={isCompleting}
+                    className="shrink-0 inline-flex items-center gap-2.5 bg-dark text-cream border border-dark px-5 py-2.5 hover:bg-gold-deep hover:border-gold-deep transition-colors disabled:opacity-60 whitespace-nowrap"
+                  >
+                    {isCompleting ? (
+                      <Fleuron size={11} className="text-gold animate-pulse" />
+                    ) : (
+                      <>
+                        <span className="text-gold text-[9px]">◆</span>
+                        <span className="font-ui uppercase tracking-[0.3em] text-[10px]">Podejmij</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </article>
           )
         })}
+      </div>
+
+      {/* ── Closing ────────────────────────────────────────────── */}
+      <div className="mt-14 text-center">
+        <div className="flex items-center justify-center gap-3.5 mb-5">
+          <span className="w-[180px] max-w-[30%] h-px bg-hairline" />
+          <span className="text-gold text-[12px] leading-none">∴ ◆ ∴</span>
+          <span className="w-[180px] max-w-[30%] h-px bg-hairline" />
+        </div>
+        <blockquote className="font-serif-body italic text-[18px] text-muted leading-[1.55] max-w-[540px] mx-auto">
+          „questy poboczne to nie obowiązek — to miejsca, w których stajesz się sobą poza planem."
+        </blockquote>
+        <div className="mt-6">
+          <SmallCaps tone="gold-deep" tracking="editorial" size="xs">
+            ∴ Projekt 30 · Biblioteka · Vol. I ∴
+          </SmallCaps>
+        </div>
       </div>
     </div>
   )
