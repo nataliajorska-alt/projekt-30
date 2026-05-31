@@ -174,7 +174,10 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
     return out
   }, [startDate, cycleDay, dailyLogs])
 
-  const x = (day: number) => ((day - 1) / Math.max(1, C - 1)) * W
+  // Spójna skala „komórek dni": dzień d → środek komórki; pasma faz pokrywają pełne komórki.
+  const x = (day: number) => ((day - 0.5) / C) * W
+  const bandX = (from: number) => ((from - 1) / C) * W
+  const bandW = (from: number, to: number) => ((to - from + 1) / C) * W
   const y = (val: number) => H - ((val - 1) / 4) * (H - 16)
   const line = (key: 'energy' | 'mood') =>
     points.filter(p => p[key] != null).map(p => `${x(p.day).toFixed(1)},${y(p[key] as number).toFixed(1)}`).join(' ')
@@ -205,7 +208,7 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
       <svg viewBox={`0 0 ${W} ${H + 4}`} className="w-full h-auto block">
         {ORDER.map(id => {
           const [from, to] = ranges[id]
-          return <rect key={id} x={x(from)} y={0} width={((to - from + 1) / C) * W} height={H} fill={ACCENT[id].c} opacity={0.08} />
+          return <rect key={id} x={bandX(from)} y={0} width={bandW(from, to)} height={H} fill={ACCENT[id].c} opacity={0.08} />
         })}
         {[50, 100, 150, 205].map(gy => <line key={gy} x1={0} y1={gy} x2={W} y2={gy} stroke="#e5dcc1" strokeWidth={1} />)}
         <line x1={todayX} y1={6} x2={todayX} y2={H} stroke={MAUVE_D} strokeWidth={1.2} strokeDasharray="4 5" />
@@ -219,7 +222,7 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
       <div className="relative h-5 mt-2">
         {ORDER.map(id => {
           const [from, to] = ranges[id]
-          const mid = ((from + to) / 2 - 0.5) / C * 100
+          const mid = ((from - 1 + to) / 2) / C * 100
           return (
             <span key={id} className="absolute -translate-x-1/2 font-ui uppercase tracking-[0.16em] text-[9px]" style={{ left: `${mid}%`, color: ACCENT[id].cd }}>
               {CYCLE_PHASES.find(p => p.id === id)!.name}
