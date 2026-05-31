@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v9-przeglad-w';
+const CACHE_NAME = 'p30-v10-przeglad-narrow';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {
