@@ -82,13 +82,13 @@ function AchCard({ a, hidden }: { a: Achievement; hidden: boolean }) {
           <span className="inline-flex items-center gap-2 font-ui uppercase tracking-editorial text-[9px] text-gold-deep">
             <span className="text-gold text-[6px]">{hidden ? '✦' : '◆'}</span> {catLine}
           </span>
-          <span className="font-display font-medium text-[18px] text-gold-deep tracking-[-0.2px] whitespace-nowrap">
+          <span className="font-display font-medium text-[16px] text-gold-deep tracking-[-0.2px] whitespace-nowrap">
             <span className="font-serif-body italic font-normal text-[14px] text-muted-light mr-px">+</span>{a.xpReward}
             <small className="font-ui font-normal text-[8px] tracking-[0.22em] text-muted-light uppercase ml-1">XP</small>
           </span>
         </div>
-        <h3 className="font-display font-medium text-[24px] text-dark leading-[1.05] tracking-[-0.4px] mt-2.5">{a.title}</h3>
-        <p className="font-serif-body italic text-[15px] text-muted leading-[1.4] mt-1.5">{a.description}</p>
+        <h3 className="font-display font-medium text-[19px] text-dark leading-[1.05] tracking-[-0.4px] mt-2.5">{a.title}</h3>
+        <p className="font-serif-body italic text-[14px] text-muted leading-[1.4] mt-1.5">{a.description}</p>
       </div>
     </article>
   )
@@ -109,16 +109,16 @@ function ProgressCard({ a, stats }: { a: Achievement; stats: UserStats }) {
             <span className="inline-flex items-center gap-2 font-ui uppercase tracking-editorial text-[9px] text-muted">
               <span className="text-gold-light text-[6px]">◆</span> {cat.label} · {tierOf(a.xpReward)}
             </span>
-            <span className="font-display font-medium text-[18px] text-gold-deep tracking-[-0.2px] whitespace-nowrap">
+            <span className="font-display font-medium text-[16px] text-gold-deep tracking-[-0.2px] whitespace-nowrap">
               <span className="font-serif-body italic font-normal text-[14px] text-muted-light mr-px">+</span>{a.xpReward}
               <small className="font-ui font-normal text-[8px] tracking-[0.22em] text-muted-light uppercase ml-1">XP</small>
             </span>
           </div>
-          <h3 className="font-display font-medium text-[24px] text-dark leading-[1.05] tracking-[-0.4px] mt-2.5 flex items-center gap-2">
+          <h3 className="font-display font-medium text-[19px] text-dark leading-[1.05] tracking-[-0.4px] mt-2.5 flex items-center gap-2">
             <Lock size={14} strokeWidth={1.6} className="text-muted-light shrink-0" />
             {a.title}
           </h3>
-          <p className="font-serif-body italic text-[15px] text-muted leading-[1.4] mt-1.5">{a.description}</p>
+          <p className="font-serif-body italic text-[14px] text-muted leading-[1.4] mt-1.5">{a.description}</p>
         </div>
       </div>
       {prog && (
@@ -187,10 +187,10 @@ export default function AchievementsPage() {
         <div className="flex items-center gap-3 font-ui uppercase tracking-editorial text-[10px] text-muted mb-3.5">
           Kolekcja <span className="text-gold">∴</span> Vol. I
         </div>
-        <h1 className="font-display font-medium leading-[1] tracking-[-1.4px] text-[clamp(2.5rem,6vw,3.75rem)]">
+        <h1 className="font-display font-medium leading-tight tracking-[-0.5px] text-[clamp(1.75rem,5vw,2.5rem)]">
           <em className="italic font-normal text-gold-deep">Osiągnięcia</em>
         </h1>
-        <p className="mt-4 font-serif-body italic text-[18px] text-muted">
+        <p className="mt-2 font-serif-body italic text-[14px] text-muted">
           {toRoman(unlockedCount)} z {toRoman(total)} zdobytych{mystery.length > 0 ? ' · kilka ukrytych wciąż czeka.' : '.'}
         </p>
       </header>
@@ -210,8 +210,8 @@ export default function AchievementsPage() {
           </div>
           <div className="min-w-0">
             <div className="font-ui uppercase tracking-editorial text-[9px] text-gold-light mb-1">Micro-cel na horyzoncie</div>
-            <div className="font-serif-body italic text-[18px] text-gold-pale leading-tight">
-              zostało <span className="font-display not-italic font-medium text-gold-light text-[21px] px-0.5">{plNum(microGoal.remaining)}</span> {microGoal.label} do{' '}
+            <div className="font-serif-body italic text-[16px] text-gold-pale leading-tight">
+              zostało <span className="font-display not-italic font-medium text-gold-light text-[18px] px-0.5">{plNum(microGoal.remaining)}</span> {microGoal.label} do{' '}
               <b className="font-display italic font-medium text-ivory">{microGoal.a.title}</b>
             </div>
           </div>
@@ -228,7 +228,7 @@ export default function AchievementsPage() {
           <div className="inline-flex items-center gap-2.5 font-ui uppercase tracking-editorial text-[10px] text-gold-deep">
             <span className="text-gold text-[8px]">◆</span> Postęp kolekcji
           </div>
-          <div className="font-display font-medium text-[26px] text-dark tracking-[-0.6px] leading-none">
+          <div className="font-display font-medium text-[22px] text-dark tracking-[-0.6px] leading-none">
             {pct}%<small className="font-serif-body italic font-normal text-[14px] text-muted ml-2.5">{unlockedCount} / {total} zdobytych</small>
           </div>
         </div>

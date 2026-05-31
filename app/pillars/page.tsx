@@ -73,10 +73,10 @@ export default function PillarsPage() {
         <div className="flex items-center gap-3 font-ui uppercase tracking-editorial text-[10px] text-muted mb-3.5">
           Balans <span className="text-gold">∴</span> Vol. I
         </div>
-        <h1 className="font-display font-medium text-dark leading-[1] tracking-[-1.4px] text-[clamp(2.5rem,6vw,3.75rem)]">
+        <h1 className="font-display font-medium text-dark leading-tight tracking-[-0.5px] text-[clamp(1.75rem,5vw,2.5rem)]">
           Siedem <em className="italic font-normal text-gold-deep">Filarów</em>
         </h1>
-        <p className="mt-4 font-serif-body italic text-[18px] text-muted">
+        <p className="mt-2 font-serif-body italic text-[14px] text-muted">
           gdzie kierujesz energię? dbaj o równowagę.
         </p>
       </header>
@@ -102,7 +102,7 @@ export default function PillarsPage() {
           >
             <div className="absolute inset-[46px] rounded-full bg-ivory border border-border" />
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center">
-              <div className="font-display font-medium text-[38px] text-dark tracking-[-1px] leading-none">
+              <div className="font-display font-medium text-[30px] text-dark tracking-[-1px] leading-none">
                 {totalXP.toLocaleString('pl-PL')}
               </div>
               <div className="font-ui uppercase tracking-editorial text-[9px] text-muted mt-1">XP łącznie</div>
@@ -119,12 +119,12 @@ export default function PillarsPage() {
                   className="grid grid-cols-[10px_auto_1fr_auto_auto] items-baseline gap-3 py-2.5 border-b border-border"
                 >
                   <span className="w-[9px] h-[9px] rotate-45 self-center shrink-0" style={{ background: p.color }} />
-                  <span className="font-display font-medium text-[18px] tracking-[-0.3px]" style={{ color: p.color }}>
+                  <span className="font-display font-medium text-[16px] tracking-[-0.3px]" style={{ color: p.color }}>
                     {p.shortName}
                   </span>
                   <span className="border-b border-dotted border-hairline -translate-y-[5px] min-w-[16px]" />
                   <span className="font-ui text-[11px] text-muted text-right min-w-[30px] tabular-nums">{pct}%</span>
-                  <span className="font-display font-medium text-[15px] text-right min-w-[60px]" style={{ color: p.color }}>
+                  <span className="font-display font-medium text-[14px] text-right min-w-[60px]" style={{ color: p.color }}>
                     {p.xp.toLocaleString('pl-PL')}
                     <small className="font-ui font-normal text-[8px] tracking-[0.2em] text-muted-light uppercase ml-0.5">xp</small>
                   </span>
@@ -154,7 +154,7 @@ export default function PillarsPage() {
           const header = (
             <div className="flex gap-5">
               <div
-                className="shrink-0 w-[60px] h-[60px] border flex items-center justify-center font-display italic text-[26px]"
+                className="shrink-0 w-[60px] h-[60px] border flex items-center justify-center font-display italic text-[21px]"
                 style={{ color: p.color, borderColor: p.color }}
               >
                 <RomanNumeral value={p.idx + 1} />
@@ -163,14 +163,14 @@ export default function PillarsPage() {
                 <div className="inline-flex items-center gap-2 font-ui uppercase tracking-editorial text-[9.5px] mb-2" style={{ color: p.color }}>
                   <span className="text-[7px]">◆</span> {p.shortName}
                 </div>
-                <h2 className="font-display font-medium text-[25px] text-dark leading-[1.05] tracking-[-0.4px]">
+                <h2 className="font-display font-medium text-[20px] text-dark leading-[1.08] tracking-[-0.4px]">
                   {p.name}
                 </h2>
-                <p className="font-serif-body italic text-[15.5px] text-muted leading-[1.4] mt-2">
+                <p className="font-serif-body italic text-[14px] text-muted leading-[1.4] mt-2">
                   {p.description}
                 </p>
                 <div className="mt-4 pt-3.5 border-t border-border flex items-baseline justify-between gap-3">
-                  <div className="font-display font-medium text-[19px] tracking-[-0.2px]" style={{ color: p.color }}>
+                  <div className="font-display font-medium text-[16px] tracking-[-0.2px]" style={{ color: p.color }}>
                     {p.xp.toLocaleString('pl-PL')}
                     <small className="font-ui font-normal text-[9px] tracking-luxury text-muted-light uppercase ml-1.5">xp</small>
                   </div>
@@ -209,7 +209,7 @@ export default function PillarsPage() {
       <section className="relative mt-11 bg-cream-warm border border-hairline px-8 py-8 md:px-11">
         <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold" />
         <div className="font-ui uppercase tracking-editorial text-[10px] text-gold-deep mb-4">O balansie</div>
-        <p className="font-serif-body italic text-[19px] text-muted leading-[1.6] max-w-[72ch]">
+        <p className="font-serif-body italic text-[16px] text-muted leading-[1.6] max-w-[72ch]">
           transformacja działa najlepiej, gdy <em className="text-gold-deep">żaden filar nie jest całkowicie zaniedbany</em>. nie musisz równo rozkładać energii każdego dnia — ale co tydzień sprawdź, czy nie ignorujesz żadnego obszaru przez zbyt długi czas.
         </p>
       </section>

@@ -68,10 +68,10 @@ export default function QuestsPage() {
         <div className="flex items-center gap-3 font-ui uppercase tracking-editorial text-[10px] text-muted mb-3.5">
           Biblioteka <span className="text-gold">∴</span> Vol. I
         </div>
-        <h1 className="font-display font-medium text-dark leading-[1] tracking-[-1.4px] text-[clamp(2.5rem,6vw,3.75rem)]">
+        <h1 className="font-display font-medium text-dark leading-tight tracking-[-0.5px] text-[clamp(1.75rem,5vw,2.5rem)]">
           Side <em className="italic font-normal text-gold-deep">Questy</em>
         </h1>
-        <p className="mt-4 font-serif-body italic text-[18px] text-muted">
+        <p className="mt-2 font-serif-body italic text-[14px] text-muted">
           <strong className="font-display not-italic font-medium text-gold-deep">{toRoman(SIDE_QUESTS.length)}</strong> questów w bibliotece
           <span className="text-gold mx-2">·</span>
           <strong className="font-display not-italic font-medium text-gold-deep">{toRoman(totalCompleted)}</strong> {totalCompleted === 1 ? 'ukończony' : 'ukończone'} dziś
@@ -175,18 +175,18 @@ export default function QuestsPage() {
                 </div>
                 <div className="text-right leading-none shrink-0">
                   <div className="font-ui uppercase tracking-editorial text-[8px] text-muted-light">Nagroda</div>
-                  <div className="font-display font-medium text-[30px] text-gold-deep tracking-[-0.5px] mt-1.5">
-                    <span className="font-serif-body italic font-normal text-[20px] text-gold mr-px">+</span>{quest.xp}
+                  <div className="font-display font-medium text-[24px] text-gold-deep tracking-[-0.5px] mt-1.5">
+                    <span className="font-serif-body italic font-normal text-[17px] text-gold mr-px">+</span>{quest.xp}
                     <small className="block mt-0.5 font-ui not-italic text-[8px] tracking-editorial text-muted-light uppercase">xp</small>
                   </div>
                 </div>
               </div>
 
               {/* title + desc */}
-              <h2 className={clsx('font-display font-medium text-[26px] leading-[1.08] tracking-[-0.4px]', done ? 'text-muted' : 'text-dark')}>
+              <h2 className={clsx('font-display font-medium text-[20px] leading-[1.12] tracking-[-0.4px]', done ? 'text-muted' : 'text-dark')}>
                 {quest.title}
               </h2>
-              <p className={clsx('font-serif-body italic text-[16px] leading-[1.45] mt-2 max-w-[42ch]', done ? 'text-muted-light' : 'text-muted')}>
+              <p className={clsx('font-serif-body italic text-[14px] leading-[1.5] mt-2 max-w-[42ch]', done ? 'text-muted-light' : 'text-muted')}>
                 {quest.description}
               </p>
 
@@ -250,7 +250,7 @@ export default function QuestsPage() {
           <span className="text-gold text-[12px] leading-none">∴ ◆ ∴</span>
           <span className="w-[180px] max-w-[30%] h-px bg-hairline" />
         </div>
-        <blockquote className="font-serif-body italic text-[18px] text-muted leading-[1.55] max-w-[540px] mx-auto">
+        <blockquote className="font-serif-body italic text-[16px] text-muted leading-[1.55] max-w-[540px] mx-auto">
           „questy poboczne to nie obowiązek — to miejsca, w których stajesz się sobą poza planem."
         </blockquote>
         <div className="mt-6">
