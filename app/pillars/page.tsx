@@ -6,6 +6,19 @@ import { Pillar } from '@/types'
 import RedirectEnergyWidget from '@/components/RedirectEnergyWidget'
 import { SmallCaps, RomanNumeral } from '@/components/ui'
 
+// Paleta wykresowa (z mocka Filary) — jaśniejsza i bardziej zróżnicowana niż
+// surowe pillar.color (te są w większości ciemne → donut robił się czarny).
+// Używana TYLKO na tej stronie (donut, legenda, karty), spójnie.
+const CHART_COLOR: Record<string, string> = {
+  pozycja:   '#4A665D', // Wnętrze — teal-green
+  cialo:     '#4F5F42', // Ciało — sage deep
+  styl:      '#8E7338', // Styl — gold deep
+  kapital:   '#B56A6A', // Relacje — rose
+  kariera:   '#4D6173', // Kariera — steel
+  tozsamosc: '#574767', // Tożsamość — violet deep
+  milosc:    '#8A3A2C', // Miłość — rust
+}
+
 // Narożne ornamenty (góra-lewo / dół-prawo) — sygnatura systemu
 function Corners() {
   return (
@@ -34,6 +47,7 @@ export default function PillarsPage() {
   const pillarData = PILLARS.map((p, idx) => ({
     ...p,
     idx,
+    color: CHART_COLOR[p.id] ?? p.color,
     xp: stats.pillarXP[p.id as Pillar] ?? 0,
   }))
 
