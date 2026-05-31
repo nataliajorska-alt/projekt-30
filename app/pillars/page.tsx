@@ -4,166 +4,201 @@ import { PILLARS } from '@/lib/pillars'
 import { SkeletonPillarList, SkeletonCard } from '@/components/SkeletonCard'
 import { Pillar } from '@/types'
 import RedirectEnergyWidget from '@/components/RedirectEnergyWidget'
-import { SmallCaps, Diamond, Fleuron, GoldRule, RomanNumeral } from '@/components/ui'
+import { SmallCaps, RomanNumeral } from '@/components/ui'
+
+// Narożne ornamenty (góra-lewo / dół-prawo) — sygnatura systemu
+function Corners() {
+  return (
+    <>
+      <span aria-hidden className="pointer-events-none absolute top-2 left-2 w-2 h-2 border-t border-l border-gold-light/70" />
+      <span aria-hidden className="pointer-events-none absolute bottom-2 right-2 w-2 h-2 border-b border-r border-gold-light/70" />
+    </>
+  )
+}
 
 export default function PillarsPage() {
   const { stats, loading } = useGameData()
 
   if (loading) return (
-    <div className="max-w-2xl mx-auto px-4 pt-6 pb-8">
+    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12">
       <div className="mb-6">
         <div className="bg-cream h-3 w-16 mb-2 animate-pulse" />
-        <div className="bg-cream h-7 w-32 mb-2 animate-pulse" />
+        <div className="bg-cream h-7 w-40 mb-2 animate-pulse" />
         <div className="bg-cream h-3 w-48 animate-pulse" />
       </div>
-      <SkeletonCard className="mb-6 h-48" />
+      <SkeletonCard className="mb-6 h-64" />
       <SkeletonPillarList count={7} />
     </div>
   )
 
-  const pillarData = PILLARS.map(p => ({
+  const pillarData = PILLARS.map((p, idx) => ({
     ...p,
+    idx,
     xp: stats.pillarXP[p.id as Pillar] ?? 0,
   }))
 
-  const totalXP = pillarData.reduce((acc, p) => acc + p.xp, 0) || 1
-  const maxXP = Math.max(...pillarData.map(p => p.xp), 1)
+  const totalXP = pillarData.reduce((acc, p) => acc + p.xp, 0)
   const sortedByXP = [...pillarData].sort((a, b) => b.xp - a.xp)
+
+  // Conic-gradient pierścienia — segmenty w kolejności malejącej, każdy w kolorze filaru
+  let acc = 0
+  const stops = sortedByXP
+    .filter(p => p.xp > 0)
+    .map(p => {
+      const start = acc
+      acc += (p.xp / totalXP) * 100
+      return `${p.color} ${start}% ${acc}%`
+    })
+    .join(', ')
+  const donutBg = totalXP > 0 ? `conic-gradient(${stops})` : undefined
 
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
-      {/* Editorial header */}
-      <header className="mb-8">
-        <SmallCaps tone="muted" tracking="editorial" size="xs">
-          Balans · Vol. I
-        </SmallCaps>
-        <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.75rem)] leading-tight mt-2">
-          Siedem Filarów
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <header>
+        <div className="flex items-center gap-3 font-ui uppercase tracking-editorial text-[10px] text-muted mb-3.5">
+          Balans <span className="text-gold">∴</span> Vol. I
+        </div>
+        <h1 className="font-display font-medium text-dark leading-[1] tracking-[-1.4px] text-[clamp(2.5rem,6vw,3.75rem)]">
+          Siedem <em className="italic font-normal text-gold-deep">Filarów</em>
         </h1>
-        <p className="font-serif-body italic text-muted text-[14px] mt-2">
+        <p className="mt-4 font-serif-body italic text-[18px] text-muted">
           gdzie kierujesz energię? dbaj o równowagę.
         </p>
-        <GoldRule variant="diamond" tone="gold-deep" className="mt-5 opacity-50" />
       </header>
 
-      {/* XP distribution */}
-      <section className="bg-ivory border border-gold-light/40 p-6 mb-6">
-        <div className="flex items-baseline gap-3 mb-5">
-          <Diamond size={6} className="text-gold-deep" />
-          <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
-            Rozkład XP według filaru
-          </SmallCaps>
+      <div className="flex items-center gap-3.5 my-7">
+        <span className="flex-1 h-px bg-hairline" />
+        <span className="text-gold text-[13px] leading-none">∴</span>
+        <span className="flex-1 h-px bg-hairline" />
+      </div>
+
+      {/* ── Distribution panel (pierścień + legenda) ───────────── */}
+      <section className="relative bg-ivory border border-hairline p-7 md:px-10 md:py-8 mb-10">
+        <Corners />
+        <div className="flex items-center gap-2.5 font-ui uppercase tracking-editorial text-[10px] text-gold-deep mb-6">
+          <span className="text-gold text-[8px]">◆</span> Rozkład XP według filaru
         </div>
 
-        <div className="space-y-4">
-          {sortedByXP.map((p, idx) => {
-            const pct = Math.round((p.xp / totalXP) * 100)
-            const barPct = Math.round((p.xp / maxXP) * 100)
-            return (
-              <div key={p.id}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <RomanNumeral
-                      value={idx + 1}
-                      className="text-gold-deep text-sm w-6 text-center shrink-0"
-                    />
-                    <span
-                      className="font-heading text-dark text-base"
-                      style={{ color: p.color }}
-                    >
-                      {p.shortName}
-                    </span>
-                  </div>
-                  <div className="flex items-baseline gap-3">
-                    <SmallCaps tone="muted" tracking="luxury" size="xs">
-                      {pct}%
-                    </SmallCaps>
-                    <span className="font-ui text-[11px] text-muted-light w-20 text-right tabular-nums">
-                      {p.xp.toLocaleString('pl-PL')} XP
-                    </span>
-                  </div>
-                </div>
-                <div className="relative h-px w-full bg-hairline">
-                  <div
-                    className="absolute left-0 top-0 h-px transition-all duration-700"
-                    style={{
-                      width: `${barPct}%`,
-                      backgroundColor: p.color,
-                      opacity: barPct === 0 ? 0.3 : 1,
-                    }}
-                  />
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-8 md:gap-14 items-center">
+          {/* Donut */}
+          <div
+            className={`relative w-[248px] h-[248px] max-w-full rounded-full mx-auto${donutBg ? '' : ' bg-hairline/40'}`}
+            style={donutBg ? { background: donutBg } : undefined}
+          >
+            <div className="absolute inset-[46px] rounded-full bg-ivory border border-border" />
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center">
+              <div className="font-display font-medium text-[38px] text-dark tracking-[-1px] leading-none">
+                {totalXP.toLocaleString('pl-PL')}
               </div>
-            )
-          })}
+              <div className="font-ui uppercase tracking-editorial text-[9px] text-muted mt-1">XP łącznie</div>
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 w-full">
+            {sortedByXP.map(p => {
+              const pct = totalXP > 0 ? Math.round((p.xp / totalXP) * 100) : 0
+              return (
+                <div
+                  key={p.id}
+                  className="grid grid-cols-[10px_auto_1fr_auto_auto] items-baseline gap-3 py-2.5 border-b border-border"
+                >
+                  <span className="w-[9px] h-[9px] rotate-45 self-center shrink-0" style={{ background: p.color }} />
+                  <span className="font-display font-medium text-[18px] tracking-[-0.3px]" style={{ color: p.color }}>
+                    {p.shortName}
+                  </span>
+                  <span className="border-b border-dotted border-hairline -translate-y-[5px] min-w-[16px]" />
+                  <span className="font-ui text-[11px] text-muted text-right min-w-[30px] tabular-nums">{pct}%</span>
+                  <span className="font-display font-medium text-[15px] text-right min-w-[60px]" style={{ color: p.color }}>
+                    {p.xp.toLocaleString('pl-PL')}
+                    <small className="font-ui font-normal text-[8px] tracking-[0.2em] text-muted-light uppercase ml-0.5">xp</small>
+                  </span>
+                </div>
+              )
+            })}
+          </div>
         </div>
 
-        {totalXP === 1 && (
+        {totalXP === 0 && (
           <p className="font-serif-body italic text-muted-light text-[13px] text-center mt-6">
             zacznij zdobywać xp, aby zobaczyć swój rozkład energii.
           </p>
         )}
       </section>
 
-      {/* Pillar cards */}
-      <div className="grid grid-cols-1 gap-4">
-        {PILLARS.map((p, idx) => {
-          const xp = stats.pillarXP[p.id as Pillar] ?? 0
-          return (
-            <div
-              key={p.id}
-              className="bg-ivory border border-gold-light/40 p-5 flex items-start gap-4"
-            >
+      {/* ── Section label ──────────────────────────────────────── */}
+      <div className="flex items-center gap-3 font-ui uppercase tracking-editorial text-[10px] text-muted mb-5">
+        Filary <span className="flex-1 h-px bg-hairline" />
+      </div>
+
+      {/* ── Pillar grid ────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[18px]">
+        {pillarData.map(p => {
+          const featured = p.id === 'milosc'
+
+          const header = (
+            <div className="flex gap-5">
               <div
-                className="w-12 h-12 border border-gold flex items-center justify-center flex-shrink-0"
-                style={{ color: p.color }}
+                className="shrink-0 w-[60px] h-[60px] border flex items-center justify-center font-display italic text-[26px]"
+                style={{ color: p.color, borderColor: p.color }}
               >
-                <RomanNumeral value={idx + 1} className="text-xl" />
+                <RomanNumeral value={p.idx + 1} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span style={{ color: p.color }}>
-                    <Diamond size={5} />
-                  </span>
-                  <SmallCaps tracking="luxury" size="xs">
-                    <span style={{ color: p.color }}>{p.shortName}</span>
-                  </SmallCaps>
+                <div className="inline-flex items-center gap-2 font-ui uppercase tracking-editorial text-[9.5px] mb-2" style={{ color: p.color }}>
+                  <span className="text-[7px]">◆</span> {p.shortName}
                 </div>
-                <h3 className="font-heading text-dark text-lg leading-tight">{p.name}</h3>
-                <p className="font-serif-body italic text-muted text-[13px] mt-1 leading-relaxed">
+                <h2 className="font-display font-medium text-[25px] text-dark leading-[1.05] tracking-[-0.4px]">
+                  {p.name}
+                </h2>
+                <p className="font-serif-body italic text-[15.5px] text-muted leading-[1.4] mt-2">
                   {p.description}
                 </p>
-                <div className="flex items-center gap-3 mt-3">
-                  <SmallCaps tracking="luxury" size="xs">
-                    <span style={{ color: p.color }}>
-                      {xp.toLocaleString('pl-PL')} XP
-                    </span>
-                  </SmallCaps>
-                  {xp === 0 && (
-                    <SmallCaps tone="muted" tracking="luxury" size="xs" className="opacity-70">
-                      nieaktywny
-                    </SmallCaps>
+                <div className="mt-4 pt-3.5 border-t border-border flex items-baseline justify-between gap-3">
+                  <div className="font-display font-medium text-[19px] tracking-[-0.2px]" style={{ color: p.color }}>
+                    {p.xp.toLocaleString('pl-PL')}
+                    <small className="font-ui font-normal text-[9px] tracking-luxury text-muted-light uppercase ml-1.5">xp</small>
+                  </div>
+                  {p.xp === 0 && (
+                    <SmallCaps tone="muted" tracking="luxury" size="xs" className="opacity-70">nieaktywny</SmallCaps>
                   )}
                 </div>
-                {p.id === 'milosc' && <RedirectEnergyWidget />}
               </div>
             </div>
+          )
+
+          if (featured) {
+            return (
+              <article
+                key={p.id}
+                className="relative md:col-span-2 border border-hairline p-6 md:p-7 flex flex-col"
+                style={{ background: 'linear-gradient(180deg, rgba(139,58,58,0.05), rgba(139,58,58,0) 40%), #FAF8F4' }}
+              >
+                <Corners />
+                {header}
+                <RedirectEnergyWidget />
+              </article>
+            )
+          }
+
+          return (
+            <article key={p.id} className="relative border border-hairline bg-ivory p-6 md:p-7">
+              <Corners />
+              {header}
+            </article>
           )
         })}
       </div>
 
-      {/* Balance note */}
-      <div className="mt-6 relative bg-cream border border-gold-light/30 p-6">
-        <Fleuron size={12} className="text-gold absolute -top-2 left-6 bg-cream px-1" />
-        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-          O balansie
-        </SmallCaps>
-        <p className="font-serif-body italic text-dark text-[14px] mt-3 leading-relaxed">
-          transformacja działa najlepiej, gdy żaden filar nie jest całkowicie zaniedbany.
-          nie musisz równo rozkładać energii każdego dnia — ale co tydzień sprawdź,
-          czy nie ignorujesz żadnego obszaru przez zbyt długi czas.
+      {/* ── O balansie ─────────────────────────────────────────── */}
+      <section className="relative mt-11 bg-cream-warm border border-hairline px-8 py-8 md:px-11">
+        <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[3px] bg-gold" />
+        <div className="font-ui uppercase tracking-editorial text-[10px] text-gold-deep mb-4">O balansie</div>
+        <p className="font-serif-body italic text-[19px] text-muted leading-[1.6] max-w-[72ch]">
+          transformacja działa najlepiej, gdy <em className="text-gold-deep">żaden filar nie jest całkowicie zaniedbany</em>. nie musisz równo rozkładać energii każdego dnia — ale co tydzień sprawdź, czy nie ignorujesz żadnego obszaru przez zbyt długi czas.
         </p>
-      </div>
+      </section>
     </div>
   )
 }
