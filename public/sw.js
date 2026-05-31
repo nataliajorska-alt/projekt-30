@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v3-bodoni';
+const CACHE_NAME = 'p30-v4-cykl';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {
