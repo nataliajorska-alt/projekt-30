@@ -191,8 +191,19 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
     }
     return d
   }
-  const measured = (key: 'energy' | 'mood') =>
-    smooth(points.filter(p => p[key] != null).map(p => ({ x: x(p.day), y: y(p[key] as number) })))
+  // Linia trendu: centrowana średnia krocząca (okno ±2 = 5 dni) z pomiarów, potem wygładzona.
+  // Pokazuje kierunek, nie dzienny szum. Surowe pomiary zostają jako kropki.
+  const trend = (key: 'energy' | 'mood') => {
+    const s = points.filter(p => p[key] != null).map(p => ({ day: p.day, v: p[key] as number }))
+    if (s.length < 2) return ''
+    const W2 = 2
+    const avg = s.map((_, i) => {
+      let sum = 0, n = 0
+      for (let j = Math.max(0, i - W2); j <= Math.min(s.length - 1, i + W2); j++) { sum += s[j].v; n++ }
+      return { x: x(s[i].day), y: y(sum / n) }
+    })
+    return smooth(avg)
+  }
 
   // Typowy wzór cyklu (tło) — gaussowski szczyt w owulacji, wypełnia też przyszłość
   const ovuMid = (ranges.owulacyjna[0] + ranges.owulacyjna[1]) / 2
@@ -228,7 +239,7 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
           </span>
         </div>
       </div>
-      <p className="font-serif-body italic text-[13px] text-muted mb-3">linia — Twoje pomiary (ten cykl, dzień {cycleDay} z {C}) · tło — typowy wzór cyklu</p>
+      <p className="font-serif-body italic text-[13px] text-muted mb-3">linia — trend z Twoich pomiarów (ten cykl, dzień {cycleDay} z {C}) · kropki — pomiary · tło — typowy wzór</p>
       <svg viewBox={`0 0 ${W} ${H + 4}`} className="w-full h-auto block">
         {ORDER.map(id => {
           const [from, to] = ranges[id]
@@ -238,11 +249,13 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
         <line x1={todayX} y1={6} x2={todayX} y2={H} stroke={MAUVE_D} strokeWidth={1.2} strokeDasharray="4 5" />
         <text x={todayX} y={4} textAnchor="middle" fontFamily="Inter,sans-serif" fontSize={9} letterSpacing={2} fill={MAUVE_D}>DZIŚ</text>
         <path d={modelPath} fill="none" stroke={MAUVE} strokeWidth={2} opacity={0.22} strokeLinecap="round" />
-        <path d={measured('mood')} fill="none" stroke="#B56A6A" strokeWidth={1.8} strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={measured('energy')} fill="none" stroke={MAUVE_D} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+        {/* surowe pomiary — delikatne kropki w tle */}
         {points.filter(p => p.energy != null).map(p => (
-          <circle key={p.day} cx={x(p.day)} cy={y(p.energy as number)} r={2.2} fill={MAUVE_D} />
+          <circle key={`e${p.day}`} cx={x(p.day)} cy={y(p.energy as number)} r={1.8} fill={MAUVE_D} fillOpacity={0.3} />
         ))}
+        {/* linie trendu */}
+        <path d={trend('mood')} fill="none" stroke="#B56A6A" strokeWidth={1.8} strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={trend('energy')} fill="none" stroke={MAUVE_D} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <div className="relative h-5 mt-2">
         {ORDER.map(id => {
