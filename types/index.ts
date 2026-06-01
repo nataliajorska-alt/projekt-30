@@ -51,14 +51,21 @@ export interface Quest {
   steps?: string[]  // opcjonalne etapy dla złożonych questów
 }
 
-// Ghost Protocol V2 — nowy system kategorii
+// Ghost Protocol — kategorie po zablokowaniu (rdzeń: nie sprawdzać)
 export type GhostCategory =
+  // aktywne kategorie (widoczne w GHOST_CATEGORIES)
+  | 'chce_sprawdzic'
+  | 'zastapienie'
+  | 'nie_do_wybrania'
+  | 'strach_przyszlosc'
+  | 'tesknota_hustawka'
+  | 'flashback'
+  | 'kontakt_zewnetrzny'
+  // legacy — stare wpisy z maja, niewidoczne w UI, zachowane dla zgodności logów
   | 'social_slady'
   | 'zycie_rownolegla'
-  | 'flashback'
   | 'brak_gestu'
   | 'proximity'
-  | 'kontakt_zewnetrzny'
   | 'chce_podzielic'
   | 'stan_wewnetrzny'
 

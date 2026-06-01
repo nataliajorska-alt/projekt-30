@@ -211,7 +211,7 @@ export default function GhostProtocolV2() {
           className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
         >
           <span className="text-gold text-[9px] leading-none">∴</span>
-          <span>Już zrobiłam</span>
+          <span>Sprawdziłam</span>
         </button>
       </div>
     )
@@ -476,12 +476,12 @@ export default function GhostProtocolV2() {
             </div>
 
             <SmallCaps tone="parchment" tracking="luxury" size="xs" as="div" className="text-center mb-3 opacity-70">
-              Był kontakt?
+              Sprawdzałaś albo szukałaś?
             </SmallCaps>
             <div className="grid grid-cols-2 gap-3 mb-7">
               {([
-                { value: false, label: 'Nie był' },
-                { value: true,  label: 'Był' },
+                { value: false, label: 'Nie' },
+                { value: true,  label: 'Tak' },
               ] as const).map(c => {
                 const sel = hadContact === c.value
                 return (
@@ -532,8 +532,8 @@ export default function GhostProtocolV2() {
             </p>
             <p className="font-serif-body italic text-parchment text-[14px] mb-7 leading-relaxed">
               {noContact
-                ? 'każdy raz kiedy nie piszesz, budujesz kogoś, kto nie musi.'
-                : 'dane z porażki są cenniejsze niż każdy sukces.'}
+                ? 'każdy raz, kiedy nie sprawdzasz, odzyskujesz kawałek siebie.'
+                : 'sprawdzenie to dane, nie porażka. teraz wiesz, co cię pcha.'}
             </p>
             <GoldRule variant="diamond" tone="gold" className="max-w-xs mx-auto mb-6" />
             <div className="inline-flex items-center gap-3 border border-gold-light/40 px-5 py-2 mb-8">
@@ -567,7 +567,7 @@ export default function GhostProtocolV2() {
             <FrameLabel>Uczciwy Log</FrameLabel>
             <Fleuron size={20} className="text-gold mx-auto mb-6 inline-block" />
             <h2 className="font-display text-ivory text-3xl leading-tight mb-4">
-              Napisałaś. Stało się.
+              Sprawdziłaś. Stało się.
             </h2>
             <p className="font-serif-body italic text-parchment text-[14px] leading-relaxed mb-10">
               nie ma kary, nie ma wstydu. jest wiedza, którą możemy razem wyciągnąć.
@@ -740,7 +740,7 @@ export default function GhostProtocolV2() {
                   value={hFeeling}
                   onChange={e => setHFeeling(e.target.value)}
                   rows={3}
-                  placeholder="zanim on odpowie, zanim cokolwiek…"
+                  placeholder="jak jest teraz, zanim cokolwiek dalej…"
                   className="w-full bg-forest/20 border border-ivory/15 px-4 py-3 font-serif-body italic text-[14px] text-ivory placeholder-ivory/30 focus:outline-none focus:border-gold/50 resize-none"
                 />
               </div>
@@ -781,7 +781,7 @@ export default function GhostProtocolV2() {
               value={hPlan}
               onChange={e => setHPlan(e.target.value)}
               rows={5}
-              placeholder="następnym razem gdy poczuję tęsknotę bez powodu, zamiast pisać…"
+              placeholder="następnym razem, gdy poczuję impuls, zamiast sprawdzać…"
               className="w-full bg-forest/20 border border-ivory/15 px-4 py-3 font-serif-body italic text-[14px] text-ivory placeholder-ivory/30 focus:outline-none focus:border-gold/50 resize-none mb-8"
             />
 
