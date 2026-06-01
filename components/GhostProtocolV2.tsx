@@ -4,7 +4,11 @@ import { useState, useCallback } from 'react'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { useGhostV2 } from '@/hooks/useGhostV2'
-import { GHOST_CATEGORIES, INTENSITY_LABELS, intensityTier } from '@/lib/ghost-data'
+import { useNominatedContacts } from '@/hooks/useNominatedContacts'
+import {
+  GHOST_CATEGORIES, INTENSITY_LABELS, intensityTier,
+  EXPRESS_STEPS, TOUCHSTONE_SECTIONS,
+} from '@/lib/ghost-data'
 import type { GhostCategory, GhostLogEntryV2, HonestFailureEntry, GhostOutcome } from '@/types'
 import EmergencyLock from './EmergencyLock'
 import RedirectEnergyWidget from './RedirectEnergyWidget'
@@ -21,7 +25,10 @@ type HonestPhase =
   | 'honest_start' | 'honest_context' | 'honest_reflection'
   | 'honest_plan' | 'honest_done'
 
-type ActiveFlow = { type: 'impulse'; phase: ImpulsePhase } | { type: 'honest'; phase: HonestPhase }
+type ActiveFlow =
+  | { type: 'impulse'; phase: ImpulsePhase }
+  | { type: 'honest'; phase: HonestPhase }
+  | { type: 'express' }
 
 // ─── Frame ───────────────────────────────────────────────────────
 
@@ -76,14 +83,145 @@ function GhostButton({
   )
 }
 
+// ─── Touchstone "Prawda na zimno" ────────────────────────────────
+
+function TouchstoneScreen({ onClose }: { onClose: () => void }) {
+  return (
+    <Frame>
+      <div className="w-full max-w-sm">
+        <FrameLabel>Prawda na zimno</FrameLabel>
+        <p className="font-serif-body italic text-parchment text-[14px] text-center mb-8">
+          od ciebie z chłodnej głowy, do ciebie teraz.
+        </p>
+        <div className="space-y-6">
+          {TOUCHSTONE_SECTIONS.map((s, i) => (
+            <div key={i}>
+              <SmallCaps tone="gold-light" tracking="luxury" size="xs" as="div" className="mb-2">
+                {s.title}
+              </SmallCaps>
+              <p className="font-serif-body text-ivory/90 text-[14px] leading-relaxed">
+                {s.body}
+              </p>
+              {i < TOUCHSTONE_SECTIONS.length - 1 && (
+                <div className="h-px bg-gold-light/15 mt-6" />
+              )}
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={onClose}
+          className="w-full text-center font-ui uppercase tracking-luxury text-[10px] text-parchment/60 hover:text-parchment transition-colors mt-9 py-2"
+        >
+          zamknij  ◆
+        </button>
+      </div>
+    </Frame>
+  )
+}
+
+// ─── Ekspres "Tonę teraz" ────────────────────────────────────────
+
+function ExpressScreen({
+  contacts,
+  onLock,
+  onTouchstone,
+  onCategorize,
+  onClose,
+}: {
+  contacts: { name: string; phone: string }[]
+  onLock: () => void
+  onTouchstone: () => void
+  onCategorize: () => void
+  onClose: () => void
+}) {
+  return (
+    <Frame>
+      <div className="w-full max-w-sm">
+        <FrameLabel>Tonę teraz</FrameLabel>
+        <h2 className="font-display text-ivory text-3xl text-center leading-tight mb-2">
+          Zejdź najpierw ciałem.
+        </h2>
+        <p className="font-serif-body italic text-parchment text-[14px] text-center mb-8">
+          nie musisz nic nazywać. najpierw układ nerwowy.
+        </p>
+
+        <div className="space-y-3 mb-7">
+          {EXPRESS_STEPS.map((step, i) => (
+            <div key={i} className="bg-forest/30 border border-gold-light/20 px-5 py-4 text-left">
+              <div className="flex items-center gap-3 mb-1.5">
+                <span className="flex-shrink-0 w-7 h-7 border border-gold/50 flex items-center justify-center">
+                  <span className="font-display text-gold text-sm leading-none">{toRoman(i + 1)}</span>
+                </span>
+                <SmallCaps tone="gold-light" tracking="luxury" size="xs">
+                  {step.label}
+                </SmallCaps>
+              </div>
+              <p className="font-serif-body text-parchment text-[13px] leading-relaxed">
+                {step.detail}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {contacts.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Diamond size={5} className="text-gold" />
+              <SmallCaps tone="parchment" tracking="luxury" size="xs">
+                Zadzwoń zamiast sprawdzać
+              </SmallCaps>
+            </div>
+            <div className="flex gap-2">
+              {contacts.map(c => (
+                <a
+                  key={c.phone}
+                  href={`tel:${c.phone}`}
+                  className="flex-1 py-3 border border-gold/30 bg-forest/30 hover:bg-forest/50 transition-all text-center"
+                >
+                  <SmallCaps tone="parchment" tracking="luxury" size="xs">{c.name}</SmallCaps>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={onLock}
+          className="w-full py-3.5 mb-3 bg-gold/15 border border-gold flex items-center justify-center gap-3 hover:bg-gold/25 transition-all"
+        >
+          <Diamond size={5} className="text-gold" filled />
+          <SmallCaps tone="gold-light" tracking="luxury" size="xs">Zamknij się na 20 min</SmallCaps>
+        </button>
+        <GhostButton onClick={onTouchstone} variant="secondary">
+          <SmallCaps tone="ivory" tracking="luxury" size="xs">Prawda na zimno</SmallCaps>
+        </GhostButton>
+        <button
+          onClick={onCategorize}
+          className="w-full text-center font-ui uppercase tracking-luxury text-[10px] text-parchment/60 hover:text-parchment transition-colors mt-4 py-1"
+        >
+          nazwij, co to było
+        </button>
+        <button
+          onClick={onClose}
+          className="w-full text-center font-ui uppercase tracking-luxury text-[10px] text-parchment/50 hover:text-parchment transition-colors mt-1 py-1"
+        >
+          gotowe
+        </button>
+      </div>
+    </Frame>
+  )
+}
+
 // ─── Component ───────────────────────────────────────────────────
 
 export default function GhostProtocolV2() {
   const { todayLog, recordGhostImpulseV2, recordHonestFailure } = useGameData()
   const { saveImpulseEntry, saveFailureEntry } = useGhostV2()
+  const { contacts } = useNominatedContacts()
 
   const [flow, setFlow] = useState<ActiveFlow | null>(null)
   const [showEmergencyLock, setShowEmergencyLock] = useState(false)
+  const [showTouchstone, setShowTouchstone] = useState(false)
 
   // Impulse
   const [selectedCategory, setSelectedCategory] = useState<GhostCategory | null>(null)
@@ -192,28 +330,66 @@ export default function GhostProtocolV2() {
     setFlow({ type: 'honest', phase: 'honest_done' })
   }, [hCategory, hSubcategory, hIntensity, hStopped, hFeeling, hPlan, recordHonestFailure, saveFailureEntry])
 
+  // ─── Overlays (zawsze na wierzchu) ──────────────────────────────
+
+  if (showEmergencyLock) {
+    return <EmergencyLock onClose={() => { setShowEmergencyLock(false); reset() }} />
+  }
+  if (showTouchstone) {
+    return <TouchstoneScreen onClose={() => setShowTouchstone(false)} />
+  }
+
   // ─── Trigger row ────────────────────────────────────────────────
 
   if (!flow) {
-    // Inline twin buttons matching design `.zasada .twin .btn` — solid border, compact.
-    // Mobile: full-width row (each button flex-1). Desktop: compact inline (shrink-0).
+    // "Tonę teraz" — ekspres regulacji (jeden tap, bez kategoryzowania).
+    // Pod spodem twin: Mam impuls / Sprawdziłam. Niżej: Prawda na zimno.
     return (
-      <div className="flex sm:inline-flex w-full sm:w-auto items-center gap-2 sm:shrink-0">
+      <div className="flex flex-col w-full sm:w-auto items-stretch gap-2">
         <button
-          onClick={() => setFlow({ type: 'impulse', phase: 'category' })}
-          className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
+          onClick={() => setFlow({ type: 'express' })}
+          className="inline-flex items-center justify-center gap-2 bg-gold/15 border border-gold hover:bg-gold/25 transition-colors px-4 py-2 font-ui uppercase tracking-[0.32em] text-[10px] text-gold-deep"
         >
-          <span className="text-gold text-[9px] leading-none">◆</span>
-          <span>Mam impuls</span>
+          <span className="text-gold text-[9px] leading-none">❖</span>
+          <span>Tonę teraz</span>
         </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFlow({ type: 'impulse', phase: 'category' })}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
+          >
+            <span className="text-gold text-[9px] leading-none">◆</span>
+            <span>Mam impuls</span>
+          </button>
+          <button
+            onClick={startHonest}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
+          >
+            <span className="text-gold text-[9px] leading-none">∴</span>
+            <span>Sprawdziłam</span>
+          </button>
+        </div>
         <button
-          onClick={startHonest}
-          className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
+          onClick={() => setShowTouchstone(true)}
+          className="text-center font-ui uppercase tracking-luxury text-[10px] text-muted/70 hover:text-gold-deep transition-colors py-0.5"
         >
-          <span className="text-gold text-[9px] leading-none">∴</span>
-          <span>Sprawdziłam</span>
+          Prawda na zimno
         </button>
       </div>
+    )
+  }
+
+  // ─── EXPRESS FLOW ("Tonę teraz") ────────────────────────────────
+
+  if (flow.type === 'express') {
+    return (
+      <ExpressScreen
+        contacts={contacts}
+        onLock={() => setShowEmergencyLock(true)}
+        onTouchstone={() => setShowTouchstone(true)}
+        onCategorize={() => setFlow({ type: 'impulse', phase: 'category' })}
+        onClose={reset}
+      />
     )
   }
 
@@ -362,7 +538,8 @@ export default function GhostProtocolV2() {
       const intensityInfo = INTENSITY_LABELS[selectedIntensity]
       const subMeta = categoryMeta.subcategories.find(s => s.text === selectedSubcategory)
       const reframe = subMeta?.reframe ?? categoryMeta.intervention
-      const action = categoryMeta.actions[intensityTier(selectedIntensity)]
+      const tier = intensityTier(selectedIntensity)
+      const action = categoryMeta.actions[tier]
       return (
         <Frame>
           <div className="w-full max-w-sm text-center">
@@ -382,37 +559,73 @@ export default function GhostProtocolV2() {
                 size={11}
                 className="text-gold absolute -top-2 left-1/2 -translate-x-1/2 bg-forest-deep px-1"
               />
-              {subMeta && (
-                <SmallCaps tone="parchment" tracking="luxury" size="xs" as="div" className="mb-2 opacity-60">
-                  {subMeta.text}
-                </SmallCaps>
+              {tier === 'high' ? (
+                <>
+                  <SmallCaps tone="gold-light" tracking="luxury" size="xs" as="div" className="mb-2">
+                    co teraz
+                  </SmallCaps>
+                  <p className="font-serif-body text-ivory text-[15px] leading-relaxed">
+                    {action}
+                  </p>
+                  <div className="h-px bg-gold-light/20 my-5" />
+                  <p className="font-serif-body italic text-parchment text-[13px] leading-relaxed">
+                    {reframe}
+                  </p>
+                </>
+              ) : (
+                <>
+                  {subMeta && (
+                    <SmallCaps tone="parchment" tracking="luxury" size="xs" as="div" className="mb-2 opacity-60">
+                      {subMeta.text}
+                    </SmallCaps>
+                  )}
+                  <p className="font-serif-body italic text-ivory text-[15px] leading-relaxed">
+                    {reframe}
+                  </p>
+                  <div className="h-px bg-gold-light/20 my-5" />
+                  <SmallCaps tone="gold-light" tracking="luxury" size="xs" as="div" className="mb-2">
+                    co teraz
+                  </SmallCaps>
+                  <p className="font-serif-body text-parchment text-[13px] leading-relaxed">
+                    {action}
+                  </p>
+                </>
               )}
-              <p className="font-serif-body italic text-ivory text-[15px] leading-relaxed">
-                {reframe}
-              </p>
-
-              <div className="h-px bg-gold-light/20 my-5" />
-
-              <SmallCaps tone="gold-light" tracking="luxury" size="xs" as="div" className="mb-2">
-                co teraz
-              </SmallCaps>
-              <p className="font-serif-body text-parchment text-[13px] leading-relaxed">
-                {action}
-              </p>
             </div>
 
             <RedirectEnergyWidget compact />
 
-            {selectedIntensity >= 4 && (
-              <button
-                onClick={() => setShowEmergencyLock(true)}
-                className="w-full py-3.5 mt-5 mb-3 bg-gold/15 border border-gold flex items-center justify-center gap-3 hover:bg-gold/25 transition-all"
-              >
-                <Diamond size={5} className="text-gold" filled />
-                <SmallCaps tone="gold-light" tracking="luxury" size="xs">
-                  Emergency Lock
-                </SmallCaps>
-              </button>
+            {tier === 'high' && (
+              <div className="mt-5 mb-1 space-y-3">
+                {contacts.length > 0 && (
+                  <div className="flex gap-2">
+                    {contacts.map(c => (
+                      <a
+                        key={c.phone}
+                        href={`tel:${c.phone}`}
+                        className="flex-1 py-3 border border-gold/30 bg-forest/30 hover:bg-forest/50 transition-all text-center"
+                      >
+                        <SmallCaps tone="parchment" tracking="luxury" size="xs">{c.name}</SmallCaps>
+                      </a>
+                    ))}
+                  </div>
+                )}
+                <button
+                  onClick={() => setShowEmergencyLock(true)}
+                  className="w-full py-3.5 bg-gold/15 border border-gold flex items-center justify-center gap-3 hover:bg-gold/25 transition-all"
+                >
+                  <Diamond size={5} className="text-gold" filled />
+                  <SmallCaps tone="gold-light" tracking="luxury" size="xs">
+                    Zamknij się na 20 min
+                  </SmallCaps>
+                </button>
+                <button
+                  onClick={() => setShowTouchstone(true)}
+                  className="w-full text-center font-ui uppercase tracking-luxury text-[10px] text-parchment/60 hover:text-parchment transition-colors py-1"
+                >
+                  Prawda na zimno
+                </button>
+              </div>
             )}
             <GhostButton
               onClick={finishIntervention}
@@ -833,10 +1046,6 @@ export default function GhostProtocolV2() {
         </Frame>
       )
     }
-  }
-
-  if (showEmergencyLock) {
-    return <EmergencyLock onClose={() => { setShowEmergencyLock(false); reset() }} />
   }
 
   return null

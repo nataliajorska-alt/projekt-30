@@ -342,3 +342,79 @@ export const GHOST_CATEGORIES: GhostCategoryMeta[] = [
 
 export const getGhostCategory = (id: GhostCategory): GhostCategoryMeta =>
   GHOST_CATEGORIES.find(c => c.id === id) ?? GHOST_CATEGORIES[0]
+
+// ─── Ekspres "Tonę teraz" ────────────────────────────────────────
+// Szybka regulacja somatyczna bez kategoryzowania. Kolejność od
+// najszybszego sygnału dla układu nerwowego. Techniki sprawdzone:
+// cykliczne westchnienie (Stanford 2023), odruch nurkowania (DBT TIPP),
+// grounding 5-4-3-2-1, urge surfing (fala opada w 20-30 min).
+
+export interface ExpressStep {
+  label: string
+  detail: string
+}
+
+export const EXPRESS_STEPS: ExpressStep[] = [
+  {
+    label: 'Oddech, 5 razy',
+    detail:
+      'Dwa wdechy nosem (drugi krótki, dobierający na górze), potem długi, powolny wydech ustami. Powtórz 5 razy. Dłuższy wydech to najszybszy sygnał dla ciała, że jest bezpiecznie.',
+  },
+  {
+    label: 'Zimna woda, 30 sekund',
+    detail:
+      'Plusk zimnej wody na twarz albo kostka lodu w dłoni. Tętno spada w kilkadziesiąt sekund, ciało schodzi z napięcia szybciej niż głowa.',
+  },
+  {
+    label: '5-4-3-2-1',
+    detail:
+      '5 rzeczy, które widzisz, 4 które słyszysz, 3 których dotykasz, 2 zapachy, 1 smak. To wyciąga z głowy do tu i teraz.',
+  },
+  {
+    label: 'Przeczekaj falę',
+    detail:
+      'Fala szczytuje i opada zwykle w 20-30 minut, jeśli jej nie nakarmisz. Nie sprawdzasz, nie odblokowujesz. Zostań przy oddechu, aż zelżeje.',
+  },
+]
+
+// ─── Touchstone "Prawda na zimno" ────────────────────────────────
+// Zawsze dostępny ekran. List od ciebie z chłodnej głowy do ciebie
+// zalanej, twoimi słowami. W kryzysie pamięć o prawdzie znika pierwsza.
+
+export interface TouchstoneSection {
+  title: string
+  body: string
+}
+
+export const TOUCHSTONE_SECTIONS: TouchstoneSection[] = [
+  {
+    title: 'Co wybrałam',
+    body:
+      'Zablokowałam go z chłodnej głowy, nie z impulsu. To był akt sprawczości, nie słabości. Nie straciłam związku. Wyszłam z czegoś, co mnie raniło.',
+  },
+  {
+    title: 'Co to było naprawdę',
+    body:
+      'To nie był wyjątkowy związek, był intensywny, a to nie to samo. Była w nim przemoc: wyzwiska, machanie rękami przy twarzy, łapanie do bólu, przyparcie do ściany nad ranem, śmiech z mojego strachu. To nie były gorsze momenty. To była przemoc.',
+  },
+  {
+    title: 'Za czym tęsknię',
+    body:
+      'Tęsknię za huśtawką, nie za bezpieczeństwem, bo bezpieczeństwa przy nim nie miałam. Raz blisko, raz strach, to uzależnia mocniej niż spokój, jak automat do gier. Dlatego boli, nie dlatego, że to była wielka miłość.',
+  },
+  {
+    title: 'Że szybko ma nową',
+    body:
+      'To nie mówi nic o mojej wartości. Mówi o jego niezdolności do bycia samemu i ze swoim bólem. On zagłusza, ja przerabiam. Ona nie dostała lepszego jego, jest na początku drogi, z której ja właśnie wyszłam. Byłam wzorcem, nie zostałam prześcignięta.',
+  },
+  {
+    title: 'Czego nie robię',
+    body:
+      'Nie sprawdzam i nie szukam "dlaczego". Przy kimś, kto stosował przemoc, nie ma odpowiedzi, która da mi spokój. Każda informacja to paliwo do ruminacji, nie ulga.',
+  },
+  {
+    title: 'Kiedy się zatracam',
+    body:
+      'Przetwarzanie ma kierunek i przynosi ulgę. Ruminacja kręci się w kółko. Test: czy ta myśl gdzieś mnie prowadzi, czy tylko się kręci. Jeśli się kręci, wolno mi ją przerwać. To nie ucieczka, to zdjęcie ręki z gorącego pieca.',
+  },
+]

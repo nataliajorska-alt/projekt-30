@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v14-cykl-labels';
+const CACHE_NAME = 'p30-v15-ghost-rescue';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {
