@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { getDailyRedirectQuests } from '@/lib/redirect-quests'
-import { SmallCaps, Diamond, GoldRule } from '@/components/ui'
+import { SmallCaps, Diamond, GoldRule, RedirectGlyph } from '@/components/ui'
 
 interface Props {
   compact?: boolean
@@ -44,7 +44,11 @@ export default function RedirectEnergyWidget({ compact = false }: Props) {
                     : 'border-ivory/15 bg-forest/20 hover:bg-forest/40 hover:border-gold/40'
                 )}
               >
-                <span className="text-lg shrink-0">{q.emoji}</span>
+                <RedirectGlyph
+                  id={q.id}
+                  size={20}
+                  className={clsx('shrink-0', done ? 'text-gold/50' : 'text-gold-light/80')}
+                />
                 <div className="flex-1 min-w-0">
                   <p
                     className={clsx(
@@ -104,7 +108,9 @@ export default function RedirectEnergyWidget({ compact = false }: Props) {
                   : { borderColor: `${WINE}25`, background: `${WINE}05` }
               }
             >
-              <span className="text-base shrink-0">{q.emoji}</span>
+              <span className="shrink-0" style={{ color: done ? `${WINE}90` : WINE }}>
+                <RedirectGlyph id={q.id} size={18} />
+              </span>
               <div className="flex-1 min-w-0">
                 <p
                   className={clsx(

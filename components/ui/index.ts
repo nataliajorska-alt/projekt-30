@@ -1,4 +1,5 @@
 export { Diamond } from './Diamond';
+export { RedirectGlyph } from './RedirectGlyph';
 export { Fleuron } from './Fleuron';
 export { GoldRule } from './GoldRule';
 export { SmallCaps } from './SmallCaps';

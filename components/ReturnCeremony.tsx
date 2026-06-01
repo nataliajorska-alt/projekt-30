@@ -4,10 +4,50 @@ import clsx from 'clsx'
 import { SmallCaps, GoldRule, Fleuron, Diamond, CornerBrackets } from '@/components/ui'
 import { toRoman } from '@/lib/romanNumerals'
 
-const RETURN_TASKS = [
-  { icon: '💧', text: 'Wypiłam szklankę wody', time: '1 min' },
-  { icon: '🌬️', text: 'Trzy głębokie oddechy — teraz, zanim pójdziesz dalej', time: '2 min' },
-  { icon: '🔥', text: 'Jeden element rutyny porannej — cokolwiek, teraz', time: '5 min' },
+// Rytownicze glify liniowe — ten sam język co Diamond / Fleuron / RedirectGlyph
+// (cienka kreska, currentColor, viewBox 24). Zastępują kolorowe emoji, które
+// rozbijały edytorski styl ceremonii.
+type CeremonyIcon = 'woda' | 'oddech' | 'iskra'
+
+function CeremonyGlyph({ name, size = 16 }: { name: CeremonyIcon; size?: number }) {
+  const glyphs: Record<CeremonyIcon, JSX.Element> = {
+    // Szklanka wody — kropla
+    woda: <path d="M12 3.5 C12 3.5 6 10 6 14.5 A6 6 0 0 0 18 14.5 C18 10 12 3.5 12 3.5 Z" />,
+    // Trzy głębokie oddechy — trzy strumienie powietrza
+    oddech: (
+      <>
+        <path d="M4 7.5 C9 5.5 13 9.5 18 7.5" />
+        <path d="M4 12 C9 10 13 14 18 12" />
+        <path d="M4 16.5 C9 14.5 13 18.5 18 16.5" />
+      </>
+    ),
+    // Element rutyny porannej — płomień
+    iskra: (
+      <path d="M12 3.5 C12.5 7 16 8 15.5 12 C17 11.5 17.5 10 17.5 10 C18.5 12.5 19 14 19 15.5 A7 7 0 0 1 5 15.5 C5 12.5 8 11 9 7.5 C9.5 9.5 11 9.5 11.5 8 C12 6.5 11 5 12 3.5 Z" />
+    ),
+  }
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.25}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="inline-block shrink-0"
+    >
+      {glyphs[name]}
+    </svg>
+  )
+}
+
+const RETURN_TASKS: { icon: CeremonyIcon; text: string; time: string }[] = [
+  { icon: 'woda', text: 'Wypiłam szklankę wody', time: '1 min' },
+  { icon: 'oddech', text: 'Trzy głębokie oddechy — teraz, zanim pójdziesz dalej', time: '2 min' },
+  { icon: 'iskra', text: 'Jeden element rutyny porannej — cokolwiek, teraz', time: '5 min' },
 ]
 
 interface Props {
@@ -123,7 +163,9 @@ export default function ReturnCeremony({ daysMissed, onComplete, onDismiss }: Pr
                     filled={isOn}
                     className={isOn ? 'text-gold' : 'text-ivory/30'}
                   />
-                  <span className="text-base flex-shrink-0">{task.icon}</span>
+                  <span className={clsx('flex-shrink-0', isOn ? 'text-gold' : 'text-parchment/60')}>
+                    <CeremonyGlyph name={task.icon} size={16} />
+                  </span>
                   <span className={clsx(
                     'font-serif-body text-[13.5px] flex-1 leading-snug',
                     isOn ? 'text-ivory italic' : 'text-parchment'
