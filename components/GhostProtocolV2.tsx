@@ -345,33 +345,31 @@ export default function GhostProtocolV2() {
     // "Tonę teraz" — ekspres regulacji (jeden tap, bez kategoryzowania).
     // Pod spodem twin: Mam impuls / Sprawdziłam. Niżej: Prawda na zimno.
     return (
-      <div className="flex flex-col w-full sm:w-auto items-stretch gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => setFlow({ type: 'express' })}
-          className="inline-flex items-center justify-center gap-2 bg-gold/15 border border-gold hover:bg-gold/25 transition-colors px-4 py-2 font-ui uppercase tracking-[0.32em] text-[10px] text-gold-deep"
+          className="inline-flex items-center justify-center gap-2 bg-gold/15 border border-gold hover:bg-gold/25 transition-colors px-3.5 py-2 font-ui uppercase tracking-[0.32em] text-[10px] text-gold-deep"
         >
           <span className="text-gold text-[9px] leading-none">❖</span>
-          <span>Tonę teraz</span>
+          <span>Tonę</span>
         </button>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setFlow({ type: 'impulse', phase: 'category' })}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
-          >
-            <span className="text-gold text-[9px] leading-none">◆</span>
-            <span>Mam impuls</span>
-          </button>
-          <button
-            onClick={startHonest}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3 py-1.5 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
-          >
-            <span className="text-gold text-[9px] leading-none">∴</span>
-            <span>Sprawdziłam</span>
-          </button>
-        </div>
+        <button
+          onClick={() => setFlow({ type: 'impulse', phase: 'category' })}
+          className="inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3.5 py-2 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
+        >
+          <span className="text-gold text-[9px] leading-none">◆</span>
+          <span>Impuls</span>
+        </button>
+        <button
+          onClick={startHonest}
+          className="inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3.5 py-2 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
+        >
+          <span className="text-gold text-[9px] leading-none">∴</span>
+          <span>Sprawdziłam</span>
+        </button>
         <button
           onClick={() => setShowTouchstone(true)}
-          className="text-center font-ui uppercase tracking-luxury text-[10px] text-muted/70 hover:text-gold-deep transition-colors py-0.5"
+          className="inline-flex items-center font-ui uppercase tracking-luxury text-[10px] text-muted/70 hover:text-gold-deep transition-colors px-1 py-0.5"
         >
           Prawda na zimno
         </button>
