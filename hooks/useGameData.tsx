@@ -765,13 +765,18 @@ export function useGameData() {
       }
 
       const ALL_PILLARS_LIST: Pillar[] = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc']
-      // Pillar XP from daily quests
+      // Pillar XP from daily quests.
+      // Tryb minimum podwaja XP daily questa — dokładnie to robi toggleDailyQuest
+      // na żywo (effectiveXP = baseXP * 2). Bez tego mnożnika rebuild gubił bonus
+      // ×2 w pillarXP (totalXP był ok, bo czytamy log.totalXP, które bonus zawiera),
+      // przez co suma pillarXP rozjeżdżała się z totalXP po każdej odbudowie.
+      const dqMult = log.dayMode === 'minimum' ? 2 : 1
       for (const qid of (log.completedDailyQuests ?? [])) {
         const q = questPillarMap[qid] ?? guessPillarFromId(qid)
         if (q) {
-          pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp
+          pillarXP[q.pillar] = (pillarXP[q.pillar] ?? 0) + q.xp * dqMult
         } else {
-          const share = Math.round(XP_VALUES.dailyQuest / 7)
+          const share = Math.round(XP_VALUES.dailyQuest / 7) * dqMult
           for (const p of ALL_PILLARS_LIST) pillarXP[p] = (pillarXP[p] ?? 0) + share
         }
       }
