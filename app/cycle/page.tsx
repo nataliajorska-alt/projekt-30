@@ -4,12 +4,12 @@ import { useCycleData } from '@/hooks/useCycleData'
 import { useCycleSettings } from '@/hooks/useCycleSettings'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import {
-  CYCLE_PHASES, getPhaseForDate, getPhaseIdForDate, computePhaseRanges,
+  CYCLE_PHASES, getPhaseForDate, getPhaseIdForDate, computePhaseRanges, getCycleDay,
   type CyclePhase, type CycleSettings,
 } from '@/lib/cycle-data'
 import { Fleuron } from '@/components/ui'
 import { toRoman } from '@/lib/romanNumerals'
-import { todayKey } from '@/lib/gameLogic'
+import { todayKey, XP_VALUES } from '@/lib/gameLogic'
 
 // ── Ciepłe akcenty faz (kierunek „Bloom") — tylko ta strona ──────
 const ACCENT: Record<string, { c: string; cd: string }> = {
@@ -151,13 +151,15 @@ function Legend({ settings, currentId }: { settings: CycleSettings; currentId: s
 }
 
 // ── Krzywa energii i nastroju z realnych pomiarów ────────────────
-function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
-  startDate: string; cycleDay: number; settings: CycleSettings; dailyLogs: Record<string, any>
+function EnergyCurve({ startDate, cycleDay, settings, dailyLogs, cycleLogs }: {
+  startDate: string; cycleDay: number; settings: CycleSettings
+  dailyLogs: Record<string, any>; cycleLogs: ReturnType<typeof useCycleData>['logs']
 }) {
   const C = settings.cycleLength
   const ranges = computePhaseRanges(settings)
   const W = 864, H = 210
 
+  // Kropki — pomiary z BIEŻĄCEGO cyklu (konkretny przebieg do dziś).
   const points = useMemo(() => {
     const out: { day: number; energy: number | null; mood: number | null }[] = []
     for (let off = 0; off < cycleDay; off++) {
@@ -173,6 +175,30 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
     }
     return out
   }, [startDate, cycleDay, dailyLogs])
+
+  // Linia trendu — uśrednienie po dniu cyklu ze WSZYSTKICH cykli (twój typowy
+  // przebieg z całej historii pomiarów), nie tylko z bieżącego cyklu.
+  const histByDay = useMemo(() => {
+    const acc = Array.from({ length: C }, () => ({ eSum: 0, eN: 0, mSum: 0, mN: 0 }))
+    const sorted = [...cycleLogs].sort((a, b) => b.startDate.localeCompare(a.startDate))
+    for (const [dk, log] of Object.entries(dailyLogs)) {
+      const ci = log?.moodCheckIns ?? []
+      if (ci.length === 0) continue
+      const active = sorted.find(c => c.startDate <= dk)
+      if (!active) continue
+      const day = getCycleDay(active.startDate, dk)
+      if (day < 1 || day > C) continue
+      const a = acc[day - 1]
+      a.eSum += ci.reduce((s: number, c: any) => s + c.energy, 0) / ci.length; a.eN++
+      a.mSum += ci.reduce((s: number, c: any) => s + c.mood, 0) / ci.length; a.mN++
+    }
+    return acc.map((a, i) => ({
+      day: i + 1,
+      energy: a.eN ? a.eSum / a.eN : null,
+      mood: a.mN ? a.mSum / a.mN : null,
+    }))
+  }, [cycleLogs, dailyLogs, C])
+  const histCount = histByDay.filter(p => p.energy != null || p.mood != null).length
 
   // Spójna skala „komórek dni": dzień d → środek komórki; pasma faz pokrywają pełne komórki.
   const x = (day: number) => ((day - 0.5) / C) * W
@@ -191,10 +217,11 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
     }
     return d
   }
-  // Linia trendu: centrowana średnia krocząca (okno ±2 = 5 dni) z pomiarów, potem wygładzona.
-  // Pokazuje kierunek, nie dzienny szum. Surowe pomiary zostają jako kropki.
+  // Linia trendu: centrowana średnia krocząca (okno ±2 = 5 dni) z uśrednionych po
+  // dniu cyklu pomiarów z CAŁEJ historii, potem wygładzona. Pokazuje twój typowy
+  // przebieg. Surowe pomiary bieżącego cyklu zostają jako kropki.
   const trend = (key: 'energy' | 'mood') => {
-    const s = points.filter(p => p[key] != null).map(p => ({ day: p.day, v: p[key] as number }))
+    const s = histByDay.filter(p => p[key] != null).map(p => ({ day: p.day, v: p[key] as number }))
     if (s.length < 2) return ''
     const W2 = 2
     const avg = s.map((_, i) => {
@@ -214,10 +241,10 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
     return { x: x(day), y: y(val) }
   }))
 
-  if (points.length < 2) {
+  if (points.length < 2 && histCount < 2) {
     return (
       <p className="font-serif-body italic text-muted-light text-[13.5px] text-center py-4">
-        za mało pomiarów w tym cyklu — loguj energię i nastrój, a krzywa pojawi się tutaj.
+        za mało pomiarów — loguj energię i nastrój, a krzywa pojawi się tutaj.
       </p>
     )
   }
@@ -239,7 +266,7 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
           </span>
         </div>
       </div>
-      <p className="font-serif-body italic text-[13px] text-muted mb-3">linia — trend z Twoich pomiarów (ten cykl, dzień {cycleDay} z {C}) · kropki — pomiary · tło — typowy wzór</p>
+      <p className="font-serif-body italic text-[13px] text-muted mb-3">linia — twój typowy przebieg ze wszystkich cykli · kropki — pomiary tego cyklu (dzień {cycleDay} z {C}) · tło — model teoretyczny</p>
       <svg viewBox={`0 0 ${W} ${H + 4}`} className="w-full h-auto block">
         {ORDER.map(id => {
           const [from, to] = ranges[id]
@@ -273,6 +300,22 @@ function EnergyCurve({ startDate, cycleDay, settings, dailyLogs }: {
   )
 }
 
+// Średnie XP w statystykach Rytmu liczymy z bazowego wysiłku.
+// W dniu „minimum" poranek / daily questy / zasady są naliczane ×2
+// (toggleRoutine / toggleDailyQuest / toggleRule), co sztucznie zawyża średnią
+// danej fazy — a minimum najczęściej wypada w menstruacji. Zdejmujemy więc samą
+// nadwyżkę ×2 z tych trzech kategorii (side questy itp. NIE są mnożone, zostają).
+// Korekta dotyczy WYŁĄCZNIE tego panelu — zapisane totalXP i inne ekrany bez zmian.
+function rhythmAdjustedXP(log: any): number {
+  const total = log?.totalXP ?? 0
+  if (log?.dayMode !== 'minimum') return total
+  const doubledBase =
+    XP_VALUES.routine * (log.completedRoutine?.length ?? 0) +
+    XP_VALUES.dailyQuest * (log.completedDailyQuests?.length ?? 0) +
+    XP_VALUES.rulekept * (log.keptRules?.length ?? 0)
+  return Math.max(0, total - doubledBase)
+}
+
 // ── Insights (Wzorce) ────────────────────────────────────────────
 function Insights({ logs, dailyLogs, settings, startDate, cycleDay }: {
   logs: ReturnType<typeof useCycleData>['logs']
@@ -294,7 +337,7 @@ function Insights({ logs, dailyLogs, settings, startDate, cycleDay }: {
       if (!phaseId) continue
       const stat = ps[phaseId]
       stat.count++
-      stat.xpSum += log.totalXP ?? 0
+      stat.xpSum += rhythmAdjustedXP(log)
       if (log.ghostProtocolCompleted) stat.ghostCount++
       const ci = log.moodCheckIns ?? []
       if (ci.length > 0) {
@@ -319,7 +362,7 @@ function Insights({ logs, dailyLogs, settings, startDate, cycleDay }: {
     <>
       <Panel label="Krzywa energii i nastroju">
         {startDate
-          ? <EnergyCurve startDate={startDate} cycleDay={cycleDay} settings={settings} dailyLogs={dailyLogs} />
+          ? <EnergyCurve startDate={startDate} cycleDay={cycleDay} settings={settings} dailyLogs={dailyLogs} cycleLogs={logs} />
           : <p className="font-serif-body italic text-muted-light text-[13.5px] text-center py-4">zaloguj cykl, aby zobaczyć krzywą.</p>}
       </Panel>
 
@@ -353,6 +396,9 @@ function Insights({ logs, dailyLogs, settings, startDate, cycleDay }: {
                 )
               })}
             </div>
+            <p className="font-serif-body italic text-muted-light text-[12px] leading-snug mt-3">
+              dni w trybie minimum liczone bez bonusu ×2 — dla uczciwego porównania faz.
+            </p>
           </Panel>
 
           <Panel label="Nastrój i energia według fazy">
