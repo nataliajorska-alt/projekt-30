@@ -11,15 +11,19 @@ import NotificationsSection from './_sections/NotificationsSection'
 import ExportSection from './_sections/ExportSection'
 import NominatedContactsSection from './_sections/NominatedContactsSection'
 import XPRecoverySection from './_sections/XPRecoverySection'
+import SkincareGuideSection from './_sections/SkincareGuideSection'
+import SupplementGuideSection from './_sections/SupplementGuideSection'
 
-type SettingsTab = 'account' | 'personal' | 'notify' | 'export' | 'safety'
+type SettingsTab = 'account' | 'personal' | 'skincare' | 'vitamins' | 'notify' | 'export' | 'safety'
 
 const TABS: { id: SettingsTab; label: string; roman: number }[] = [
   { id: 'account',  label: 'Konto',           roman: 1 },
   { id: 'personal', label: 'Personalizacja',  roman: 2 },
-  { id: 'notify',   label: 'Powiadomienia',   roman: 3 },
-  { id: 'export',   label: 'Eksport',         roman: 4 },
-  { id: 'safety',   label: 'Bezpieczeństwo',  roman: 5 },
+  { id: 'skincare', label: 'Pielęgnacja',     roman: 3 },
+  { id: 'vitamins', label: 'Witaminy',        roman: 4 },
+  { id: 'notify',   label: 'Powiadomienia',   roman: 5 },
+  { id: 'export',   label: 'Eksport',         roman: 6 },
+  { id: 'safety',   label: 'Bezpieczeństwo',  roman: 7 },
 ]
 
 export default function SettingsPage() {
@@ -94,6 +98,8 @@ export default function SettingsPage() {
             <CustomQuestLibrarySection />
           </>
         )}
+        {tab === 'skincare' && <SkincareGuideSection />}
+        {tab === 'vitamins' && <SupplementGuideSection />}
         {tab === 'notify' && <NotificationsSection />}
         {tab === 'export' && <ExportSection uid={user?.uid ?? ''} />}
         {tab === 'safety' && (
