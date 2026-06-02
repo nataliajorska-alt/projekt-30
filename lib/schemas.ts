@@ -77,6 +77,8 @@ export const DailyLogSchema = z.object({
   moodCheckIns: z.array(MoodCheckInSchema).optional(),
   keyMoment: KeyMomentSchema.optional(),
   cigarettes: z.array(CigaretteEntrySchema).optional(),
+  // Odhaczone pojedyncze kroki przewodników (pielęgnacja/suplementy), bez XP.
+  checkedSubSteps: z.array(z.string()).optional(),
   // XP z zewnętrznych aplikacji (na razie The Learning Vault), per filar.
   externalXP: z.object({
     pozycja:   z.number().nonnegative().optional(),
