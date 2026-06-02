@@ -7,6 +7,7 @@ import {
   getTodayWeeklyHabits,
   getWeeklyStudyItem, getWeeklyStudyLabel,
   MORNING_SKINCARE_STEPS, EVENING_SKINCARE,
+  MORNING_SUPPLEMENTS, EVENING_SUPPLEMENTS,
 } from '@/lib/routineData'
 import { filterItemsForMinimumDay } from '@/lib/minimumDayLogic'
 import { MINIMUM_DAY_REASONS } from '@/types'
@@ -138,6 +139,57 @@ function SkincareGuide({ itemId, dow }: { itemId: 'm7' | 'e2'; dow: number }) {
             </li>
           ))}
         </ol>
+      )}
+    </div>
+  )
+}
+
+function SupplementGuide({ itemId, dow }: { itemId: 'm9' | 'e7'; dow: number }) {
+  const [open, setOpen] = useState(false)
+  const isEvening = itemId === 'e7'
+  const data = isEvening ? EVENING_SUPPLEMENTS : MORNING_SUPPLEMENTS[dow]
+  const steps = data?.steps ?? []
+  const theme = data?.theme
+  const note = isEvening ? undefined : MORNING_SUPPLEMENTS[dow]?.note
+
+  return (
+    <div className="ml-[26px] -mt-1 mb-1">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-[10px] font-ui uppercase tracking-luxury text-muted-light hover:text-gold-deep transition-colors py-0.5"
+      >
+        {theme && !open && (
+          <span className="text-forest/70 italic font-serif-body text-[11px] normal-case tracking-normal">
+            {theme}
+          </span>
+        )}
+        {!theme && !open && <span>pokaż dawki</span>}
+        {open && <span>ukryj</span>}
+        <ChevronDown
+          size={10}
+          strokeWidth={1.5}
+          className={clsx('transition-transform', open && 'rotate-180')}
+        />
+      </button>
+      {open && (
+        <>
+          <ol className="mt-2 space-y-1.5 pb-1">
+            {steps.map((step, i) => (
+              <li key={i} className="flex items-center gap-2">
+                <RomanNumeral
+                  value={i + 1}
+                  className="text-gold-deep text-[11px] w-5 shrink-0 text-center"
+                />
+                <span className="font-serif-body text-[13px] text-dark leading-snug">{step}</span>
+              </li>
+            ))}
+          </ol>
+          {note && (
+            <p className="font-serif-body italic text-[12px] text-forest/80 leading-snug pl-7 pb-1">
+              {note}
+            </p>
+          )}
+        </>
       )}
     </div>
   )
@@ -361,6 +413,9 @@ export default function RoutineChecklist() {
                 />
                 {(item.id === 'm7' || item.id === 'e2') && (
                   <SkincareGuide itemId={item.id as 'm7' | 'e2'} dow={dow} />
+                )}
+                {(item.id === 'm9' || item.id === 'e7') && (
+                  <SupplementGuide itemId={item.id as 'm9' | 'e7'} dow={dow} />
                 )}
               </div>
             )

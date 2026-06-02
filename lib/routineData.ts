@@ -276,6 +276,28 @@ export const EVENING_SKINCARE: Record<number, { theme: string; steps: string[] }
   0: { theme: 'bariera',   steps: ['mycie', 'Toleriane (lub peeling Tołpa gdy skóra szorstka)'] },
 }
 
+// ─── SUPLEMENTY (dzień tygodnia: 0=nd, 1=pn ... 6=sb) ──────────
+// Rano: po śniadaniu z tłuszczem (D3/K2/omega potrzebują tłuszczu); kawa dopiero po tabletkach.
+// B-complex (pn/śr/pt/nd) przeplata się z witaminą C (wt/cz/sb). Atenza tylko w dni robocze.
+// note = dawka poza porannym blokiem (np. cynk+selen przy obiedzie, z dala od kreatyny).
+const SUPP_MORNING_BASE = ['D3 4000 IU', 'K2 MK-7 1 kaps', 'Omega-3 2 kaps', 'Kreatyna 3–3,5 g']
+
+export const MORNING_SUPPLEMENTS: Record<number, { theme: string; steps: string[]; note?: string }> = {
+  1: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'B-complex DOZ 1 tabl'], note: 'Obiad (~14:00): Cynk 50 mg + Selen 1 kaps — z dala od kreatyny' },
+  2: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'Witamina C 500 mg'] },
+  3: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'B-complex DOZ 1 tabl'] },
+  4: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'Witamina C 500 mg'] },
+  5: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'B-complex DOZ 1 tabl'] },
+  6: { theme: 'wolne — bez Atenzy',       steps: [...SUPP_MORNING_BASE, 'Witamina C 500 mg'] },
+  0: { theme: 'wolne — bez Atenzy',       steps: [...SUPP_MORNING_BASE, 'B-complex DOZ 1 tabl'] },
+}
+
+// Wieczór: 2–3 h po kolacji, przed snem. Ten sam zestaw codziennie.
+export const EVENING_SUPPLEMENTS: { theme: string; steps: string[] } = {
+  theme: '2–3 h po kolacji',
+  steps: ['Duloksetyna', 'Magnez 2 kaps', 'Omega-3 2 kaps'],
+}
+
 export const DAILY_SPARKS = [
   'Nie gonię za tym, co mnie nie chce. Buduję coś, po co będą przychodziły.',
   'Spokój jest moją luksusową cechą, nie słabością.',
