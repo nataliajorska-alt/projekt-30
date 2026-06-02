@@ -1,32 +1,53 @@
 'use client'
+import type { ReactNode } from 'react'
 import type { HabitAnalytics } from '@/hooks/useHabitAnalytics'
 import { DAILY_RULES } from '@/lib/routineData'
-import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
+import { SmallCaps, Fleuron, CornerBrackets, RomanNumeral } from '@/components/ui'
 
-const PL_MONTH_NAMES_SHORT = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru']
+const PL_MONTH_NAMES = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień']
+
+// Heatmap intensity scale (1:1 with design tokens --h0…--h4).
+const H = { h0: '#e9e0c8', h1: '#d6bd84', h2: '#bd9c56', h3: '#94793b', h4: '#5a4b22' }
 
 function formatWeekLabel(weekKey: string): string {
-  return weekKey.replace(/(\d{4})-W(\d+)/, 'T$2')
+  return weekKey.replace(/\d{4}-W(\d+)/, 'T$1')
 }
-function formatMonthShort(monthKey: string): string {
+function formatMonthName(monthKey: string): string {
   const [, m] = monthKey.split('-').map(Number)
-  return PL_MONTH_NAMES_SHORT[m - 1] ?? monthKey
+  return PL_MONTH_NAMES[m - 1] ?? monthKey
 }
 
-function rateColor(rate: number): string {
-  if (rate >= 80) return '#2C3B35'
-  if (rate >= 60) return '#B8963E'
-  if (rate >= 40) return '#D4AF6B'
-  return '#C9BFB1'
+// Consistency tier colour — olive→gold heat scale (better consistency = darker olive).
+function tierColor(rate: number): string {
+  if (rate >= 80) return H.h4
+  if (rate >= 60) return H.h3
+  if (rate >= 40) return H.h2
+  return H.h1
+}
+
+// Polish plural for "tydzień".
+function weeksWord(n: number): string {
+  if (n === 1) return 'tydzień'
+  const last = n % 10
+  const last2 = n % 100
+  if (last >= 2 && last <= 4 && !(last2 >= 12 && last2 <= 14)) return 'tygodnie'
+  return 'tygodni'
+}
+function questWord(n: number): string {
+  if (n === 1) return 'quest'
+  const last = n % 10
+  const last2 = n % 100
+  if (last >= 2 && last <= 4 && !(last2 >= 12 && last2 <= 14)) return 'questy'
+  return 'questów'
 }
 
 export default function HabitsTab({ analytics }: { analytics: HabitAnalytics }) {
   const { byWeek, byMonth, ruleStats, totalDaysLogged, overallAvgCompletion, totalActivityDays } = analytics
-  const recentWeeks = byWeek.slice(-12)
 
   if (totalDaysLogged === 0) {
     return (
-      <div className="bg-ivory border border-gold-light/40 p-12 text-center">
+      <div className="relative bg-ivory border border-gold-light/40 p-12 text-center">
+        <CornerBrackets size={10} tone="gold-light" />
         <Fleuron size={14} className="text-gold-deep mx-auto mb-3 inline-block" />
         <p className="font-serif-body italic text-muted text-[13.5px]">
           brak danych. zacznij logować dni, żeby zobaczyć analizę nawyków.
@@ -35,254 +56,253 @@ export default function HabitsTab({ analytics }: { analytics: HabitAnalytics }) 
     )
   }
 
+  const consWeeks = byWeek.slice(-6).reverse()   // newest on top
+  const bodyWeeks = byWeek.slice(-5).reverse()
+  const activityPct = totalDaysLogged > 0 ? Math.round((totalActivityDays / totalDaysLogged) * 100) : 0
+
   return (
-    <div className="space-y-5">
-      {/* Summary */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-ivory border border-gold-light/40 p-5">
-          <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
-            Śr. ukończenie rutyny
-          </SmallCaps>
-          <p className="font-display text-dark text-3xl leading-none">
-            {overallAvgCompletion}
-            <span className="text-muted-light text-base font-serif-body italic ml-1">%</span>
-          </p>
-          <p className="font-serif-body italic text-muted text-[12px] mt-2">
-            przez cały projekt
-          </p>
-        </div>
-        <div className="bg-ivory border border-gold-light/40 p-5">
-          <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
-            Dni zalogowane
-          </SmallCaps>
-          <p className="font-display text-dark text-3xl leading-none">{totalDaysLogged}</p>
-          <p className="font-serif-body italic text-muted text-[12px] mt-2">
-            {byWeek.length} {byWeek.length === 1 ? 'tydzień' : 'tygodnie'}
-          </p>
-        </div>
+    <div className="space-y-8">
+      {/* ===== Metric band ===== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 bg-ivory border border-gold-light/40">
+        <Metric num={overallAvgCompletion} unit="%" eyebrow="Śr. ukończenie rutyny" note="przez cały projekt" />
+        <Metric
+          num={totalDaysLogged}
+          eyebrow="Dni zalogowane"
+          note={`w ciągu ${byWeek.length} ${weeksWord(byWeek.length)}`}
+          divider
+        />
       </div>
 
-      {/* Konsekwencja */}
-      <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6">
-        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
-          Konsekwencja
-        </SmallCaps>
-        <h2 className="font-heading text-dark text-lg mt-1">Rutyna tygodniami</h2>
-        <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
-          % ukończenia per tydzień (ostatnie XII). ciemniejszy = lepsza konsekwencja.
-        </p>
-
-        {recentWeeks.length === 0 ? (
-          <p className="font-serif-body italic text-muted-light text-[13px] text-center py-4">
-            brak danych tygodniowych.
-          </p>
+      {/* ===== Konsekwencja ===== */}
+      <Panel eyebrow="Konsekwencja" title="Rutyna tygodniami"
+        note="% ukończenia w każdym tygodniu (ostatnie VI). dłuższy słupek = lepsza konsekwencja.">
+        {consWeeks.length === 0 ? (
+          <Empty>brak danych tygodniowych.</Empty>
         ) : (
-          <div className="space-y-2.5">
-            {recentWeeks.map(w => (
-              <div key={w.weekKey} className="flex items-center gap-3">
-                <SmallCaps tone="muted" tracking="luxury" size="xs" className="w-8 shrink-0">
+          <div className="mt-6">
+            {consWeeks.map(w => (
+              <div
+                key={w.weekKey}
+                className="grid items-center gap-5 py-2.5 border-t border-border first:border-t-0"
+                style={{ gridTemplateColumns: '46px 1fr 56px' }}
+              >
+                <span className="font-ui uppercase text-[9px] tracking-[0.22em] text-muted-light">
                   {formatWeekLabel(w.weekKey)}
-                </SmallCaps>
-                <div className="flex-1 h-px bg-hairline relative">
+                </span>
+                <div className="relative h-3" style={{ backgroundColor: H.h0 }}>
                   <div
-                    className="absolute left-0 top-0 h-px transition-all duration-500"
-                    style={{
-                      width: `${Math.max(2, w.avgCompletionRate)}%`,
-                      backgroundColor: rateColor(w.avgCompletionRate),
-                    }}
+                    className="absolute left-0 top-0 h-full transition-all duration-700"
+                    style={{ width: `${Math.max(2, w.avgCompletionRate)}%`, backgroundColor: tierColor(w.avgCompletionRate) }}
                   />
                 </div>
-                <span
-                  className="font-ui text-[11px] w-10 text-right tabular-nums"
-                  style={{ color: rateColor(w.avgCompletionRate) }}
-                >
+                <span className="font-display text-[15px] text-dark text-right tracking-tight">
                   {w.avgCompletionRate}%
                 </span>
               </div>
             ))}
           </div>
         )}
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-5 pt-3 border-t border-hairline">
+        <div className="flex flex-wrap gap-x-6 gap-y-3 mt-6 pt-4 border-t border-border">
           {[
-            { label: '≥80% świetnie', color: '#2C3B35' },
-            { label: '≥60% dobrze', color: '#B8963E' },
-            { label: '≥40% przeciętnie', color: '#D4AF6B' },
-            { label: '<40% słabo', color: '#C9BFB1' },
-          ].map(({ label, color }) => (
-            <div key={label} className="flex items-center gap-1.5">
-              <span style={{ color }}>
-                <Diamond size={4} filled />
-              </span>
-              <SmallCaps tone="muted" tracking="luxury" size="xs">
-                {label}
-              </SmallCaps>
+            { sw: H.h4, label: '≥80% świetnie' },
+            { sw: H.h3, label: '≥60% dobrze' },
+            { sw: H.h2, label: '≥40% przeciętnie' },
+            { sw: H.h1, label: '<40% słabo' },
+          ].map(({ sw, label }) => (
+            <div key={label} className="flex items-center gap-2">
+              <span className="w-[13px] h-[13px]" style={{ backgroundColor: sw }} />
+              <SmallCaps tone="muted" tracking="luxury" size="xs">{label}</SmallCaps>
             </div>
           ))}
         </div>
-      </section>
+      </Panel>
 
-      {/* Miesiące */}
+      {/* ===== Miesiące — almanac cards ===== */}
       {byMonth.length > 0 && (
-        <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6">
-          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
-            Miesiące
-          </SmallCaps>
-          <h2 className="font-heading text-dark text-lg mt-1">Nawyki</h2>
-          <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
-            aktywne dni, średnie ukończenie rutyny i questy per miesiąc.
-          </p>
-          <div className="space-y-4">
-            {byMonth.map(m => (
-              <div key={m.monthKey}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-heading text-dark text-[14px]">
-                    {formatMonthShort(m.monthKey)}
+        <Panel eyebrow="Miesiące" title="Nawyki"
+          note="aktywne dni, średnie ukończenie rutyny i questy w każdym miesiącu.">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            {byMonth.map((m, i) => (
+              <div key={m.monthKey} className="relative bg-cream-warm border border-gold-light/40 p-5">
+                <CornerBrackets size={8} tone="gold-light" />
+                <div className="flex items-baseline justify-between">
+                  <span className="font-display text-[16px] text-dark tracking-tight">
+                    {formatMonthName(m.monthKey)}
                   </span>
-                  <div className="flex items-baseline gap-3">
-                    <SmallCaps tone="muted" tracking="luxury" size="xs">
-                      {m.activeDays} dni
-                    </SmallCaps>
-                    <SmallCaps tone="muted" tracking="luxury" size="xs">
-                      {m.totalSideQuests} questów
-                    </SmallCaps>
-                    <span
-                      className="font-ui text-[11px] tabular-nums"
-                      style={{ color: rateColor(m.avgCompletionRate) }}
-                    >
-                      {m.avgCompletionRate}% rutyny
-                    </span>
-                  </div>
+                  <RomanNumeral value={i + 1} className="font-display italic text-[12px] text-gold-light" />
                 </div>
-                <div className="relative h-px w-full bg-hairline">
+                <div className="font-display text-gold-deep text-[28px] leading-none tracking-tight mt-3">
+                  {m.avgCompletionRate}
+                  <span className="font-serif-body italic font-normal text-[13px] text-muted-light ml-0.5">%</span>
+                </div>
+                <div className="font-ui uppercase text-[7px] tracking-[0.26em] text-muted mt-2">
+                  ukończenie rutyny
+                </div>
+                <div className="relative h-[2px] bg-border mt-3.5">
                   <div
-                    className="absolute left-0 top-0 h-px transition-all duration-500"
-                    style={{
-                      width: `${Math.max(2, m.avgCompletionRate)}%`,
-                      backgroundColor: rateColor(m.avgCompletionRate),
-                    }}
+                    className="absolute left-0 top-0 h-[2px] bg-gold transition-all duration-700"
+                    style={{ width: `${m.avgCompletionRate}%` }}
                   />
+                  <span
+                    className="absolute top-1/2 w-[6px] h-[6px] bg-gold"
+                    style={{ left: `${m.avgCompletionRate}%`, transform: 'translate(-50%,-50%) rotate(45deg)' }}
+                  />
+                </div>
+                <div className="flex gap-6 mt-4 pt-3 border-t border-border">
+                  <FootStat n={m.activeDays} label={m.activeDays === 1 ? 'dzień' : 'dni'} />
+                  <FootStat n={m.totalSideQuests} label={questWord(m.totalSideQuests)} />
                 </div>
               </div>
             ))}
           </div>
-        </section>
+        </Panel>
       )}
 
-      {/* Zasady */}
-      <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6">
-        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
-          Zasady
-        </SmallCaps>
-        <h2 className="font-heading text-dark text-lg mt-1">Statystyki dotrzymania</h2>
-        <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
-          ile razy każda zasada była dotrzymana (z {totalDaysLogged} zalogowanych dni).
-        </p>
+      {/* ===== Zasady — retention ledger ===== */}
+      <Panel eyebrow="Zasady" title="Statystyki dotrzymania"
+        note={`ile razy każda zasada była dotrzymana (z ${totalDaysLogged} zalogowanych dni).`}>
         {ruleStats.length === 0 ? (
-          <p className="font-serif-body italic text-muted-light text-[13px] text-center py-4">
-            zacznij zaznaczać zasady każdego dnia, żeby zobaczyć statystyki.
-          </p>
+          <Empty>zacznij zaznaczać zasady każdego dnia, żeby zobaczyć statystyki.</Empty>
         ) : (
-          <div className="space-y-3.5">
+          <div className="mt-5">
             {DAILY_RULES.map(rule => {
-              const stat = ruleStats.find(s => s.ruleId === rule.id)
-              const kept = stat?.totalKept ?? 0
-              const rate = stat?.ratePercent ?? 0
-              const barPct = Math.round((kept / totalDaysLogged) * 100)
+              const kept = ruleStats.find(s => s.ruleId === rule.id)?.totalKept ?? 0
+              const pct = totalDaysLogged > 0 ? Math.round((kept / totalDaysLogged) * 100) : 0
               return (
-                <div key={rule.id}>
-                  <div className="flex items-center justify-between mb-1.5 gap-3">
-                    <span className="font-serif-body text-[13.5px] text-dark">{rule.text}</span>
-                    <div className="flex items-baseline gap-3 shrink-0">
-                      <SmallCaps tone="muted" tracking="luxury" size="xs">
-                        {kept} razy
-                      </SmallCaps>
-                      <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="w-10 text-right">
-                        {rate}%
-                      </SmallCaps>
-                    </div>
+                <div key={rule.id} className="py-4 border-t border-border first:border-t-0">
+                  <div className="flex items-baseline justify-between gap-6 mb-3.5">
+                    <span className="font-serif-body text-[15px] leading-snug text-dark max-w-[66%]">
+                      {rule.text}
+                    </span>
+                    <span className="font-display text-[24px] text-dark leading-none tracking-tight whitespace-nowrap">
+                      {pct}
+                      <span className="font-serif-body italic font-normal text-[13px] text-muted-light">%</span>
+                    </span>
                   </div>
-                  <div className="relative h-px w-full bg-hairline">
-                    <div
-                      className="absolute left-0 top-0 h-px bg-gold transition-all duration-700"
-                      style={{ width: `${Math.max(barPct > 0 ? 2 : 0, barPct)}%` }}
-                    />
+                  <div className="flex items-end gap-[3px] h-[13px]">
+                    {Array.from({ length: totalDaysLogged }).map((_, i) => (
+                      <span
+                        key={i}
+                        className="flex-1"
+                        style={{
+                          height: i < kept ? '13px' : '7px',
+                          backgroundColor: i < kept ? '#b29355' : H.h0,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 font-ui uppercase text-[8px] tracking-[0.24em] text-muted">
+                    <b className="font-display italic font-medium text-[12px] text-gold-deep tracking-normal">{kept}</b>
+                    z {totalDaysLogged} dni dotrzymane
                   </div>
                 </div>
               )
             })}
           </div>
         )}
-      </section>
+      </Panel>
 
-      {/* Aktywność fizyczna */}
-      <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6">
-        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
-          Aktywność fizyczna
-        </SmallCaps>
-        <h2 className="font-heading text-dark text-lg mt-1">Ciało w ruchu</h2>
-        <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
-          dane z zaznaczenia „ćwiczyłam dziś" w skali magnetyzmu.
-        </p>
-
-        {totalActivityDays === 0 ? (
-          <p className="font-serif-body italic text-muted-light text-[13px] text-center py-4">
-            zaznaczaj aktywność w skali magnetyzmu — pojawi się tu częstotliwość.
-          </p>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="bg-cream/60 border border-hairline p-4 text-center">
-                <p className="font-display text-dark text-3xl leading-none">{totalActivityDays}</p>
-                <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-2 block">
-                  dni aktywnych
-                </SmallCaps>
-              </div>
-              <div className="bg-cream/60 border border-hairline p-4 text-center">
-                <p className="font-display text-dark text-3xl leading-none">
-                  {totalDaysLogged > 0 ? Math.round((totalActivityDays / totalDaysLogged) * 100) : 0}%
-                </p>
-                <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-2 block">
-                  zalogowanych dni
-                </SmallCaps>
-              </div>
+      {/* ===== Aktywność fizyczna ===== */}
+      <Panel eyebrow="Aktywność fizyczna" title="Ciało w ruchu"
+        note="dane z zaznaczenia „ćwiczyłam dziś”.">
+        <div className="grid grid-cols-2 gap-7 mt-6">
+          <div className="relative bg-cream-warm border border-gold-light/40 p-5 text-center">
+            <CornerBrackets size={8} tone="gold-light" />
+            <div className="font-display text-dark text-[26px] leading-none tracking-tight">{totalActivityDays}</div>
+            <div className="font-ui uppercase text-[8px] tracking-[0.28em] text-muted mt-2.5">dni aktywnych</div>
+          </div>
+          <div className="relative bg-cream-warm border border-gold-light/40 p-5 text-center">
+            <CornerBrackets size={8} tone="gold-light" />
+            <div className="font-display text-dark text-[26px] leading-none tracking-tight">
+              {activityPct}<span className="text-[16px]">%</span>
             </div>
+            <div className="font-ui uppercase text-[8px] tracking-[0.28em] text-muted mt-2.5">zalogowanych dni</div>
+          </div>
+        </div>
 
-            {byWeek.length > 0 && (
-              <div>
-                <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-3">
-                  Per tydzień
-                </SmallCaps>
-                <div className="space-y-2.5">
-                  {byWeek.slice(-8).map(w => {
-                    const pct = w.activeDays > 0 ? Math.round((w.activityDays / w.activeDays) * 100) : 0
-                    const label = w.weekKey.replace(/\d{4}-W/, 'T')
-                    return (
-                      <div key={w.weekKey} className="flex items-center gap-3">
-                        <SmallCaps tone="muted" tracking="luxury" size="xs" className="w-8 shrink-0">
-                          {label}
-                        </SmallCaps>
-                        <div className="flex-1 h-px bg-hairline relative">
-                          <div
-                            className="absolute left-0 top-0 h-px transition-all duration-500"
-                            style={{
-                              width: `${Math.max(w.activityDays > 0 ? 2 : 0, pct)}%`,
-                              backgroundColor: pct >= 60 ? '#2C3B35' : pct >= 30 ? '#B8963E' : '#D4AF6B',
-                            }}
-                          />
-                        </div>
-                        <SmallCaps tone="muted" tracking="luxury" size="xs" className="w-14 text-right shrink-0">
-                          {w.activityDays}/{w.activeDays}
-                        </SmallCaps>
-                      </div>
-                    )
-                  })}
+        {bodyWeeks.length > 0 && (
+          <div className="mt-8">
+            <div className="font-ui uppercase text-[9px] tracking-[0.3em] text-gold-deep mb-3.5">Per tydzień</div>
+            {bodyWeeks.map(w => (
+              <div
+                key={w.weekKey}
+                className="grid items-center gap-5 py-2.5 border-t border-border first:border-t-0"
+                style={{ gridTemplateColumns: '46px 1fr 44px' }}
+              >
+                <span className="font-ui uppercase text-[9px] tracking-[0.22em] text-muted-light">
+                  {formatWeekLabel(w.weekKey)}
+                </span>
+                <div className="flex gap-1.5">
+                  {Array.from({ length: Math.max(w.activeDays, w.activityDays) }).map((_, i) => (
+                    <span
+                      key={i}
+                      className="w-[13px] h-[13px] border"
+                      style={{
+                        backgroundColor: i < w.activityDays ? '#b29355' : 'transparent',
+                        borderColor: i < w.activityDays ? '#b29355' : '#d9cda8',
+                      }}
+                    />
+                  ))}
                 </div>
+                <span className="font-display italic text-[13px] text-muted text-right">
+                  {w.activityDays}/{w.activeDays}
+                </span>
               </div>
-            )}
-          </>
+            ))}
+          </div>
         )}
-      </section>
+      </Panel>
     </div>
+  )
+}
+
+/* ---- small building blocks ---- */
+
+function Metric({ num, unit, eyebrow, note, divider }: {
+  num: number; unit?: string; eyebrow: string; note: string; divider?: boolean
+}) {
+  return (
+    <section className={`flex items-center gap-4 px-6 py-5 ${divider ? 'border-t sm:border-t-0 sm:border-l border-border' : ''}`}>
+      <div className="font-display text-dark text-[26px] leading-none tracking-tight">
+        {num.toLocaleString('pl-PL')}
+        {unit && <span className="font-serif-body italic font-normal text-[14px] text-muted-light ml-0.5">{unit}</span>}
+      </div>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2 font-ui uppercase text-[8px] tracking-[0.3em] text-gold-deep">
+          <span className="text-gold text-[6px]">◆</span>
+          {eyebrow}
+        </div>
+        <div className="font-serif-body italic text-[12px] text-muted">{note}</div>
+      </div>
+    </section>
+  )
+}
+
+function Panel({ eyebrow, title, note, children }: {
+  eyebrow: string; title: string; note?: string; children: ReactNode
+}) {
+  return (
+    <section className="relative bg-ivory border border-gold-light/40 p-5 sm:p-7">
+      <CornerBrackets size={10} tone="gold-light" />
+      <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">{eyebrow}</SmallCaps>
+      <h2 className="font-heading text-dark text-lg mt-1">{title}</h2>
+      {note && <p className="font-serif-body italic text-muted text-[13px] mt-1">{note}</p>}
+      {children}
+    </section>
+  )
+}
+
+function FootStat({ n, label }: { n: number; label: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <b className="font-display italic font-medium text-[14px] text-dark">{n}</b>
+      <span className="font-ui uppercase text-[7px] tracking-[0.24em] text-muted">{label}</span>
+    </div>
+  )
+}
+
+function Empty({ children }: { children: ReactNode }) {
+  return (
+    <p className="font-serif-body italic text-muted-light text-[13px] text-center py-4">{children}</p>
   )
 }

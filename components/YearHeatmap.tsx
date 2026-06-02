@@ -2,19 +2,22 @@
 import { useMemo, useState } from 'react'
 import type { DailyLog } from '@/types'
 import { dateKey, PROJECT_START, PROJECT_END } from '@/lib/gameLogic'
-import { SmallCaps, Diamond } from '@/components/ui'
+import { SmallCaps } from '@/components/ui'
 
 interface Props {
   logs: Record<string, DailyLog>
 }
 
-// XP thresholds → background colour. Matches the old-money ivory/gold palette.
-function colorForXp(xp: number): string {
-  if (xp <= 0) return '#F0EBE3'            // cream
-  if (xp <= 50) return '#F5EDD8'           // gold-pale
-  if (xp <= 150) return '#D4AF6B'          // gold-light
-  if (xp <= 300) return '#B8963E'          // gold
-  return '#8B6914'                          // gold-dark
+// Heatmap intensity scale (MNIEJ → WIĘCEJ) — 1:1 with the design tokens --h0…--h4.
+const HEAT = ['#e9e0c8', '#d6bd84', '#bd9c56', '#94793b', '#5a4b22']
+const PAPER_SOFT = '#f8f3e6' // ring inner gap, matches design --paper-soft
+
+function levelForXp(xp: number): number {
+  if (xp <= 0) return 0
+  if (xp <= 50) return 1
+  if (xp <= 150) return 2
+  if (xp <= 300) return 3
+  return 4
 }
 
 const PL_MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru']
@@ -37,9 +40,9 @@ function sundayOnOrAfter(d: Date): Date {
 }
 
 export default function YearHeatmap({ logs }: Props) {
-  const [hovered, setHovered] = useState<{ date: string; xp: number; log?: DailyLog } | null>(null)
+  const [tip, setTip] = useState<{ x: number; y: number; date: string; xp: number } | null>(null)
 
-  const { weeks, monthLabels } = useMemo(() => {
+  const { weeks, monthLabels, bestDate, activeDays, projectDays } = useMemo(() => {
     const gridStart = mondayOnOrBefore(PROJECT_START)
     const gridEnd = sundayOnOrAfter(PROJECT_END)
     const weeks: Array<Array<Date>> = []
@@ -53,8 +56,7 @@ export default function YearHeatmap({ logs }: Props) {
       weeks.push(week)
     }
 
-    // Month label = first week column where the Monday (week[0]) is in a new month,
-    // using the month that the majority of the week belongs to (mid-week = Thursday, index 3).
+    // Month label = mid-week (Thursday) lands in a new month.
     const monthLabels: Array<{ colIndex: number; label: string }> = []
     let lastMonth = -1
     weeks.forEach((week, idx) => {
@@ -65,15 +67,40 @@ export default function YearHeatmap({ logs }: Props) {
       }
     })
 
-    return { weeks, monthLabels }
-  }, [])
+    // Best (highest-XP) day — gets the gold ring marker.
+    let bestDate: string | null = null
+    let bestXp = 0
+    let activeDays = 0
+    for (const [k, log] of Object.entries(logs)) {
+      const xp = log.totalXP ?? 0
+      if (xp > 0) activeDays += 1
+      if (xp > bestXp) {
+        bestXp = xp
+        bestDate = k
+      }
+    }
+
+    // Full project length in days (inclusive).
+    const projectDays = Math.round((PROJECT_END.getTime() - PROJECT_START.getTime()) / 86400000) + 1
+
+    return { weeks, monthLabels, bestDate, activeDays, projectDays }
+  }, [logs])
 
   const todayStr = dateKey(new Date())
   const projectStartStr = dateKey(PROJECT_START)
   const projectEndStr = dateKey(PROJECT_END)
 
-  const formatDatePL = (d: Date) =>
-    d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })
+  const formatTipDate = (key: string) => {
+    const [y, m, d] = key.split('-').map(Number)
+    const date = new Date(y, m - 1, d)
+    const s = date.toLocaleDateString('pl-PL', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+    return s.charAt(0).toUpperCase() + s.slice(1)
+  }
 
   return (
     <div className="w-full">
@@ -118,37 +145,40 @@ export default function YearHeatmap({ logs }: Props) {
                 const inProject = key >= projectStartStr && key <= projectEndStr
                 const isFuture = key > todayStr
                 const isToday = key === todayStr
+                const isBest = key === bestDate
                 const log = logs[key]
                 const xp = log?.totalXP ?? 0
 
-                let bg = colorForXp(xp)
-                let opacity = 1
                 if (!inProject) {
-                  bg = 'transparent'
-                  opacity = 0
-                } else if (isFuture) {
-                  bg = '#FAF8F4'
-                  opacity = 0.5
+                  return (
+                    <div
+                      key={dIdx}
+                      className="w-[13px] h-[13px] sm:w-[14px] sm:h-[14px]"
+                      style={{ visibility: 'hidden' }}
+                    />
+                  )
                 }
+
+                // Ring (box-shadow) priority: today (rust) > best (gold).
+                // Normal cells leave boxShadow unset so the Tailwind hover ring can apply.
+                let boxShadow: string | undefined
+                if (isToday) boxShadow = `0 0 0 1px ${PAPER_SOFT}, 0 0 0 2px #8a3a2c`
+                else if (isBest) boxShadow = `0 0 0 1px ${PAPER_SOFT}, 0 0 0 2px #b29355`
 
                 return (
                   <div
                     key={dIdx}
-                    onMouseEnter={() => inProject && setHovered({ date: key, xp, log })}
-                    onMouseLeave={() => setHovered(null)}
-                    className="w-[13px] h-[13px] sm:w-[14px] sm:h-[14px] transition-transform hover:scale-125"
+                    onMouseEnter={e => setTip({ x: e.clientX, y: e.clientY, date: key, xp })}
+                    onMouseMove={e => setTip(t => (t ? { ...t, x: e.clientX, y: e.clientY } : t))}
+                    onMouseLeave={() => setTip(null)}
+                    className="relative w-[13px] h-[13px] sm:w-[14px] sm:h-[14px] cursor-pointer transition-shadow hover:z-10 hover:shadow-[0_0_0_1px_#f8f3e6,0_0_0_2px_#8e7338]"
                     style={{
-                      backgroundColor: bg,
-                      opacity,
-                      border: isToday
-                        ? '1.5px solid #B8963E'
-                        : inProject && isFuture
-                          ? '1px dashed #C9BFB1'
-                          : 'none',
+                      backgroundColor: isFuture ? 'transparent' : HEAT[levelForXp(xp)],
+                      border: isFuture ? '1px dashed #d9cda8' : 'none',
+                      boxShadow,
                       boxSizing: 'border-box',
-                      visibility: inProject ? 'visible' : 'hidden',
                     }}
-                    aria-label={inProject ? `${key}: ${xp} XP` : undefined}
+                    aria-label={`${key}: ${xp} XP`}
                   />
                 )
               })}
@@ -157,40 +187,36 @@ export default function YearHeatmap({ logs }: Props) {
         </div>
       </div>
 
-      {/* Tooltip area */}
-      <div className="mt-4 min-h-[32px]">
-        {hovered && (
-          <div className="inline-flex items-center gap-3 bg-ivory border border-gold-light/40 px-3 py-1.5">
-            <Diamond size={4} className="text-gold" />
-            <SmallCaps tone="dark" tracking="luxury" size="xs">
-              {formatDatePL(new Date(hovered.date))}
-            </SmallCaps>
-            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-              {hovered.xp} XP
-            </SmallCaps>
-            {hovered.log && (
-              <SmallCaps tone="muted" size="xs">
-                {(hovered.log.completedRoutine?.length ?? 0)
-                  + (hovered.log.completedDailyQuests?.length ?? 0)
-                  + (hovered.log.completedSideQuests?.length ?? 0)} akcji
-              </SmallCaps>
-            )}
-          </div>
-        )}
+      {/* Footer: legend + tally */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mt-6 pt-5 border-t border-border">
+        <div className="flex items-center gap-2">
+          <SmallCaps tone="muted" tracking="luxury" size="xs">Mniej</SmallCaps>
+          {HEAT.map((c, i) => (
+            <div key={i} className="w-[13px] h-[13px]" style={{ backgroundColor: c }} />
+          ))}
+          <SmallCaps tone="muted" tracking="luxury" size="xs">Więcej</SmallCaps>
+        </div>
+        <p className="font-serif-body italic text-muted text-[13px] whitespace-nowrap">
+          <b className="font-display not-italic text-gold-deep text-[15px] px-0.5">{activeDays}</b>{' '}
+          dni zalogowanych z{' '}
+          <b className="font-display not-italic text-gold-deep text-[15px] px-0.5">{projectDays}</b>
+        </p>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-2 mt-4">
-        <SmallCaps tone="muted" tracking="luxury" size="xs">Mniej</SmallCaps>
-        {[0, 30, 100, 200, 400].map((v, i) => (
-          <div
-            key={i}
-            className="w-[13px] h-[13px] border border-hairline/30"
-            style={{ backgroundColor: colorForXp(v) }}
-          />
-        ))}
-        <SmallCaps tone="muted" tracking="luxury" size="xs">Więcej</SmallCaps>
-      </div>
+      {/* Floating tooltip */}
+      {tip && (
+        <div
+          className="fixed z-50 pointer-events-none bg-dark border border-gold px-3 py-2"
+          style={{ left: tip.x, top: tip.y, transform: 'translate(-50%, calc(-100% - 12px))' }}
+        >
+          <div className="font-serif-body italic text-[13px] text-gold-pale whitespace-nowrap">
+            {formatTipDate(tip.date)}
+          </div>
+          <div className="font-display text-[14px] text-gold-light mt-0.5">
+            {tip.xp.toLocaleString('pl-PL')} XP
+          </div>
+        </div>
+      )}
     </div>
   )
 }

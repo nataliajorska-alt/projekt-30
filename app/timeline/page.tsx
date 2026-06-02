@@ -10,13 +10,13 @@ import YearHeatmap from '@/components/YearHeatmap'
 import WeeklyXPChart from '@/components/WeeklyXPChart'
 import { computeStreaks, findBestDay, findWorstActiveDay, aggregateXpByMonth } from '@/lib/analytics'
 import HabitsTab from './_tabs/HabitsTab'
-import PillarsTab from './_tabs/PillarsTab'
 import MoodTab from './_tabs/MoodTab'
 import ProtocolTab from './_tabs/ProtocolTab'
 import PatternsTab from './_tabs/PatternsTab'
-import { SmallCaps, GoldRule, Diamond, RomanNumeral, Fleuron } from '@/components/ui'
+import { SmallCaps, GoldRule, RomanNumeral, Fleuron, CornerBrackets } from '@/components/ui'
 
-type TimelineMode = 'calendar' | 'habits' | 'pillars' | 'mood' | 'patterns' | 'protokol'
+// Filary celowo NIE jest zakładką Historii — pełny widok balansu filarów ma osobna strona /pillars.
+type TimelineMode = 'calendar' | 'habits' | 'mood' | 'patterns' | 'protokol'
 
 const PL_MONTH_NAMES = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień']
 
@@ -30,12 +30,11 @@ function formatMonthPL(key: string): string {
   return PL_MONTH_NAMES[m - 1] ?? key
 }
 
-const VALID_TABS: TimelineMode[] = ['calendar', 'habits', 'pillars', 'mood', 'patterns', 'protokol']
+const VALID_TABS: TimelineMode[] = ['calendar', 'habits', 'mood', 'patterns', 'protokol']
 
 const SUB_COPY: Record<TimelineMode, string> = {
   calendar: 'cały projekt w jednym kadrze — każdy dzień się liczy.',
   habits:   'konsekwencja buduje tożsamość — śledź swoje nawyki.',
-  pillars:  'gdzie kierujesz energię? dbaj o równowagę.',
   mood:     'co czujesz na co dzień. twój emocjonalny puls projektu.',
   patterns: 'korelacje, najlepsze dni, ukryte zależności.',
   protokol: 'kiedy konkretnie jesteś najbardziej narażona. dane operacyjne.',
@@ -44,10 +43,9 @@ const SUB_COPY: Record<TimelineMode, string> = {
 const TABS: { key: TimelineMode; label: string; roman: number }[] = [
   { key: 'calendar', label: 'Kalendarz', roman: 1 },
   { key: 'habits',   label: 'Nawyki',    roman: 2 },
-  { key: 'pillars',  label: 'Filary',    roman: 3 },
-  { key: 'mood',     label: 'Nastrój',   roman: 4 },
-  { key: 'patterns', label: 'Wzorce',    roman: 5 },
-  { key: 'protokol', label: 'Protokół',  roman: 6 },
+  { key: 'mood',     label: 'Nastrój',   roman: 3 },
+  { key: 'patterns', label: 'Wzorce',    roman: 4 },
+  { key: 'protokol', label: 'Protokół',  roman: 5 },
 ]
 
 export default function TimelinePage() {
@@ -97,14 +95,14 @@ export default function TimelinePage() {
 
       {/* Tabs — editorial */}
       <nav className="mb-8">
-        <div className="flex gap-5 sm:gap-6 md:gap-8 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-2">
+        <div className="flex gap-5 sm:gap-2 md:gap-4 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-2">
           {TABS.map(({ key, label, roman }) => {
             const active = mode === key
             return (
               <button
                 key={key}
                 onClick={() => setMode(key)}
-                className="flex-shrink-0 group flex flex-col items-center gap-1.5"
+                className="flex-shrink-0 sm:flex-1 group flex flex-col items-center gap-1.5"
               >
                 <span className="flex items-baseline gap-2 whitespace-nowrap">
                   <RomanNumeral
@@ -146,7 +144,8 @@ export default function TimelinePage() {
       ) : mode === 'calendar' ? (
         <div className="space-y-5">
           {/* Heatmap */}
-          <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6 overflow-x-auto">
+          <section className="relative bg-ivory border border-gold-light/40 p-5 sm:p-7">
+            <CornerBrackets size={10} tone="gold-light" />
             <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
               Kalendarz · CCCLXV dni
             </SmallCaps>
@@ -154,11 +153,14 @@ export default function TimelinePage() {
             <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5">
               każdy kwadrat to jeden dzień. intensywność koloru = XP.
             </p>
-            <YearHeatmap logs={logs} />
+            <div className="overflow-x-auto">
+              <YearHeatmap logs={logs} />
+            </div>
           </section>
 
           {/* Weekly XP */}
-          <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6">
+          <section className="relative bg-ivory border border-gold-light/40 p-5 sm:p-7">
+            <CornerBrackets size={10} tone="gold-light" />
             <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
               Tydzień po tygodniu
             </SmallCaps>
@@ -171,33 +173,45 @@ export default function TimelinePage() {
 
           {/* Months */}
           {analytics.months.length > 0 && (
-            <section className="bg-ivory border border-gold-light/40 p-5 sm:p-6">
+            <section className="relative bg-ivory border border-gold-light/40 p-5 sm:p-7">
+              <CornerBrackets size={10} tone="gold-light" />
               <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
                 Miesiące projektu
               </SmallCaps>
               <h2 className="font-heading text-dark text-lg mt-1">Rozkład na oś czasu</h2>
-              <div className="space-y-3 mt-5">
-                {analytics.months.map(m => {
+              <div className="mt-5">
+                {analytics.months.map((m, i) => {
                   const pct = Math.round((m.totalXP / analytics.maxMonthXP) * 100)
                   return (
-                    <div key={m.monthKey}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-heading text-dark text-[14px]">
+                    <div
+                      key={m.monthKey}
+                      className={clsx('py-3', i > 0 && 'border-t border-border')}
+                    >
+                      <div className="flex items-baseline justify-between mb-2.5">
+                        <span className="font-display text-dark text-[15px]">
                           {formatMonthPL(m.monthKey)}
                         </span>
-                        <div className="flex items-baseline gap-3">
+                        <div className="flex items-baseline gap-5">
                           <SmallCaps tone="muted" tracking="luxury" size="xs">
-                            {m.activeDays} dni
+                            <b className="font-display italic text-gold-deep text-[12px] mr-1">{m.activeDays}</b>
+                            dni
                           </SmallCaps>
-                          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="tabular-nums w-20 text-right">
-                            {m.totalXP.toLocaleString('pl-PL')} XP
+                          <SmallCaps tone="muted" tracking="luxury" size="xs" className="tabular-nums text-right">
+                            <b className="font-display italic text-gold-deep text-[12px] mr-1">
+                              {m.totalXP.toLocaleString('pl-PL')}
+                            </b>
+                            XP
                           </SmallCaps>
                         </div>
                       </div>
-                      <div className="relative h-px w-full bg-hairline">
+                      <div className="relative h-[2px] w-full bg-border">
                         <div
-                          className="absolute left-0 top-0 h-px bg-gold transition-all duration-700"
+                          className="absolute left-0 top-0 h-[2px] bg-gold transition-all duration-700"
                           style={{ width: `${pct}%` }}
+                        />
+                        <span
+                          className="absolute top-1/2 w-[7px] h-[7px] bg-gold"
+                          style={{ left: `${pct}%`, transform: 'translate(-50%,-50%) rotate(45deg)' }}
                         />
                       </div>
                     </div>
@@ -208,49 +222,53 @@ export default function TimelinePage() {
           )}
 
           {/* Streaks + records */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <section className="bg-ivory border border-gold-light/40 p-5">
-              <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-7">
+            <section className="relative bg-ivory border border-gold-light/40 p-6 sm:p-7">
+              <CornerBrackets size={10} tone="gold-light" />
+              <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-1">
                 Serie
               </SmallCaps>
-              <div className="space-y-3">
+              <div>
                 <Row label="Aktualna" value={`${analytics.streaks.currentStreak}`} sub="dni" />
                 <Row label="Najdłuższa" value={`${analytics.streaks.longestStreak}`} sub="dni" />
                 <Row label="Serii ≥ 7 dni" value={`${analytics.longStreaks}`} />
               </div>
             </section>
 
-            <section className="bg-ivory border border-gold-light/40 p-5">
-              <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-3">
+            <section className="relative bg-ivory border border-gold-light/40 p-6 sm:p-7">
+              <CornerBrackets size={10} tone="gold-light" />
+              <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-1">
                 Rekordy
               </SmallCaps>
-              <div className="space-y-3">
-                <div>
-                  <SmallCaps tone="muted" tracking="luxury" size="xs">
+              <div>
+                <div className="py-3">
+                  <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
                     Najlepszy dzień
                   </SmallCaps>
                   {analytics.best ? (
-                    <p className="font-serif-body text-dark text-[13.5px] mt-1">
-                      {formatDatePL(analytics.best.date)}{' '}
-                      <span className="text-gold-deep">· {analytics.best.xp} XP</span>
+                    <p className="font-serif-body text-dark text-[13.5px] mt-1.5">
+                      {formatDatePL(analytics.best.date)}
+                      <span className="text-gold mx-2">·</span>
+                      <span className="font-display italic text-gold-deep">{analytics.best.xp} XP</span>
                     </p>
                   ) : (
-                    <p className="font-serif-body italic text-muted-light text-[12px] mt-1">
+                    <p className="font-serif-body italic text-muted-light text-[12px] mt-1.5">
                       jeszcze brak danych
                     </p>
                   )}
                 </div>
-                <div>
-                  <SmallCaps tone="muted" tracking="luxury" size="xs">
+                <div className="py-3 border-t border-border">
+                  <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
                     Najspokojniejszy aktywny dzień
                   </SmallCaps>
                   {analytics.worst ? (
-                    <p className="font-serif-body text-dark text-[13.5px] mt-1">
-                      {formatDatePL(analytics.worst.date)}{' '}
-                      <span className="text-muted">· {analytics.worst.xp} XP</span>
+                    <p className="font-serif-body text-dark text-[13.5px] mt-1.5">
+                      {formatDatePL(analytics.worst.date)}
+                      <span className="text-gold mx-2">·</span>
+                      <span className="font-display italic text-gold-deep">{analytics.worst.xp} XP</span>
                     </p>
                   ) : (
-                    <p className="font-serif-body italic text-muted-light text-[12px] mt-1">
+                    <p className="font-serif-body italic text-muted-light text-[12px] mt-1.5">
                       jeszcze brak danych
                     </p>
                   )}
@@ -259,17 +277,38 @@ export default function TimelinePage() {
             </section>
           </div>
 
-          {/* Recap */}
-          <section className="bg-cream border border-gold-light/30 p-5 relative">
-            <Fleuron size={11} className="text-gold absolute -top-2 left-5 bg-cream px-1" />
-            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-              Łącznie
-            </SmallCaps>
-            <p className="font-serif-body italic text-dark text-[14px] mt-2 leading-relaxed">
-              {stats.totalDaysLogged} dni zalogowanych · {stats.totalXP.toLocaleString('pl-PL')} XP ·{' '}
-              {stats.totalRoutinesCompleted} rutyn · {stats.totalSideQuestsCompleted} side questów ·{' '}
-              {stats.totalRulesKept} zasad dotrzymanych.
-            </p>
+          {/* Total band */}
+          <section className="relative bg-dark text-gold-pale px-6 sm:px-10 py-7 overflow-hidden">
+            <CornerBrackets size={11} tone="gold" />
+            <div className="flex items-center justify-center gap-3.5">
+              <span className="h-px w-6 bg-gold-light/50" />
+              <SmallCaps tone="gold-light" tracking="editorial" size="xs">Łącznie</SmallCaps>
+              <span className="h-px w-6 bg-gold-light/50" />
+            </div>
+            <div className="flex flex-wrap sm:flex-nowrap justify-center mt-5">
+              {[
+                { n: stats.totalDaysLogged, k: 'dni zalogowanych' },
+                { n: stats.totalXP, k: 'XP' },
+                { n: stats.totalRoutinesCompleted, k: 'rutyn' },
+                { n: stats.totalSideQuestsCompleted, k: 'side questów' },
+                { n: stats.totalRulesKept, k: 'zasad dotrzymanych' },
+              ].map((s, i) => (
+                <div
+                  key={s.k}
+                  className={clsx(
+                    'min-w-[40%] sm:min-w-0 flex-1 text-center px-3 py-2 sm:py-0',
+                    i > 0 && 'sm:border-l sm:border-gold-light/20'
+                  )}
+                >
+                  <div className="font-display text-gold-pale text-[22px] leading-none tracking-tight">
+                    {s.n.toLocaleString('pl-PL')}
+                  </div>
+                  <div className="font-ui uppercase text-gold-light text-[7px] tracking-[0.26em] mt-2">
+                    {s.k}
+                  </div>
+                </div>
+              ))}
+            </div>
           </section>
         </div>
       ) : mode === 'habits' ? (
@@ -278,10 +317,8 @@ export default function TimelinePage() {
         <MoodTab logs={logs} />
       ) : mode === 'patterns' ? (
         <PatternsTab logs={logs} />
-      ) : mode === 'protokol' ? (
-        <ProtocolTab entries={ghostEntries} failures={ghostFailures} loading={ghostLoading} />
       ) : (
-        <PillarsTab stats={stats} />
+        <ProtocolTab entries={ghostEntries} failures={ghostFailures} loading={ghostLoading} />
       )}
     </div>
   )
@@ -289,11 +326,11 @@ export default function TimelinePage() {
 
 function Row({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="flex items-baseline justify-between">
+    <div className="flex items-baseline justify-between py-3 border-t border-border first:border-t-0">
       <SmallCaps tone="muted" tracking="luxury" size="xs">
         {label}
       </SmallCaps>
-      <p className="font-display text-dark text-2xl leading-none">
+      <p className="font-display text-dark text-[21px] leading-none tracking-tight">
         {value}
         {sub && (
           <span className="font-serif-body italic text-muted-light text-xs ml-1.5">{sub}</span>

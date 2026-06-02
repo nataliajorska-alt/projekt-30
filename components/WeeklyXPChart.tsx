@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import type { DailyLog } from '@/types'
 import { getISOWeekKey, PROJECT_START, PROJECT_END } from '@/lib/gameLogic'
 import { aggregateXpByWeek } from '@/lib/analytics'
-import { SmallCaps, Diamond } from '@/components/ui'
+import { SmallCaps } from '@/components/ui'
 
 interface Props {
   logs: Record<string, DailyLog>
@@ -21,14 +21,13 @@ function getAllWeekKeysInRange(start: Date, end: Date): string[] {
     }
     cur.setDate(cur.getDate() + 7)
   }
-  // ensure the last week (if partial) is included
   const lastKey = getISOWeekKey(end)
   if (!seen.has(lastKey)) out.push(lastKey)
   return out
 }
 
 export default function WeeklyXPChart({ logs }: Props) {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
+  const [tip, setTip] = useState<{ x: number; y: number; idx: number } | null>(null)
 
   const data = useMemo(() => {
     const agg = aggregateXpByWeek(logs)
@@ -39,57 +38,93 @@ export default function WeeklyXPChart({ logs }: Props) {
       activeDays: agg[k]?.activeDays ?? 0,
     }))
     const max = Math.max(1, ...rows.map(r => r.totalXP))
-    return { rows, max, currentWeek: getISOWeekKey(new Date()) }
+    const logged = rows.filter(r => r.totalXP > 0)
+    const avg = logged.length
+      ? Math.round(logged.reduce((s, r) => s + r.totalXP, 0) / logged.length)
+      : 0
+    let peakIdx = -1
+    let peakVal = 0
+    rows.forEach((r, i) => {
+      if (r.totalXP > peakVal) {
+        peakVal = r.totalXP
+        peakIdx = i
+      }
+    })
+    return { rows, max, avg, peakIdx, currentWeek: getISOWeekKey(new Date()) }
   }, [logs])
 
-  const chartHeight = 120
+  const chartHeight = 180
 
   return (
     <div className="w-full">
-      <div className="flex items-end gap-[3px] border-b border-hairline pb-1" style={{ height: chartHeight + 4 }}>
+      <div
+        className="relative flex items-end gap-[3px] border-b border-hairline"
+        style={{ height: chartHeight + 4 }}
+      >
+        {/* Average line */}
+        {data.avg > 0 && (
+          <div
+            className="absolute left-0 right-0 pointer-events-none"
+            style={{ bottom: `${(data.avg / data.max) * chartHeight}px`, borderTop: '1px dashed #c9b27f' }}
+          >
+            <span className="absolute right-0 -top-4 bg-ivory px-1 font-ui text-[8px] tracking-[0.22em] uppercase text-gold-deep">
+              śr. {data.avg.toLocaleString('pl-PL')} XP
+            </span>
+          </div>
+        )}
+
         {data.rows.map((row, idx) => {
           const h = Math.max(2, Math.round((row.totalXP / data.max) * chartHeight))
           const isCurrent = row.weekKey === data.currentWeek
-          const isHovered = idx === hoveredIdx
+          const isFuture = row.totalXP === 0
+          const isPeak = idx === data.peakIdx
           return (
             <div
               key={row.weekKey}
-              onMouseEnter={() => setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
-              className="flex-1 min-w-[5px] transition-all cursor-default"
-              style={{
-                height: `${h}px`,
-                backgroundColor: isCurrent ? '#B8963E' : isHovered ? '#D4AF6B' : '#C9BFB1',
-                opacity: row.totalXP === 0 ? 0.5 : 1,
-              }}
-              aria-label={`${row.weekKey}: ${row.totalXP} XP`}
-            />
+              onMouseEnter={e => !isFuture && setTip({ x: e.clientX, y: e.clientY, idx })}
+              onMouseMove={e => setTip(t => (t ? { ...t, x: e.clientX, y: e.clientY } : t))}
+              onMouseLeave={() => setTip(null)}
+              className="relative flex-1 min-w-[5px] h-full flex flex-col justify-end items-center cursor-default"
+            >
+              {isPeak && row.totalXP > 0 && (
+                <span className="absolute -top-[18px] left-1/2 -translate-x-1/2 font-display italic text-[12px] text-gold-deep whitespace-nowrap">
+                  {row.totalXP.toLocaleString('pl-PL')} XP
+                </span>
+              )}
+              <div
+                className="w-full transition-all"
+                style={{
+                  height: `${h}px`,
+                  backgroundColor: isCurrent ? '#b29355' : isFuture ? 'transparent' : '#b7a787',
+                  borderTop: isFuture ? '1px dashed #d9cda8' : 'none',
+                  opacity: isFuture ? 1 : isCurrent ? 1 : 0.55,
+                }}
+              />
+            </div>
           )
         })}
       </div>
 
-      <div className="flex justify-between mt-2">
+      <div className="flex justify-between mt-3">
         {['kwi MMXXVI', 'lip', 'paź', 'sty MMXXVII', 'kwi'].map(m => (
           <SmallCaps key={m} tone="muted" size="xs">{m}</SmallCaps>
         ))}
       </div>
 
-      <div className="mt-3 min-h-[32px]">
-        {hoveredIdx !== null && (
-          <div className="inline-flex items-center gap-3 bg-ivory border border-gold-light/40 px-3 py-1.5">
-            <Diamond size={4} className="text-gold" />
-            <SmallCaps tone="dark" tracking="luxury" size="xs">
-              Tydzień {data.rows[hoveredIdx].weekKey.split('-W')[1]}
-            </SmallCaps>
-            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-              {data.rows[hoveredIdx].totalXP.toLocaleString('pl-PL')} XP
-            </SmallCaps>
-            <SmallCaps tone="muted" size="xs">
-              {data.rows[hoveredIdx].activeDays} dni
-            </SmallCaps>
+      {/* Floating tooltip */}
+      {tip && (
+        <div
+          className="fixed z-50 pointer-events-none bg-dark border border-gold px-3 py-2"
+          style={{ left: tip.x, top: tip.y, transform: 'translate(-50%, calc(-100% - 12px))' }}
+        >
+          <div className="font-serif-body italic text-[13px] text-gold-pale whitespace-nowrap">
+            Tydzień {data.rows[tip.idx].weekKey.split('-W')[1]} · {data.rows[tip.idx].activeDays} dni
           </div>
-        )}
-      </div>
+          <div className="font-display text-[14px] text-gold-light mt-0.5">
+            {data.rows[tip.idx].totalXP.toLocaleString('pl-PL')} XP
+          </div>
+        </div>
+      )}
     </div>
   )
 }
