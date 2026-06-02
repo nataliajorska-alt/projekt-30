@@ -12,7 +12,7 @@ export const MORNING_ROUTINE: RoutineItem[] = [
   { id: 'm6', text: 'Afirmacja',                        type: 'morning', xp: 10, priority: 'normal',   category: 'mental'    },
   { id: 'm7', text: 'Zadbanie o twarz',                 type: 'morning', xp: 10, priority: 'normal',   category: 'hygiene'   },
   { id: 'm8', text: 'Umycie zębów + nitkowanie',        type: 'morning', xp: 10, priority: 'essential', category: 'hygiene'   },
-  { id: 'm9', text: 'Witaminy + witamina C + kreatyna',            type: 'morning', xp: 10, priority: 'essential', category: 'hygiene'   },
+  { id: 'm9', text: 'Witaminy',                          type: 'morning', xp: 10, priority: 'essential', category: 'hygiene'   },
 ]
 
 export const EVENING_ROUTINE: RoutineItem[] = [
@@ -55,6 +55,7 @@ export const WEEKLY_HABITS: Record<number, RoutineItem[]> = {
     { id: 'w0_1', text: 'Kościół — msza', type: 'daily', xp: 10 },
   ],
   1: [ // Poniedziałek
+    { id: 'w1_supp', text: 'Suplementy: Cynk 50 mg + Selen (przy obiedzie, z dala od kreatyny)', type: 'daily', xp: 10 },
     { id: 'w1_1', text: 'Ćw. od fizjo', type: 'daily', xp: 10 },
     { id: 'w1_2', text: 'Leg warm-up', type: 'daily', xp: 10 },
     { id: 'w1_3', text: 'Duolingo ×3', type: 'daily', xp: 10 },
@@ -283,7 +284,7 @@ export const EVENING_SKINCARE: Record<number, { theme: string; steps: string[] }
 const SUPP_MORNING_BASE = ['D3 4000 IU', 'K2 MK-7 1 kaps', 'Omega-3 2 kaps', 'Kreatyna 3–3,5 g']
 
 export const MORNING_SUPPLEMENTS: Record<number, { theme: string; steps: string[]; note?: string }> = {
-  1: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'B-complex DOZ 1 tabl'], note: 'Obiad (~14:00): Cynk 50 mg + Selen 1 kaps — z dala od kreatyny' },
+  1: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'B-complex DOZ 1 tabl'] },
   2: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'Witamina C 500 mg'] },
   3: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'B-complex DOZ 1 tabl'] },
   4: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'Witamina C 500 mg'] },
