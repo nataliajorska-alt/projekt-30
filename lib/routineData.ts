@@ -264,14 +264,16 @@ export const MORNING_SKINCARE_STEPS = [
   'SPF',
 ]
 
+// 4 noce aktywne (azelaina/retinoid/BHA/retinoid), 3 barierowe (śr/pt/niedz).
+// Nigdy retinoid + kwas tej samej nocy; bariera = sam krem, nic aktywnego.
 export const EVENING_SKINCARE: Record<number, { theme: string; steps: string[] }> = {
-  1: { theme: 'oczyszczanie + balans',   steps: ['mycie', 'azelaic acid', 'Toleriane'] },
-  2: { theme: 'anti-aging / wygładzenie', steps: ['mycie', 'retinoid', 'MoonCall'] },
-  3: { theme: 'regeneracja',             steps: ['mycie', 'MoonCall'] },
-  4: { theme: 'pory / czoło',            steps: ['mycie', 'BHA (tylko strefa T)', 'Toleriane'] },
-  5: { theme: 'balans 2',                steps: ['mycie', 'azelaic acid', 'Toleriane'] },
-  6: { theme: 'retinoid 2',              steps: ['mycie', 'retinoid', 'MoonCall'] },
-  0: { theme: 'reset',                   steps: ['mycie', 'peeling enzymatyczny', 'Toleriane'] },
+  1: { theme: 'azelaina',  steps: ['mycie', 'azelaina (TO Azelaic 10%)', 'Toleriane'] },
+  2: { theme: 'retinoid',  steps: ['mycie', 'retinoid (TO Granactive 2%)', 'Cicaplast lub Kloo'] },
+  3: { theme: 'bariera',   steps: ['mycie', 'Toleriane (sam krem)'] },
+  4: { theme: 'BHA / strefa T', steps: ['mycie', 'BHA (Paula\'s Choice 2%, tylko strefa T)', 'Toleriane'] },
+  5: { theme: 'bariera',   steps: ['mycie', 'Toleriane'] },
+  6: { theme: 'retinoid',  steps: ['mycie', 'retinoid (TO Granactive 2%)', 'Toleriane'] },
+  0: { theme: 'bariera',   steps: ['mycie', 'Toleriane (lub peeling Tołpa gdy skóra szorstka)'] },
 }
 
 export const DAILY_SPARKS = [
