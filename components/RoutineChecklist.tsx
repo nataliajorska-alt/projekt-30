@@ -11,7 +11,7 @@ import {
 } from '@/lib/routineData'
 import { filterItemsForMinimumDay } from '@/lib/minimumDayLogic'
 import { MINIMUM_DAY_REASONS } from '@/types'
-import { BatteryLow, ChevronDown } from 'lucide-react'
+import { BatteryLow, ChevronDown, Check } from 'lucide-react'
 import MinimumDayModal from '@/components/MinimumDayModal'
 import DeskTimer from '@/components/DeskTimer'
 import { SmallCaps, Fleuron, RomanNumeral } from '@/components/ui'
@@ -102,7 +102,48 @@ function ItemRow({ item, done, isMinimum, isOptional, onToggle, inlineExtra }: I
   )
 }
 
-function SkincareGuide({ itemId, dow }: { itemId: 'm7' | 'e2'; dow: number }) {
+// Pojedynczy, odhaczany krok przewodnika. Klik przekreśla — pomocnicze
+// „co już zrobione" na dziś, bez XP. Stan żyje w todayLog.checkedSubSteps.
+function CheckableStep({
+  stepKey, label, index, checked, onToggle,
+}: {
+  stepKey: string; label: string; index: number; checked: boolean; onToggle: (k: string) => void
+}) {
+  return (
+    <li>
+      <button
+        onClick={() => onToggle(stepKey)}
+        className="flex items-center gap-2.5 w-full text-left group py-0.5"
+      >
+        <span
+          className={clsx(
+            'w-4 h-4 shrink-0 border flex items-center justify-center transition-colors',
+            checked ? 'bg-gold border-gold' : 'border-hairline group-hover:border-gold',
+          )}
+        >
+          {checked
+            ? <Check size={11} strokeWidth={2.5} className="text-ivory" />
+            : <RomanNumeral value={index + 1} className="text-gold-deep text-[9px]" />}
+        </span>
+        <span
+          className={clsx(
+            'font-serif-body text-[13px] leading-snug transition-colors',
+            checked ? 'text-muted-light line-through' : 'text-dark',
+          )}
+        >
+          {label}
+        </span>
+      </button>
+    </li>
+  )
+}
+
+type GuideProps = {
+  checkedSteps: string[]
+  onToggleStep: (k: string) => void
+}
+
+function SkincareGuide({ itemId, dow, checkedSteps, onToggleStep }: GuideProps & { itemId: 'm7' | 'e2'; dow: number }) {
   const [open, setOpen] = useState(false)
   const isEvening = itemId === 'e2'
   const steps = isEvening ? (EVENING_SKINCARE[dow]?.steps ?? []) : MORNING_SKINCARE_STEPS
@@ -128,15 +169,16 @@ function SkincareGuide({ itemId, dow }: { itemId: 'm7' | 'e2'; dow: number }) {
         />
       </button>
       {open && (
-        <ol className="mt-2 space-y-1.5 pb-1">
+        <ol className="mt-2 space-y-1 pb-1">
           {steps.map((step, i) => (
-            <li key={i} className="flex items-center gap-2">
-              <RomanNumeral
-                value={i + 1}
-                className="text-gold-deep text-[11px] w-5 shrink-0 text-center"
-              />
-              <span className="font-serif-body text-[13px] text-dark leading-snug">{step}</span>
-            </li>
+            <CheckableStep
+              key={i}
+              stepKey={`${itemId}-${i}`}
+              label={step}
+              index={i}
+              checked={checkedSteps.includes(`${itemId}-${i}`)}
+              onToggle={onToggleStep}
+            />
           ))}
         </ol>
       )}
@@ -144,7 +186,7 @@ function SkincareGuide({ itemId, dow }: { itemId: 'm7' | 'e2'; dow: number }) {
   )
 }
 
-function SupplementGuide({ itemId, dow }: { itemId: 'm9' | 'e7'; dow: number }) {
+function SupplementGuide({ itemId, dow, checkedSteps, onToggleStep }: GuideProps & { itemId: 'm9' | 'e7'; dow: number }) {
   const [open, setOpen] = useState(false)
   const isEvening = itemId === 'e7'
   const data = isEvening ? EVENING_SUPPLEMENTS : MORNING_SUPPLEMENTS[dow]
@@ -173,15 +215,16 @@ function SupplementGuide({ itemId, dow }: { itemId: 'm9' | 'e7'; dow: number }) 
       </button>
       {open && (
         <>
-          <ol className="mt-2 space-y-1.5 pb-1">
+          <ol className="mt-2 space-y-1 pb-1">
             {steps.map((step, i) => (
-              <li key={i} className="flex items-center gap-2">
-                <RomanNumeral
-                  value={i + 1}
-                  className="text-gold-deep text-[11px] w-5 shrink-0 text-center"
-                />
-                <span className="font-serif-body text-[13px] text-dark leading-snug">{step}</span>
-              </li>
+              <CheckableStep
+                key={i}
+                stepKey={`${itemId}-${i}`}
+                label={step}
+                index={i}
+                checked={checkedSteps.includes(`${itemId}-${i}`)}
+                onToggle={onToggleStep}
+              />
             ))}
           </ol>
           {note && (
@@ -196,7 +239,8 @@ function SupplementGuide({ itemId, dow }: { itemId: 'm9' | 'e7'; dow: number }) 
 }
 
 export default function RoutineChecklist() {
-  const { todayLog, toggleRoutine, setDayMode } = useGameData()
+  const { todayLog, toggleRoutine, toggleSubStep, setDayMode } = useGameData()
+  const checkedSubSteps = todayLog?.checkedSubSteps ?? []
   const { getEffectiveItems } = useRoutineConfig()
   const [tab, setTab] = useState<Tab>(getDefaultTab)
   const [showMinimumModal, setShowMinimumModal] = useState(false)
@@ -412,10 +456,20 @@ export default function RoutineChecklist() {
                   }
                 />
                 {(item.id === 'm7' || item.id === 'e2') && (
-                  <SkincareGuide itemId={item.id as 'm7' | 'e2'} dow={dow} />
+                  <SkincareGuide
+                    itemId={item.id as 'm7' | 'e2'}
+                    dow={dow}
+                    checkedSteps={checkedSubSteps}
+                    onToggleStep={toggleSubStep}
+                  />
                 )}
                 {(item.id === 'm9' || item.id === 'e7') && (
-                  <SupplementGuide itemId={item.id as 'm9' | 'e7'} dow={dow} />
+                  <SupplementGuide
+                    itemId={item.id as 'm9' | 'e7'}
+                    dow={dow}
+                    checkedSteps={checkedSubSteps}
+                    onToggleStep={toggleSubStep}
+                  />
                 )}
               </div>
             )

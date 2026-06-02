@@ -238,6 +238,13 @@ export interface DailyLog {
   keyMoment?: KeyMoment
   cigarettes?: CigaretteEntry[]
   /**
+   * Odhaczone pojedyncze kroki w rozwijanych przewodnikach (pielęgnacja,
+   * suplementy) — czysto pomocnicze „co już zrobione", bez XP. Klucz w
+   * formacie `${itemId}-${index}` (np. 'm9-4'). Resetuje się z nowym dniem,
+   * bo żyje w logu danego dnia.
+   */
+  checkedSubSteps?: string[]
+  /**
    * Suma XP wpisana w tym dniu przez zewnętrzne aplikacje (na razie tylko
    * The Learning Vault), rozbita per filar. Endpoint /api/external/xp
    * inkrementuje to pole atomowo. recoverStats czyta to pole, żeby pillarXP

@@ -493,6 +493,17 @@ export function useGameData() {
     await setDoc(todayRef, { physicalActivity: !todayLog.physicalActivity }, { merge: true })
   }, [user, todayRef, todayLog])
 
+  // Odhaczanie pojedynczych kroków w przewodnikach (pielęgnacja, suplementy).
+  // Lekkie — bez XP i statystyk; tylko pomocnicze „co już zrobione" na dziś.
+  const toggleSubStep = useCallback(async (stepKey: string) => {
+    if (!user || !todayRef || !todayLog) return
+    const current = todayLog.checkedSubSteps ?? []
+    const next = current.includes(stepKey)
+      ? current.filter(k => k !== stepKey)
+      : [...current, stepKey]
+    await setDoc(todayRef, { checkedSubSteps: next }, { merge: true })
+  }, [user, todayRef, todayLog])
+
   const saveMoodCheckIn = useCallback(async (checkin: Omit<MoodCheckIn, 'timestamp'>) => {
     if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const existing = todayLog.moodCheckIns ?? []
@@ -997,7 +1008,7 @@ export function useGameData() {
     stats, todayLog, loading,
     toggleRoutine, toggleDailyQuest, toggleSideQuest, toggleRule,
     submitWeeklyReview, submitMonthlyReview, setDayMode,
-    streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity,
+    streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity, toggleSubStep,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
     logCigarette, removeLastCigarette,
     completeHeartBlock,
