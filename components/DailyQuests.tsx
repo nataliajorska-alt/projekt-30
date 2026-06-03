@@ -9,13 +9,24 @@ import {
   getPostponedQuestsForDate,
 } from '@/lib/seasonal/aprilData'
 import { getPillar } from '@/lib/pillars'
-import { todayKey, dateKey } from '@/lib/gameLogic'
+import { todayKey, dateKey, formatDate } from '@/lib/gameLogic'
 import { Clock, X } from 'lucide-react'
 import { SmallCaps, Fleuron, Diamond } from '@/components/ui'
 import type { AprilQuest } from '@/lib/seasonal/aprilData'
 
 const APRIL_LAST_DAY = '2026-04-30'
 const APRIL_FIRST_DAY = '2026-04-05'
+
+/* ── Date helpers (local, tz-safe — parse/format YYYY-MM-DD) ───────── */
+function keyToDate(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+function addDaysKey(key: string, days: number): string {
+  const d = keyToDate(key)
+  d.setDate(d.getDate() + days)
+  return dateKey(d)
+}
 
 /* ── Inline SVG icons matching the design ─────────────────────────── */
 function PostponeIcon() {
@@ -104,6 +115,106 @@ function SkipModal({
             <Diamond size={5} className="text-gold" />
             <SmallCaps tone="ivory" tracking="luxury" size="xs">
               Pomiń zadanie
+            </SmallCaps>
+          </button>
+          <button
+            onClick={onClose}
+            className="border border-hairline text-muted px-4 py-3 hover:border-gold hover:text-dark transition-colors"
+          >
+            <SmallCaps tone="muted" tracking="luxury" size="xs">
+              Anuluj
+            </SmallCaps>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Postpone modal — wybór dowolnej daty ──────────────────────────── */
+function PostponeModal({
+  quest,
+  today,
+  onConfirm,
+  onClose,
+}: {
+  quest: AprilQuest
+  today: string
+  onConfirm: (targetDate: string) => void
+  onClose: () => void
+}) {
+  const tomorrow = addDaysKey(today, 1)
+  const [selected, setSelected] = useState(tomorrow)
+  const quickPicks = [
+    { label: 'Jutro', date: addDaysKey(today, 1) },
+    { label: 'Za 3 dni', date: addDaysKey(today, 3) },
+    { label: 'Za tydzień', date: addDaysKey(today, 7) },
+  ]
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0">
+      <div className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-ivory border border-gold-light/40 w-full max-w-sm p-6 animate-slide-up">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+              Przeniesienie questa
+            </SmallCaps>
+            <h3 className="font-heading text-dark text-base mt-1">{quest.title}</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-muted-light hover:text-dark transition-colors ml-3 flex-shrink-0"
+          >
+            <X size={18} strokeWidth={1.5} />
+          </button>
+        </div>
+        <p className="font-serif-body italic text-muted text-[13px] mb-4">
+          na kiedy chcesz przenieść to zadanie?
+        </p>
+
+        <div className="flex gap-2 mb-4">
+          {quickPicks.map(p => (
+            <button
+              key={p.label}
+              onClick={() => setSelected(p.date)}
+              className={clsx(
+                'flex-1 border px-2 py-2.5 transition-colors',
+                selected === p.date
+                  ? 'border-gold bg-gold-pale/50 text-dark'
+                  : 'border-hairline text-muted hover:border-gold hover:text-dark',
+              )}
+            >
+              <SmallCaps tone={selected === p.date ? 'gold-deep' : 'muted'} tracking="luxury" size="xs">
+                {p.label}
+              </SmallCaps>
+            </button>
+          ))}
+        </div>
+
+        <label className="block mb-1">
+          <SmallCaps tone="muted" tracking="luxury" size="xs">
+            albo wybierz datę
+          </SmallCaps>
+        </label>
+        <input
+          type="date"
+          value={selected}
+          min={tomorrow}
+          onChange={e => e.target.value && setSelected(e.target.value)}
+          className="w-full border border-hairline px-4 py-3 font-serif-body text-[14px] text-dark bg-cream/40 focus:outline-none focus:border-gold transition-colors mb-2"
+        />
+        <p className="font-serif-body italic text-muted-light text-[12px] mb-4">
+          przeniesiesz na: {formatDate(keyToDate(selected))}
+        </p>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => onConfirm(selected)}
+            className="flex-1 bg-dark-deep text-ivory border border-gold py-3 hover:bg-forest transition-colors flex items-center justify-center gap-2"
+          >
+            <Diamond size={5} className="text-gold" />
+            <SmallCaps tone="ivory" tracking="luxury" size="xs">
+              Przenieś zadanie
             </SmallCaps>
           </button>
           <button
@@ -216,8 +327,8 @@ function QuestRow({
           <div className="flex gap-1.5">
             <button
               onClick={onPostpone}
-              title="Przenieś na jutro"
-              aria-label="Przenieś na jutro"
+              title="Przenieś na inny dzień"
+              aria-label="Przenieś na inny dzień"
               className="inline-flex items-center justify-center border border-hairline text-gold-deep px-2 py-1.5 hover:border-gold hover:text-dark transition-colors"
             >
               <PostponeIcon />
@@ -249,6 +360,7 @@ export default function DailyQuests() {
   const { todayLog } = useGameData()
   const isMinimum = (todayLog?.dayMode ?? 'normal') === 'minimum'
   const [skipTarget, setSkipTarget] = useState<AprilQuest | null>(null)
+  const [postponeTarget, setPostponeTarget] = useState<AprilQuest | null>(null)
   const today = todayKey()
 
   const nativeToday = getAprilQuestsForDate(today)
@@ -289,13 +401,6 @@ export default function DailyQuests() {
     return null
   }
 
-  const handlePostpone = async (quest: AprilQuest) => {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowKey = dateKey(tomorrow)
-    await postponeQuest(quest.id, quest.date, tomorrowKey)
-  }
-
   const allQuests = [...overdueQuests, ...todayQuests]
   const completedCount = allQuests.filter(q => log.completed.includes(q.id)).length
   const earnedXP = allQuests
@@ -312,6 +417,18 @@ export default function DailyQuests() {
             setSkipTarget(null)
           }}
           onClose={() => setSkipTarget(null)}
+        />
+      )}
+
+      {postponeTarget && (
+        <PostponeModal
+          quest={postponeTarget}
+          today={today}
+          onConfirm={async (targetDate) => {
+            await postponeQuest(postponeTarget.id, postponeTarget.date, targetDate)
+            setPostponeTarget(null)
+          }}
+          onClose={() => setPostponeTarget(null)}
         />
       )}
 
@@ -356,7 +473,7 @@ export default function DailyQuests() {
               isLast={i === allQuests.length - 1}
               onComplete={() => completeQuest(quest.id, quest.pillar)}
               onSkip={() => setSkipTarget(quest)}
-              onPostpone={() => handlePostpone(quest)}
+              onPostpone={() => setPostponeTarget(quest)}
             />
           ))}
         </div>
@@ -364,7 +481,7 @@ export default function DailyQuests() {
         {postponedAwayIds.length > 0 && (
           <p className="text-center py-4 font-serif-body italic text-muted-light text-[13px]">
             — {postponedAwayIds.length}{' '}
-            {postponedAwayIds.length === 1 ? 'quest przeniesiony' : 'questy przeniesione'} na jutro —
+            {postponedAwayIds.length === 1 ? 'quest przeniesiony' : 'questy przeniesione'} na później —
           </p>
         )}
       </section>

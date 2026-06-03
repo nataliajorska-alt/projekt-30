@@ -1,7 +1,8 @@
 'use client'
 import clsx from 'clsx'
 import { useTomorrowData } from '@/hooks/useTomorrowData'
-import { getAprilQuestsForDate } from '@/lib/seasonal/aprilData'
+import { useAprilQuests } from '@/hooks/useAprilQuests'
+import { getAprilQuestsForDate, getPostponedQuestsForDate } from '@/lib/seasonal/aprilData'
 import { getPillar } from '@/lib/pillars'
 import type { AprilQuest } from '@/lib/seasonal/aprilData'
 import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
@@ -9,9 +10,10 @@ import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
 const APRIL_LAST_DAY  = '2026-04-30'
 const APRIL_FIRST_DAY = '2026-04-05'
 
-function QuestCard({ quest, done, onComplete }: {
+function QuestCard({ quest, done, postponed, onComplete }: {
   quest: AprilQuest
   done: boolean
+  postponed?: boolean
   onComplete: () => void
 }) {
   const pillar = getPillar(quest.pillar)
@@ -24,14 +26,21 @@ function QuestCard({ quest, done, onComplete }: {
     >
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex-1 min-w-0">
-          <span
-            className="inline-flex items-center gap-1.5"
-            style={{ color: pillar.color }}
-          >
-            <Diamond size={5} />
-            <span className="font-ui uppercase tracking-luxury text-[10px]">
-              {pillar.shortName}
+          <span className="inline-flex items-center gap-2 flex-wrap">
+            <span
+              className="inline-flex items-center gap-1.5"
+              style={{ color: pillar.color }}
+            >
+              <Diamond size={5} />
+              <span className="font-ui uppercase tracking-luxury text-[10px]">
+                {pillar.shortName}
+              </span>
             </span>
+            {postponed && (
+              <span className="font-ui uppercase tracking-luxury text-[9px] text-gold-deep border border-gold-light/50 px-1.5 py-0.5">
+                przeniesione
+              </span>
+            )}
           </span>
           <h3
             className={clsx(
@@ -75,10 +84,22 @@ function QuestCard({ quest, done, onComplete }: {
 
 export default function TomorrowQuests() {
   const { tomorrowLog, tomorrowDateKey, loading, toggleTomorrowQuest } = useTomorrowData()
+  const { log, skippedIds, loading: questsLoading } = useAprilQuests()
 
-  if (loading) return null
+  if (loading || questsLoading) return null
 
-  const quests = getAprilQuestsForDate(tomorrowDateKey)
+  const native = getAprilQuestsForDate(tomorrowDateKey)
+  const postponedToTomorrow = getPostponedQuestsForDate(tomorrowDateKey, log.postponed)
+  // Quest natywnie na jutro, ale przeniesiony jeszcze dalej — nie pokazuj go jutro
+  const postponedAwayIds = log.postponed
+    .filter(p => p.targetDate > tomorrowDateKey)
+    .map(p => p.questId)
+  const postponedIds = new Set(postponedToTomorrow.map(q => q.id))
+
+  const quests = [
+    ...native.filter(q => !postponedAwayIds.includes(q.id)),
+    ...postponedToTomorrow.filter(q => !native.some(n => n.id === q.id)),
+  ].filter(q => !skippedIds.includes(q.id))
 
   if (quests.length === 0) {
     if (tomorrowDateKey > APRIL_LAST_DAY) {
@@ -124,6 +145,7 @@ export default function TomorrowQuests() {
             key={quest.id}
             quest={quest}
             done={tomorrowLog?.completedDailyQuests?.includes(quest.id) ?? false}
+            postponed={postponedIds.has(quest.id)}
             onComplete={() => toggleTomorrowQuest(quest.id, quest.pillar, quest.xp)}
           />
         ))}
