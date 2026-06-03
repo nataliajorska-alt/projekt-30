@@ -1,20 +1,24 @@
 'use client'
+import { useState } from 'react'
 import clsx from 'clsx'
 import { useTomorrowData } from '@/hooks/useTomorrowData'
 import { useAprilQuests } from '@/hooks/useAprilQuests'
 import { getAprilQuestsForDate, getPostponedQuestsForDate } from '@/lib/seasonal/aprilData'
 import { getPillar } from '@/lib/pillars'
+import { todayKey } from '@/lib/gameLogic'
 import type { AprilQuest } from '@/lib/seasonal/aprilData'
 import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
+import PostponeModal, { addDaysKey } from '@/components/PostponeModal'
 
 const APRIL_LAST_DAY  = '2026-04-30'
 const APRIL_FIRST_DAY = '2026-04-05'
 
-function QuestCard({ quest, done, postponed, onComplete }: {
+function QuestCard({ quest, done, postponed, onComplete, onPostpone }: {
   quest: AprilQuest
   done: boolean
   postponed?: boolean
   onComplete: () => void
+  onPostpone: () => void
 }) {
   const pillar = getPillar(quest.pillar)
   return (
@@ -68,15 +72,27 @@ function QuestCard({ quest, done, postponed, onComplete }: {
           </SmallCaps>
         </div>
       ) : (
-        <button
-          onClick={onComplete}
-          className="inline-flex items-center gap-2 bg-dark-deep text-ivory border border-gold py-2.5 px-4 hover:bg-forest transition-colors"
-        >
-          <Diamond size={5} className="text-gold" />
-          <SmallCaps tone="ivory" tracking="luxury" size="xs">
-            zrobione na zapas
-          </SmallCaps>
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={onComplete}
+            className="inline-flex items-center gap-2 bg-dark-deep text-ivory border border-gold py-2.5 px-4 hover:bg-forest transition-colors"
+          >
+            <Diamond size={5} className="text-gold" />
+            <SmallCaps tone="ivory" tracking="luxury" size="xs">
+              zrobione na zapas
+            </SmallCaps>
+          </button>
+          <button
+            onClick={onPostpone}
+            title="Przenieś na inny dzień"
+            aria-label="Przenieś na inny dzień"
+            className="inline-flex items-center border border-hairline text-gold-deep py-2.5 px-4 hover:border-gold hover:text-dark transition-colors"
+          >
+            <SmallCaps tone="muted" tracking="luxury" size="xs">
+              przenieś
+            </SmallCaps>
+          </button>
+        </div>
       )}
     </div>
   )
@@ -84,7 +100,8 @@ function QuestCard({ quest, done, postponed, onComplete }: {
 
 export default function TomorrowQuests() {
   const { tomorrowLog, tomorrowDateKey, loading, toggleTomorrowQuest } = useTomorrowData()
-  const { log, skippedIds, loading: questsLoading } = useAprilQuests()
+  const { log, skippedIds, loading: questsLoading, postponeQuest } = useAprilQuests()
+  const [postponeTarget, setPostponeTarget] = useState<AprilQuest | null>(null)
 
   if (loading || questsLoading) return null
 
@@ -128,28 +145,44 @@ export default function TomorrowQuests() {
   }
 
   return (
-    <div className="bg-ivory border border-gold-light/40 mb-4">
-      <div className="px-5 pt-5 pb-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <h2 className="font-heading text-dark text-xl whitespace-nowrap">Questy dnia</h2>
-            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-              na zapas
-            </SmallCaps>
+    <>
+      {postponeTarget && (
+        <PostponeModal
+          quest={postponeTarget}
+          today={todayKey()}
+          minDate={addDaysKey(tomorrowDateKey, 1)}
+          onConfirm={async (targetDate) => {
+            await postponeQuest(postponeTarget.id, postponeTarget.date, targetDate)
+            setPostponeTarget(null)
+          }}
+          onClose={() => setPostponeTarget(null)}
+        />
+      )}
+
+      <div className="bg-ivory border border-gold-light/40 mb-4">
+        <div className="px-5 pt-5 pb-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="flex items-baseline gap-3 min-w-0">
+              <h2 className="font-heading text-dark text-xl whitespace-nowrap">Questy dnia</h2>
+              <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+                na zapas
+              </SmallCaps>
+            </div>
           </div>
         </div>
+        <div className="px-5 pb-5 space-y-3">
+          {quests.map(quest => (
+            <QuestCard
+              key={quest.id}
+              quest={quest}
+              done={tomorrowLog?.completedDailyQuests?.includes(quest.id) ?? false}
+              postponed={postponedIds.has(quest.id)}
+              onComplete={() => toggleTomorrowQuest(quest.id, quest.pillar, quest.xp)}
+              onPostpone={() => setPostponeTarget(quest)}
+            />
+          ))}
+        </div>
       </div>
-      <div className="px-5 pb-5 space-y-3">
-        {quests.map(quest => (
-          <QuestCard
-            key={quest.id}
-            quest={quest}
-            done={tomorrowLog?.completedDailyQuests?.includes(quest.id) ?? false}
-            postponed={postponedIds.has(quest.id)}
-            onComplete={() => toggleTomorrowQuest(quest.id, quest.pillar, quest.xp)}
-          />
-        ))}
-      </div>
-    </div>
+    </>
   )
 }
