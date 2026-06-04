@@ -76,23 +76,145 @@ function carryoverNarrative(ins: CarryoverInsight): string {
   return `po wieczorach z rutyną poranek bywa o ${absPct}% gorszy. może rutyna wieczorna jest zbyt późno?`
 }
 
+// ── Directional verdict (siła i kierunek dźwigni) ────────────────
+
+type Directional = LiftInsight | CarryoverInsight
+type Verdict = 'works' | 'weak' | 'reverse' | 'nodata'
+
+// Krótkie nazwy dźwigni do rankingu „Twoje dźwignie"
+const LEVER_LABEL: Record<string, string> = {
+  lift_morning_mood: 'Rutyna poranna',
+  lift_low_start_routine: 'Rutyna po gorszym poranku',
+  lift_activity_energy: 'Ruch',
+  lift_social_mood: 'Kontakt z ludźmi',
+  lift_sidequest_mood: 'Side quest',
+  lift_rules_mood: 'Trzymanie zasad',
+  lift_dailyquest_mood: 'Quest dnia',
+  carryover_evening_morning: 'Wieczór z rutyną → poranek',
+  carryover_evening_energy: 'Wieczór z rutyną → energia rano',
+  carryover_activity_energy: 'Ruch wczoraj → energia rano',
+  carryover_xp_energy: 'Mocny dzień → energia rano',
+}
+
+function dirDiff(ins: Directional): number | null {
+  const w  = ins.type === 'lift' ? ins.withLift    : ins.withMorning
+  const wo = ins.type === 'lift' ? ins.withoutLift : ins.withoutMorning
+  if (w === null || wo === null) return null
+  return w - wo
+}
+
+function dirVerdict(ins: Directional): Verdict {
+  if (!ins.hasEnoughData) return 'nodata'
+  const d = dirDiff(ins)
+  if (d === null) return 'nodata'
+  const thr = ins.type === 'carryover' ? 0.15 : 0.2
+  if (d > thr) return 'works'
+  if (d < -thr) return 'reverse'
+  return 'weak'
+}
+
+// Jednozdaniowy wpis do rankingu dźwigni
+function leverLine(ins: Directional): string {
+  const name = LEVER_LABEL[ins.id] ?? ins.title
+  const d = dirDiff(ins)
+  const metricUp = ins.metric === 'mood' ? 'nastrój' : 'energię'
+  const metricNoun = ins.metric === 'mood' ? 'nastrój' : 'energia'
+  switch (dirVerdict(ins)) {
+    case 'works':   return `${name} podnosi ${metricUp} (${fmtSigned(d)})`
+    case 'reverse': return `${name} — ${metricNoun} reaguje odwrotnie (${fmtSigned(d)})`
+    default:        return `${name}: brak wyraźnego efektu`
+  }
+}
+
+function VerdictChip({ v }: { v: Verdict }) {
+  const map: Record<Verdict, { label: string; cls: string }> = {
+    works:   { label: 'działa',         cls: 'text-forest border-forest/40 bg-forest/5' },
+    weak:    { label: 'słaby sygnał',   cls: 'text-muted border-hairline bg-cream/60' },
+    reverse: { label: 'odwrotnie',      cls: 'text-red-700 border-red-200 bg-red-50/40' },
+    nodata:  { label: 'za mało danych', cls: 'text-muted-light border-hairline bg-cream/40' },
+  }
+  const { label, cls } = map[v]
+  return (
+    <span className={clsx('font-ui uppercase tracking-luxury text-[9px] px-1.5 py-0.5 border whitespace-nowrap shrink-0', cls)}>
+      {label}
+    </span>
+  )
+}
+
+// Ranking na górze sekcji — co realnie rusza nastrój/energię, od najmocniejszego
+function LeversSummary({ items }: { items: Directional[] }) {
+  return (
+    <div className="bg-forest/5 border border-forest/25 p-5 mb-4">
+      <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
+        Twoje dźwignie
+      </SmallCaps>
+      <p className="font-serif-body italic text-muted text-[12.5px] mt-1 mb-3 leading-relaxed">
+        co realnie rusza Twój nastrój i energię — od najmocniejszego.
+      </p>
+      <ul className="space-y-2">
+        {items.map(ins => {
+          const v = dirVerdict(ins)
+          return (
+            <li key={ins.id} className="flex items-start gap-2.5">
+              <Diamond
+                size={5}
+                className={clsx(
+                  'mt-1.5 shrink-0',
+                  v === 'works' ? 'text-forest' : v === 'reverse' ? 'text-red-600' : 'text-muted-light'
+                )}
+                filled={v === 'works'}
+              />
+              <span
+                className={clsx(
+                  'font-serif-body text-[13px] leading-snug',
+                  v === 'works' ? 'text-forest' : v === 'reverse' ? 'text-red-700' : 'text-muted'
+                )}
+              >
+                {leverLine(ins)}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+// Zwinięta lista dźwigni, które jeszcze nie mają dość danych
+function CompactNoData({ items }: { items: Directional[] }) {
+  return (
+    <div className="bg-cream/50 border border-hairline px-4 py-3">
+      <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-1">
+        Jeszcze zbierają dane
+      </SmallCaps>
+      <p className="font-serif-body italic text-muted-light text-[12px] leading-relaxed">
+        {items.map(i => LEVER_LABEL[i.id] ?? i.title).join(' · ')}
+      </p>
+    </div>
+  )
+}
+
 // ── Shared card primitives ───────────────────────────────────────
 
 function CardShell({ children }: { children: React.ReactNode }) {
   return <div className="bg-ivory border border-gold-light/40 p-5 sm:p-6">{children}</div>
 }
 
-function CardHeader({ icon, title, subtitle, metric }: {
+function CardHeader({ icon, title, subtitle, metric, chip }: {
   icon: string
   title: string
   subtitle?: string
   metric?: string
+  chip?: React.ReactNode
 }) {
   return (
     <div className="flex items-start gap-3 mb-4">
       <span className="text-2xl leading-none mt-0.5">{icon}</span>
-      <div className="min-w-0">
-        <h3 className="font-heading text-dark text-base leading-tight">{title}</h3>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-heading text-dark text-base leading-tight">{title}</h3>
+          {chip}
+        </div>
         {(subtitle || metric) && (
           <p className="font-serif-body italic text-muted text-[12.5px] mt-1 leading-relaxed">
             {subtitle ?? (metric === 'mood' ? 'nastrój I–V' : 'energia I–V')}
@@ -329,7 +451,7 @@ function LiftCard({ ins }: { ins: LiftInsight }) {
 
   return (
     <CardShell>
-      <CardHeader icon={ins.icon} title={ins.title} subtitle={ins.subtitle} />
+      <CardHeader icon={ins.icon} title={ins.title} subtitle={ins.subtitle} chip={<VerdictChip v={dirVerdict(ins)} />} />
 
       {!ins.hasEnoughData ? (
         <NotEnoughData message="za mało danych — potrzeba V+ dni z II+ check-inami nastroju i III dni w każdej grupie." />
@@ -361,7 +483,7 @@ function CarryoverCard({ ins }: { ins: CarryoverInsight }) {
 
   return (
     <CardShell>
-      <CardHeader icon={ins.icon} title={ins.title} subtitle={ins.subtitle} />
+      <CardHeader icon={ins.icon} title={ins.title} subtitle={ins.subtitle} chip={<VerdictChip v={dirVerdict(ins)} />} />
 
       {!ins.hasEnoughData ? (
         <NotEnoughData message="za mało danych — potrzeba III+ par sąsiednich dni w każdej grupie." />
@@ -434,6 +556,23 @@ export default function PatternsTab({ logs }: { logs: Record<string, DailyLog> }
     )
   }
 
+  // ── Grupowanie wniosków ──────────────────────────────────────────
+  const directional = insights.filter(
+    (i): i is Directional => i.type === 'lift' || i.type === 'carryover'
+  )
+  const dirWithData = directional
+    .filter(i => dirVerdict(i) !== 'nodata')
+    .sort((a, b) => Math.abs(dirDiff(b) ?? 0) - Math.abs(dirDiff(a) ?? 0))
+  const dirNoData = directional.filter(i => dirVerdict(i) === 'nodata')
+
+  const dowInsights = insights.filter(
+    (i): i is DayOfWeekInsight => i.type === 'dow'
+  )
+  const cigInsights = insights.filter(
+    (i): i is ComparisonInsight => i.type === 'comparison' && i.id.startsWith('cigarettes')
+  )
+  const cigWithData = cigInsights.filter(i => i.hasEnoughData)
+
   return (
     <div className="space-y-4">
       <WeeklyInsightCard />
@@ -448,7 +587,8 @@ export default function PatternsTab({ logs }: { logs: Record<string, DailyLog> }
         </p>
       </div>
 
-      {insights.some(i => i.type === 'lift' || i.type === 'carryover') && (
+      {/* ── Wpływ kierunkowy — to, co realnie działa ── */}
+      {directional.length > 0 && (
         <div className="pt-2">
           <div className="flex items-center gap-2 mb-2 px-1">
             <Diamond size={5} className="text-gold-deep" />
@@ -457,38 +597,81 @@ export default function PatternsTab({ logs }: { logs: Record<string, DailyLog> }
             </SmallCaps>
           </div>
           <p className="font-serif-body italic text-muted-light text-[12.5px] mb-3 px-1 leading-relaxed">
-            te wykresy odpowiadają na pytanie „czy działanie X realnie podnosi nastrój",
-            a nie tylko czy występują razem.
+            co realnie podnosi Twój nastrój i energię — mierzone wzrostem w ciągu dnia,
+            a nie tylko tym, że coś występuje razem.
+          </p>
+
+          {dirWithData.length > 0 ? (
+            <>
+              <LeversSummary items={dirWithData} />
+              <div className="space-y-4">
+                {dirWithData.map(ins =>
+                  ins.type === 'lift'
+                    ? <LiftCard key={ins.id} ins={ins} />
+                    : <CarryoverCard key={ins.id} ins={ins} />
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="bg-cream/50 border border-hairline px-4 py-3 mb-3">
+              <p className="font-serif-body italic text-muted text-[13px] leading-relaxed">
+                jeszcze za mało danych, żeby wskazać dźwignie — rób check-iny nastroju
+                (najlepiej 2 w ciągu dnia), a wnioski pojawią się same.
+              </p>
+            </div>
+          )}
+
+          {dirNoData.length > 0 && (
+            <div className="mt-3">
+              <CompactNoData items={dirNoData} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Rytm tygodnia ── */}
+      {dowInsights.length > 0 && (
+        <div className="pt-4">
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <Diamond size={5} className="text-gold-deep" />
+            <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
+              Rytm tygodnia
+            </SmallCaps>
+          </div>
+          <p className="font-serif-body italic text-muted-light text-[12.5px] mb-3 px-1 leading-relaxed">
+            kiedy w tygodniu masz statystycznie lepiej, a kiedy trudniej — do planowania trudnych dni.
           </p>
           <div className="space-y-4">
-            {insights.filter(i => i.type === 'lift').map(ins => (
-              <LiftCard key={ins.id} ins={ins as LiftInsight} />
-            ))}
-            {insights.filter(i => i.type === 'carryover').map(ins => (
-              <CarryoverCard key={ins.id} ins={ins as CarryoverInsight} />
-            ))}
+            {dowInsights.map(ins => <DayOfWeekCard key={ins.id} ins={ins} />)}
           </div>
         </div>
       )}
 
-      <div className="pt-4">
-        <div className="flex items-center gap-2 mb-2 px-1">
-          <Diamond size={5} className="text-gold-deep" />
-          <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
-            Współwystępowanie
-          </SmallCaps>
+      {/* ── Obserwacje (papierosy) — neutralnie, bez oceny ── */}
+      {cigInsights.length > 0 && (
+        <div className="pt-4">
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <Diamond size={5} className="text-gold-deep" />
+            <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
+              Obserwacje
+            </SmallCaps>
+          </div>
+          <p className="font-serif-body italic text-muted-light text-[12.5px] mb-3 px-1 leading-relaxed">
+            neutralny ślad, bez oceny — faza obserwacji. tylko patrzymy, co się z czym schodzi.
+          </p>
+          {cigWithData.length > 0 ? (
+            <div className="space-y-4">
+              {cigWithData.map(ins => <ComparisonCard key={ins.id} ins={ins} />)}
+            </div>
+          ) : (
+            <div className="bg-cream/50 border border-hairline px-4 py-3">
+              <p className="font-serif-body italic text-muted-light text-[12.5px] leading-relaxed">
+                jeszcze zbierasz dane — porównania pojawią się, gdy uzbiera się dość dni z check-inem.
+              </p>
+            </div>
+          )}
         </div>
-        <p className="font-serif-body italic text-muted-light text-[12.5px] mb-3 px-1 leading-relaxed">
-          te porównania pokazują co dzieje się razem — nie zawsze co powoduje co.
-        </p>
-        <div className="space-y-4">
-          {insights.filter(i => i.type === 'comparison' || i.type === 'dow').map(ins => (
-            ins.type === 'comparison'
-              ? <ComparisonCard key={ins.id} ins={ins as ComparisonInsight} />
-              : <DayOfWeekCard key={ins.id} ins={ins as DayOfWeekInsight} />
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   )
 }
