@@ -113,17 +113,14 @@ function dirVerdict(ins: Directional): Verdict {
   return 'weak'
 }
 
-// Jednozdaniowy wpis do rankingu dźwigni
+// Jednozdaniowy wpis do rankingu dźwigni.
+// Opis różnicowy: znak różnicy niesie kierunek, więc jest poprawny i dla
+// wzrostu, i dla „spada mniej" — bez przeszacowania słowem „podnosi".
 function leverLine(ins: Directional): string {
   const name = LEVER_LABEL[ins.id] ?? ins.title
-  const d = dirDiff(ins)
-  const metricUp = ins.metric === 'mood' ? 'nastrój' : 'energię'
-  const metricNoun = ins.metric === 'mood' ? 'nastrój' : 'energia'
-  switch (dirVerdict(ins)) {
-    case 'works':   return `${name} podnosi ${metricUp} (${fmtSigned(d)})`
-    case 'reverse': return `${name} — ${metricNoun} reaguje odwrotnie (${fmtSigned(d)})`
-    default:        return `${name}: brak wyraźnego efektu`
-  }
+  const metricGen = ins.metric === 'mood' ? 'nastroju' : 'energii'
+  if (dirVerdict(ins) === 'weak') return `${name}: bez wyraźnego efektu`
+  return `${name} → ${fmtSigned(dirDiff(ins))} do ${metricGen}`
 }
 
 function VerdictChip({ v }: { v: Verdict }) {
