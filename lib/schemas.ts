@@ -79,6 +79,9 @@ export const DailyLogSchema = z.object({
   cigarettes: z.array(CigaretteEntrySchema).optional(),
   // Odhaczone pojedyncze kroki przewodników (pielęgnacja/suplementy), bez XP.
   checkedSubSteps: z.array(z.string()).optional(),
+  // Jednorazowa korekta: questy tego dnia wyrównane do realnej wartości (q.xp
+  // zamiast płaskich 50). Gdy true — korekta już zastosowana, nie powtarzaj.
+  questXpAdjusted: z.boolean().optional(),
   // XP z zewnętrznych aplikacji (na razie The Learning Vault), per filar.
   externalXP: z.object({
     pozycja:   z.number().nonnegative().optional(),

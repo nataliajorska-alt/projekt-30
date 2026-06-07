@@ -361,7 +361,7 @@ export default function DailyQuests() {
               overdue={overdueQuests.some(o => o.id === quest.id)}
               isMinimum={isMinimum}
               isLast={i === allQuests.length - 1}
-              onComplete={() => completeQuest(quest.id, quest.pillar)}
+              onComplete={() => completeQuest(quest.id, quest.pillar, quest.xp)}
               onSkip={() => setSkipTarget(quest)}
               onPostpone={() => setPostponeTarget(quest)}
             />

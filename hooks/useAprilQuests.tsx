@@ -61,7 +61,7 @@ export function useAprilQuests() {
     return unsub
   }, [user?.uid])
 
-  const completeQuest = useCallback(async (questId: string, pillar: Pillar) => {
+  const completeQuest = useCallback(async (questId: string, pillar: Pillar, xp: number) => {
     if (!user || !logRef || log.completed.includes(questId)) return
     const updated = { ...log, completed: [...log.completed, questId] }
     await setDoc(logRef, updated, { merge: true })
@@ -69,7 +69,8 @@ export function useAprilQuests() {
     // XP was already awarded yesterday — skip toggleDailyQuest to prevent double-counting.
     const alreadyInTodayLog = todayLog?.completedDailyQuests?.includes(questId) ?? false
     if (!alreadyInTodayLog) {
-      await toggleDailyQuest(questId, pillar)
+      // Przekazujemy realną wartość questa (q.xp), nie płaskie 50.
+      await toggleDailyQuest(questId, pillar, xp)
     }
   }, [user, logRef, log, todayLog, toggleDailyQuest])
 

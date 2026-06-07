@@ -245,6 +245,12 @@ export interface DailyLog {
    */
   checkedSubSteps?: string[]
   /**
+   * Jednorazowa korekta XP questów dnia: wyrównanie wartości naliczonych jako
+   * płaskie 50 do realnego q.xp (po naprawie naliczania questów sezonowych).
+   * Flaga per-dzień — gdy true, korekta już zaszła i nie jest powtarzana.
+   */
+  questXpAdjusted?: boolean
+  /**
    * Suma XP wpisana w tym dniu przez zewnętrzne aplikacje (na razie tylko
    * The Learning Vault), rozbita per filar. Endpoint /api/external/xp
    * inkrementuje to pole atomowo. recoverStats czyta to pole, żeby pillarXP

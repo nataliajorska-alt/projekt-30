@@ -10,6 +10,7 @@ import { todayKey, XP_VALUES, getISOWeekKey, getLevelFromXP, getMonthKey } from 
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import { DAILY_QUESTS_POOL, SIDE_QUESTS } from '@/lib/questData'
+import { APRIL_QUESTS } from '@/lib/seasonal/aprilData'
 import { DailyLogSchema, UserStatsSchema, parseSafe } from '@/lib/schemas'
 import { useToast } from '@/components/ToastProvider'
 import { useAchievementUnlock } from '@/components/AchievementUnlockModal'
@@ -48,6 +49,15 @@ const DEFAULT_STATS: UserStats = {
 
 const ALL_PILLARS: Pillar[] = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc']
 
+// ── Jednorazowa korekta XP questów ─────────────────────────────────────
+// Questy sezonowe były naliczane jako płaskie 50 zamiast realnej wartości q.xp.
+// Naprawiamy naliczanie na przyszłość, a dla questów odhaczonych jeszcze starym
+// kodem wyrównujemy różnicę (q.xp − 50) — WYŁĄCZNIE w dniu wdrożenia poprawki,
+// żeby nie ruszać przeszłości ani nie podwajać questów liczonych już poprawnie.
+const QUEST_XP_FIX_DATE = '2026-06-07'
+const SEASONAL_QUEST_XP: Record<string, { pillar: Pillar; xp: number }> = {}
+for (const q of APRIL_QUESTS) SEASONAL_QUEST_XP[q.id] = { pillar: q.pillar as Pillar, xp: q.xp }
+
 export function useGameData() {
   const { user } = useAuth()
   const { addToast } = useToast()
@@ -58,6 +68,7 @@ export function useGameData() {
   const [loading, setLoading] = useState(true)
   const [currentDateKey, setCurrentDateKey] = useState<string>(todayKey())
   const statsLoadedRef = useRef(false)
+  const questXpFixDoneRef = useRef<string | null>(null)
 
   // Refresh currentDateKey when the effective day rolls over (after DAY_START_HOUR).
   useEffect(() => {
@@ -134,6 +145,59 @@ export function useGameData() {
 
     return () => { unsub1?.(); unsub2?.() }
   }, [user?.uid, currentDateKey])
+
+  // ── Jednorazowe wyrównanie XP questów (tylko w dniu wdrożenia) ─────────
+  // Dla questów odhaczonych jeszcze starym kodem (płaskie 50) dodaje różnicę
+  // do realnego q.xp. Idempotentne: flaga `questXpAdjusted` w logu dnia +
+  // ref blokujący ponowne wejście w tej samej sesji. Bramka na datę gwarantuje,
+  // że nie ruszy przeszłości ani questów liczonych już poprawnie w przyszłości.
+  useEffect(() => {
+    if (!user || !statsRef || !todayRef || !todayLog) return
+    if (!statsLoadedRef.current) return
+    if (currentDateKey !== QUEST_XP_FIX_DATE) return
+    if (todayLog.questXpAdjusted) return
+    if (questXpFixDoneRef.current === currentDateKey) return
+    questXpFixDoneRef.current = currentDateKey
+
+    const mult = todayLog.dayMode === 'minimum' ? 2 : 1
+    const pillarDelta: Partial<Record<Pillar, number>> = {}
+    let totalDelta = 0
+    for (const id of (todayLog.completedDailyQuests ?? [])) {
+      const q = SEASONAL_QUEST_XP[id]
+      if (!q) continue
+      const d = (q.xp - XP_VALUES.dailyQuest) * mult
+      if (d === 0) continue
+      totalDelta += d
+      pillarDelta[q.pillar] = (pillarDelta[q.pillar] ?? 0) + d
+    }
+
+    if (totalDelta === 0) {
+      // Nic do wyrównania — tylko oznacz dzień, by nie liczyć przy każdym ładowaniu.
+      setDoc(todayRef, { questXpAdjusted: true }, { merge: true }).catch(() => {
+        questXpFixDoneRef.current = null
+      })
+      return
+    }
+
+    const newPillarXP = { ...stats.pillarXP }
+    for (const [p, d] of Object.entries(pillarDelta)) {
+      newPillarXP[p as Pillar] = Math.max(0, (newPillarXP[p as Pillar] ?? 0) + (d as number))
+    }
+
+    Promise.all([
+      setDoc(todayRef, {
+        totalXP: Math.max(0, (todayLog.totalXP ?? 0) + totalDelta),
+        questXpAdjusted: true,
+      }, { merge: true }),
+      setDoc(statsRef, {
+        totalXP: Math.max(0, (stats.totalXP ?? 0) + totalDelta),
+        pillarXP: newPillarXP,
+      }, { merge: true }),
+    ]).catch(() => {
+      // Błąd zapisu — pozwól spróbować ponownie przy następnym ładowaniu.
+      questXpFixDoneRef.current = null
+    })
+  }, [user, statsRef, todayRef, todayLog, stats, currentDateKey])
 
   const checkLevelUp = useCallback((oldXP: number, newXP: number) => {
     const oldLevel = getLevelFromXP(oldXP).level
@@ -322,14 +386,16 @@ export function useGameData() {
     ])
   }, [user, todayLog, stats, statsRef, todayRef, currentDateKey, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
-  const toggleDailyQuest = useCallback(async (questId: string, pillar: Pillar) => {
+  const toggleDailyQuest = useCallback(async (questId: string, pillar: Pillar, xp: number = XP_VALUES.dailyQuest) => {
     if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const currentDQ = todayLog.completedDailyQuests ?? []
     const completed = currentDQ.includes(questId)
     const newCompleted = completed
       ? currentDQ.filter(id => id !== questId)
       : [...currentDQ, questId]
-    const baseXP = XP_VALUES.dailyQuest
+    // Questy płacą tyle, ile pokazują na karcie (q.xp). Domyślne XP_VALUES.dailyQuest
+    // tylko jako fallback dla wywołań bez jawnej wartości.
+    const baseXP = xp
     const effectiveXP = todayLog.dayMode === 'minimum' ? baseXP * 2 : baseXP
     const xpDelta = completed ? -effectiveXP : effectiveXP
 
