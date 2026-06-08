@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
-import { getRandomSideQuest } from '@/lib/questData'
+import { getRandomSideQuest, countSideQuests, type QuestScale } from '@/lib/questData'
 import { useCustomQuestLibrary } from '@/hooks/useCustomQuestLibrary'
 import { getPillar, PILLARS } from '@/lib/pillars'
 import type { Quest, Pillar } from '@/types'
@@ -149,29 +149,40 @@ export default function SideQuestPicker() {
   const [activeQuest, setActiveQuest] = useState<Quest | null>(null)
   const [completed, setCompleted] = useState(false)
   const [showCustomForm, setShowCustomForm] = useState(false)
+  const [filterPillar, setFilterPillar] = useState<Pillar | null>(null)
+  const [filterScale, setFilterScale] = useState<QuestScale>('all')
+
+  const noFilter = filterPillar === null && filterScale === 'all'
 
   const roll = () => {
     const alreadyDone = todayLog?.completedSideQuests ?? []
-    const customAsQuests: Quest[] = libraryQuests.map(q => ({
-      id: q.id,
-      title: q.title,
-      description: q.description ?? 'Twój własny side quest.',
-      pillar: 'pozycja' as Pillar,
-      type: 'side' as const,
-      xp: 150,
-      difficulty: 'medium' as const,
-      tags: ['własny'],
-    }))
 
-    const available = customAsQuests.filter(q => !alreadyDone.includes(q.id))
-    if (available.length > 0 && Math.random() < 0.3) {
-      const quest = available[Math.floor(Math.random() * available.length)]
-      setActiveQuest(quest)
-    } else {
-      const quest = getRandomSideQuest(alreadyDone)
-      setActiveQuest(quest)
+    // Własne questy z biblioteki dorzucamy tylko gdy nie ma aktywnego filtra
+    // (mają stały filar i XP, więc nie pasują do filtrowania po filarze/skali)
+    if (noFilter) {
+      const customAsQuests: Quest[] = libraryQuests.map(q => ({
+        id: q.id,
+        title: q.title,
+        description: q.description ?? 'Twój własny side quest.',
+        pillar: 'pozycja' as Pillar,
+        type: 'side' as const,
+        xp: 150,
+        difficulty: 'medium' as const,
+        tags: ['własny'],
+      }))
+      const available = customAsQuests.filter(q => !alreadyDone.includes(q.id))
+      if (available.length > 0 && Math.random() < 0.3) {
+        setActiveQuest(available[Math.floor(Math.random() * available.length)])
+        setCompleted(false)
+        return
+      }
     }
-    setCompleted(false)
+
+    const quest = getRandomSideQuest(alreadyDone, { pillar: filterPillar, scale: filterScale })
+    if (quest) {
+      setActiveQuest(quest)
+      setCompleted(false)
+    }
   }
 
   const handleComplete = async () => {
@@ -183,6 +194,7 @@ export default function SideQuestPicker() {
   const pillar = activeQuest ? getPillar(activeQuest.pillar) : null
   const customDone = todayLog?.customSideQuests ?? []
   const totalDone = (todayLog?.completedSideQuests?.length ?? 0) + customDone.length
+  const matchingCount = countSideQuests({ pillar: filterPillar, scale: filterScale })
 
   return (
     <div className="bg-ivory border border-gold-light/40 overflow-hidden mb-4">
@@ -236,12 +248,79 @@ export default function SideQuestPicker() {
           </div>
         )}
 
+        {/* Filtry losowania */}
+        {!activeQuest && (
+          <div className="mb-4 border border-hairline/70 bg-cream/20 px-3 py-3">
+            <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
+              skala
+            </SmallCaps>
+            <div className="flex gap-1.5 mb-3">
+              {([
+                { id: 'all', label: 'Wszystko' },
+                { id: 'quick', label: 'Szybkie' },
+                { id: 'epic', label: 'Wielkie' },
+              ] as const).map(opt => {
+                const sel = filterScale === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => setFilterScale(opt.id)}
+                    className={clsx(
+                      'flex-1 py-1.5 border transition-all',
+                      sel ? 'bg-dark-deep border-gold' : 'border-hairline hover:border-gold-light'
+                    )}
+                  >
+                    <SmallCaps tone={sel ? 'ivory' : 'muted'} tracking="luxury" size="xs">
+                      {opt.label}
+                    </SmallCaps>
+                  </button>
+                )
+              })}
+            </div>
+
+            <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
+              filar
+            </SmallCaps>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setFilterPillar(null)}
+                className={clsx(
+                  'px-2.5 py-1 border transition-all',
+                  filterPillar === null ? 'border-gold bg-ivory' : 'border-hairline text-muted hover:border-gold-light'
+                )}
+              >
+                <span className="font-ui uppercase tracking-luxury text-[10px]">Wszystkie</span>
+              </button>
+              {PILLARS.map(p => {
+                const sel = filterPillar === p.id
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setFilterPillar(sel ? null : (p.id as Pillar))}
+                    className={clsx(
+                      'inline-flex items-center gap-1.5 px-2.5 py-1 border transition-all',
+                      sel ? 'border-gold bg-ivory' : 'border-hairline text-muted hover:border-gold-light'
+                    )}
+                    style={sel ? { color: p.color } : {}}
+                  >
+                    <Diamond size={4} filled={sel} />
+                    <span className="font-ui uppercase tracking-luxury text-[10px]">{p.shortName}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Roll trigger */}
         {!activeQuest ? (
           <div className="border border-dashed border-hairline px-6 py-8 text-center">
             <Fleuron size={12} className="text-gold-deep mx-auto mb-3 inline-block" />
-            <p className="font-serif-body italic text-muted text-[14px] mb-5">
+            <p className="font-serif-body italic text-muted text-[14px] mb-2">
               wylosuj swój side quest na dziś
+            </p>
+            <p className="font-ui uppercase tracking-luxury text-[9px] text-muted-light mb-5">
+              {matchingCount} {matchingCount === 1 ? 'quest pasuje' : 'questów pasuje'}
             </p>
             <button
               onClick={roll}
