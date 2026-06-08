@@ -10,6 +10,7 @@ import {
   LogOut, Settings, Lock, Camera, Scroll,
   Archive, Moon, Heart,
   Sprout, TreePine, Columns3, Sparkles,
+  GraduationCap, ArrowUpRight,
 } from 'lucide-react'
 import { SmallCaps, Diamond } from '@/components/ui'
 
@@ -21,6 +22,7 @@ type SingleItem = {
   icon: React.ElementType
   label: string
   shortLabel?: string
+  external?: boolean
 }
 
 type GroupItem = {
@@ -61,6 +63,13 @@ const NAV: NavItem[] = [
       { href: '/report', icon: Scroll,   label: 'Raport' },
       { href: '/30',     icon: Sparkles, label: 'Urodziny' },
     ],
+  },
+  {
+    kind: 'single',
+    href: 'https://the-learning-vault.vercel.app',
+    icon: GraduationCap,
+    label: 'Learning Vault',
+    external: true,
   },
   { kind: 'single', href: '/settings', icon: Settings, label: 'Ustawienia' },
 ]
@@ -114,6 +123,21 @@ function DesktopNav({ pathname }: { pathname: string }) {
       <nav className="relative flex-1 overflow-y-auto">
         {NAV.map(item => {
           if (item.kind === 'single') {
+            if (item.external) {
+              return (
+                <div key={item.href} className="relative">
+                  <a
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-8 py-3 flex items-center gap-2 font-ui uppercase tracking-[0.3em] text-[12px] text-parchment/80 hover:text-gold-pale transition-colors"
+                  >
+                    <span className="flex-1">{item.label}</span>
+                    <ArrowUpRight size={12} strokeWidth={1.5} className="opacity-50" />
+                  </a>
+                </div>
+              )
+            }
             const active = pathname === item.href
             return (
               <div key={item.href} className="relative">
@@ -267,6 +291,25 @@ function MobileNav({ pathname }: { pathname: string }) {
       <nav className="bg-forest-deep grain-linen border-t border-gold-light/30 px-2 py-3 flex items-center justify-around">
         {NAV.map(item => {
           if (item.kind === 'single') {
+            if (item.external) {
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={item.label}
+                  title={item.label}
+                  className="flex flex-col items-center gap-1.5 px-1 py-1 flex-1 min-w-0 transition-all"
+                >
+                  <span className="relative flex items-center">
+                    <item.icon size={20} strokeWidth={1.5} className="text-parchment/70" />
+                    <ArrowUpRight size={9} strokeWidth={2} className="absolute -top-1 -right-1.5 text-gold-light/80" />
+                  </span>
+                  <span className="h-px w-5 bg-transparent" />
+                </a>
+              )
+            }
             const active = pathname === item.href
             return (
               <Link
