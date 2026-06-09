@@ -149,6 +149,7 @@ export default function SideQuestPicker() {
   const [activeQuest, setActiveQuest] = useState<Quest | null>(null)
   const [completed, setCompleted] = useState(false)
   const [showCustomForm, setShowCustomForm] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
   const [filterPillar, setFilterPillar] = useState<Pillar | null>(null)
   const [filterScale, setFilterScale] = useState<QuestScale>('all')
 
@@ -248,70 +249,6 @@ export default function SideQuestPicker() {
           </div>
         )}
 
-        {/* Filtry losowania */}
-        {!activeQuest && (
-          <div className="mb-4 border border-hairline/70 bg-cream/20 px-3 py-3">
-            <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
-              skala
-            </SmallCaps>
-            <div className="flex gap-1.5 mb-3">
-              {([
-                { id: 'all', label: 'Wszystko' },
-                { id: 'quick', label: 'Szybkie' },
-                { id: 'epic', label: 'Wielkie' },
-              ] as const).map(opt => {
-                const sel = filterScale === opt.id
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => setFilterScale(opt.id)}
-                    className={clsx(
-                      'flex-1 py-1.5 border transition-all',
-                      sel ? 'bg-dark-deep border-gold' : 'border-hairline hover:border-gold-light'
-                    )}
-                  >
-                    <SmallCaps tone={sel ? 'ivory' : 'muted'} tracking="luxury" size="xs">
-                      {opt.label}
-                    </SmallCaps>
-                  </button>
-                )
-              })}
-            </div>
-
-            <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
-              filar
-            </SmallCaps>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setFilterPillar(null)}
-                className={clsx(
-                  'px-2.5 py-1 border transition-all',
-                  filterPillar === null ? 'border-gold bg-ivory' : 'border-hairline text-muted hover:border-gold-light'
-                )}
-              >
-                <span className="font-ui uppercase tracking-luxury text-[10px]">Wszystkie</span>
-              </button>
-              {PILLARS.map(p => {
-                const sel = filterPillar === p.id
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => setFilterPillar(sel ? null : (p.id as Pillar))}
-                    className={clsx(
-                      'inline-flex items-center gap-1.5 px-2.5 py-1 border transition-all',
-                      sel ? 'border-gold bg-ivory' : 'border-hairline text-muted hover:border-gold-light'
-                    )}
-                    style={sel ? { color: p.color } : {}}
-                  >
-                    <Diamond size={4} filled={sel} />
-                    <span className="font-ui uppercase tracking-luxury text-[10px]">{p.shortName}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Roll trigger */}
         {!activeQuest ? (
           <div className="border border-dashed border-hairline px-6 py-8 text-center">
@@ -332,6 +269,80 @@ export default function SideQuestPicker() {
               </SmallCaps>
               <Shuffle size={13} strokeWidth={1.5} />
             </button>
+            <div className="mt-5">
+              <button
+                onClick={() => setShowFilters(v => !v)}
+                className="inline-flex items-center gap-1.5 text-muted-light hover:text-gold-deep transition-colors"
+              >
+                <Diamond size={4} filled={!noFilter} className={noFilter ? 'text-gold/40' : 'text-gold'} />
+                <SmallCaps tone="muted" tracking="luxury" size="xs">
+                  {showFilters ? 'ukryj filtry' : noFilter ? 'dostosuj losowanie' : 'filtr aktywny — dostosuj'}
+                </SmallCaps>
+              </button>
+            </div>
+
+            {showFilters && (
+              <div className="mt-4 border border-hairline/70 bg-cream/20 px-3 py-3 text-left">
+                <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
+                  skala
+                </SmallCaps>
+                <div className="flex gap-1.5 mb-3">
+                  {([
+                    { id: 'all', label: 'Wszystko' },
+                    { id: 'quick', label: 'Szybkie' },
+                    { id: 'epic', label: 'Wielkie' },
+                  ] as const).map(opt => {
+                    const sel = filterScale === opt.id
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => setFilterScale(opt.id)}
+                        className={clsx(
+                          'flex-1 py-1.5 border transition-all',
+                          sel ? 'bg-dark-deep border-gold' : 'border-hairline hover:border-gold-light'
+                        )}
+                      >
+                        <SmallCaps tone={sel ? 'ivory' : 'muted'} tracking="luxury" size="xs">
+                          {opt.label}
+                        </SmallCaps>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-2">
+                  filar
+                </SmallCaps>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setFilterPillar(null)}
+                    className={clsx(
+                      'px-2.5 py-1 border transition-all',
+                      filterPillar === null ? 'border-gold bg-ivory' : 'border-hairline text-muted hover:border-gold-light'
+                    )}
+                  >
+                    <span className="font-ui uppercase tracking-luxury text-[10px]">Wszystkie</span>
+                  </button>
+                  {PILLARS.map(p => {
+                    const sel = filterPillar === p.id
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setFilterPillar(sel ? null : (p.id as Pillar))}
+                        className={clsx(
+                          'inline-flex items-center gap-1.5 px-2.5 py-1 border transition-all',
+                          sel ? 'border-gold bg-ivory' : 'border-hairline text-muted hover:border-gold-light'
+                        )}
+                        style={sel ? { color: p.color } : {}}
+                      >
+                        <Diamond size={4} filled={sel} />
+                        <span className="font-ui uppercase tracking-luxury text-[10px]">{p.shortName}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div
