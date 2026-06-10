@@ -132,8 +132,8 @@ export default function ProgressPage() {
       }
     : pace.status === 'behind'
       ? {
-          label: 'Do nadrobienia',
-          detail: `${Math.abs(pace.diffDays)} ${Math.abs(pace.diffDays) === 1 ? 'dzień' : 'dni'} opóźnienia`,
+          label: 'Wolniejsze tempo',
+          detail: `${Math.abs(pace.diffDays)} ${Math.abs(pace.diffDays) === 1 ? 'dzień' : 'dni'} spokojniej · wróć do rytmu jednym małym ruchem`,
           color: '#9b2335',
         }
       : {
@@ -447,4 +447,3 @@ export default function ProgressPage() {
     </div>
   )
 }
-

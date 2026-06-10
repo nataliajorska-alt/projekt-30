@@ -6,7 +6,14 @@ import {
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
 import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry, Pillar, CigaretteEntry, CigaretteContext, SmokingPhase, GhostLogEntryV2, HonestFailureEntry } from '@/types'
-import { todayKey, XP_VALUES, getISOWeekKey, getLevelFromXP, getMonthKey } from '@/lib/gameLogic'
+import {
+  todayKey,
+  XP_VALUES,
+  getISOWeekKey,
+  getLevelFromXP,
+  getMonthKey,
+  MAX_MOOD_CHECKINS_PER_DAY,
+} from '@/lib/gameLogic'
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import { DAILY_QUESTS_POOL, SIDE_QUESTS } from '@/lib/questData'
@@ -593,7 +600,7 @@ export function useGameData() {
   const saveMoodCheckIn = useCallback(async (checkin: Omit<MoodCheckIn, 'timestamp'>) => {
     if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const existing = todayLog.moodCheckIns ?? []
-    if (existing.length >= 3) return
+    if (existing.length >= MAX_MOOD_CHECKINS_PER_DAY) return
     const newCheckIn: MoodCheckIn = { ...checkin, timestamp: Date.now() }
     const newCheckIns = [...existing, newCheckIn]
 
