@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import CountdownHero from '@/components/CountdownHero'
 import RoutineChecklist from '@/components/RoutineChecklist'
 import TomorrowChecklist from '@/components/TomorrowChecklist'
@@ -73,7 +73,7 @@ function CollapsibleSection({
   name: string
   sub?: string
   storageKey: string
-  children: React.ReactNode
+  children: ReactNode
 }) {
   const [collapsed, setCollapsed] = useState(false)
 
