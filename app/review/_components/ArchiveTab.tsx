@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import clsx from 'clsx'
 import { useTimelineData } from '@/hooks/useTimelineData'
-import type { WeeklyReview, MonthlyReview } from '@/types'
+import type { WeeklyReview, MonthlyReview, QuarterlyReview } from '@/types'
 import ReviewHistoryTab from './ReviewHistoryTab'
 import MonthlySummaryTab from './MonthlySummaryTab'
 import SideQuestHistoryTab from './SideQuestHistoryTab'
@@ -14,6 +14,7 @@ interface ArchiveTabProps {
   logs: ReturnType<typeof useTimelineData>['logs']
   weeklyReviews: WeeklyReview[]
   monthlyReviews: MonthlyReview[]
+  quarterlyReviews: QuarterlyReview[]
   loading: boolean
 }
 
@@ -23,7 +24,7 @@ const SUB_TABS: { key: ArchiveSubTab; label: string; roman: number }[] = [
   { key: 'sidequesty',  label: 'Side questy', roman: 3 },
 ]
 
-export default function ArchiveTab({ logs, weeklyReviews, monthlyReviews, loading }: ArchiveTabProps) {
+export default function ArchiveTab({ logs, weeklyReviews, monthlyReviews, quarterlyReviews, loading }: ArchiveTabProps) {
   const [sub, setSub] = useState<ArchiveSubTab>('przeglądy')
 
   return (
@@ -68,6 +69,7 @@ export default function ArchiveTab({ logs, weeklyReviews, monthlyReviews, loadin
         <ReviewHistoryTab
           weeklyReviews={weeklyReviews}
           monthlyReviews={monthlyReviews}
+          quarterlyReviews={quarterlyReviews}
           loading={loading}
         />
       )}

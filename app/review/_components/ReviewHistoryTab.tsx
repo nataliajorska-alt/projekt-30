@@ -4,15 +4,17 @@ import clsx from 'clsx'
 import { PILLARS } from '@/lib/pillars'
 import { Pillar } from '@/types'
 import { ChevronDown } from 'lucide-react'
-import type { WeeklyReview, MonthlyReview } from '@/types'
+import type { WeeklyReview, MonthlyReview, QuarterlyReview } from '@/types'
 import PillarTrendChart from '@/components/PillarTrendChart'
 import { formatMonthPL, formatWeekRange } from './shared'
+import { formatQuarterPL } from '@/lib/quarters'
 import { SmallCaps, Fleuron, RomanNumeral } from '@/components/ui'
 import { JEWEL } from './PillarRating'
 
 interface ReviewHistoryTabProps {
   weeklyReviews: WeeklyReview[]
   monthlyReviews: MonthlyReview[]
+  quarterlyReviews: QuarterlyReview[]
   loading: boolean
 }
 
@@ -23,12 +25,13 @@ function avgPillarRating(pillarsRated: Record<string, number>): string {
 }
 
 const SUB_TABS = [
-  { key: 'weekly' as const,  label: 'Tygodniowe', roman: 1 },
-  { key: 'monthly' as const, label: 'Miesięczne', roman: 2 },
+  { key: 'weekly' as const,    label: 'Tygodniowe', roman: 1 },
+  { key: 'monthly' as const,   label: 'Miesięczne', roman: 2 },
+  { key: 'quarterly' as const, label: 'Kwartalne',  roman: 3 },
 ]
 
-export default function ReviewHistoryTab({ weeklyReviews, monthlyReviews, loading }: ReviewHistoryTabProps) {
-  const [subTab, setSubTab] = useState<'weekly' | 'monthly'>('weekly')
+export default function ReviewHistoryTab({ weeklyReviews, monthlyReviews, quarterlyReviews, loading }: ReviewHistoryTabProps) {
+  const [subTab, setSubTab] = useState<'weekly' | 'monthly' | 'quarterly'>('weekly')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   if (loading) {
@@ -98,6 +101,18 @@ export default function ReviewHistoryTab({ weeklyReviews, monthlyReviews, loadin
         </div>
       )}
 
+      {subTab === 'quarterly' && quarterlyReviews.length === 0 && (
+        <div className="text-center py-12">
+          <Fleuron size={12} className="text-gold-deep mx-auto mb-3 inline-block" />
+          <p className="font-serif-body italic text-muted text-[13.5px]">
+            brak przeglądów kwartalnych.
+          </p>
+          <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-1 block opacity-70">
+            domknij kwartał w zakładce Kwartalny — pojawi się tutaj.
+          </SmallCaps>
+        </div>
+      )}
+
       {subTab === 'weekly' && weeklyReviews.length > 0 && (
         <PillarTrendChart reviews={weeklyReviews.slice(0, 8)} />
       )}
@@ -150,6 +165,33 @@ export default function ReviewHistoryTab({ weeklyReviews, monthlyReviews, loadin
               <Block label="Intencja na nowy miesiąc" body={review.intentionNextMonth} italic />
             )}
             <PillarsGrid pillarsRated={review.pillarsRated} prevRated={prevReview?.pillarsRated} />
+          </ReviewCard>
+        )
+      })}
+
+      {subTab === 'quarterly' && quarterlyReviews.map(review => {
+        const isOpen = expandedId === review.quarter
+        return (
+          <ReviewCard
+            key={review.quarter}
+            id={review.quarter}
+            title={formatQuarterPL(review.quarter)}
+            sub={`Domknięcie kwartału · + ${review.xpEarned} XP`}
+            isOpen={isOpen}
+            onToggle={() => toggle(review.quarter)}
+          >
+            {review.lessons && (
+              <Block label="Lekcje kwartału" body={review.lessons} />
+            )}
+            {review.openFronts && (
+              <Block label="Otwarte fronty" body={review.openFronts} />
+            )}
+            {review.bridgeToNext && (
+              <Block label="Most do następnego kwartału" body={review.bridgeToNext} />
+            )}
+            {review.whatChanged && (
+              <Block label="Co się we mnie zmieniło" body={review.whatChanged} italic />
+            )}
           </ReviewCard>
         )
       })}

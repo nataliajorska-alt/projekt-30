@@ -164,12 +164,12 @@ export const JUNE_QUESTS: AprilQuest[] = [
   // ── TYDZIEŃ 5 (29–30.06) "Próg fazy 2" ─────────────────────────
 
   // ── 29 czerwca, poniedziałek | W, K | lutealna ──
-  { id: 'jun_29_1', date: '2026-06-29', title: 'Przegląd Q2 — część 1: dane', description: 'XP miesiąca, streak, oceny 7 filarów, Ghost Protocol, aktywności fizyczne. Porównanie do Q1, kwietnia i maja.', pillar: 'pozycja', xp: 120 },
+  { id: 'jun_29_1', date: '2026-06-29', title: 'Przegląd Q2 — część 1: dane', description: 'Otwórz Przegląd → Kwartalny: XP kwartału, streak, oceny 7 filarów, Ghost Protocol, papierosy — wszystko policzone, z porównaniem do poprzedniego kwartału.', pillar: 'pozycja', xp: 120 },
   { id: 'jun_29_2', date: '2026-06-29', title: '3 dowody zakorzenienia — czy dowiezione', description: 'Z 1.06: 4 sloty Wnętrza, 3 aktywności tygodniowo, Miłość drgnęła z 1 (średnia tygodniowa ≥2).', pillar: 'pozycja', xp: 80 },
   { id: 'jun_29_3', date: '2026-06-29', title: 'Wizualizacja lipca 10 min', description: 'Jak ma wyglądać start fazy 2 "Widoczność i wejście do obiegu".', pillar: 'tozsamosc', xp: 60 },
 
   // ── 30 czerwca, wtorek | KONIEC FAZY 1 | W, T | lutealna ──
-  { id: 'jun_30_1', date: '2026-06-30', title: 'Przegląd Q2 — część 2: lekcje i most do fazy 2', description: 'Lekcje fazy 1, otwarte fronty, most do fazy 2. Zapisz 1 zdanie: "Co zmieniło się we mnie w Q2".', pillar: 'pozycja', xp: 200 },
+  { id: 'jun_30_1', date: '2026-06-30', title: 'Przegląd Q2 — część 2: lekcje i most do fazy 2', description: 'W Przegląd → Kwartalny domknij kwartał: lekcje fazy 1, otwarte fronty, most do fazy 2 i 1 zdanie „Co zmieniło się we mnie". Zapis przyzna XP i wyląduje w Archiwum.', pillar: 'pozycja', xp: 200 },
   { id: 'jun_30_2', date: '2026-06-30', title: 'Decyzja hasłowa o lipcu', description: 'Słowo miesiąca, intencja, jedno marzenie. Faza 2: "Nie proszę o miejsce, zaczynam naturalnie do niego pasować".', pillar: 'tozsamosc', xp: 80 },
   { id: 'jun_30_3', date: '2026-06-30', title: 'Rytuał zakończenia czerwca', description: 'Świeca, lampka wina (jeśli chcesz), zapis 3 zdań: co teraz wiem o sobie, czego nie wiedziałam 1.06.', pillar: 'pozycja', xp: 60 },
 ]

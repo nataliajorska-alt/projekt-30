@@ -31,6 +31,7 @@ export default function ReviewPage() {
   const {
     weeklyReviews,
     monthlyReviews,
+    quarterlyReviews,
     lastWeeklyReview,
     lastMonthlyReview,
     lastQuarterlyReview,
@@ -167,6 +168,7 @@ export default function ReviewPage() {
               logs={logs}
               weeklyReviews={weeklyReviews}
               monthlyReviews={monthlyReviews}
+              quarterlyReviews={quarterlyReviews}
               loading={historyLoading}
             />
           )}
