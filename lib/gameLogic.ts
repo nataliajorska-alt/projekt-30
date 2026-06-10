@@ -33,6 +33,8 @@ export const XP_VALUES = {
   heartBlock: 200,
 }
 
+export const MAX_MOOD_CHECKINS_PER_DAY = 3
+
 export const LEVELS: { level: number; name: string; xpRequired: number }[] = [
   { level: 1,  name: 'Seed',          xpRequired: 0 },
   { level: 2,  name: 'Bud',           xpRequired: 700 },
