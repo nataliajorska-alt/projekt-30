@@ -13,10 +13,11 @@ import HabitsTab from './_tabs/HabitsTab'
 import MoodTab from './_tabs/MoodTab'
 import ProtocolTab from './_tabs/ProtocolTab'
 import PatternsTab from './_tabs/PatternsTab'
+import OddechTab from './_tabs/OddechTab'
 import { SmallCaps, GoldRule, RomanNumeral, Fleuron, CornerBrackets } from '@/components/ui'
 
 // Filary celowo NIE jest zakładką Historii — pełny widok balansu filarów ma osobna strona /pillars.
-type TimelineMode = 'calendar' | 'habits' | 'mood' | 'patterns' | 'protokol'
+type TimelineMode = 'calendar' | 'habits' | 'mood' | 'patterns' | 'protokol' | 'oddech'
 
 const PL_MONTH_NAMES = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień']
 
@@ -30,7 +31,7 @@ function formatMonthPL(key: string): string {
   return PL_MONTH_NAMES[m - 1] ?? key
 }
 
-const VALID_TABS: TimelineMode[] = ['calendar', 'habits', 'mood', 'patterns', 'protokol']
+const VALID_TABS: TimelineMode[] = ['calendar', 'habits', 'mood', 'patterns', 'protokol', 'oddech']
 
 const SUB_COPY: Record<TimelineMode, string> = {
   calendar: 'cały projekt w jednym kadrze — każdy dzień się liczy.',
@@ -38,6 +39,7 @@ const SUB_COPY: Record<TimelineMode, string> = {
   mood:     'co czujesz na co dzień. twój emocjonalny puls projektu.',
   patterns: 'korelacje, najlepsze dni, ukryte zależności.',
   protokol: 'kiedy konkretnie jesteś najbardziej narażona. dane operacyjne.',
+  oddech:   'spokojny licznik kilometrów. wzorce, nie wyroki.',
 }
 
 const TABS: { key: TimelineMode; label: string; roman: number }[] = [
@@ -46,6 +48,7 @@ const TABS: { key: TimelineMode; label: string; roman: number }[] = [
   { key: 'mood',     label: 'Nastrój',   roman: 3 },
   { key: 'patterns', label: 'Wzorce',    roman: 4 },
   { key: 'protokol', label: 'Protokół',  roman: 5 },
+  { key: 'oddech',   label: 'Oddech',    roman: 6 },
 ]
 
 export default function TimelinePage() {
@@ -96,7 +99,8 @@ export default function TimelinePage() {
       {/* Tabs — editorial */}
       <nav className="mb-8">
         <div className="flex gap-5 sm:gap-2 md:gap-4 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-2">
-          {TABS.map(({ key, label, roman }) => {
+          {/* Oddech znika gdy tracking palenia wyłączony — bez wstydu (PLAN_PALENIE.md 3.9) */}
+          {TABS.filter(t => t.key !== 'oddech' || stats.smokingTrackingEnabled !== false).map(({ key, label, roman }) => {
             const active = mode === key
             return (
               <button
@@ -317,6 +321,8 @@ export default function TimelinePage() {
         <MoodTab logs={logs} />
       ) : mode === 'patterns' ? (
         <PatternsTab logs={logs} />
+      ) : mode === 'oddech' ? (
+        <OddechTab logs={logs} loading={loading} />
       ) : (
         <ProtocolTab entries={ghostEntries} failures={ghostFailures} loading={ghostLoading} />
       )}

@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
-import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry, Pillar, CigaretteEntry, CigaretteContext, GhostLogEntryV2, HonestFailureEntry } from '@/types'
+import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry, Pillar, CigaretteEntry, CigaretteContext, SmokingPhase, GhostLogEntryV2, HonestFailureEntry } from '@/types'
 import { todayKey, XP_VALUES, getISOWeekKey, getLevelFromXP, getMonthKey } from '@/lib/gameLogic'
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
 import { ACHIEVEMENTS } from '@/lib/achievements'
@@ -632,6 +632,19 @@ export function useGameData() {
     await setDoc(todayRef, { cigarettes: existing.slice(0, -1) }, { merge: true })
   }, [user, todayRef, todayLog])
 
+  // Przejście do kolejnej fazy planu palenia (PLAN_PALENIE.md sekcja 2).
+  // Przy zamknięciu fazy 1 przekazujemy wyliczony baseline — zostaje na zawsze
+  // jako punkt odniesienia dla celów miękkich kolejnych faz. Bez XP, bez fanfar.
+  const startSmokingPhase = useCallback(async (phase: SmokingPhase, baseline?: number) => {
+    if (!user || !statsRef || !statsLoadedRef.current) return
+    const updates: Partial<UserStats> = {
+      cigarettesPhase: phase,
+      cigarettesPhaseStartDate: currentDateKey,
+      ...(baseline !== undefined ? { cigarettesBaseline: baseline } : {}),
+    }
+    await setDoc(statsRef, updates, { merge: true })
+  }, [user, statsRef, currentDateKey])
+
   const completeReturnCeremony = useCallback(async () => {
     if (!user || !statsRef || !statsLoadedRef.current) return
     const newStats: UserStats = {
@@ -1076,7 +1089,7 @@ export function useGameData() {
     submitWeeklyReview, submitMonthlyReview, setDayMode,
     streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity, toggleSubStep,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
-    logCigarette, removeLastCigarette,
+    logCigarette, removeLastCigarette, startSmokingPhase,
     completeHeartBlock,
     recordGhostImpulseV2, recordHonestFailure, logCustomSideQuest,
     recoverStats, applyRecoveredStats,
