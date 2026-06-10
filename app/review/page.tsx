@@ -5,30 +5,35 @@ import { useGameData } from '@/hooks/useGameData'
 import { useAuth } from '@/hooks/useAuth'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { useReviewHistory } from '@/hooks/useReviewHistory'
+import { useGhostV2 } from '@/hooks/useGhostV2'
 import { getDaysElapsed, getDaysRemaining } from '@/lib/gameLogic'
 import { toRoman } from '@/lib/romanNumerals'
 import { RitualSurface, SmallCaps, GoldRule, Fleuron, RomanNumeral, Diamond } from '@/components/ui'
 import WeeklyReviewForm from './_components/WeeklyReviewForm'
 import MonthlyReviewForm from './_components/MonthlyReviewForm'
+import QuarterlyReviewForm from './_components/QuarterlyReviewForm'
 import ArchiveTab from './_components/ArchiveTab'
 
-type Mode = 'weekly' | 'monthly' | 'archive'
+type Mode = 'weekly' | 'monthly' | 'quarterly' | 'archive'
 
 const MODES: { key: Mode; label: string; romanIdx: number }[] = [
   { key: 'weekly', label: 'Tygodniowy', romanIdx: 1 },
   { key: 'monthly', label: 'Miesięczny', romanIdx: 2 },
-  { key: 'archive', label: 'Archiwum', romanIdx: 3 },
+  { key: 'quarterly', label: 'Kwartalny', romanIdx: 3 },
+  { key: 'archive', label: 'Archiwum', romanIdx: 4 },
 ]
 
 export default function ReviewPage() {
   const { user } = useAuth()
-  const { stats, submitWeeklyReview, submitMonthlyReview } = useGameData()
+  const { stats, submitWeeklyReview, submitMonthlyReview, submitQuarterlyReview } = useGameData()
   const { logs } = useTimelineData()
+  const { entries: ghostEntries, failures: ghostFailures } = useGhostV2()
   const {
     weeklyReviews,
     monthlyReviews,
     lastWeeklyReview,
     lastMonthlyReview,
+    lastQuarterlyReview,
     loading: historyLoading,
   } = useReviewHistory()
   const [mode, setMode] = useState<Mode>('weekly')
@@ -143,6 +148,18 @@ export default function ReviewPage() {
               logs={logs}
               submitMonthlyReview={submitMonthlyReview}
               lastReview={lastMonthlyReview}
+            />
+          )}
+          {mode === 'quarterly' && (
+            <QuarterlyReviewForm
+              user={user}
+              stats={stats}
+              logs={logs}
+              monthlyReviews={monthlyReviews}
+              ghostEntries={ghostEntries}
+              ghostFailures={ghostFailures}
+              submitQuarterlyReview={submitQuarterlyReview}
+              lastReview={lastQuarterlyReview}
             />
           )}
           {mode === 'archive' && (

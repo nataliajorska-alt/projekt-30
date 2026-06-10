@@ -286,6 +286,7 @@ export interface UserStats {
   streakFreezeUsedMonths?: string[]
   reviewedWeeks?: string[]
   reviewedMonths?: string[]
+  reviewedQuarters?: string[]
   completedHeartBlocks?: string[]            // weekKey list — idempotentne nagradzanie
   pillarBalanceWeeks?: string[]
   currentWeekPillars?: {
@@ -365,6 +366,17 @@ export interface MonthlyReview {
   challenges: string
   pillarsRated: Record<Pillar, number>
   intentionNextMonth: string
+  xpEarned: number
+  savedAt: string
+}
+
+// Kwartalny przegląd — domknięcie 3 miesięcy projektu (np. domknięcie fazy 1 palenia).
+export interface QuarterlyReview {
+  quarter: string             // klucz kwartału projektu, np. "Q1"
+  lessons: string             // lekcje minionego kwartału
+  openFronts: string          // otwarte fronty, niedokończone wątki
+  bridgeToNext: string        // most do następnego kwartału / fazy
+  whatChanged: string         // jedno zdanie: co się zmieniło we mnie
   xpEarned: number
   savedAt: string
 }

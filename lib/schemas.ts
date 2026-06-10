@@ -213,6 +213,16 @@ export const MonthlyReviewSchema = z.object({
   savedAt:            z.string().catch(() => new Date().toISOString()),
 })
 
+export const QuarterlyReviewSchema = z.object({
+  quarter:      z.string().catch(''),
+  lessons:      z.string().catch(''),
+  openFronts:   z.string().catch(''),
+  bridgeToNext: z.string().catch(''),
+  whatChanged:  z.string().catch(''),
+  xpEarned:     z.number().nonnegative().catch(0),
+  savedAt:      z.string().catch(() => new Date().toISOString()),
+})
+
 // ── HeartBlock ─────────────────────────────────────────────────────────────────
 
 const HeartBlockRitualsSchema = z.object({

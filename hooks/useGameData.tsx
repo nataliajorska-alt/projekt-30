@@ -34,6 +34,7 @@ const DEFAULT_STATS: UserStats = {
   streakFreezeUsedMonths: [],
   reviewedWeeks: [],
   reviewedMonths: [],
+  reviewedQuarters: [],
   completedHeartBlocks: [],
   pillarBalanceWeeks: [],
   totalGhostProtocols: 0,
@@ -505,6 +506,25 @@ export function useGameData() {
       ...withStreak,
       totalXP: withStreak.totalXP + XP_VALUES.monthlyReview,
       reviewedMonths: [...reviewed, monthKey],
+    }
+    const achUpdates = await checkAchievements(newStats)
+    const finalStats = { ...newStats, ...achUpdates }
+    checkLevelUp(stats.totalXP, finalStats.totalXP)
+
+    await setDoc(statsRef, finalStats, { merge: true })
+    return true
+  }, [user, stats, statsRef, checkAchievements, applyStreakIfNeeded, checkLevelUp])
+
+  const submitQuarterlyReview = useCallback(async (quarterKey: string): Promise<boolean> => {
+    if (!user || !statsRef || !statsLoadedRef.current) return false
+    const reviewed = stats.reviewedQuarters ?? []
+    if (reviewed.includes(quarterKey)) return false
+
+    const withStreak = await applyStreakIfNeeded(stats)
+    const newStats: UserStats = {
+      ...withStreak,
+      totalXP: withStreak.totalXP + XP_VALUES.quarterlyReview,
+      reviewedQuarters: [...reviewed, quarterKey],
     }
     const achUpdates = await checkAchievements(newStats)
     const finalStats = { ...newStats, ...achUpdates }
@@ -1086,7 +1106,7 @@ export function useGameData() {
   return {
     stats, todayLog, loading,
     toggleRoutine, toggleDailyQuest, toggleSideQuest, toggleRule,
-    submitWeeklyReview, submitMonthlyReview, setDayMode,
+    submitWeeklyReview, submitMonthlyReview, submitQuarterlyReview, setDayMode,
     streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity, toggleSubStep,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
     logCigarette, removeLastCigarette, startSmokingPhase,

@@ -26,6 +26,7 @@ export const XP_VALUES = {
   rulekept: 20,
   weeklyReview: 150,
   monthlyReview: 300,
+  quarterlyReview: 400,
   pillarBalance: 30,
   moodCheckIn: 5,
   returnCeremony: 200,
