@@ -21,9 +21,16 @@ import PatternOfTheWeek from '@/components/PatternOfTheWeek'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/SkeletonCard'
 import { useGameData } from '@/hooks/useGameData'
-import { todayKey, tomorrowDate, getEffectiveNow, getDaysElapsed } from '@/lib/gameLogic'
+import {
+  todayKey,
+  tomorrowDate,
+  getEffectiveNow,
+  getDaysElapsed,
+  MAX_MOOD_CHECKINS_PER_DAY,
+} from '@/lib/gameLogic'
 import { toRoman } from '@/lib/romanNumerals'
 import { SmallCaps, Fleuron } from '@/components/ui'
+import { ChevronDown } from 'lucide-react'
 import type { MoodState } from '@/types'
 
 // Dzień projektu liczony z getEffectiveNow() (granica doby o DAY_START_HOUR),
@@ -53,7 +60,67 @@ function SectionLabel({ num, name, sub }: { num: number; name: string; sub?: str
   )
 }
 
-// Probability of showing the check-in on any given app open (when < 4 check-ins today).
+// Sekcja z nagłówkiem, którą można zwinąć. Stan zwinięcia trzymamy w localStorage,
+// żeby decyzja "schowaj orientację, chcę od razu ćwiczenie" trzymała się między porankami.
+function CollapsibleSection({
+  num,
+  name,
+  sub,
+  storageKey,
+  children,
+}: {
+  num: number
+  name: string
+  sub?: string
+  storageKey: string
+  children: React.ReactNode
+}) {
+  const [collapsed, setCollapsed] = useState(false)
+
+  useEffect(() => {
+    if (localStorage.getItem(storageKey) === '1') setCollapsed(true)
+  }, [storageKey])
+
+  const toggle = () => {
+    setCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem(storageKey, next ? '1' : '0')
+      return next
+    })
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={!collapsed}
+        className="group w-full mt-8 mb-4 flex items-baseline gap-4 pb-2.5 border-b border-hairline text-left"
+      >
+        <span className="font-display italic text-wine text-lg leading-none w-[22px] shrink-0">
+          {toRoman(num)}
+        </span>
+        <div className="flex items-baseline gap-3 flex-wrap flex-1">
+          <span className="font-ui uppercase tracking-[0.36em] text-[11px] text-dark">
+            {name}
+          </span>
+          {sub && (
+            <span className="font-serif-body italic text-muted text-[14px]">
+              {collapsed ? 'zwinięte — dotknij, by pokazać' : sub}
+            </span>
+          )}
+        </div>
+        <ChevronDown
+          size={16}
+          className={`self-center shrink-0 text-muted group-hover:text-gold-deep transition-transform ${collapsed ? '-rotate-90' : ''}`}
+        />
+      </button>
+      {!collapsed && children}
+    </>
+  )
+}
+
+// Probability of showing the check-in on any given app open while the daily cap is not reached.
 const CHECKIN_TRIGGER_PROBABILITY = 0.4
 
 function daysBetween(a: string, b: string): number {
@@ -83,7 +150,7 @@ export default function Dashboard() {
     sessionStorage.setItem(sessionKey, '1')
 
     const checkIns = todayLog.moodCheckIns ?? []
-    if (checkIns.length >= 4) return
+    if (checkIns.length >= MAX_MOOD_CHECKINS_PER_DAY) return
 
     // Don't show if last check-in was less than 3 hours ago
     const lastTs = checkIns.length > 0 ? checkIns[checkIns.length - 1].timestamp : null
@@ -194,17 +261,18 @@ export default function Dashboard() {
       <SectionLabel num={1} name="The Countdown" sub="punkt w roku" />
       <CountdownHero />
 
-      {/* II — THE GLANCE: orientation widgets */}
-      <SectionLabel num={2} name="The Glance" sub="stan rzeczy" />
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
-        <ErrorBoundary label="Drzewko"><MiniGardenWidget /></ErrorBoundary>
-        <ErrorBoundary label="Cykl"><CyclePhaseWidget /></ErrorBoundary>
-        <ErrorBoundary label="Wzorzec tygodnia"><PatternOfTheWeek /></ErrorBoundary>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-6 md:gap-8">
-        <ErrorBoundary label="Magnetyzm"><MagnetismMeter /></ErrorBoundary>
-        <ErrorBoundary label="Podsumowanie XP"><DailyXPSummary /></ErrorBoundary>
-      </div>
+      {/* II — THE GLANCE: orientation widgets (zwijane, by szybciej dojść do ćwiczenia) */}
+      <CollapsibleSection num={2} name="The Glance" sub="stan rzeczy" storageKey="dash.collapse.glance">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
+          <ErrorBoundary label="Drzewko"><MiniGardenWidget /></ErrorBoundary>
+          <ErrorBoundary label="Cykl"><CyclePhaseWidget /></ErrorBoundary>
+          <ErrorBoundary label="Wzorzec tygodnia"><PatternOfTheWeek /></ErrorBoundary>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-6 md:gap-8">
+          <ErrorBoundary label="Magnetyzm"><MagnetismMeter /></ErrorBoundary>
+          <ErrorBoundary label="Podsumowanie XP"><DailyXPSummary /></ErrorBoundary>
+        </div>
+      </CollapsibleSection>
       <SafeHoursBanner />
       <DashboardNudges />
 
