@@ -1,5 +1,7 @@
 node_modules/
 .next/
+# Inkrementalny cache typecheku — w repo maskował złamane importy na buildzie Vercela
+*.tsbuildinfo
 .env.local
 .env*.local
 # Firebase service account keys — NIGDY nie commituj
