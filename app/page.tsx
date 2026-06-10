@@ -5,6 +5,7 @@ import RoutineChecklist from '@/components/RoutineChecklist'
 import TomorrowChecklist from '@/components/TomorrowChecklist'
 import DailyQuests from '@/components/DailyQuests'
 import TomorrowQuests from '@/components/TomorrowQuests'
+import TomorrowBriefing from '@/components/TomorrowBriefing'
 import SideQuestPicker from '@/components/SideQuestPicker'
 import NegativeChecklist from '@/components/NegativeChecklist'
 import HeartBlockCard from '@/components/HeartBlockCard'
@@ -286,6 +287,7 @@ export default function Dashboard() {
         <>
           <ErrorBoundary label="Jutrzejsza rutyna"><TomorrowChecklist /></ErrorBoundary>
           <ErrorBoundary label="Jutrzejsze questy"><TomorrowQuests /></ErrorBoundary>
+          <ErrorBoundary label="Brief na jutro"><TomorrowBriefing /></ErrorBoundary>
         </>
       ) : (
         <>
