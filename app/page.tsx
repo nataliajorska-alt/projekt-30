@@ -21,19 +21,16 @@ import PatternOfTheWeek from '@/components/PatternOfTheWeek'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/SkeletonCard'
 import { useGameData } from '@/hooks/useGameData'
-import { todayKey, tomorrowDate } from '@/lib/gameLogic'
+import { todayKey, tomorrowDate, getEffectiveNow, getDaysElapsed } from '@/lib/gameLogic'
 import { toRoman } from '@/lib/romanNumerals'
 import { SmallCaps, Fleuron } from '@/components/ui'
 import type { MoodState } from '@/types'
 
-const PROJECT_START = '2026-04-05'
-
+// Dzień projektu liczony z getEffectiveNow() (granica doby o DAY_START_HOUR),
+// żeby nagłówek nie przeskakiwał na nowy dzień o północy, gdy rutyna i questy
+// są jeszcze w dniu poprzednim.
 function dayOfProject(): number {
-  const today = new Date()
-  const [y, m, d] = PROJECT_START.split('-').map(Number)
-  const start = new Date(y, m - 1, d)
-  const diff = Math.floor((today.getTime() - start.getTime()) / 86400000)
-  return Math.max(1, diff + 1)
+  return Math.max(1, getDaysElapsed() + 1)
 }
 
 function SectionLabel({ num, name, sub }: { num: number; name: string; sub?: string }) {
@@ -133,7 +130,7 @@ export default function Dashboard() {
     </div>
   )
 
-  const todayLabel    = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+  const todayLabel    = getEffectiveNow().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
   const tomorrowLabel = tomorrowDate().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
 
   const day = dayOfProject()

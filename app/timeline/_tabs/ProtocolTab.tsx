@@ -324,16 +324,16 @@ export default function ProtocolTab({ entries, failures, loading }: ProtocolTabP
       {total >= MIN_FOR_FULL_MAP && hasPeak && (
         <div className="relative bg-gold/10 border border-gold/40 p-5">
           <SmallCaps tone="gold-deep" tracking="editorial" size="xs" as="div" className="mb-2">
-            <span className="!text-gold">Dane operacyjne</span>
+            Dane operacyjne
           </SmallCaps>
-          <p className="font-serif-body italic text-ivory text-[14px] leading-relaxed">
+          <p className="font-serif-body italic text-dark text-[14px] leading-relaxed">
             najczęściej narażona:{' '}
-            <span className="not-italic font-heading text-gold">
+            <span className="not-italic font-heading text-gold-deep">
               {PL_DAYS_FULL[peakDay].toLowerCase()}
             </span>{' '}
             {TIME_SLOTS[peakSlot].label} ({TIME_SLOTS[peakSlot].range}).
           </p>
-          <p className="font-serif-body italic text-parchment/80 text-[12.5px] mt-2 leading-relaxed">
+          <p className="font-serif-body italic text-muted text-[12.5px] mt-2 leading-relaxed">
             zaplanuj konkretne działanie na ten moment — quest, ruch, telefon do kogoś bliskiego.
             pasywne czekanie na impuls to stara strategia.
           </p>
