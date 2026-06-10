@@ -88,7 +88,7 @@ export default function QuarterlyReviewForm({
   const months = useMemo(() => getQuarterMonths(quarterKey), [quarterKey])
   const range = useMemo(() => getQuarterDateRange(quarterKey), [quarterKey])
   const agg = useMemo(() => aggregateQuarter(logs, quarterKey), [logs, quarterKey])
-  const monthAggs = useMemo(() => months.map(mk => ({ monthKey: mk, ...getMonthAggregate(logs, mk) })), [logs, months])
+  const monthAggs = useMemo(() => months.map(mk => getMonthAggregate(logs, mk)), [logs, months])
 
   const quarterIdx = Number(quarterKey.slice(1))
   const canGoPrev = quarterIdx > 1
