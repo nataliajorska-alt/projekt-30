@@ -9,16 +9,18 @@ import { todayKey } from '@/lib/gameLogic'
 import type { AprilQuest } from '@/lib/seasonal/aprilData'
 import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
 import PostponeModal, { addDaysKey } from '@/components/PostponeModal'
+import SkipModal from '@/components/SkipModal'
 
 const APRIL_LAST_DAY  = '2026-04-30'
 const APRIL_FIRST_DAY = '2026-04-05'
 
-function QuestCard({ quest, done, postponed, onComplete, onPostpone }: {
+function QuestCard({ quest, done, postponed, onComplete, onPostpone, onSkip }: {
   quest: AprilQuest
   done: boolean
   postponed?: boolean
   onComplete: () => void
   onPostpone: () => void
+  onSkip: () => void
 }) {
   const pillar = getPillar(quest.pillar)
   return (
@@ -92,6 +94,16 @@ function QuestCard({ quest, done, postponed, onComplete, onPostpone }: {
               przenieś
             </SmallCaps>
           </button>
+          <button
+            onClick={onSkip}
+            title="Pomiń to zadanie"
+            aria-label="Pomiń to zadanie"
+            className="inline-flex items-center border border-hairline text-muted py-2.5 px-4 hover:border-gold hover:text-dark transition-colors"
+          >
+            <SmallCaps tone="muted" tracking="luxury" size="xs">
+              pomiń
+            </SmallCaps>
+          </button>
         </div>
       )}
     </div>
@@ -100,8 +112,9 @@ function QuestCard({ quest, done, postponed, onComplete, onPostpone }: {
 
 export default function TomorrowQuests() {
   const { tomorrowLog, tomorrowDateKey, loading, toggleTomorrowQuest } = useTomorrowData()
-  const { log, skippedIds, loading: questsLoading, postponeQuest } = useAprilQuests()
+  const { log, skippedIds, loading: questsLoading, postponeQuest, skipQuest } = useAprilQuests()
   const [postponeTarget, setPostponeTarget] = useState<AprilQuest | null>(null)
+  const [skipTarget, setSkipTarget] = useState<AprilQuest | null>(null)
 
   if (loading || questsLoading) return null
 
@@ -159,6 +172,17 @@ export default function TomorrowQuests() {
         />
       )}
 
+      {skipTarget && (
+        <SkipModal
+          quest={skipTarget}
+          onConfirm={async (reason) => {
+            await skipQuest(skipTarget.id, reason)
+            setSkipTarget(null)
+          }}
+          onClose={() => setSkipTarget(null)}
+        />
+      )}
+
       <div className="bg-ivory border border-gold-light/40 mb-4">
         <div className="px-5 pt-5 pb-3">
           <div className="flex items-baseline justify-between gap-3">
@@ -179,6 +203,7 @@ export default function TomorrowQuests() {
               postponed={postponedIds.has(quest.id)}
               onComplete={() => toggleTomorrowQuest(quest.id, quest.pillar, quest.xp)}
               onPostpone={() => setPostponeTarget(quest)}
+              onSkip={() => setSkipTarget(quest)}
             />
           ))}
         </div>
