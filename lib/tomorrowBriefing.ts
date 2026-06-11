@@ -58,7 +58,9 @@ export function buildTomorrowBriefing(input: BriefingInput): string {
   lines.push('## Jak planować — o mnie')
   lines.push('- Mam ADHD. Plan ma podawać **jedną rzecz naraz**: krótkie bloki (25–45 min), bufory między zadaniami, jasne „od–do”. Żadnych długich równoległych list.')
   lines.push('- Najtrudniejszą rzecz dnia wstaw tam, gdzie energia będzie najwyższa (kontekst ciała niżej).')
-  lines.push('- Przerwy są częścią planu, nie nagrodą. Zaplanuj je z góry.')
+  lines.push('- **Przerwy wpisz do planu** jako osobne bloki z godzinami — są częścią planu, nie nagrodą.')
+  lines.push('- Zaplanuj **4 posiłki** o konkretnych godzinach (śniadanie, obiad, przekąska, kolacja).')
+  lines.push('- Wpleć **picie wody** w cały dzień — np. szklanka przy każdej zmianie bloku, wprost w planie.')
   lines.push('- Dodaj na końcu **wersję minimum**: 3 rzeczy, które ratują dzień, gdyby się posypał.')
   lines.push('- Wskaż jedną rzecz-kotwicę na sam początek dnia (łatwy start, bez decyzji).')
   lines.push('')
@@ -117,7 +119,9 @@ export function buildTomorrowBriefing(input: BriefingInput): string {
   lines.push('')
 
   lines.push('## Czego oczekuję')
-  lines.push('Plan godzina po godzinie z buforami, jedną kotwicą na rano, najtrudniejszą rzeczą w oknie najwyższej energii i wersją minimum na koniec. Krótko i konkretnie — bez motywacyjnych przemów.')
+  lines.push('Plan godzina po godzinie z wpisanymi przerwami, 4 posiłkami i wodą, jedną kotwicą na rano, najtrudniejszą rzeczą w oknie najwyższej energii i wersją minimum na koniec.')
+  lines.push('')
+  lines.push('Ton planu: ma mnie nieść. Pisz ciepło i z wiarą we mnie — przy trudniejszych blokach dodaj jedno krótkie zdanie-zachętę, a na początku planu przypomnij mi w 1–2 zdaniach, dlaczego ten dzień ma znaczenie w moim rocznym projekcie. Bez suchego wykazu, ale też bez lania wody — każda zachęta konkretna i osobista.')
 
   return lines.join('\n')
 }
