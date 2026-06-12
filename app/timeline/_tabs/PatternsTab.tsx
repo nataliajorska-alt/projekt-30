@@ -7,7 +7,7 @@ import {
 } from '@/lib/correlations'
 import type { DailyLog } from '@/types'
 import WeeklyInsightCard from '@/components/WeeklyInsightCard'
-import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
+import { SmallCaps, Fleuron, CornerBrackets } from '@/components/ui'
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -15,16 +15,62 @@ function fmt(v: number | null): string {
   if (v === null) return '—'
   return v.toFixed(1)
 }
-function pctDiff(a: number | null, b: number | null): string | null {
+function pctDiff(a: number | null, b: number | null): { text: string; positive: boolean } | null {
   if (a === null || b === null || b === 0) return null
   const diff = Math.round(((a - b) / b) * 100)
   if (Math.abs(diff) < 5) return null
-  return diff > 0 ? `+${diff}%` : `${diff}%`
+  return { text: diff > 0 ? `+${diff}%` : `−${Math.abs(diff)}%`, positive: diff > 0 }
 }
 function fmtSigned(v: number | null): string {
   if (v === null) return '—'
   if (Math.abs(v) < 0.05) return '0,0'
-  return (v > 0 ? '+' : '') + v.toFixed(1).replace('.', ',')
+  return (v > 0 ? '+' : '−') + Math.abs(v).toFixed(1).replace('.', ',')
+}
+
+// mock --h0: pusty tor paska
+const TRACK = '#E9E0C8'
+
+// ── Line-art ikony (z mocka) ─────────────────────────────────────
+
+const ICON_PATHS: Record<string, React.ReactNode> = {
+  people:  <><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.4 2.8-5.2 5.5-5.2s4.9 1.8 5.5 5.2"/><path d="M15 5.6a3.2 3.2 0 0 1 0 5.8"/><path d="M17.5 13.9c2 .7 3.2 2.5 3.6 5.1"/></>,
+  rebound: <><polyline points="4 17 10 11 13 14 20 7"/><polyline points="14 7 20 7 20 13"/></>,
+  target:  <><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></>,
+  pulse:   <polyline points="3 12 7 12 10 6 14 18 17 12 21 12"/>,
+  sunrise: <><path d="M4 18h16"/><path d="M8 18a4 4 0 0 1 8 0"/><path d="M12 8V5"/><path d="M6.2 10.2 4.8 8.8"/><path d="M17.8 10.2l1.4-1.4"/></>,
+  moon:    <path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z"/>,
+  bolt:    <path d="M13 2 5 13.5h6L9.5 22 19 9.5h-6z"/>,
+  clock:   <><circle cx="12" cy="12" r="8"/><path d="M12 7.5v4.5l3 2"/></>,
+  diamond: <path d="M12 3l7 9-7 9-7-9z"/>,
+  flag:    <><path d="M5 21V4"/><path d="M5 5h12l-2.5 3.5L17 12H5"/></>,
+  smoke:   <><path d="M3 15h13v3H3z"/><path d="M19 15v3"/><path d="M17 9.5c2 0 3.2 1.1 3.2 2.7"/><path d="M14.5 6.5c3 0 5 1.5 5 3.7"/></>,
+}
+
+// id wglądu → ikona z mocka (fallback: diamond)
+function iconFor(id: string): React.ReactNode {
+  if (id.startsWith('cigarettes')) return ICON_PATHS.smoke
+  const map: Record<string, keyof typeof ICON_PATHS> = {
+    lift_morning_mood: 'sunrise',
+    lift_low_start_routine: 'rebound',
+    lift_activity_energy: 'pulse',
+    lift_social_mood: 'people',
+    lift_sidequest_mood: 'target',
+    lift_rules_mood: 'target',
+    lift_dailyquest_mood: 'flag',
+    carryover_evening_morning: 'moon',
+    carryover_evening_energy: 'bolt',
+    carryover_activity_energy: 'clock',
+    carryover_xp_energy: 'diamond',
+  }
+  return ICON_PATHS[map[id] ?? 'diamond']
+}
+
+function WzIcon({ id, className }: { id: string; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} className={className}>
+      {iconFor(id)}
+    </svg>
+  )
 }
 
 // ── Narratives (zachowane) ───────────────────────────────────────
@@ -81,7 +127,6 @@ function carryoverNarrative(ins: CarryoverInsight): string {
 type Directional = LiftInsight | CarryoverInsight
 type Verdict = 'works' | 'weak' | 'reverse' | 'nodata'
 
-// Krótkie nazwy dźwigni do rankingu „Twoje dźwignie"
 const LEVER_LABEL: Record<string, string> = {
   lift_morning_mood: 'Rutyna poranna',
   lift_low_start_routine: 'Rutyna po gorszym poranku',
@@ -113,423 +158,322 @@ function dirVerdict(ins: Directional): Verdict {
   return 'weak'
 }
 
-// Jednozdaniowy wpis do rankingu dźwigni.
-// Opis różnicowy: znak różnicy niesie kierunek, więc jest poprawny i dla
-// wzrostu, i dla „spada mniej" — bez przeszacowania słowem „podnosi".
-function leverLine(ins: Directional): string {
-  const name = LEVER_LABEL[ins.id] ?? ins.title
-  const metricGen = ins.metric === 'mood' ? 'nastroju' : 'energii'
-  if (dirVerdict(ins) === 'weak') return `${name}: bez wyraźnego efektu`
-  return `${name} → ${fmtSigned(dirDiff(ins))} do ${metricGen}`
+const BADGE_LABEL: Record<Exclude<Verdict, 'nodata'> | 'obs', string> = {
+  works:   'Działa',
+  weak:    'Słaby sygnał',
+  reverse: 'Odwrotnie',
+  obs:     'Obserwacja',
 }
 
-function VerdictChip({ v }: { v: Verdict }) {
-  const map: Record<Verdict, { label: string; cls: string }> = {
-    works:   { label: 'działa',         cls: 'text-forest border-forest/40 bg-forest/5' },
-    weak:    { label: 'słaby sygnał',   cls: 'text-muted border-hairline bg-cream/60' },
-    reverse: { label: 'odwrotnie',      cls: 'text-red-700 border-red-200 bg-red-50/40' },
-    nodata:  { label: 'za mało danych', cls: 'text-muted-light border-hairline bg-cream/40' },
-  }
-  const { label, cls } = map[v]
+// ── Section primitives ───────────────────────────────────────────
+
+function Panel({ eyebrow, title, note, children, className }: {
+  eyebrow: string
+  title?: string
+  note?: string
+  children?: React.ReactNode
+  className?: string
+}) {
   return (
-    <span className={clsx('font-ui uppercase tracking-luxury text-[9px] px-1.5 py-0.5 border whitespace-nowrap shrink-0', cls)}>
-      {label}
-    </span>
+    <section className={clsx('relative bg-ivory border border-gold-light/40 p-5 sm:p-7', className)}>
+      <CornerBrackets size={10} tone="gold-light" />
+      <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">{eyebrow}</SmallCaps>
+      {title && <h2 className="font-heading text-dark text-lg mt-1">{title}</h2>}
+      {note && <p className="font-serif-body italic text-muted text-[13px] mt-1">{note}</p>}
+      {children}
+    </section>
   )
 }
 
-// Ranking na górze sekcji — co realnie rusza nastrój/energię, od najmocniejszego
-function LeversSummary({ items }: { items: Directional[] }) {
+function SecLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-forest/5 border border-forest/25 p-5 mb-4">
-      <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
-        Twoje dźwignie
-      </SmallCaps>
-      <p className="font-serif-body italic text-muted text-[12.5px] mt-1 mb-3 leading-relaxed">
-        co realnie rusza Twój nastrój i energię — od najmocniejszego.
-      </p>
-      <ul className="space-y-2">
+    <div className="flex items-center gap-3.5 mt-2 mb-1">
+      <SmallCaps tone="muted" tracking="editorial" size="xs">{children}</SmallCaps>
+      <span className="flex-1 h-px bg-hairline" />
+    </div>
+  )
+}
+
+// ── Levers (Twoje dźwignie) ──────────────────────────────────────
+
+function LeversPanel({ items }: { items: Directional[] }) {
+  return (
+    <Panel
+      eyebrow="Wpływ kierunkowy"
+      title="Twoje dźwignie"
+      note="co realnie rusza Twój nastrój i energię — od najmocniejszej. mierzone wzrostem w ciągu dnia, nie samym współwystępowaniem."
+    >
+      <div className="mt-5">
         {items.map(ins => {
-          const v = dirVerdict(ins)
+          const d = dirDiff(ins) ?? 0
+          const neg = d < 0
+          const width = Math.min(50, Math.abs(d) / 0.6 * 50)
           return (
-            <li key={ins.id} className="flex items-start gap-2.5">
-              <Diamond
-                size={5}
-                className={clsx(
-                  'mt-1.5 shrink-0',
-                  v === 'works' ? 'text-forest' : v === 'reverse' ? 'text-red-600' : 'text-muted-light'
-                )}
-                filled={v === 'works'}
-              />
-              <span
-                className={clsx(
-                  'font-serif-body text-[13px] leading-snug',
-                  v === 'works' ? 'text-forest' : v === 'reverse' ? 'text-red-700' : 'text-muted'
-                )}
-              >
-                {leverLine(ins)}
+            <div
+              key={ins.id}
+              className="grid items-center gap-3 sm:gap-4 py-2.5 border-t border-border first:border-t-0"
+              style={{ gridTemplateColumns: '12px minmax(0,1fr) 64px 1fr 56px' }}
+            >
+              <span className={clsx('text-[8px] text-center', neg ? 'text-wine' : 'text-gold')}>◆</span>
+              <span className="font-serif-body text-[14px] text-dark leading-snug min-w-0">
+                {LEVER_LABEL[ins.id] ?? ins.title}
               </span>
-            </li>
+              <SmallCaps tone="muted" tracking="luxury" size="xs" className="whitespace-nowrap">
+                {ins.metric === 'mood' ? 'nastrój' : 'energia'}
+              </SmallCaps>
+              <span className="relative h-[7px]" style={{ background: TRACK }}>
+                <span className="absolute -top-[3px] -bottom-[3px] left-1/2 w-px bg-hairline" />
+                <span
+                  className={clsx('absolute top-0 h-full transition-all duration-700', neg ? 'bg-wine' : 'bg-gold')}
+                  style={neg ? { right: '50%', width: `${width}%` } : { left: '50%', width: `${width}%` }}
+                />
+              </span>
+              <span className={clsx('font-display text-[15px] text-right tracking-tight tabular-nums', neg ? 'text-wine' : 'text-gold-deep')}>
+                {fmtSigned(d)}
+              </span>
+            </div>
           )
         })}
-      </ul>
-    </div>
-  )
-}
-
-// Zwinięta lista dźwigni, które jeszcze nie mają dość danych
-function CompactNoData({ items }: { items: Directional[] }) {
-  return (
-    <div className="bg-cream/50 border border-hairline px-4 py-3">
-      <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-1">
-        Jeszcze zbierają dane
-      </SmallCaps>
-      <p className="font-serif-body italic text-muted-light text-[12px] leading-relaxed">
-        {items.map(i => LEVER_LABEL[i.id] ?? i.title).join(' · ')}
-      </p>
-    </div>
-  )
-}
-
-// ── Shared card primitives ───────────────────────────────────────
-
-function CardShell({ children }: { children: React.ReactNode }) {
-  return <div className="bg-ivory border border-gold-light/40 p-5 sm:p-6">{children}</div>
-}
-
-function CardHeader({ icon, title, subtitle, metric, chip }: {
-  icon: string
-  title: string
-  subtitle?: string
-  metric?: string
-  chip?: React.ReactNode
-}) {
-  return (
-    <div className="flex items-start gap-3 mb-4">
-      <span className="text-2xl leading-none mt-0.5">{icon}</span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-heading text-dark text-base leading-tight">{title}</h3>
-          {chip}
-        </div>
-        {(subtitle || metric) && (
-          <p className="font-serif-body italic text-muted text-[12.5px] mt-1 leading-relaxed">
-            {subtitle ?? (metric === 'mood' ? 'nastrój I–V' : 'energia I–V')}
-          </p>
-        )}
       </div>
-    </div>
+    </Panel>
   )
 }
 
-function NarrativeBox({ narrative, tone }: {
-  narrative: string
-  tone: 'positive' | 'negative' | 'neutral'
+function LeverQuiet({ items }: { items: Directional[] }) {
+  return (
+    <p className="font-serif-body italic text-muted-light text-[12.5px] leading-relaxed px-1 -mt-1">
+      <span className="not-italic text-[9px] mr-2">◇</span>
+      bez wyraźnego efektu:{' '}
+      {items.map((i, idx) => (
+        <span key={i.id} className="text-muted">
+          {idx > 0 && ' · '}
+          <b className="font-serif-body not-italic font-medium">{LEVER_LABEL[i.id] ?? i.title}</b>
+        </span>
+      ))}
+    </p>
+  )
+}
+
+// ── Hypothesis card (wz-card) ────────────────────────────────────
+
+type InsTone = 'pos' | 'neg' | 'weak'
+
+function WzCardShell({ id, title, sub, badge, badgeKind, children, axis, insight, insTone }: {
+  id: string
+  title: string
+  sub?: string
+  badge: string
+  badgeKind: 'works' | 'reverse' | 'weak' | 'obs'
+  children: React.ReactNode
+  axis: React.ReactNode
+  insight: React.ReactNode
+  insTone: InsTone
 }) {
   return (
-    <div
-      className={clsx(
-        'border px-4 py-3 flex items-start gap-3',
-        tone === 'positive' && 'bg-forest/5 border-forest/30',
-        tone === 'negative' && 'bg-red-50/40 border-red-200',
-        tone === 'neutral' && 'bg-cream/50 border-hairline'
-      )}
-    >
-      <Diamond
-        size={5}
+    <article className="relative bg-ivory border border-gold-light/40 p-5 sm:p-6 flex flex-col">
+      <span className="absolute top-2 left-2 w-2 h-2 border-l border-t border-gold-light/70" />
+      <div className="flex items-start gap-3.5">
+        <span
+          className={clsx(
+            'shrink-0 w-[34px] h-[34px] border flex items-center justify-center',
+            badgeKind === 'works' ? 'border-gold-light text-gold-deep' :
+            badgeKind === 'reverse' ? 'border-wine/45 text-wine' :
+            'border-hairline text-muted-light'
+          )}
+        >
+          <WzIcon id={id} className="w-[17px] h-[17px]" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-heading text-dark text-[16px] leading-tight tracking-tight">{title}</h3>
+          {sub && <p className="font-serif-body italic text-muted text-[12.5px] mt-1 leading-snug">{sub}</p>}
+        </div>
+        <span
+          className={clsx(
+            'font-ui uppercase tracking-luxury text-[7px] border px-2 py-1 whitespace-nowrap',
+            badgeKind === 'works' ? 'text-forest border-forest/40 bg-forest/5' :
+            badgeKind === 'reverse' ? 'text-wine border-wine/35 bg-wine/5' :
+            badgeKind === 'obs' ? 'text-muted border-hairline' :
+            'text-muted border-hairline'
+          )}
+        >
+          {badge}
+        </span>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3.5">{children}</div>
+
+      <div className="flex justify-between mt-3 mb-4 font-ui uppercase tracking-luxury text-[7px] text-muted-light">
+        {axis}
+      </div>
+
+      <div
         className={clsx(
-          'mt-1.5 shrink-0',
-          tone === 'positive' && 'text-forest',
-          tone === 'negative' && 'text-red-600',
-          tone === 'neutral' && 'text-muted'
-        )}
-        filled={tone === 'positive'}
-      />
-      <p
-        className={clsx(
-          'font-serif-body italic text-[13px] leading-relaxed',
-          tone === 'positive' && 'text-forest',
-          tone === 'negative' && 'text-red-700',
-          tone === 'neutral' && 'text-muted'
+          'mt-auto px-4 py-2.5 border font-serif-body italic text-[13px] leading-snug',
+          insTone === 'pos' ? 'bg-cream border-border text-dark' :
+          insTone === 'neg' ? 'bg-wine/5 border-wine/20 text-dark' :
+          'bg-transparent border-dashed border-hairline text-muted'
         )}
       >
-        {narrative}
-      </p>
+        <span className={clsx('not-italic text-[7px] mr-2 align-middle', insTone === 'neg' ? 'text-wine' : insTone === 'weak' ? 'text-muted-light' : 'text-gold')}>
+          {insTone === 'weak' ? '◇' : '◆'}
+        </span>
+        {insight}
+      </div>
+    </article>
+  )
+}
+
+// pasek typu „delta" (od środka): wzrost w prawo, spadek w lewo
+function DeltaRow({ label, count, delta, primary }: { label: string; count: string; delta: number | null; primary: boolean }) {
+  const v = delta ?? 0
+  const kind: InsTone | 'zero' = Math.abs(v) < 0.05 ? 'zero' : v > 0 ? 'pos' : 'neg'
+  const width = Math.min(50, Math.abs(v) / 0.6 * 50)
+  return (
+    <div>
+      <div className="flex items-baseline gap-3">
+        <span className={clsx('flex-1 font-serif-body text-[14px] min-w-0', primary ? 'text-dark' : 'text-muted italic')}>{label}</span>
+        <SmallCaps tone="muted" tracking="luxury" size="xs" className="whitespace-nowrap shrink-0">{count}</SmallCaps>
+        <span className={clsx(
+          'font-display text-[15px] tracking-tight tabular-nums text-right min-w-[44px]',
+          kind === 'pos' ? 'text-gold-deep' : kind === 'neg' ? 'text-wine' : 'text-muted-light'
+        )}>
+          {fmtSigned(delta)}
+        </span>
+      </div>
+      <div className="relative h-2 mt-[7px]" style={{ background: TRACK }}>
+        <span className="absolute -top-[3px] -bottom-[3px] left-1/2 w-px bg-hairline" />
+        {kind !== 'zero' && (
+          <span
+            className={clsx('absolute top-0 h-full transition-all duration-700', kind === 'pos' ? 'bg-gold' : 'bg-wine')}
+            style={kind === 'pos' ? { left: '50%', width: `${width}%` } : { right: '50%', width: `${width}%` }}
+          />
+        )}
+      </div>
     </div>
   )
 }
 
-function NotEnoughData({ message }: { message: string }) {
+// pasek typu „skala" (wartość bezwzględna 2–4 → 0–100% wycinka)
+function ScaleRow({ label, count, value, annotation, primary }: {
+  label: string; count: string; value: number | null; annotation?: { text: string; positive: boolean } | null; primary: boolean
+}) {
+  const v = value ?? 0
+  const width = Math.max(0, Math.min(100, ((v - 2) / 2) * 100))
   return (
-    <div className="bg-cream/50 border border-hairline px-4 py-3">
-      <p className="font-serif-body italic text-muted-light text-[12.5px] leading-relaxed">
-        {message}
-      </p>
+    <div>
+      <div className="flex items-baseline gap-3">
+        <span className={clsx('flex-1 font-serif-body text-[14px] min-w-0', primary ? 'text-dark' : 'text-muted italic')}>{label}</span>
+        <SmallCaps tone="muted" tracking="luxury" size="xs" className="whitespace-nowrap shrink-0">{count}</SmallCaps>
+        <span className="font-display text-[15px] tracking-tight tabular-nums text-right min-w-[44px] text-dark">
+          {fmt(value)}
+          {annotation && (
+            <span className={clsx('font-ui text-[9px] ml-1', annotation.positive ? 'text-forest' : 'text-wine')}>{annotation.text}</span>
+          )}
+        </span>
+      </div>
+      <div className="relative h-2 mt-[7px]" style={{ background: TRACK }}>
+        <span
+          className={clsx('absolute top-0 left-0 h-full transition-all duration-700', primary ? 'bg-gold' : 'bg-muted-light')}
+          style={{ width: `${width}%` }}
+        />
+      </div>
     </div>
   )
 }
 
-// ── Cards ────────────────────────────────────────────────────────
-
-function ComparisonCard({ ins }: { ins: ComparisonInsight }) {
-  const narrative = comparisonNarrative(ins)
-  const delta = ins.withValue !== null && ins.withoutValue !== null
-    ? ins.withValue - ins.withoutValue : null
-  const positive = delta !== null && delta > 0.1
-  const negative = delta !== null && delta < -0.1
-  const tone: 'positive' | 'negative' | 'neutral' = positive ? 'positive' : negative ? 'negative' : 'neutral'
-
-  return (
-    <CardShell>
-      <CardHeader icon={ins.icon} title={ins.title} metric={ins.metric} />
-      {!ins.hasEnoughData ? (
-        <NotEnoughData message="za mało danych — potrzeba co najmniej III dni w każdej grupie i VII check-inów nastroju." />
-      ) : (
-        <>
-          <div className="space-y-3 mb-4">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-serif-body text-[13px] text-dark truncate max-w-[70%]">{ins.withLabel}</span>
-                <span
-                  className={clsx(
-                    'font-ui text-[11px] tabular-nums',
-                    positive ? 'text-forest' : negative ? 'text-red-600' : 'text-muted'
-                  )}
-                >
-                  {fmt(ins.withValue)}
-                  {pctDiff(ins.withValue, ins.withoutValue) && (
-                    <span className="ml-1 opacity-70">({pctDiff(ins.withValue, ins.withoutValue)})</span>
-                  )}
-                </span>
-              </div>
-              <div className="relative h-px w-full bg-hairline">
-                <div
-                  className={clsx('absolute left-0 top-0 h-px transition-all duration-700', positive ? 'bg-forest' : 'bg-gold')}
-                  style={{ width: `${((ins.withValue ?? 0) / 5) * 100}%` }}
-                />
-              </div>
-              <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-1 block opacity-60">
-                {ins.withCount} dni
-              </SmallCaps>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-serif-body italic text-[13px] text-muted truncate max-w-[70%]">{ins.withoutLabel}</span>
-                <span className="font-ui text-[11px] text-muted-light tabular-nums">{fmt(ins.withoutValue)}</span>
-              </div>
-              <div className="relative h-px w-full bg-hairline">
-                <div
-                  className="absolute left-0 top-0 h-px bg-parchment transition-all duration-700"
-                  style={{ width: `${((ins.withoutValue ?? 0) / 5) * 100}%` }}
-                />
-              </div>
-              <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-1 block opacity-60">
-                {ins.withoutCount} dni
-              </SmallCaps>
-            </div>
-          </div>
-          <NarrativeBox narrative={narrative} tone={tone} />
-        </>
-      )}
-    </CardShell>
-  )
-}
-
-function DayOfWeekCard({ ins }: { ins: DayOfWeekInsight }) {
-  const narrative = dowNarrative(ins)
-  const withData = ins.byDay.filter(d => d.value !== null)
-  const maxVal = withData.length > 0 ? Math.max(...withData.map(d => d.value ?? 0)) : 5
-  const minVal = withData.length > 0 ? Math.min(...withData.map(d => d.value ?? 0)) : 0
-
-  return (
-    <CardShell>
-      <CardHeader icon={ins.icon} title={ins.title} metric={ins.metric} />
-
-      {!ins.hasEnoughData ? (
-        <NotEnoughData message="za mało danych — potrzeba co najmniej VII check-inów nastroju." />
-      ) : (
-        <>
-          <div className="flex gap-1.5 mb-4 items-end" style={{ height: '76px' }}>
-            {ins.byDay.map(day => {
-              const hasDat = day.value !== null && day.count >= 1
-              const isBest  = hasDat && day.value === maxVal && maxVal > minVal
-              const isWorst = hasDat && day.value === minVal && maxVal > minVal
-              const heightPct = hasDat ? ((day.value! - 0) / 5) * 100 : 8
-
-              return (
-                <div key={day.dow} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full flex items-end" style={{ height: '54px' }}>
-                    <div
-                      className={clsx(
-                        'w-full transition-all duration-700',
-                        isBest  ? 'bg-forest' :
-                        isWorst ? 'bg-parchment' :
-                        hasDat  ? 'bg-gold/60' : 'bg-cream'
-                      )}
-                      style={{ height: `${heightPct}%` }}
-                      title={hasDat ? `${day.full}: ${fmt(day.value)}/5 (${day.count} dni)` : day.full}
-                    />
-                  </div>
-                  <span
-                    className={clsx(
-                      'font-ui uppercase tracking-luxury text-[9px]',
-                      isBest ? 'text-forest' : isWorst ? 'text-muted' : 'text-muted-light'
-                    )}
-                  >
-                    {day.short}
-                  </span>
-                  <span className="font-ui text-[9px] text-muted-light tabular-nums">{fmt(day.value)}</span>
-                </div>
-              )
-            })}
-          </div>
-
-          <NarrativeBox narrative={narrative} tone="neutral" />
-        </>
-      )}
-    </CardShell>
-  )
-}
+const DELTA_AXIS = (<><span>← spadek</span><span>0</span><span>wzrost →</span></>)
+const SCALE_AXIS = (<><span>II</span><span>skala I–V · wycinek II–IV</span><span>IV</span></>)
 
 function LiftCard({ ins }: { ins: LiftInsight }) {
-  const narrative = liftNarrative(ins)
-  const positive = ins.withLift !== null && ins.withoutLift !== null
-    && ins.withLift - ins.withoutLift > 0.2
-  const negative = ins.withLift !== null && ins.withoutLift !== null
-    && ins.withLift - ins.withoutLift < -0.2
-  const tone: 'positive' | 'negative' | 'neutral' = positive ? 'positive' : negative ? 'negative' : 'neutral'
-
-  const renderBar = (val: number | null, count: number, label: string, isWith: boolean) => {
-    const safeVal = val ?? 0
-    const pct = Math.min(100, Math.abs(safeVal) / 2 * 50)
-    const goingUp = safeVal >= 0
-    return (
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <span className={clsx('font-serif-body text-[13px] truncate max-w-[70%]', isWith ? 'text-dark' : 'text-muted italic')}>
-            {label}
-          </span>
-          <span
-            className={clsx(
-              'font-ui text-[11px] tabular-nums',
-              val === null ? 'text-muted-light' :
-              isWith && positive ? 'text-forest' :
-              isWith && negative ? 'text-red-600' :
-              goingUp ? 'text-dark' : 'text-muted'
-            )}
-          >
-            {fmtSigned(val)}
-          </span>
-        </div>
-        <div className="relative h-3 bg-cream/60 overflow-hidden">
-          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-hairline" />
-          {val !== null && (
-            <div
-              className={clsx(
-                'absolute top-0 bottom-0 transition-all duration-700',
-                isWith && positive ? 'bg-forest' :
-                isWith && negative ? 'bg-red-400' :
-                goingUp ? 'bg-gold' : 'bg-parchment'
-              )}
-              style={{
-                left: goingUp ? '50%' : `${50 - pct}%`,
-                width: `${pct}%`,
-              }}
-            />
-          )}
-        </div>
-        <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-1 block opacity-60">
-          {count} dni
-        </SmallCaps>
-      </div>
-    )
-  }
-
+  const v = dirVerdict(ins)
+  const badgeKind = v === 'works' ? 'works' : v === 'reverse' ? 'reverse' : 'weak'
+  const insTone: InsTone = v === 'works' ? 'pos' : v === 'reverse' ? 'neg' : 'weak'
   return (
-    <CardShell>
-      <CardHeader icon={ins.icon} title={ins.title} subtitle={ins.subtitle} chip={<VerdictChip v={dirVerdict(ins)} />} />
-
-      {!ins.hasEnoughData ? (
-        <NotEnoughData message="za mało danych — potrzeba V+ dni z II+ check-inami nastroju i III dni w każdej grupie." />
-      ) : (
-        <>
-          <div className="space-y-4 mb-4">
-            {renderBar(ins.withLift, ins.withCount, ins.withLabel, true)}
-            {renderBar(ins.withoutLift, ins.withoutCount, ins.withoutLabel, false)}
-          </div>
-
-          <SmallCaps tone="muted" tracking="luxury" size="xs" className="mb-3 block px-1 opacity-60">
-            ← spadek · 0 · wzrost →
-          </SmallCaps>
-
-          <NarrativeBox narrative={narrative} tone={tone} />
-        </>
-      )}
-    </CardShell>
+    <WzCardShell
+      id={ins.id} title={ins.title} sub={ins.subtitle}
+      badge={BADGE_LABEL[badgeKind]} badgeKind={badgeKind}
+      axis={DELTA_AXIS} insTone={insTone} insight={liftNarrative(ins)}
+    >
+      <DeltaRow label={ins.withLabel} count={`${ins.withCount} dni`} delta={ins.withLift} primary />
+      <DeltaRow label={ins.withoutLabel} count={`${ins.withoutCount} dni`} delta={ins.withoutLift} primary={false} />
+    </WzCardShell>
   )
 }
 
 function CarryoverCard({ ins }: { ins: CarryoverInsight }) {
-  const narrative = carryoverNarrative(ins)
-  const positive = ins.withMorning !== null && ins.withoutMorning !== null
-    && ins.withMorning - ins.withoutMorning > 0.15
-  const negative = ins.withMorning !== null && ins.withoutMorning !== null
-    && ins.withMorning - ins.withoutMorning < -0.15
-  const tone: 'positive' | 'negative' | 'neutral' = positive ? 'positive' : negative ? 'negative' : 'neutral'
+  const v = dirVerdict(ins)
+  const badgeKind = v === 'works' ? 'works' : v === 'reverse' ? 'reverse' : 'weak'
+  const insTone: InsTone = v === 'works' ? 'pos' : v === 'reverse' ? 'neg' : 'weak'
+  return (
+    <WzCardShell
+      id={ins.id} title={ins.title} sub={ins.subtitle}
+      badge={BADGE_LABEL[badgeKind]} badgeKind={badgeKind}
+      axis={SCALE_AXIS} insTone={insTone} insight={carryoverNarrative(ins)}
+    >
+      <ScaleRow label={ins.withLabel} count={`${ins.withCount} poranków`} value={ins.withMorning} primary />
+      <ScaleRow label={ins.withoutLabel} count={`${ins.withoutCount} poranków`} value={ins.withoutMorning} primary={false} />
+    </WzCardShell>
+  )
+}
+
+function ObservationCard({ ins }: { ins: ComparisonInsight }) {
+  const delta = ins.withValue !== null && ins.withoutValue !== null ? ins.withValue - ins.withoutValue : null
+  const insTone: InsTone = delta !== null && delta < -0.1 ? 'neg' : 'pos'
+  return (
+    <WzCardShell
+      id={ins.id} title={ins.title} sub={ins.metric === 'mood' ? 'średni nastrój, skala I–V.' : 'średnia energia, skala I–V.'}
+      badge={BADGE_LABEL.obs} badgeKind="obs"
+      axis={SCALE_AXIS} insTone={insTone} insight={comparisonNarrative(ins)}
+    >
+      <ScaleRow label={ins.withLabel} count={`${ins.withCount} dni`} value={ins.withValue} annotation={pctDiff(ins.withValue, ins.withoutValue)} primary />
+      <ScaleRow label={ins.withoutLabel} count={`${ins.withoutCount} dni`} value={ins.withoutValue} primary={false} />
+    </WzCardShell>
+  )
+}
+
+// ── Weekday rhythm (wk-duo) ──────────────────────────────────────
+
+function WeekdayBlock({ ins }: { ins: DayOfWeekInsight }) {
+  const withData = ins.byDay.filter(d => d.value !== null && d.count >= 1)
+  const maxVal = withData.length ? Math.max(...withData.map(d => d.value ?? 0)) : 5
+  const minVal = withData.length ? Math.min(...withData.map(d => d.value ?? 0)) : 0
+  const best  = withData.length ? withData.reduce((a, b) => ((b.value ?? 0) > (a.value ?? 0) ? b : a)) : null
+  const worst = withData.length ? withData.reduce((a, b) => ((b.value ?? 0) < (a.value ?? 0) ? b : a)) : null
+  const metricPL = ins.metric === 'energy' ? 'Energia' : 'Nastrój'
 
   return (
-    <CardShell>
-      <CardHeader icon={ins.icon} title={ins.title} subtitle={ins.subtitle} chip={<VerdictChip v={dirVerdict(ins)} />} />
-
-      {!ins.hasEnoughData ? (
-        <NotEnoughData message="za mało danych — potrzeba III+ par sąsiednich dni w każdej grupie." />
-      ) : (
-        <>
-          <div className="space-y-3 mb-4">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-serif-body text-[13px] text-dark truncate max-w-[70%]">{ins.withLabel}</span>
-                <span
-                  className={clsx(
-                    'font-ui text-[11px] tabular-nums',
-                    positive ? 'text-forest' : negative ? 'text-red-600' : 'text-muted'
-                  )}
-                >
-                  {fmt(ins.withMorning)}
-                </span>
-              </div>
-              <div className="relative h-px w-full bg-hairline">
+    <div>
+      <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+        {metricPL} <span className="font-serif-body italic lowercase tracking-normal text-muted-light ml-1.5 text-[12px]">i–v</span>
+      </SmallCaps>
+      <div className="flex gap-2 mt-4">
+        {ins.byDay.map(d => {
+          const has = d.value !== null && d.count >= 1
+          const isBest  = has && best  && d.dow === best.dow  && maxVal > minVal
+          const isWorst = has && worst && d.dow === worst.dow && maxVal > minVal
+          // skala 2.2–3.6 → 0–100% (jak w mocku)
+          const h = has ? Math.max(0, Math.min(100, ((d.value! - 2.2) / 1.4) * 100)) : 0
+          return (
+            <div key={d.dow} className="flex-1 text-center">
+              <div className="h-[104px] flex items-end">
                 <div
-                  className={clsx('absolute left-0 top-0 h-px transition-all duration-700', positive ? 'bg-forest' : 'bg-gold')}
-                  style={{ width: `${((ins.withMorning ?? 0) / 5) * 100}%` }}
+                  className={clsx('w-full transition-all duration-700', isBest ? 'bg-gold' : isWorst ? 'bg-wine/70' : 'bg-gold-light/55')}
+                  style={{ height: `${h}%` }}
+                  title={has ? `${d.full}: ${fmt(d.value)}/5` : d.full}
                 />
               </div>
-              <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-1 block opacity-60">
-                {ins.withCount} poranków
-              </SmallCaps>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-serif-body italic text-[13px] text-muted truncate max-w-[70%]">{ins.withoutLabel}</span>
-                <span className="font-ui text-[11px] text-muted-light tabular-nums">{fmt(ins.withoutMorning)}</span>
+              <div className={clsx('font-ui uppercase tracking-luxury text-[8px] mt-2', isBest ? 'text-gold-deep' : isWorst ? 'text-wine' : 'text-muted-light')}>
+                {d.short}
               </div>
-              <div className="relative h-px w-full bg-hairline">
-                <div
-                  className="absolute left-0 top-0 h-px bg-parchment transition-all duration-700"
-                  style={{ width: `${((ins.withoutMorning ?? 0) / 5) * 100}%` }}
-                />
-              </div>
-              <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-1 block opacity-60">
-                {ins.withoutCount} poranków
-              </SmallCaps>
+              <div className="font-display text-[13px] text-dark tracking-tight mt-1">{fmt(d.value)}</div>
             </div>
-          </div>
-
-          <NarrativeBox narrative={narrative} tone={tone} />
-        </>
-      )}
-    </CardShell>
+          )
+        })}
+      </div>
+      <p className="font-serif-body italic text-muted text-[13px] mt-4 pt-3.5 border-t border-border leading-snug">
+        {dowNarrative(ins)}
+      </p>
+    </div>
   )
 }
 
@@ -538,11 +482,11 @@ function CarryoverCard({ ins }: { ins: CarryoverInsight }) {
 export default function PatternsTab({ logs }: { logs: Record<string, DailyLog> }) {
   const insights = useMemo(() => computeCorrelations(logs), [logs])
   const logsWithMood = Object.values(logs).filter(l => l.moodCheckIns && l.moodCheckIns.length > 0)
-  const MIN_TOTAL = 7
 
   if (logsWithMood.length === 0) {
     return (
-      <div className="bg-ivory border border-gold-light/40 p-12 text-center">
+      <div className="relative bg-ivory border border-gold-light/40 p-12 text-center">
+        <CornerBrackets size={10} tone="gold-light" />
         <Fleuron size={16} className="text-gold-deep mx-auto mb-4 inline-block" />
         <h3 className="font-display text-dark text-2xl">Wzorce pojawią się z czasem</h3>
         <p className="font-serif-body italic text-muted text-[13.5px] mt-3 max-w-sm mx-auto leading-relaxed">
@@ -557,108 +501,90 @@ export default function PatternsTab({ logs }: { logs: Record<string, DailyLog> }
   const directional = insights.filter(
     (i): i is Directional => i.type === 'lift' || i.type === 'carryover'
   )
-  const dirWithData = directional
+  const ranked = directional
     .filter(i => dirVerdict(i) !== 'nodata')
     .sort((a, b) => Math.abs(dirDiff(b) ?? 0) - Math.abs(dirDiff(a) ?? 0))
-  const dirNoData = directional.filter(i => dirVerdict(i) === 'nodata')
+  const levers  = ranked.filter(i => dirVerdict(i) === 'works' || dirVerdict(i) === 'reverse')
+  const weak    = ranked.filter(i => dirVerdict(i) === 'weak')
+  const noData  = directional.filter(i => dirVerdict(i) === 'nodata')
 
-  const dowInsights = insights.filter(
-    (i): i is DayOfWeekInsight => i.type === 'dow'
-  )
+  const dowInsights = insights.filter((i): i is DayOfWeekInsight => i.type === 'dow')
   const cigInsights = insights.filter(
     (i): i is ComparisonInsight => i.type === 'comparison' && i.id.startsWith('cigarettes')
   )
   const cigWithData = cigInsights.filter(i => i.hasEnoughData)
 
   return (
-    <div className="space-y-4">
-      <WeeklyInsightCard />
+    <div className="space-y-5">
+      {/* Wzorzec tygodnia — werdykt */}
+      <WeeklyInsightCard moodDays={logsWithMood.length} />
 
-      <div className="bg-cream/60 border border-hairline px-4 py-3">
-        <p className="font-serif-body italic text-muted text-[13px] leading-relaxed">
-          analiza oparta na{' '}
-          <span className="not-italic font-heading text-dark">{logsWithMood.length} dniach z check-inem nastroju</span>.
-          {logsWithMood.length < MIN_TOTAL
-            ? ` potrzeba co najmniej ${MIN_TOTAL}, żeby uruchomić pełną analizę.`
-            : ' wzorce aktualizują się automatycznie wraz z nowymi danymi.'}
-        </p>
-      </div>
-
-      {/* ── Wpływ kierunkowy — to, co realnie działa ── */}
-      {directional.length > 0 && (
-        <div className="pt-2">
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <Diamond size={5} className="text-gold-deep" />
-            <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
-              Wpływ kierunkowy
-            </SmallCaps>
-          </div>
-          <p className="font-serif-body italic text-muted-light text-[12.5px] mb-3 px-1 leading-relaxed">
-            co realnie podnosi Twój nastrój i energię — mierzone wzrostem w ciągu dnia,
-            a nie tylko tym, że coś występuje razem.
+      {/* Twoje dźwignie */}
+      {ranked.length > 0 ? (
+        <>
+          {levers.length > 0 && <LeversPanel items={levers} />}
+          {weak.length > 0 && <LeverQuiet items={weak} />}
+        </>
+      ) : (
+        <Panel eyebrow="Wpływ kierunkowy" title="Twoje dźwignie">
+          <p className="font-serif-body italic text-muted text-[13px] mt-3 leading-relaxed">
+            jeszcze za mało danych, żeby wskazać dźwignie — rób check-iny nastroju
+            (najlepiej 2 w ciągu dnia), a wnioski pojawią się same.
           </p>
+        </Panel>
+      )}
 
-          {dirWithData.length > 0 ? (
-            <>
-              <LeversSummary items={dirWithData} />
-              <div className="space-y-4">
-                {dirWithData.map(ins =>
-                  ins.type === 'lift'
-                    ? <LiftCard key={ins.id} ins={ins} />
-                    : <CarryoverCard key={ins.id} ins={ins} />
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="bg-cream/50 border border-hairline px-4 py-3 mb-3">
-              <p className="font-serif-body italic text-muted text-[13px] leading-relaxed">
-                jeszcze za mało danych, żeby wskazać dźwignie — rób check-iny nastroju
-                (najlepiej 2 w ciągu dnia), a wnioski pojawią się same.
-              </p>
-            </div>
-          )}
-
-          {dirNoData.length > 0 && (
-            <div className="mt-3">
-              <CompactNoData items={dirNoData} />
-            </div>
-          )}
+      {/* Testy hipotez */}
+      {ranked.length > 0 && (
+        <div className="space-y-4">
+          <SecLabel>Testy hipotez</SecLabel>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {ranked.map(ins =>
+              ins.type === 'lift'
+                ? <LiftCard key={ins.id} ins={ins} />
+                : <CarryoverCard key={ins.id} ins={ins} />
+            )}
+          </div>
         </div>
       )}
 
-      {/* ── Rytm tygodnia ── */}
+      {noData.length > 0 && (
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border border-dashed border-hairline bg-cream/50 px-5 py-3.5">
+          <SmallCaps tone="muted" tracking="luxury" size="xs">Jeszcze zbiera dane</SmallCaps>
+          <span className="font-serif-body text-[14px] text-dark">
+            {noData.map(i => LEVER_LABEL[i.id] ?? i.title).join(' · ')}
+          </span>
+          <span className="font-serif-body italic text-muted-light text-[13px]">
+            hipoteza aktywuje się przy n ≥ 10 dni w każdej grupie.
+          </span>
+        </div>
+      )}
+
+      {/* Rytm tygodnia */}
       {dowInsights.length > 0 && (
-        <div className="pt-4">
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <Diamond size={5} className="text-gold-deep" />
-            <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
-              Rytm tygodnia
-            </SmallCaps>
+        <Panel
+          eyebrow="Rytm tygodnia"
+          title="Energia i nastrój po dniach"
+          note="kiedy w tygodniu masz statystycznie lepiej, a kiedy trudniej — do planowania trudnych dni."
+        >
+          <div className="grid sm:grid-cols-2 gap-x-10 gap-y-8 mt-5 sm:[&>div+div]:border-l sm:[&>div+div]:border-border sm:[&>div+div]:pl-10">
+            {[...dowInsights]
+              .sort((a) => (a.metric === 'energy' ? -1 : 1))
+              .map(ins => <WeekdayBlock key={ins.id} ins={ins} />)}
           </div>
-          <p className="font-serif-body italic text-muted-light text-[12.5px] mb-3 px-1 leading-relaxed">
-            kiedy w tygodniu masz statystycznie lepiej, a kiedy trudniej — do planowania trudnych dni.
-          </p>
-          <div className="space-y-4">
-            {dowInsights.map(ins => <DayOfWeekCard key={ins.id} ins={ins} />)}
-          </div>
-        </div>
+        </Panel>
       )}
 
-      {/* ── Obserwacje (papierosy) — neutralnie, bez oceny ── */}
+      {/* Obserwacje (papierosy) */}
       {cigInsights.length > 0 && (
-        <div className="pt-4">
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <Diamond size={5} className="text-gold-deep" />
-            <SmallCaps tone="gold-deep" tracking="luxury" size="sm">
-              Obserwacje
-            </SmallCaps>
-          </div>
-          <p className="font-serif-body italic text-muted-light text-[12.5px] mb-3 px-1 leading-relaxed">
+        <div className="space-y-3">
+          <SecLabel>Obserwacje</SecLabel>
+          <p className="font-serif-body italic text-muted-light text-[13px] -mt-1">
             neutralny ślad, bez oceny — faza obserwacji. tylko patrzymy, co się z czym schodzi.
           </p>
           {cigWithData.length > 0 ? (
-            <div className="space-y-4">
-              {cigWithData.map(ins => <ComparisonCard key={ins.id} ins={ins} />)}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {cigWithData.map(ins => <ObservationCard key={ins.id} ins={ins} />)}
             </div>
           ) : (
             <div className="bg-cream/50 border border-hairline px-4 py-3">

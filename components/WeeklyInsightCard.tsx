@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import { useWeeklyInsight } from '@/hooks/useWeeklyInsight'
 import { RefreshCw, ChevronDown } from 'lucide-react'
 import type { SkipReason } from '@/lib/weeklyInsight'
-import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
+import { SmallCaps, Diamond, Fleuron, CornerBrackets } from '@/components/ui'
 
 const REASON_LABELS: Record<SkipReason, string> = {
   n_too_small:      'za mało danych',
@@ -13,7 +13,16 @@ const REASON_LABELS: Record<SkipReason, string> = {
   no_data:          'brak danych',
 }
 
-export default function WeeklyInsightCard() {
+function Stat({ value, label }: { value: React.ReactNode; label: string }) {
+  return (
+    <div className="py-2.5 border-t border-border first:border-t-0 first:pt-0.5 flex flex-col gap-1.5">
+      <span className="font-display text-dark text-[19px] leading-none tracking-tight">{value}</span>
+      <span className="font-ui uppercase text-muted text-[7px] tracking-[0.26em]">{label}</span>
+    </div>
+  )
+}
+
+export default function WeeklyInsightCard({ moodDays }: { moodDays?: number }) {
   const { insight, loading, regenerate, hasNewBadge, markSeen, weekKey } = useWeeklyInsight()
   const [showDetails, setShowDetails] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
@@ -28,18 +37,19 @@ export default function WeeklyInsightCard() {
 
   if (!insight) {
     return (
-      <div className="bg-ivory border border-gold-light/40 p-5">
-        <div className="flex items-center gap-2 mb-2">
+      <section className="relative bg-ivory border border-gold-light/40 p-5 sm:p-7">
+        <CornerBrackets size={10} tone="gold-light" />
+        <div className="flex items-center gap-2">
           <Fleuron size={11} className="text-gold-deep" />
           <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
             Wzorzec tygodnia
           </SmallCaps>
         </div>
-        <h3 className="font-heading text-dark text-lg mt-1">Czeka na niedzielę</h3>
+        <h2 className="font-heading text-dark text-xl mt-1.5">Czeka na niedzielę</h2>
         <p className="font-serif-body italic text-muted text-[13px] mt-2 leading-relaxed">
           insight liczy się raz w tygodniu, w niedzielę lub poniedziałek. wróć wtedy.
         </p>
-      </div>
+      </section>
     )
   }
 
@@ -50,51 +60,53 @@ export default function WeeklyInsightCard() {
   }
 
   return (
-    <div
-      className={clsx(
-        'border p-5 transition-colors',
-        insight.hasContent ? 'bg-gold-pale/40 border-gold-light/60' : 'bg-ivory border-hairline'
-      )}
-    >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <Fleuron size={11} className="text-gold-deep shrink-0" />
-          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-            Wzorzec tygodnia · {weekKey}
-          </SmallCaps>
+    <section className="relative bg-ivory border border-gold-light/40 p-5 sm:p-7">
+      <CornerBrackets size={10} tone="gold-light" />
+
+      <div className="grid sm:grid-cols-[1fr_210px] gap-6 sm:gap-9">
+        {/* Werdykt */}
+        <div>
+          <div className="flex items-start justify-between gap-3">
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+              Wzorzec tygodnia · {weekKey}
+            </SmallCaps>
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className="text-muted-light hover:text-gold-deep transition-colors disabled:opacity-40 -mt-0.5"
+              aria-label="Przelicz"
+            >
+              <RefreshCw size={12} strokeWidth={1.5} className={regenerating ? 'animate-spin' : ''} />
+            </button>
+          </div>
+          <h2 className="font-heading text-dark text-xl mt-1.5 leading-tight">
+            {insight.headline}
+          </h2>
+          <div className="font-serif-body italic text-muted text-[14px] leading-relaxed whitespace-pre-line mt-2.5 max-w-[62ch]">
+            {insight.body}
+          </div>
         </div>
-        <button
-          onClick={handleRegenerate}
-          disabled={regenerating}
-          className="text-muted-light hover:text-gold-deep transition-colors disabled:opacity-40"
-          aria-label="Przelicz"
-        >
-          <RefreshCw size={12} strokeWidth={1.5} className={regenerating ? 'animate-spin' : ''} />
-        </button>
+
+        {/* Statystyki rygoru */}
+        <div className="sm:border-l sm:border-border sm:pl-8">
+          <Stat
+            value={insight.testsRun > 0 ? <>{insight.testsRun} <em className="font-serif-body not-italic text-[12px] text-muted-light">/ {insight.totalHypotheses}</em></> : '—'}
+            label="hipotez sprawdzonych"
+          />
+          {moodDays != null && <Stat value={moodDays} label="dni z check-inem nastroju" />}
+          <Stat value={<>p &lt; .05</>} label="próg · korekta Bonferroniego" />
+        </div>
       </div>
 
-      <h3 className="font-heading text-dark text-[17px] leading-snug mb-3">
-        {insight.headline}
-      </h3>
-
-      <div className="font-serif-body text-dark/85 text-[14px] leading-relaxed whitespace-pre-line italic">
-        {insight.body}
+      <div className="mt-5 pt-4 border-t border-border font-serif-body italic text-muted-light text-[13px] leading-relaxed">
+        próg rygoru: n ≥ 10 dni, |efekt| ≥ 0,3
+        <span className="text-gold mx-2">·</span>
+        wzorce aktualizują się automatycznie wraz z nowymi danymi.
       </div>
-
-      {insight.testsRun > 0 && (
-        <p className="font-serif-body italic text-muted-light text-[11.5px] mt-4 leading-relaxed">
-          sprawdziłam {insight.testsRun} z {insight.totalHypotheses} pre-zdefiniowanych hipotez.{' '}
-          {insight.passedCount > 0 && (
-            <>
-              {insight.passedCount} przeszło rygor (n≥10, |effect|≥0.3, p&lt;0.05 po Bonferronim).
-            </>
-          )}
-        </p>
-      )}
 
       <button
         onClick={() => setShowDetails(s => !s)}
-        className="flex items-center gap-1.5 mt-3 text-muted-light hover:text-gold-deep transition-colors"
+        className="flex items-center gap-1.5 mt-4 text-muted-light hover:text-gold-deep transition-colors"
       >
         <ChevronDown
           size={11}
@@ -134,6 +146,6 @@ export default function WeeklyInsightCard() {
           ))}
         </div>
       )}
-    </div>
+    </section>
   )
 }
