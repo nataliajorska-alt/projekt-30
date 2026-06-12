@@ -29,6 +29,34 @@ function letterTypeMeta(type: LetterType) {
   return LETTER_TYPES.find(t => t.value === type) ?? LETTER_TYPES[0]
 }
 
+// ── Kategorie listów (paleta + pieczęć) ──────────────────────────
+
+type CatSlug = 'wdziecznosc' | 'przyszlosc' | 'trudna' | 'vent' | 'data'
+const CATEGORY: Record<LetterType, { slug: CatSlug; color: string; mono: string; tag: string }> = {
+  gratitude: { slug: 'wdziecznosc', color: '#8E7338', mono: 'W', tag: 'Wdzięczność' },
+  future:    { slug: 'przyszlosc',  color: '#4F5F42', mono: 'P', tag: 'Do siebie z przyszłości' },
+  crisis:    { slug: 'trudna',      color: '#B56A6A', mono: 'T', tag: 'Na trudną chwilę' },
+  vent:      { slug: 'vent',        color: '#8A3A2C', mono: 'V', tag: 'Vent' },
+  date:      { slug: 'data',        color: '#4D6173', mono: 'D', tag: 'Na konkretną datę' },
+}
+
+const PL_MON_ABBR = ['STY','LUT','MAR','KWI','MAJ','CZE','LIP','SIE','WRZ','PAŹ','LIS','GRU']
+function shortDate(d: Date): string {
+  const y = d.getFullYear()
+  const curY = new Date().getFullYear()
+  return `${d.getDate()} ${PL_MON_ABBR[d.getMonth()]}${y !== curY ? ` ’${String(y).slice(2)}` : ''}`
+}
+
+// % dojrzewania listu: od napisania (createdAt) do daty otwarcia.
+function maturation(entry: VaultEntry, unlockDate: Date | undefined, now = new Date()): number | null {
+  if (!unlockDate) return null
+  const written = new Date(entry.createdAt).getTime()
+  const target = unlockDate.getTime()
+  if (!Number.isFinite(written) || target <= written) return 100
+  const pct = ((now.getTime() - written) / (target - written)) * 100
+  return Math.max(0, Math.min(100, Math.round(pct)))
+}
+
 // ── Ritual frame ─────────────────────────────────────────────────
 
 function RitualFrame({ children }: { children: React.ReactNode }) {
@@ -44,50 +72,155 @@ function RitualFrame({ children }: { children: React.ReactNode }) {
   )
 }
 
-// ── Banner ──────────────────────────────────────────────────────
+// ── Vault countdown (ciemna wstęga, 3 kolumny) ───────────────────
 
-function NextUnlockBanner({ entries, unlockedCount }: { entries: VaultEntry[]; unlockedCount: number }) {
-  const next = getNextGlobalUnlock(entries)
-  const total = entries.filter(e => e.unlockType !== 'never').length
-  const days = next ? daysUntil(next.date) : 0
-  const allDone = !next && total > 0
+function VaultStat({ roman, lbl, sub }: { roman: string; lbl: React.ReactNode; sub: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 px-5 py-7 text-center">
+      <div className="font-display text-[28px] leading-none text-gold-pale">{roman}</div>
+      <span className="w-7 h-px bg-gold-light/50" />
+      <div className="font-ui uppercase text-[8px] tracking-[0.3em] text-gold-light leading-[1.8]">{lbl}</div>
+      <div className="font-serif-body italic text-[13px] text-parchment/70">{sub}</div>
+    </div>
+  )
+}
 
-  if (allDone) {
+function VaultCountdown({ entries, unlockedCount }: { entries: VaultEntry[]; unlockedCount: number }) {
+  const now = new Date()
+  const sealed = entries.filter(e => {
+    const s = getUnlockStatus(e, entries, now)
+    return !s.unlocked && !s.contentHidden
+  })
+  const statesInUse = new Set(entries.map(e => e.letterType)).size
+  const next = getNextGlobalUnlock(entries, now)
+  const days = next ? daysUntil(next.date, now) : 0
+
+  let longest: Date | null = null
+  for (const e of entries) {
+    const s = getUnlockStatus(e, entries, now)
+    if (s.unlocked || !s.nextUnlockDate) continue
+    if (!longest || s.nextUnlockDate > longest) longest = s.nextUnlockDate
+  }
+
+  // Wszystko otwarte / nic nie czeka
+  if (!next) {
     return (
-      <div className="bg-ivory border border-gold p-7 text-center mb-6">
+      <section className="relative bg-dark text-ivory border border-gold-light/45 p-8 sm:p-10 text-center mb-6">
+        <CornerBrackets size={14} tone="gold" weight={1} />
         <Fleuron size={16} className="text-gold mx-auto mb-3 inline-block" />
-        <h3 className="font-display text-dark text-2xl">Skarbiec otwarty</h3>
-        <p className="font-serif-body italic text-muted text-[14px] mt-2">
+        <h3 className="font-display text-gold-pale text-3xl">Skarbiec otwarty</h3>
+        <p className="font-serif-body italic text-parchment text-[14px] mt-2">
           masz {unlockedCount} {unlockedCount === 1 ? 'list' : unlockedCount < 5 ? 'listy' : 'listów'} do odczytania.
         </p>
-      </div>
+      </section>
     )
   }
-  if (!next) return null
+
+  const statesWord = statesInUse === 1 ? 'stan w użyciu' : statesInUse < 5 ? 'stany w użyciu' : 'stanów w użyciu'
 
   return (
-    <div className="relative bg-forest-deep grain-linen text-ivory p-7 text-center mb-6 border border-gold-light/40">
+    <section className="relative bg-dark text-ivory border border-gold-light/45 mb-6">
+      <div className="pointer-events-none absolute inset-[7px] border border-gold-light/25" />
       <CornerBrackets size={14} tone="gold" weight={1} />
-      <div className="relative z-10">
-        <Fleuron size={14} className="text-gold mx-auto mb-3 inline-block" />
-        <SmallCaps tone="gold-light" tracking="editorial" size="xs">
-          {unlockedCount > 0 ? 'Następne otwarcie za' : 'Pierwsze otwarcie za'}
-        </SmallCaps>
-        <p className="font-display text-gold text-6xl leading-none mt-3 mb-1">{days}</p>
-        <p className="font-serif-body italic text-parchment text-[14px]">
-          {days === 1 ? 'dzień' : days < 5 ? 'dni' : 'dni'} · {next.label}
-        </p>
-        {unlockedCount > 0 && (
-          <SmallCaps tone="gold-light" tracking="luxury" size="xs" className="mt-3 block opacity-70">
-            już otwarte · {unlockedCount}
-          </SmallCaps>
-        )}
-        <GoldRule variant="diamond" tone="gold" className="my-5 max-w-xs mx-auto opacity-60" />
-        <p className="font-serif-body italic text-parchment/80 text-[13px] leading-relaxed max-w-xs mx-auto">
-          „piszesz jako natalia 30 — ona już wie, jak się skończyło."
-        </p>
+      <div className="relative grid grid-cols-1 sm:grid-cols-[1fr_1.6fr_1fr] items-stretch divide-y sm:divide-y-0 sm:divide-x divide-gold-light/20">
+        <VaultStat roman={toRoman(sealed.length)} lbl={<>listów<br />zapieczętowanych</>} sub={`${toRoman(statesInUse)} ${statesWord}`} />
+        <div className="text-center px-6 py-8">
+          <div className="font-ui uppercase text-[9px] tracking-[0.4em] text-gold-light flex items-center justify-center gap-3">
+            <span className="text-gold">∴</span>
+            {unlockedCount > 0 ? 'Następne otwarcie za' : 'Pierwsze otwarcie za'}
+            <span className="text-gold">∴</span>
+          </div>
+          <div className="font-display text-gold-light text-[clamp(3.5rem,11vw,5.25rem)] leading-none mt-2.5">{days}</div>
+          <div className="font-serif-body italic text-[16px] text-parchment mt-1.5">
+            {days === 1 ? 'dzień' : 'dni'} · {next.label}
+          </div>
+          <div className="relative w-[220px] max-w-full h-px bg-gold-light/45 my-4 mx-auto">
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-dark px-2 text-gold text-[8px]">◆</span>
+          </div>
+          <p className="font-serif-body italic text-[14px] text-parchment/70 max-w-[420px] mx-auto">
+            „piszesz jako natalia 30 — ona już wie, jak się skończyło."
+          </p>
+        </div>
+        {longest
+          ? <VaultStat roman={toRoman(daysUntil(longest, now))} lbl={<>dni czeka<br />najcierpliwszy list</>} sub={`do ${shortDate(longest).toLowerCase()}`} />
+          : <VaultStat roman="—" lbl={<>dni czeka<br />najcierpliwszy list</>} sub="—" />}
       </div>
-    </div>
+    </section>
+  )
+}
+
+// ── Oś otwarć (timeline SVG) ─────────────────────────────────────
+
+function OpeningsAxis({ entries }: { entries: VaultEntry[] }) {
+  const now = new Date()
+  const upcoming = entries
+    .map(e => ({ e, date: getUnlockStatus(e, entries, now).nextUnlockDate, unlocked: getUnlockStatus(e, entries, now).unlocked }))
+    .filter((x): x is { e: VaultEntry; date: Date; unlocked: boolean } => !x.unlocked && !!x.date)
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .slice(0, 6)
+
+  if (upcoming.length === 0) return null
+
+  const W = 1320, padL = 40, padR = 40, baseY = 80
+  const first = 250
+  const last = W - padR - 30
+  const N = upcoming.length
+  const X = (i: number) => (N === 1 ? (first + last) / 2 : first + (i / (N - 1)) * (last - first))
+
+  const catsPresent = Array.from(new Set(upcoming.map(u => u.e.letterType)))
+
+  return (
+    <section className="relative bg-cream border border-hairline p-7 sm:p-9 mb-6">
+      <span className="absolute top-2 left-2 w-2.5 h-2.5 border-l border-t border-gold-light/85" />
+      <span className="absolute bottom-2 right-2 w-2.5 h-2.5 border-r border-b border-gold-light/85" />
+      <div className="font-ui uppercase text-[9px] tracking-[0.34em] text-gold-deep flex items-center gap-2.5">
+        <span className="text-gold text-[7px]">◆</span> Oś otwarć · {toRoman(N)} {N === 1 ? 'pieczęć' : N < 5 ? 'pieczęcie' : 'pieczęci'}
+      </div>
+      <h2 className="font-display text-dark text-lg mt-2.5 tracking-tight">Kiedy listy wracają</h2>
+      <p className="font-serif-body italic text-muted text-[13px] mt-1.5">listy w kolejności otwierania — romb znaczy stan listu.</p>
+
+      <div className="mt-6 w-full overflow-x-auto">
+        <svg viewBox={`0 0 ${W} 150`} className="w-full block" style={{ minWidth: 560 }} role="img" aria-label="Oś czasu otwarć listów">
+          <line x1={padL} y1={baseY} x2={W - padR} y2={baseY} stroke="#D9CDA8" strokeWidth={1.4} />
+          {/* segmenty + dziś */}
+          <line x1={padL + 6} y1={baseY} x2={X(0) - 6} y2={baseY} stroke={CATEGORY[upcoming[0].e.letterType].color} strokeWidth={2.4} opacity={0.55} />
+          {upcoming.slice(1).map((u, i) => (
+            <line key={`seg-${i}`} x1={X(i) + 6} y1={baseY} x2={X(i + 1) - 6} y2={baseY} stroke={CATEGORY[u.e.letterType].color} strokeWidth={2.4} opacity={0.55} />
+          ))}
+          {/* dziś */}
+          <rect x={padL - 5.5} y={baseY - 5.5} width={11} height={11} transform={`rotate(45 ${padL} ${baseY})`} fill="#1D231F" />
+          <line x1={padL} y1={baseY - 6} x2={padL} y2={baseY - 26} stroke="#D9CDA8" strokeWidth={1} />
+          <text x={padL} y={baseY - 34} textAnchor="middle" fontSize={14} fontStyle="italic" fill="#1D231F" fontFamily="'Bodoni Moda', serif">dziś</text>
+          <text x={padL} y={baseY + 24} textAnchor="middle" fontSize={11} letterSpacing="0.14em" fill="#1D231F" fontFamily="Inter, sans-serif">{shortDate(now)}</text>
+          {/* pieczęcie */}
+          {upcoming.map((u, i) => {
+            const c = CATEGORY[u.e.letterType].color
+            const x = X(i)
+            return (
+              <g key={u.e.id}>
+                <rect x={x - 5.5} y={baseY - 5.5} width={11} height={11} transform={`rotate(45 ${x} ${baseY})`} fill={c} />
+                <line x1={x} y1={baseY - 6} x2={x} y2={baseY - 26} stroke="#D9CDA8" strokeWidth={1} />
+                <text x={x} y={baseY - 34} textAnchor="middle" fontSize={17} fontStyle="italic" fill={c} fontFamily="'Bodoni Moda', serif">{toRoman(u.e.dayOfProject)}</text>
+                <text x={x} y={baseY + 24} textAnchor="middle" fontSize={11} letterSpacing="0.14em" fill="#2A2A26" fontFamily="Inter, sans-serif">{shortDate(u.date)}</text>
+                <text x={x} y={baseY + 44} textAnchor="middle" fontSize={13} fontStyle="italic" fill="#8A7A55" fontFamily="'Cormorant Garamond', serif">za {daysUntil(u.date, now)} dni</text>
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+
+      <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 pt-3.5 border-t border-border">
+        {catsPresent.map(lt => (
+          <div key={lt} className="flex items-center gap-2.5 font-ui uppercase text-[9px] tracking-[0.22em] text-muted">
+            <span className="w-[9px] h-[9px] rotate-45" style={{ background: CATEGORY[lt].color }} />
+            {CATEGORY[lt].tag.toLowerCase()}
+          </div>
+        ))}
+        <div className="flex items-center gap-2.5 font-ui uppercase text-[9px] tracking-[0.22em] text-muted">
+          <span className="w-[9px] h-[9px] rotate-45 bg-dark" /> dziś
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -453,75 +586,107 @@ function ReplyCard({ reply, onDelete }: { reply: VaultReply; onDelete: () => voi
 
 // ── Entry card ──────────────────────────────────────────────────
 
-function EntryCard({ entry, allEntries, onOpen }: {
+function LetterCard({ entry, allEntries, onOpen }: {
   entry: VaultEntry
   allEntries: VaultEntry[]
   onOpen: () => void
 }) {
   const status = getUnlockStatus(entry, allEntries)
-  const meta = letterTypeMeta(entry.letterType)
   const isVent = entry.letterType === 'vent'
-  const replyCount = entry.replies?.length ?? 0
+  const cat = CATEGORY[entry.letterType]
   const canOpen = status.unlocked || isVent
+  const replyCount = entry.replies?.length ?? 0
+  const mat = !status.unlocked && !isVent ? maturation(entry, status.nextUnlockDate) : null
 
   return (
     <button
+      type="button"
       onClick={() => canOpen && onOpen()}
       className={clsx(
-        'w-full text-left bg-ivory border p-5 transition-all',
-        canOpen
-          ? 'border-gold-light/60 hover:border-gold cursor-pointer'
-          : 'border-hairline cursor-default'
+        'relative w-full text-left bg-ivory border border-hairline pl-[27px] pr-8 py-6 block',
+        canOpen ? 'cursor-pointer hover:border-gold-light transition-colors' : 'cursor-default'
       )}
+      style={{ borderLeft: `3px solid ${cat.color}` }}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
+      <span className="absolute bottom-2 right-2 w-2.5 h-2.5 border-r border-b border-gold-light/85" />
+
+      {/* Head: seal · id · day-badge */}
+      <div className="flex items-center gap-4">
+        <span
+          className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center relative"
+          style={{ border: `1px solid ${cat.color}`, color: cat.color, background: 'radial-gradient(circle at 50% 42%, rgba(255,255,255,.55), transparent 70%)' }}
+        >
+          <span className="absolute inset-1 rounded-full border border-dotted opacity-55" style={{ borderColor: cat.color }} />
+          <span className="font-display italic font-medium text-[19px] leading-none">{cat.mono}</span>
+        </span>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            {!status.unlocked && !isVent && (
-              <Lock size={11} className="text-muted-light shrink-0" strokeWidth={1.5} />
-            )}
-            <span className="text-base shrink-0">{meta.emoji}</span>
-            <h3 className="font-heading text-dark text-[16px] truncate">
-              {isVent ? 'Vent' : (entry.title || 'List bez tytułu')}
-            </h3>
+          <h3 className="font-display font-medium text-[20px] text-dark tracking-tight truncate">
+            {isVent ? 'Vent' : entry.title || <span className="text-muted italic font-normal">List bez tytułu</span>}
+          </h3>
+          <div className="mt-1.5 font-ui uppercase text-[9px] tracking-[0.26em] text-muted flex items-center gap-2.5 flex-wrap">
+            <span style={{ color: cat.color }}>{cat.tag}</span>
+            <span className="text-muted-light">·</span>
+            <span>napisany {formatDate(entry.dateKey)}</span>
           </div>
-          <SmallCaps tone="muted" tracking="luxury" size="xs">
-            {meta.label} · dzień {entry.dayOfProject} · {formatDate(entry.dateKey)}
-          </SmallCaps>
         </div>
-        <span className="font-display text-gold-deep text-sm border border-gold-light/40 px-2 py-0.5 shrink-0">
+        <span className="shrink-0 min-w-[54px] text-center border border-hairline bg-cream px-3 py-2 font-display italic font-medium text-[17px] text-gold-deep">
           {toRoman(entry.dayOfProject)}
+          <span className="block font-ui not-italic text-[7px] tracking-[0.26em] text-muted-light uppercase mt-0.5">dzień</span>
         </span>
       </div>
 
+      {/* Body */}
       {isVent ? (
-        <p className="font-serif-body italic text-muted text-[13px] leading-snug">
-          ◆ wypuszczone — treść nie istnieje. {entry.charCount ? `${entry.charCount} znaków uleciało.` : ''}
+        <p className="font-serif-body italic text-muted text-[13.5px] leading-snug mt-5 ml-16">
+          ◆ wypuszczone — treść nie istnieje.{entry.charCount ? ` ${entry.charCount} znaków uleciało.` : ''}
         </p>
+      ) : status.unlocked ? (
+        <div className="mt-5 ml-16 relative bg-paper-2 border border-border px-5 py-4" style={{ background: '#EFE9D9' }}>
+          <p className="font-serif-body text-dark text-[14px] leading-relaxed line-clamp-3 whitespace-pre-wrap">{entry.content}</p>
+          <div className="mt-2.5 flex items-center gap-1.5">
+            <Diamond size={4} className="text-gold" filled />
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">otwarty · czytaj</SmallCaps>
+            {replyCount > 0 && (
+              <SmallCaps tone="muted" tracking="luxury" size="xs" className="ml-2">
+                · {replyCount} {replyCount === 1 ? 'odpowiedź' : 'odpowiedzi'}
+              </SmallCaps>
+            )}
+          </div>
+        </div>
       ) : (
-        <p className={clsx(
-          'font-serif-body text-muted text-[13.5px] leading-relaxed line-clamp-2 select-none',
-          !status.unlocked && 'blur-sm pointer-events-none'
-        )}>
-          {entry.content}
-        </p>
-      )}
-
-      {!status.unlocked && !isVent && status.nextUnlockLabel && (
-        <div className="mt-3 flex items-center gap-1.5">
-          <Lock size={9} strokeWidth={1.5} className="text-gold-deep" />
-          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-            otwiera się {status.nextUnlockLabel}
-          </SmallCaps>
+        // Sealed — redacted ink lines
+        <div className="mt-5 ml-16 relative bg-paper-2 border border-border px-5 py-4 overflow-hidden" style={{ background: '#EFE9D9' }}>
+          <div className="h-2 my-[7px]" style={{ background: 'repeating-linear-gradient(90deg, rgba(42,42,38,.16) 0 26px, transparent 26px 34px, rgba(42,42,38,.13) 34px 78px, transparent 78px 86px, rgba(42,42,38,.17) 86px 132px, transparent 132px 140px)' }} />
+          <div className="h-2 my-[7px] w-[92%]" style={{ background: 'repeating-linear-gradient(90deg, rgba(42,42,38,.13) 0 44px, transparent 44px 52px, rgba(42,42,38,.16) 52px 84px, transparent 84px 92px)' }} />
+          <div className="h-2 my-[7px] w-[55%]" style={{ background: 'repeating-linear-gradient(90deg, rgba(42,42,38,.16) 0 26px, transparent 26px 34px, rgba(42,42,38,.13) 34px 78px)' }} />
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-ivory border border-hairline px-3 py-1.5 font-ui uppercase text-[8px] tracking-[0.3em] text-muted">
+            <Lock size={11} strokeWidth={1.6} className="text-gold-deep" />
+            zapieczętowany
+          </div>
         </div>
       )}
 
-      {replyCount > 0 && status.unlocked && (
-        <div className="mt-3 flex items-center gap-1.5">
-          <MessageCirclePlus size={10} strokeWidth={1.5} className="text-gold" />
-          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-            {replyCount} {replyCount === 1 ? 'odpowiedź' : replyCount < 5 ? 'odpowiedzi' : 'odpowiedzi'}
-          </SmallCaps>
+      {/* Footer: opening + maturation */}
+      {!status.unlocked && !isVent && (
+        <div className="mt-4 ml-16 flex items-center gap-6 flex-wrap">
+          {status.nextUnlockLabel && (
+            <div className="flex items-center gap-2 font-ui uppercase text-[9px] tracking-[0.26em] text-muted whitespace-nowrap">
+              <Lock size={12} strokeWidth={1.6} className="text-gold-deep" />
+              otwiera się <b className="font-medium text-ink-text" style={{ color: '#2A2A26' }}>{status.nextUnlockLabel}</b>
+              {status.nextUnlockDate && <span className="text-muted-light">· za {daysUntil(status.nextUnlockDate)} dni</span>}
+            </div>
+          )}
+          {mat != null && (
+            <div className="flex-1 flex items-center gap-3.5 min-w-[140px]">
+              <div className="flex-1 h-[2px] bg-border relative">
+                <div className="absolute left-0 top-0 bottom-0 transition-all duration-700" style={{ width: `${mat}%`, background: cat.color }} />
+                <span className="absolute top-1/2 w-[7px] h-[7px] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-ivory" style={{ left: `${mat}%`, border: `1px solid ${cat.color}` }} />
+              </div>
+              <span className="font-serif-body italic text-[13px] text-muted whitespace-nowrap">
+                dojrzewa · <b className="not-italic font-display font-medium text-gold-deep">{mat}%</b>
+              </span>
+            </div>
+          )}
         </div>
       )}
     </button>
@@ -691,6 +856,7 @@ export default function VaultPage() {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [writingType, setWritingType] = useState<LetterType | null>(null)
   const [openEntryId, setOpenEntryId] = useState<string | null>(null)
+  const [filter, setFilter] = useState<LetterType | 'all'>('all')
   const searchParams = useSearchParams()
 
   useEffect(() => {
@@ -700,6 +866,13 @@ export default function VaultPage() {
 
   const unlockedCount = countUnlocked(entries)
   const openEntry = entries.find(e => e.id === openEntryId) ?? null
+
+  const catCounts = entries.reduce<Record<string, number>>((acc, e) => {
+    acc[e.letterType] = (acc[e.letterType] ?? 0) + 1
+    return acc
+  }, {})
+  const filtered = filter === 'all' ? entries : entries.filter(e => e.letterType === filter)
+  const CHIP_ORDER: LetterType[] = ['gratitude', 'future', 'crisis', 'vent', 'date']
 
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
@@ -718,11 +891,13 @@ export default function VaultPage() {
         <GoldRule variant="diamond" tone="gold-deep" className="mt-5 opacity-50" />
       </header>
 
-      <NextUnlockBanner entries={entries} unlockedCount={unlockedCount} />
+      {!loading && entries.length > 0 && (
+        <VaultCountdown entries={entries} unlockedCount={unlockedCount} />
+      )}
 
       <button
         onClick={() => setPickerOpen(true)}
-        className="w-full flex items-center justify-center gap-3 py-4 mb-6 border border-dashed border-gold/50 text-gold-deep hover:border-gold hover:bg-gold-pale/30 transition-all group"
+        className="w-full flex items-center justify-center gap-3 py-4 mb-6 border border-dashed border-gold-light text-gold-deep hover:border-gold hover:bg-gold/[0.07] transition-all group"
       >
         <PenLine size={13} strokeWidth={1.5} />
         <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
@@ -730,6 +905,42 @@ export default function VaultPage() {
         </SmallCaps>
         <Fleuron size={9} className="text-gold-deep/70 group-hover:text-gold transition-colors" />
       </button>
+
+      {!loading && entries.length > 0 && <OpeningsAxis entries={entries} />}
+
+      {/* Filtry stanu */}
+      {!loading && entries.length > 0 && (
+        <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <SmallCaps tone="muted" tracking="luxury" size="xs" className="shrink-0 mr-1">Stan</SmallCaps>
+          {(['all', ...CHIP_ORDER] as (LetterType | 'all')[]).map(key => {
+            const count = key === 'all' ? entries.length : (catCounts[key] ?? 0)
+            const on = filter === key
+            const label = key === 'all' ? 'Wszystkie' : CATEGORY[key].tag
+            const disabled = key !== 'all' && count === 0
+            return (
+              <button
+                key={key}
+                type="button"
+                disabled={disabled}
+                onClick={() => !disabled && setFilter(key)}
+                className={clsx(
+                  'shrink-0 inline-flex items-baseline gap-1.5 border px-3 py-2 font-ui uppercase text-[9px] tracking-[0.16em] whitespace-nowrap transition-colors',
+                  disabled
+                    ? 'opacity-45 border-hairline text-muted cursor-default'
+                    : on
+                      ? 'border-gold-deep text-dark bg-gold/[0.08]'
+                      : 'border-hairline text-muted hover:text-dark hover:border-gold-light'
+                )}
+              >
+                {label}
+                <span className="font-display italic text-[12px]" style={{ color: on ? '#8E7338' : '#C9B27F' }}>
+                  {count > 0 ? toRoman(count) : '—'}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-3">
@@ -745,10 +956,17 @@ export default function VaultPage() {
             napisz pierwszy list — natalia 30 ma już coś do powiedzenia.
           </p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="border border-dashed border-hairline text-center py-14">
+          <div className="text-gold text-base">∴</div>
+          <p className="font-serif-body italic text-muted text-[15px] mt-3">
+            żaden list nie czeka w tym stanie — jeszcze.
+          </p>
+        </div>
       ) : (
-        <div className="space-y-3">
-          {entries.map(entry => (
-            <EntryCard
+        <div className="flex flex-col gap-[18px]">
+          {filtered.map(entry => (
+            <LetterCard
               key={entry.id}
               entry={entry}
               allEntries={entries}
