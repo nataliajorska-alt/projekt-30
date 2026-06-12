@@ -22,8 +22,10 @@ const MIN_FOR_BASIC = 5
 // skala intensywności heatmapy (mock --h0…--h4)
 const HEAT = ['#E9E0C8', '#D6BD84', '#BD9C56', '#94793B', '#5A4B22']
 
-// liniowe ikony kategorii (styl mocka)
-const CATEGORY_ICON: Record<GhostCategory, React.ReactNode> = {
+// liniowe ikony kategorii (styl mocka). Partial — typ GhostCategory ma więcej
+// wariantów niż wyświetlana lista GHOST_CATEGORIES; brakujące dostają fallback.
+const CATEGORY_FALLBACK_ICON = (<><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/></>)
+const CATEGORY_ICON: Partial<Record<GhostCategory, React.ReactNode>> = {
   zastapienie:        <><rect x="3.5" y="5" width="17" height="14"/><circle cx="9" cy="10" r="1.6"/><path d="M3.5 16.5 9 12l4 3.5 3.5-3 4 3.5"/></>,
   flashback:          <><polyline points="3 7 3 12 8 12"/><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/></>,
   nie_do_wybrania:    <><circle cx="12" cy="7.5" r="3.2"/><path d="M5.5 20c.7-3.8 3.4-5.8 6.5-5.8s5.8 2 6.5 5.8"/></>,
@@ -263,7 +265,7 @@ export default function ProtocolTab({ entries, failures, loading }: ProtocolTabP
               <div key={cat.id} className="grid items-center gap-4 py-2.5 border-t border-border first:border-t-0" style={{ gridTemplateColumns: '30px minmax(0,1fr) 1fr 44px 48px' }}>
                 <span className="w-[30px] h-[30px] border border-hairline flex items-center justify-center text-gold-deep">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4} className="w-[15px] h-[15px]">
-                    {CATEGORY_ICON[cat.id]}
+                    {CATEGORY_ICON[cat.id] ?? CATEGORY_FALLBACK_ICON}
                   </svg>
                 </span>
                 <span className="font-serif-body text-[15px] text-dark leading-snug min-w-0">{cat.label}</span>
