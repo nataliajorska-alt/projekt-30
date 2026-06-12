@@ -1,11 +1,14 @@
 'use client'
 import { useState } from 'react'
 import { PILLARS } from '@/lib/pillars'
-import type { WeeklyReview, Pillar } from '@/types'
+import type { WeeklyReview, MonthlyReview, Pillar } from '@/types'
 import { SmallCaps, Diamond } from '@/components/ui'
 
+type Period = 'weekly' | 'monthly'
+
 interface Props {
-  reviews: WeeklyReview[]
+  reviews: WeeklyReview[] | MonthlyReview[]
+  period?: Period
 }
 
 const PL_MONTHS_SHORT = ['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru']
@@ -13,6 +16,32 @@ const PL_MONTHS_SHORT = ['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','
 function formatWeekLabel(weekStart: string): string {
   const [, m, d] = weekStart.split('-').map(Number)
   return `${d} ${PL_MONTHS_SHORT[m - 1]}`
+}
+
+function formatMonthLabel(month: string): string {
+  const [, m] = month.split('-').map(Number)
+  return PL_MONTHS_SHORT[m - 1]
+}
+
+// Normalizuje tygodniowe i miesięczne przeglądy do wspólnego kształtu dla wykresu.
+function normalize(reviews: Props['reviews'], period: Period) {
+  if (period === 'monthly') {
+    return (reviews as MonthlyReview[]).map(r => ({
+      key: r.month,
+      label: formatMonthLabel(r.month),
+      pillarsRated: r.pillarsRated,
+    }))
+  }
+  return (reviews as WeeklyReview[]).map(r => ({
+    key: r.weekStart,
+    label: formatWeekLabel(r.weekStart),
+    pillarsRated: r.pillarsRated,
+  }))
+}
+
+const PERIOD_NOUN: Record<Period, (n: number) => string> = {
+  weekly: n => (n === 1 ? 'tydzień' : n < 5 ? 'tygodnie' : 'tygodni'),
+  monthly: n => (n === 1 ? 'miesiąc' : n < 5 ? 'miesiące' : 'miesięcy'),
 }
 
 const SVG_WIDTH = 600
@@ -41,14 +70,14 @@ interface TooltipState {
   pillarName: string
   pillarColor: string
   value: number
-  weekLabel: string
+  periodLabel: string
 }
 
-export default function PillarTrendChart({ reviews }: Props) {
+export default function PillarTrendChart({ reviews, period = 'weekly' }: Props) {
   const [hiddenPillars, setHiddenPillars] = useState<Set<Pillar>>(new Set())
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
 
-  const sorted = [...reviews].reverse()
+  const sorted = normalize(reviews, period).reverse()
   const n = sorted.length
 
   const togglePillar = (id: Pillar) => {
@@ -69,7 +98,7 @@ export default function PillarTrendChart({ reviews }: Props) {
           Wizualizacja
         </SmallCaps>
         <h3 className="font-heading text-dark text-lg mt-1">
-          Trend filarów · {n} {n === 1 ? 'tydzień' : n < 5 ? 'tygodnie' : 'tygodni'}
+          Trend filarów · {n} {PERIOD_NOUN[period](n)}
         </h3>
       </div>
 
@@ -133,7 +162,7 @@ export default function PillarTrendChart({ reviews }: Props) {
 
           {sorted.map((r, idx) => (
             <text
-              key={r.weekStart}
+              key={r.key}
               x={xPos(idx, n)}
               y={SVG_HEIGHT - 6}
               textAnchor="middle"
@@ -141,7 +170,7 @@ export default function PillarTrendChart({ reviews }: Props) {
               fill="#9E9189"
               fontFamily="Instrument Sans, sans-serif"
             >
-              {formatWeekLabel(r.weekStart)}
+              {r.label}
             </text>
           ))}
 
@@ -150,7 +179,7 @@ export default function PillarTrendChart({ reviews }: Props) {
             const points = sorted.map((r, idx) => {
               const val = r.pillarsRated?.[pillar.id]
               if (val == null) return null
-              return { x: xPos(idx, n), y: yPos(val), val, weekLabel: formatWeekLabel(r.weekStart), idx }
+              return { x: xPos(idx, n), y: yPos(val), val, periodLabel: r.label, idx }
             })
 
             const segments: string[] = []
@@ -206,7 +235,7 @@ export default function PillarTrendChart({ reviews }: Props) {
                             pillarName: pillar.name,
                             pillarColor: pillar.color,
                             value: pt.val,
-                            weekLabel: pt.weekLabel,
+                            periodLabel: pt.periodLabel,
                           })
                         }}
                         onMouseLeave={() => setTooltip(null)}
@@ -234,7 +263,7 @@ export default function PillarTrendChart({ reviews }: Props) {
               {tooltip.value}/5
             </span>
             <SmallCaps tone="muted" size="xs">
-              {tooltip.weekLabel}
+              {tooltip.periodLabel}
             </SmallCaps>
           </div>
         ) : (

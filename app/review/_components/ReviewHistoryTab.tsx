@@ -143,6 +143,10 @@ export default function ReviewHistoryTab({ weeklyReviews, monthlyReviews, quarte
         )
       })}
 
+      {subTab === 'monthly' && monthlyReviews.length > 0 && (
+        <PillarTrendChart reviews={monthlyReviews.slice(0, 8)} period="monthly" />
+      )}
+
       {subTab === 'monthly' && monthlyReviews.map((review, idx) => {
         const isOpen = expandedId === review.month
         const prevReview = monthlyReviews[idx + 1] ?? null
