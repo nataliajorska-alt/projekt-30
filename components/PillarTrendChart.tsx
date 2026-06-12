@@ -44,12 +44,6 @@ const PERIOD_NOUN: Record<Period, (n: number) => string> = {
   monthly: n => (n === 1 ? 'miesiąc' : n < 5 ? 'miesiące' : 'miesięcy'),
 }
 
-const SCALE = [1, 2, 3, 4, 5]
-
-function xPct(val: number): number {
-  return ((val - 1) / 4) * 100
-}
-
 interface TooltipState {
   pillarName: string
   pillarColor: string
@@ -60,9 +54,14 @@ interface TooltipState {
 export default function PillarTrendChart({ reviews, period = 'weekly' }: Props) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
 
-  // od najstarszego do najnowszego — najnowszy rysowany na wierzchu
+  // od najstarszego do najnowszego — czas płynie w prawo
   const sorted = normalize(reviews, period).reverse()
   const n = sorted.length
+
+  // oś czasu: % szerokości toru; pojedynczy punkt ląduje na środku
+  const xPct = (idx: number) => (n > 1 ? (idx / (n - 1)) * 100 : 50)
+  // oś ocen: 5 u góry, 1 na dole
+  const yPct = (val: number) => ((5 - val) / 4) * 100
 
   return (
     <div className="bg-[#dcd5bc] border border-gold-light/25 p-5 mb-5">
@@ -75,36 +74,19 @@ export default function PillarTrendChart({ reviews, period = 'weekly' }: Props) 
         </h3>
       </div>
       <p className="font-serif-body italic text-muted text-[12px] mb-5">
-        pełny romb = {period === 'weekly' ? 'ostatni tydzień' : 'ostatni miesiąc'}, bledsze = wcześniejsze.
+        każdy filar na własnym torze — linia prowadzi przez {period === 'weekly' ? 'tygodnie' : 'miesiące'}, pełny romb = {period === 'weekly' ? 'ostatni tydzień' : 'ostatni miesiąc'}.
       </p>
-
-      {/* Oś 1–5 */}
-      <div className="flex items-center gap-3 mb-1">
-        <div className="w-24 shrink-0" />
-        <div className="flex-1 relative h-4">
-          {SCALE.map(v => (
-            <span
-              key={v}
-              className="absolute -translate-x-1/2 font-ui text-[9px] text-muted-light"
-              style={{ left: `${xPct(v)}%` }}
-            >
-              {v}
-            </span>
-          ))}
-        </div>
-        <div className="w-12 shrink-0" />
-      </div>
 
       {PILLARS.map(pillar => {
         const pts = sorted
-          .map(r => ({ val: r.pillarsRated?.[pillar.id], label: r.label }))
-          .filter((pt): pt is { val: number; label: string } => pt.val != null)
+          .map((r, idx) => ({ idx, val: r.pillarsRated?.[pillar.id], label: r.label }))
+          .filter((pt): pt is { idx: number; val: number; label: string } => pt.val != null)
         const latest = pts.length > 0 ? pts[pts.length - 1] : null
         const prev = pts.length > 1 ? pts[pts.length - 2] : null
         const delta = latest && prev ? latest.val - prev.val : null
 
         return (
-          <div key={pillar.id} className="flex items-center gap-3 py-3 border-b border-hairline last:border-0">
+          <div key={pillar.id} className="flex items-center gap-3 py-2 border-b border-hairline last:border-0">
             <div className="w-24 shrink-0 flex items-center gap-1.5 min-w-0">
               <span className="shrink-0" style={{ color: pillar.color }}>
                 <Diamond size={4} filled />
@@ -114,45 +96,68 @@ export default function PillarTrendChart({ reviews, period = 'weekly' }: Props) 
               </SmallCaps>
             </div>
 
-            {/* Tor 1–5 */}
-            <div className="flex-1 relative h-6">
-              <div className="absolute inset-x-0 top-1/2 h-px bg-hairline" />
-              {SCALE.map(v => (
-                <span
-                  key={v}
-                  className="absolute top-1/2 w-px h-[5px] -translate-x-1/2 -translate-y-1/2 bg-hairline"
-                  style={{ left: `${xPct(v)}%` }}
-                />
-              ))}
-              {pts.map((pt, i) => {
-                const isLatest = i === pts.length - 1
-                const t = pts.length > 1 ? i / (pts.length - 1) : 1
-                const size = isLatest ? 11 : 7
-                return (
-                  <button
-                    key={i}
-                    className="absolute top-1/2"
-                    style={{
-                      left: `${xPct(pt.val)}%`,
-                      width: size,
-                      height: size,
-                      background: pillar.color,
-                      opacity: isLatest ? 1 : 0.15 + 0.45 * t,
-                      transform: 'translate(-50%, -50%) rotate(45deg)',
-                      border: isLatest ? '1.2px solid #FAF8F4' : 'none',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={() => setTooltip({
-                      pillarName: pillar.name,
-                      pillarColor: pillar.color,
-                      value: pt.val,
-                      periodLabel: pt.label,
-                    })}
-                    onMouseLeave={() => setTooltip(null)}
-                    aria-label={`${pillar.name}: ${pt.val}/5 · ${pt.label}`}
+            {/* Tor czasowy filaru: sparkline 1–5 */}
+            <div className="flex-1 relative h-12">
+              <div className="absolute inset-x-0 top-[7px] bottom-[7px]">
+                {/* linie pomocnicze: 5 / 3 / 1 */}
+                {[0, 50, 100].map(top => (
+                  <span
+                    key={top}
+                    className="absolute inset-x-0 h-px bg-hairline"
+                    style={{ top: `${top}%`, opacity: top === 50 ? 0.8 : 0.45 }}
                   />
-                )
-              })}
+                ))}
+
+                {pts.length > 1 && (
+                  <svg
+                    className="absolute inset-0 w-full h-full overflow-visible"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                  >
+                    <polyline
+                      points={pts.map(pt => `${xPct(pt.idx)},${yPct(pt.val)}`).join(' ')}
+                      fill="none"
+                      stroke={pillar.color}
+                      strokeWidth={1.4}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      opacity={0.45}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+                )}
+
+                {pts.map((pt, i) => {
+                  const isLatest = i === pts.length - 1
+                  const t = pts.length > 1 ? i / (pts.length - 1) : 1
+                  const size = isLatest ? 10 : 7
+                  return (
+                    <button
+                      key={pt.idx}
+                      className="absolute"
+                      style={{
+                        left: `${xPct(pt.idx)}%`,
+                        top: `${yPct(pt.val)}%`,
+                        width: size,
+                        height: size,
+                        background: pillar.color,
+                        opacity: isLatest ? 1 : 0.3 + 0.4 * t,
+                        transform: 'translate(-50%, -50%) rotate(45deg)',
+                        border: isLatest ? '1.2px solid #FAF8F4' : 'none',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={() => setTooltip({
+                        pillarName: pillar.name,
+                        pillarColor: pillar.color,
+                        value: pt.val,
+                        periodLabel: pt.label,
+                      })}
+                      onMouseLeave={() => setTooltip(null)}
+                      aria-label={`${pillar.name}: ${pt.val}/5 · ${pt.label}`}
+                    />
+                  )
+                })}
+              </div>
             </div>
 
             {/* Obecna ocena + zmiana vs poprzedni okres */}
@@ -176,6 +181,18 @@ export default function PillarTrendChart({ reviews, period = 'weekly' }: Props) 
           </div>
         )
       })}
+
+      {/* Oś czasu: od najstarszego do najnowszego */}
+      {n > 1 && (
+        <div className="flex items-center gap-3 mt-2">
+          <div className="w-24 shrink-0" />
+          <div className="flex-1 flex justify-between">
+            <SmallCaps tone="muted" tracking="luxury" size="xs">{sorted[0].label}</SmallCaps>
+            <SmallCaps tone="muted" tracking="luxury" size="xs">{sorted[n - 1].label}</SmallCaps>
+          </div>
+          <div className="w-12 shrink-0" />
+        </div>
+      )}
 
       {/* Tooltip */}
       <div className="mt-3 min-h-[28px]">
