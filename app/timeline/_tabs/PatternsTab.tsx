@@ -479,8 +479,8 @@ function WeekdayBlock({ ins }: { ins: DayOfWeekInsight }) {
 
 // ── Page ─────────────────────────────────────────────────────────
 
-export default function PatternsTab({ logs }: { logs: Record<string, DailyLog> }) {
-  const insights = useMemo(() => computeCorrelations(logs), [logs])
+export default function PatternsTab({ logs, cigarettesPhase }: { logs: Record<string, DailyLog>; cigarettesPhase?: number }) {
+  const insights = useMemo(() => computeCorrelations(logs, cigarettesPhase), [logs, cigarettesPhase])
   const logsWithMood = Object.values(logs).filter(l => l.moodCheckIns && l.moodCheckIns.length > 0)
 
   if (logsWithMood.length === 0) {

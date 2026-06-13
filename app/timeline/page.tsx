@@ -320,7 +320,7 @@ export default function TimelinePage() {
       ) : mode === 'mood' ? (
         <MoodTab logs={logs} />
       ) : mode === 'patterns' ? (
-        <PatternsTab logs={logs} />
+        <PatternsTab logs={logs} cigarettesPhase={stats.cigarettesPhase} />
       ) : mode === 'oddech' ? (
         <OddechTab logs={logs} loading={loading} />
       ) : (

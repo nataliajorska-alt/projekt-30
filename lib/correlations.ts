@@ -180,7 +180,10 @@ export type CorrelationInsight =
 const MIN_PER_GROUP = 3    // minimum logs per group to display result
 const MIN_TOTAL     = 7    // minimum logs with mood data to run any analysis
 
-export function computeCorrelations(logs: Record<string, DailyLog>): CorrelationInsight[] {
+export function computeCorrelations(
+  logs: Record<string, DailyLog>,
+  cigarettesPhase: number = 1,
+): CorrelationInsight[] {
   // Only logs that have at least one mood check-in
   const withMood = Object.values(logs).filter(
     l => l.moodCheckIns && l.moodCheckIns.length > 0
@@ -316,9 +319,24 @@ export function computeCorrelations(logs: Record<string, DailyLog>): Correlation
       && lowXP.length >= MIN_PER_GROUP,
   })
 
-  // ─ 9. Papierosy → nastrój (faza 1 = obserwacja, bez oceny) ──────────────
-  const cigsWith    = withMood.filter(hasCigarettes)
-  const cigsWithout = withMood.filter(l => !hasCigarettes(l))
+  // ─ 9. Papierosy → nastrój ───────────────────────────────────────────────
+  // „Dni bez papierosów" ma sens dopiero, gdy zera są realne — czyli od fazy
+  // „Transfer" (4), gdzie plan zakłada większość dni 0. Wcześniej dzień bez
+  // wpisu to po prostu dzień, w którym nie zalogowała, a nie dzień bez palenia.
+  // Liczymy też wyłącznie w oknie od pierwszego zalogowanego papierosa — dni
+  // sprzed startu śledzenia nie są „bez palenia", tylko sprzed pomiaru.
+  const firstCigKey = Object.entries(logs)
+    .filter(([, l]) => (l.cigarettes?.length ?? 0) > 0)
+    .map(([k]) => k)
+    .sort()[0] ?? null
+  const cigWindow = firstCigKey
+    ? Object.entries(logs)
+        .filter(([k, l]) => k >= firstCigKey && (l.moodCheckIns?.length ?? 0) > 0)
+        .map(([, l]) => l)
+    : []
+
+  const cigsWith    = cigWindow.filter(hasCigarettes)
+  const cigsWithout = cigWindow.filter(l => !hasCigarettes(l))
   insights.push({
     type: 'comparison', id: 'cigarettes_mood',
     icon: '🚬', title: 'Papierosy → nastrój',
@@ -327,22 +345,22 @@ export function computeCorrelations(logs: Record<string, DailyLog>): Correlation
     withValue:    avg(cigsWith.map(logAvgMood)),
     withoutValue: avg(cigsWithout.map(logAvgMood)),
     withCount: cigsWith.length, withoutCount: cigsWithout.length,
-    hasEnoughData: withMood.length >= MIN_TOTAL
+    hasEnoughData: cigarettesPhase >= 4
+      && cigWindow.length >= MIN_TOTAL
       && cigsWith.length >= MIN_PER_GROUP
       && cigsWithout.length >= MIN_PER_GROUP,
   })
 
   // ─ 9b/9c. Mniej vs więcej papierosów → nastrój / energia ───────────────
-  // W fazie 1 (obserwacja) zwykle nie ma dni "zero", więc porównanie z/bez
-  // się nie odpali. Split po medianie dziennej liczby papierosów daje sygnał
-  // już w trakcie fazy 1. Insight #9 zostaje — odpali się sam, gdy pojawią
-  // się dni bez papierosów (faza 2+).
-  const cigCountsSorted = withMood
+  // Split po medianie dziennej liczby papierosów daje sygnał już w fazie 1
+  // (obserwacja), gdzie nie ma jeszcze realnych dni „zero". Liczymy tylko
+  // w oknie śledzenia, żeby dni sprzed startu logowania nie zaniżały mediany.
+  const cigCountsSorted = cigWindow
     .map(l => l.cigarettes?.length ?? 0)
     .sort((a, b) => a - b)
   const cigMedian = cigCountsSorted[Math.floor(cigCountsSorted.length / 2)] ?? 0
-  const cigsLess  = withMood.filter(l => (l.cigarettes?.length ?? 0) <= cigMedian)
-  const cigsMore  = withMood.filter(l => (l.cigarettes?.length ?? 0) >  cigMedian)
+  const cigsLess  = cigWindow.filter(l => (l.cigarettes?.length ?? 0) <= cigMedian)
+  const cigsMore  = cigWindow.filter(l => (l.cigarettes?.length ?? 0) >  cigMedian)
   insights.push({
     type: 'comparison', id: 'cigarettes_less_more_mood',
     icon: '🚬', title: 'Mniej vs więcej papierosów → nastrój',
@@ -352,7 +370,7 @@ export function computeCorrelations(logs: Record<string, DailyLog>): Correlation
     withValue:    avg(cigsLess.map(logAvgMood)),
     withoutValue: avg(cigsMore.map(logAvgMood)),
     withCount: cigsLess.length, withoutCount: cigsMore.length,
-    hasEnoughData: withMood.length >= MIN_TOTAL
+    hasEnoughData: cigWindow.length >= MIN_TOTAL
       && cigsLess.length >= MIN_PER_GROUP
       && cigsMore.length >= MIN_PER_GROUP,
   })
@@ -365,7 +383,7 @@ export function computeCorrelations(logs: Record<string, DailyLog>): Correlation
     withValue:    avg(cigsLess.map(logAvgEnergy)),
     withoutValue: avg(cigsMore.map(logAvgEnergy)),
     withCount: cigsLess.length, withoutCount: cigsMore.length,
-    hasEnoughData: withMood.length >= MIN_TOTAL
+    hasEnoughData: cigWindow.length >= MIN_TOTAL
       && cigsLess.length >= MIN_PER_GROUP
       && cigsMore.length >= MIN_PER_GROUP,
   })
