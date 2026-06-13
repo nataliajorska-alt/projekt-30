@@ -96,6 +96,15 @@ function DesktopNav({ pathname }: { pathname: string }) {
     return null
   })
 
+  // Po nawigacji zwiń ręcznie rozwiniętą grupę — niech otwarta zostaje tylko
+  // ta, w której faktycznie jesteś (a na Dziś/Questy/Ustawieniach: żadna).
+  useEffect(() => {
+    const activeGroup = NAV.find(
+      (item): item is GroupItem => item.kind === 'group' && isGroupActive(item, pathname),
+    )
+    setOpenGroup(activeGroup ? activeGroup.label : null)
+  }, [pathname])
+
   return (
     <aside className="hidden md:flex flex-col w-[280px] min-h-screen bg-dark fixed left-0 top-0 z-40 py-9 pb-6">
       {/* Subtle gold right edge thread */}
@@ -130,6 +139,7 @@ function DesktopNav({ pathname }: { pathname: string }) {
                     href={item.href}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => setOpenGroup(null)}
                     className="px-8 py-3 flex items-center gap-2 font-ui uppercase tracking-[0.3em] text-[12px] text-parchment/80 hover:text-gold-pale transition-colors"
                   >
                     <span className="flex-1">{item.label}</span>
@@ -146,6 +156,7 @@ function DesktopNav({ pathname }: { pathname: string }) {
                 )}
                 <Link
                   href={item.href}
+                  onClick={() => setOpenGroup(null)}
                   className={clsx(
                     'block px-8 py-3 font-ui uppercase tracking-[0.3em] text-[12px] transition-colors',
                     active ? 'text-gold-pale' : 'text-parchment/80 hover:text-gold-pale',
@@ -298,6 +309,7 @@ function MobileNav({ pathname }: { pathname: string }) {
                   href={item.href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => setOpenGroup(null)}
                   aria-label={item.label}
                   title={item.label}
                   className="flex flex-col items-center gap-1.5 px-1 py-1 flex-1 min-w-0 transition-all"
@@ -315,6 +327,7 @@ function MobileNav({ pathname }: { pathname: string }) {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setOpenGroup(null)}
                 aria-label={item.label}
                 title={item.label}
                 className="flex flex-col items-center gap-1.5 px-1 py-1 flex-1 min-w-0 transition-all"
