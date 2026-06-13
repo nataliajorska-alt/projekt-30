@@ -16,14 +16,14 @@ const WEEK_ORDER: { dow: number; name: string }[] = [
 
 export default function SkincareGuideSection() {
   return (
-    <section className="bg-ivory border border-gold-light/40 p-6">
+    <section className="panel-frame bg-ivory border border-hairline p-6 sm:p-7">
       <div className="flex items-center gap-2 mb-1">
         <Droplets size={14} strokeWidth={1.5} className="text-gold-deep" />
         <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
           Pielęgnacja cery
         </SmallCaps>
       </div>
-      <h2 className="font-heading text-dark text-xl mt-1">Twoja rutyna skincare</h2>
+      <h2 className="font-display text-dark text-[22px] tracking-tight mt-1">Twoja rutyna skincare</h2>
       <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5 leading-relaxed">
         opis dla przypomnienia — co i kiedy. te same kroki rozwijają się pod
         pozycją „zadbanie o twarz" w rutynie.

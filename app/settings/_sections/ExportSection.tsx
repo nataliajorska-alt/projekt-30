@@ -69,14 +69,14 @@ export default function ExportSection({ uid }: { uid: string }) {
   ]
 
   return (
-    <section className="bg-ivory border border-gold-light/40 p-6">
+    <section className="panel-frame bg-ivory border border-hairline p-6 sm:p-7">
       <div className="flex items-center gap-2 mb-1">
         <Download size={14} strokeWidth={1.5} className="text-gold-deep" />
         <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
           Eksport danych
         </SmallCaps>
       </div>
-      <h2 className="font-heading text-dark text-xl mt-1 mb-1">Pobierz swoje dane</h2>
+      <h2 className="font-display text-dark text-[22px] tracking-tight mt-1 mb-1">Pobierz swoje dane</h2>
       <p className="font-serif-body italic text-muted text-[13px] mb-5 leading-relaxed">
         pobierz dane do analizy w google sheets albo excelu.
       </p>

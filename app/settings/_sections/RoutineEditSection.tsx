@@ -55,7 +55,7 @@ export default function RoutineEditSection() {
   }
 
   return (
-    <section className="bg-ivory border border-gold-light/40 overflow-hidden">
+    <section className="panel-frame bg-ivory border border-hairline overflow-hidden">
       <div className="p-6 pb-4">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
@@ -74,7 +74,7 @@ export default function RoutineEditSection() {
             </SmallCaps>
           </button>
         </div>
-        <h2 className="font-heading text-dark text-xl mt-1">Edytuj elementy</h2>
+        <h2 className="font-display text-dark text-[22px] tracking-tight mt-1">Edytuj elementy</h2>
         <p className="font-serif-body italic text-muted text-[13px] mt-1">
           wyłącz elementy, których nie potrzebujesz, lub dodaj własne.
         </p>

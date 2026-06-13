@@ -71,14 +71,14 @@ export default function NotificationsSection() {
   const isGranted = permission === 'granted'
 
   return (
-    <section className="bg-ivory border border-gold-light/40 p-6">
+    <section className="panel-frame bg-ivory border border-hairline p-6 sm:p-7">
       <div className="flex items-center gap-2 mb-1">
         <Bell size={14} strokeWidth={1.5} className="text-gold-deep" />
         <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
           Przypomnienia
         </SmallCaps>
       </div>
-      <h2 className="font-heading text-dark text-xl mb-4">Powiadomienia</h2>
+      <h2 className="font-display text-dark text-[22px] tracking-tight mb-4">Powiadomienia</h2>
 
       {isUnsupported && (
         <div className="flex items-start gap-2 border border-amber-300 bg-amber-50/40 px-4 py-3 mb-4">

@@ -63,14 +63,14 @@ export default function XPRecoverySection() {
   }
 
   return (
-    <section className="bg-ivory border border-gold-light/40 p-6">
+    <section className="panel-frame bg-ivory border border-hairline p-6 sm:p-7">
       <div className="flex items-center gap-2 mb-1">
         <ShieldAlert size={14} strokeWidth={1.5} className="text-muted" />
         <SmallCaps tone="muted" tracking="luxury" size="xs">
           Odzyskiwanie danych
         </SmallCaps>
       </div>
-      <h2 className="font-heading text-dark text-xl mt-1">Skan i odzysk XP</h2>
+      <h2 className="font-display text-dark text-[22px] tracking-tight mt-1">Skan i odzysk XP</h2>
       <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-4 leading-relaxed">
         jeśli xp lub osiągnięcia zniknęły — użyj tego narzędzia.
         przeskanuje wszystkie wpisy, przeglądy i osiągnięcia od nowa.
