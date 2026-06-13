@@ -1,4 +1,5 @@
 'use client'
+import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import type { GhostLogEntryV2, HonestFailureEntry, GhostCategory } from '@/types'
 import { GHOST_CATEGORIES } from '@/lib/ghost-data'
@@ -97,6 +98,16 @@ function MetricCell({ idx, hero, heroText, eyebrow, note, feature }: {
 }
 
 export default function ProtocolTab({ entries, failures, loading }: ProtocolTabProps) {
+  // Bieżący blok (dzień×pora) — liczony po stronie klienta, żeby uniknąć
+  // rozjazdu hydration (czas serwera ≠ czas przeglądarki).
+  const [nowCell, setNowCell] = useState<{ day: number; slot: number } | null>(null)
+  useEffect(() => {
+    const d = new Date()
+    const day = (d.getDay() + 6) % 7
+    const slot = TIME_SLOTS.findIndex(s => s.hours.includes(d.getHours()))
+    if (slot >= 0) setNowCell({ day, slot })
+  }, [])
+
   if (loading) {
     return (
       <div className="relative bg-ivory border border-gold-light/40 p-12 text-center">
@@ -197,13 +208,21 @@ export default function ProtocolTab({ entries, failures, loading }: ProtocolTabP
                     </span>
                     {grid[si].map((count, di) => {
                       const isPeak = hasPeak && si === peakSlot && di === peakDay
+                      const isNow = !!nowCell && si === nowCell.slot && di === nowCell.day
                       return (
                         <div
                           key={di}
-                          className={clsx('h-[30px]', isPeak && 'ring-2 ring-gold ring-offset-1 ring-offset-ivory relative z-10')}
+                          className={clsx('h-[30px] relative', isPeak && 'ring-2 ring-gold ring-offset-1 ring-offset-ivory z-10')}
                           style={{ background: HEAT[heatLevel(count)] }}
-                          title={`${PL_DAYS_FULL[di]} ${slot.label.toLowerCase()}: ${count}×`}
-                        />
+                          title={`${PL_DAYS_FULL[di]} ${slot.label.toLowerCase()}: ${count}×${isNow ? ' · teraz' : ''}`}
+                        >
+                          {isNow && (
+                            <span
+                              className="absolute inset-0 m-auto w-2 h-2 rotate-45 bg-ivory ring-1 ring-dark/55 z-20"
+                              aria-label="teraz jesteś tu"
+                            />
+                          )}
+                        </div>
                       )
                     })}
                   </div>
@@ -217,6 +236,13 @@ export default function ProtocolTab({ entries, failures, loading }: ProtocolTabP
               <SmallCaps tone="muted" tracking="luxury" size="xs">Rzadko</SmallCaps>
               {HEAT.map(c => <span key={c} className="w-3.5 h-3.5" style={{ background: c }} />)}
               <SmallCaps tone="muted" tracking="luxury" size="xs">Często</SmallCaps>
+              {nowCell && (
+                <>
+                  <span className="w-px h-3.5 bg-border mx-1.5" />
+                  <span className="w-2 h-2 rotate-45 bg-ivory ring-1 ring-dark/55" />
+                  <SmallCaps tone="muted" tracking="luxury" size="xs">teraz</SmallCaps>
+                </>
+              )}
             </div>
             {hasPeak && (
               <p className="font-serif-body italic text-muted text-[13px]">

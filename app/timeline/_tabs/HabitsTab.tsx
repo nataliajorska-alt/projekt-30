@@ -41,6 +41,64 @@ function questWord(n: number): string {
   return 'questów'
 }
 
+// ── Wykres trendu konsekwencji (SVG) ─────────────────────────────
+// % ukończenia rutyny tydzień po tygodniu; oś Y 0–100, progi tierów (40/60/80)
+// jako przerywane linie, punkty kolorowane wg tieru, ostatni tydzień wyróżniony.
+function ConsistencyTrendChart({ weeks }: { weeks: { weekKey: string; avgCompletionRate: number }[] }) {
+  const W = 940, H = 300, padL = 44, padR = 28, padT = 26, padB = 40
+  const plotW = W - padL - padR, plotH = H - padT - padB, n = weeks.length
+  const X = (i: number) => padL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW)
+  const Y = (v: number) => padT + ((100 - v) / 100) * plotH
+  const linePts = weeks.map((w, i) => `${X(i)},${Y(w.avgCompletionRate)}`).join(' ')
+  const areaPts = `${linePts} ${X(n - 1)},${Y(0)} ${X(0)},${Y(0)}`
+  const gridY = [0, 40, 60, 80, 100]
+
+  return (
+    <div className="mt-6 w-full overflow-x-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="w-full block" style={{ minWidth: 300 }}>
+        {/* siatka + progi tierów */}
+        {gridY.map(g => (
+          <g key={g}>
+            <line
+              x1={padL} y1={Y(g)} x2={W - padR} y2={Y(g)}
+              stroke={g === 0 ? '#D9CDA8' : '#E5DCC1'} strokeWidth={1}
+              strokeDasharray={g === 0 || g === 100 ? undefined : '4 4'}
+            />
+            <text x={padL - 10} y={Y(g) + 3.5} textAnchor="end" fontSize={10} fill="#B7A787" fontFamily="Inter, sans-serif">{g}</text>
+          </g>
+        ))}
+        {/* etykiety osi X (tygodnie) */}
+        {weeks.map((w, i) => (
+          <text key={w.weekKey} x={X(i)} y={H - 16} textAnchor="middle" fontSize={10} letterSpacing="0.12em" fill="#B7A787" fontFamily="Inter, sans-serif">
+            {formatWeekLabel(w.weekKey)}
+          </text>
+        ))}
+        {/* obszar + linia */}
+        {n > 1 && <polygon points={areaPts} fill="#B29355" opacity={0.07} />}
+        {n > 1 && <polyline points={linePts} fill="none" stroke="#8E7338" strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" />}
+        {/* punkty + wartości */}
+        {weeks.map((w, i) => {
+          const cur = i === n - 1
+          return (
+            <g key={w.weekKey}>
+              <circle cx={X(i)} cy={Y(w.avgCompletionRate)} r={cur ? 5.5 : 4} fill={tierColor(w.avgCompletionRate)} stroke="#8E7338" strokeWidth={2}>
+                <title>{`${formatWeekLabel(w.weekKey)}: ${w.avgCompletionRate}%`}</title>
+              </circle>
+              <text
+                x={X(i)} y={Y(w.avgCompletionRate) - 14}
+                textAnchor={i === 0 ? 'start' : cur ? 'end' : 'middle'}
+                fontSize={13} fontStyle="italic" fill="#8E7338" fontFamily="'Bodoni Moda', serif"
+              >
+                {w.avgCompletionRate}%
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
 export default function HabitsTab({ analytics }: { analytics: HabitAnalytics }) {
   const { byWeek, byMonth, ruleStats, totalDaysLogged, overallAvgCompletion, totalActivityDays } = analytics
 
@@ -75,32 +133,11 @@ export default function HabitsTab({ analytics }: { analytics: HabitAnalytics }) 
 
       {/* ===== Konsekwencja ===== */}
       <Panel eyebrow="Konsekwencja" title="Rutyna tygodniami"
-        note="% ukończenia w każdym tygodniu (ostatnie VI). dłuższy słupek = lepsza konsekwencja.">
+        note="% ukończenia w każdym tygodniu (ostatnie VI). wyżej = lepsza konsekwencja.">
         {consWeeks.length === 0 ? (
           <Empty>brak danych tygodniowych.</Empty>
         ) : (
-          <div className="mt-6">
-            {consWeeks.map(w => (
-              <div
-                key={w.weekKey}
-                className="grid items-center gap-5 py-2.5 border-t border-border first:border-t-0"
-                style={{ gridTemplateColumns: '46px 1fr 56px' }}
-              >
-                <span className="font-ui uppercase text-[9px] tracking-[0.22em] text-muted-light">
-                  {formatWeekLabel(w.weekKey)}
-                </span>
-                <div className="relative h-3" style={{ backgroundColor: H.h0 }}>
-                  <div
-                    className="absolute left-0 top-0 h-full transition-all duration-700"
-                    style={{ width: `${Math.max(2, w.avgCompletionRate)}%`, backgroundColor: tierColor(w.avgCompletionRate) }}
-                  />
-                </div>
-                <span className="font-display text-[15px] text-dark text-right tracking-tight">
-                  {w.avgCompletionRate}%
-                </span>
-              </div>
-            ))}
-          </div>
+          <ConsistencyTrendChart weeks={byWeek.slice(-6)} />
         )}
         <div className="flex flex-wrap gap-x-6 gap-y-3 mt-6 pt-4 border-t border-border">
           {[
