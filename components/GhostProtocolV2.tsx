@@ -214,12 +214,21 @@ function ExpressScreen({
 
 // ─── Component ───────────────────────────────────────────────────
 
-export default function GhostProtocolV2() {
+interface GhostProtocolV2Props {
+  /** Odpal od razu konkretny flow (np. z FAB-a) i ukryj wiersz triggerów. */
+  autoLaunch?: 'impulse'
+  /** Wołane przy zamknięciu, gdy komponent jest sterowany z zewnątrz. */
+  onExit?: () => void
+}
+
+export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2Props = {}) {
   const { todayLog, recordGhostImpulseV2, recordHonestFailure } = useGameData()
   const { saveImpulseEntry, saveFailureEntry } = useGhostV2()
   const { contacts } = useNominatedContacts()
 
-  const [flow, setFlow] = useState<ActiveFlow | null>(null)
+  const [flow, setFlow] = useState<ActiveFlow | null>(
+    autoLaunch === 'impulse' ? { type: 'impulse', phase: 'category' } : null
+  )
   const [showEmergencyLock, setShowEmergencyLock] = useState(false)
   const [showTouchstone, setShowTouchstone] = useState(false)
 
@@ -253,7 +262,8 @@ export default function GhostProtocolV2() {
     setHStopped('')
     setHFeeling('')
     setHPlan('')
-  }, [])
+    onExit?.()
+  }, [onExit])
 
   const categoryMeta = selectedCategory
     ? GHOST_CATEGORIES.find(c => c.id === selectedCategory) ?? null
@@ -342,6 +352,8 @@ export default function GhostProtocolV2() {
   // ─── Trigger row ────────────────────────────────────────────────
 
   if (!flow) {
+    // Sterowane z zewnątrz (FAB): brak własnego triggera — rodzic odmontuje.
+    if (onExit) return null
     // "Tonę teraz" — ekspres regulacji (jeden tap, bez kategoryzowania).
     // Pod spodem twin: Mam impuls / Sprawdziłam. Niżej: Prawda na zimno.
     return (
