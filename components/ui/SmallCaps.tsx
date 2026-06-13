@@ -5,7 +5,7 @@ type Props = {
   children: ReactNode;
   className?: string;
   tracking?: 'luxury' | 'editorial';
-  tone?: 'muted' | 'dark' | 'gold' | 'gold-deep' | 'gold-light' | 'ivory' | 'parchment';
+  tone?: 'muted' | 'muted-light' | 'dark' | 'gold' | 'gold-deep' | 'gold-light' | 'ivory' | 'parchment';
   size?: 'xs' | 'sm' | 'md';
   as?: 'span' | 'div' | 'p';
 };
@@ -16,6 +16,7 @@ const trackingClass = {
 };
 const toneClass = {
   muted: 'text-muted',
+  'muted-light': 'text-muted-light',
   dark: 'text-dark',
   gold: 'text-gold',
   'gold-deep': 'text-gold-deep',
