@@ -153,7 +153,7 @@ function SkincareGuide({ itemId, dow, checkedSteps, onToggleStep }: GuideProps &
     <div className="ml-[26px] -mt-1 mb-1">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 text-[10px] font-ui uppercase tracking-luxury text-muted-light hover:text-gold-deep transition-colors py-0.5"
+        className="flex items-center gap-1.5 text-[11px] font-serif-body italic text-muted-light hover:text-gold-deep transition-colors py-0.5"
       >
         {theme && !open && (
           <span className="text-forest/70 italic font-serif-body text-[11px] normal-case tracking-normal">
@@ -198,7 +198,7 @@ function SupplementGuide({ itemId, dow, checkedSteps, onToggleStep }: GuideProps
     <div className="ml-[26px] -mt-1 mb-1">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 text-[10px] font-ui uppercase tracking-luxury text-muted-light hover:text-gold-deep transition-colors py-0.5"
+        className="flex items-center gap-1.5 text-[11px] font-serif-body italic text-muted-light hover:text-gold-deep transition-colors py-0.5"
       >
         {theme && !open && (
           <span className="text-forest/70 italic font-serif-body text-[11px] normal-case tracking-normal">
