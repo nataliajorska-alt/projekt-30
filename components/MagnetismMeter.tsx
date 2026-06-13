@@ -11,8 +11,8 @@ const DIMS = [
   { key: 'morning', label: 'Rutyna (ogółem)', max: 35 },
   { key: 'cialo',   label: 'Ciało / ruch',   max: 25 },
   { key: 'social',  label: 'Obecność',        max: 20 },
-  { key: 'ghost',   label: 'Ghost Protocol',  max: 10 },
-  { key: 'style',   label: 'Wygląd',          max: 10 },
+  { key: 'ghost',    label: 'Ghost Protocol',  max: 10 },
+  { key: 'selfCare', label: 'Coś dla siebie',  max: 10 },
 ] as const
 
 function dayShort(dateStr: string): string {
@@ -33,8 +33,8 @@ function Report30({ history }: { history: ReturnType<typeof useMagnetismHistory>
     if (peakDims.morning >= 28) patterns.push('pełna poranna rutyna')
     if (peakDims.cialo >= 25)   patterns.push('aktywność fizyczna')
     if (peakDims.social >= 20)  patterns.push('kontakt z ludźmi')
-    if (peakDims.ghost >= 10)   patterns.push('Ghost Protocol')
-    if (peakDims.style >= 10)   patterns.push('zadbany wygląd')
+    if (peakDims.ghost >= 10)    patterns.push('Ghost Protocol')
+    if (peakDims.selfCare >= 10) patterns.push('coś dla siebie')
   }
 
   return (

@@ -8,7 +8,7 @@ export interface MagnetismBreakdown {
   cialo: number     // 0–25
   social: number    // 0–20
   ghost: number     // 0–10
-  style: number     // 0–10
+  selfCare: number  // 0–10
   total: number     // 0–100
 }
 
@@ -35,11 +35,12 @@ export function calcMagnetism(log: DailyLog): MagnetismBreakdown {
 
   const cialo = hasCialoActivity(log) ? 25 : 0
   const social = log.socialPresence ? 20 : 0
-  // Ghost: 10 pkt za samo nie napisanie (r1 kept), niezależnie od użycia Ghost Protocol
+  // Ghost: 10 pkt za r1 (nie wróciłam do starych wzorców), niezależnie od użycia Ghost Protocol
   const ghost = (log.keptRules ?? []).includes('r1') ? 10 : 0
-  const style = (log.keptRules ?? []).includes('r3') ? 10 : 0
+  // r3: zrobiłam jedną rzecz dla siebie, bez czekania na reakcję
+  const selfCare = (log.keptRules ?? []).includes('r3') ? 10 : 0
 
-  return { morning, cialo, social, ghost, style, total: morning + cialo + social + ghost + style }
+  return { morning, cialo, social, ghost, selfCare, total: morning + cialo + social + ghost + selfCare }
 }
 
 export function magnetismLabel(score: number): string {
