@@ -22,9 +22,9 @@ import {
 } from '@/lib/gameLogic'
 
 describe('getLevelFromXP', () => {
-  it('returns level 1 (Ziarnko) for 0 XP', () => {
+  it('returns level 1 for 0 XP', () => {
     expect(getLevelFromXP(0).level).toBe(1)
-    expect(getLevelFromXP(0).name).toBe('Ziarnko')
+    expect(getLevelFromXP(0).name).toBe(LEVELS[0].name)
   })
 
   it('returns level 1 just below the level 2 threshold', () => {
@@ -33,12 +33,12 @@ describe('getLevelFromXP', () => {
 
   it('jumps to level 2 exactly at threshold (700)', () => {
     expect(getLevelFromXP(700).level).toBe(2)
-    expect(getLevelFromXP(700).name).toBe('Pąk')
+    expect(getLevelFromXP(700).name).toBe(LEVELS[1].name)
   })
 
-  it('returns level 30 (Natalia 30) at 200 000 XP', () => {
+  it('returns level 30 at 200 000 XP', () => {
     expect(getLevelFromXP(200000).level).toBe(30)
-    expect(getLevelFromXP(200000).name).toBe('Natalia 30')
+    expect(getLevelFromXP(200000).name).toBe(LEVELS[29].name)
   })
 
   it('caps at level 30 even with absurd XP', () => {
@@ -240,36 +240,39 @@ describe('project progress', () => {
 })
 
 describe('getGardenStage', () => {
-  it('returns Nasienie for level 1-2', () => {
-    expect(getGardenStage(1).stageName).toBe('Nasienie')
-    expect(getGardenStage(2).stageName).toBe('Nasienie')
+  // Asercje strukturalne, nie po nazwach — stageName zmieniał się już PL→EN,
+  // a logika (granice stage'ów) jest tym, co naprawdę testujemy.
+  it('keeps level 1-2 in the same first stage', () => {
+    expect(getGardenStage(1).stageName).toBe(getGardenStage(2).stageName)
+    expect(getGardenStage(2).maxLevel).toBe(2)
   })
 
-  it('returns Kiełek for level 3-4', () => {
-    expect(getGardenStage(3).stageName).toBe('Kiełek')
-    expect(getGardenStage(4).stageName).toBe('Kiełek')
+  it('moves to a new stage at level 3', () => {
+    expect(getGardenStage(3).stageName).not.toBe(getGardenStage(2).stageName)
+    expect(getGardenStage(3).stageName).toBe(getGardenStage(4).stageName)
   })
 
-  it('returns Natalia 30 at level 30', () => {
-    expect(getGardenStage(30).stageName).toBe('Natalia 30')
+  it('returns the final stage at level 30', () => {
+    expect(getGardenStage(30).maxLevel).toBe(30)
+    expect(getGardenStage(30).stageName.length).toBeGreaterThan(0)
   })
 
-  it('clamps absurd levels to last stage', () => {
-    expect(getGardenStage(999).stageName).toBe('Natalia 30')
+  it('clamps absurd levels to the last stage', () => {
+    expect(getGardenStage(999).stageName).toBe(getGardenStage(30).stageName)
   })
 })
 
 describe('getNextGardenStage', () => {
-  it('returns Kiełek when at Nasienie', () => {
-    expect(getNextGardenStage(1)?.stageName).toBe('Kiełek')
+  it('returns the stage that begins after the current one', () => {
+    expect(getNextGardenStage(1)?.stageName).toBe(getGardenStage(3).stageName)
   })
 
   it('returns null at the final stage', () => {
     expect(getNextGardenStage(30)).toBeNull()
   })
 
-  it('returns Drzewo when at Bukiet (level 24)', () => {
-    expect(getNextGardenStage(24)?.stageName).toBe('Drzewo')
+  it('points to the level-25 stage when at level 24', () => {
+    expect(getNextGardenStage(24)?.stageName).toBe(getGardenStage(25).stageName)
   })
 })
 
