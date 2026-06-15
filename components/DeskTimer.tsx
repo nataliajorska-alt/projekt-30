@@ -1,10 +1,13 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import { todayKey } from '@/lib/gameLogic'
 
 const TARGET = 3600 // 60 minutes
 
 function storageKey() {
-  return `desk-timer-${new Date().toISOString().slice(0, 10)}`
+  // todayKey() — granica doby o 3:00 jak reszta apki, żeby licznik resetował się
+  // razem z rutyną, a nie o północy UTC (która lokalnie wypada o 1:00/2:00).
+  return `desk-timer-${todayKey()}`
 }
 
 function formatMMSS(s: number): string {

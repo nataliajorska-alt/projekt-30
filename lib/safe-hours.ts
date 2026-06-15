@@ -1,5 +1,6 @@
 import type { GhostLogEntryV2, SafeHoursWindow } from '@/types'
 import { getPhaseIdForDate, type CycleLog, type CycleSettings } from './cycle-data'
+import { dateKey } from './gameLogic'
 
 const MIN_ENTRIES_NO_CYCLE = 15
 const MIN_ENTRIES_WITH_CYCLE = 8
@@ -25,7 +26,10 @@ function hourBucket(h: number): number {
 // stringowy timestamp / dateKey ze starszych kształtów danych.
 function extractDateKey(e: GhostLogEntryV2): string | null {
   if (typeof e.timestamp === 'number' && Number.isFinite(e.timestamp)) {
-    return new Date(e.timestamp).toISOString().slice(0, 10)
+    // Lokalny dzień kalendarzowy (nie UTC) — fazę cyklu mapujemy po dacie
+    // lokalnej, inaczej impuls tuż przed/po północy trafiał w zły dzień (strefa
+    // UTC+1/+2) i dostawał błędną fazę.
+    return dateKey(new Date(e.timestamp))
   }
   const anyE = e as unknown as { dateKey?: string; timestamp?: string; createdAt?: string }
   if (anyE.dateKey) return anyE.dateKey

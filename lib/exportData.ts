@@ -6,6 +6,7 @@ import { DAILY_RULES } from '@/lib/routineData'
 import { APRIL_QUESTS } from '@/lib/seasonal/aprilData'
 import { MONTHLY_DATA } from '@/lib/seasonal/monthData'
 import { CIGARETTE_CONTEXTS } from '@/lib/smoke-data'
+import { dateKey } from '@/lib/gameLogic'
 
 const PILLAR_KEYS = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc'] as const
 const PILLAR_LABELS = ['Pozycja', 'Ciało', 'Styl', 'Kapitał', 'Kariera', 'Tożsamość', 'Miłość']
@@ -152,7 +153,7 @@ export async function exportLogsAsCSV(uid: string, range: DateRange = { from: nu
     ])
   })
 
-  const suffix = range.from ? `${range.from}_${range.to ?? 'dziś'}` : new Date().toISOString().slice(0, 10)
+  const suffix = range.from ? `${range.from}_${range.to ?? 'dziś'}` : dateKey(new Date())
   const csv = rows.map(r => r.map(escapeCSV).join(',')).join('\n')
   downloadCSV(csv, `projekt30-logi-${suffix}.csv`)
 }
@@ -199,7 +200,7 @@ export async function exportQuestsAsCSV(uid: string, range: DateRange = { from: 
     rows.push(['Brak ukończonych questów w historii', '', '', '', ''])
   }
 
-  const suffix = range.from ? `${range.from}_${range.to ?? 'dziś'}` : new Date().toISOString().slice(0, 10)
+  const suffix = range.from ? `${range.from}_${range.to ?? 'dziś'}` : dateKey(new Date())
   const csv = rows.map(r => r.map(escapeCSV).join(',')).join('\n')
   downloadCSV(csv, `projekt30-questy-${suffix}.csv`)
 }
@@ -249,7 +250,7 @@ export async function exportReviewsAsCSV(uid: string, range: DateRange = { from:
     rows.push(['Brak zapisanych przeglądów', '', '', ...PILLAR_KEYS.map(() => ''), '', '', ''])
   }
 
-  const suffix = range.from ? `${range.from}_${range.to ?? 'dziś'}` : new Date().toISOString().slice(0, 10)
+  const suffix = range.from ? `${range.from}_${range.to ?? 'dziś'}` : dateKey(new Date())
   const csv = rows.map(r => r.map(escapeCSV).join(',')).join('\n')
   downloadCSV(csv, `projekt30-przeglady-${suffix}.csv`)
 }
@@ -306,7 +307,7 @@ export async function exportStatsAsCSV(uid: string) {
   ]
 
   const csv = [headers, row].map(r => r.map(escapeCSV).join(',')).join('\n')
-  downloadCSV(csv, `projekt30-statystyki-${new Date().toISOString().slice(0, 10)}.csv`)
+  downloadCSV(csv, `projekt30-statystyki-${dateKey(new Date())}.csv`)
 }
 
 // ── Pobierz wszystko naraz ────────────────────────────────────────
@@ -348,7 +349,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
   const routineMap = new Map(ALL_ROUTINE.map(r => [r.id, r.text]))
 
   const s = statsSnap.exists() ? statsSnap.data() as UserStats : null
-  const today = new Date().toISOString().slice(0, 10)
+  const today = dateKey(new Date())
   const suffix = range.from ? `${range.from}_${range.to ?? today}` : today
 
   const ghostEntries: any[] = ghostV2Snap.exists() ? (ghostV2Snap.data().entries ?? []) : []
@@ -357,7 +358,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
   const aprilCompleted: string[] = aprilLog.completed ?? []
 
   const tsInRange = (timestamp: number) =>
-    inRange(new Date(timestamp).toISOString().slice(0, 10), range.from, range.to)
+    inRange(dateKey(new Date(timestamp)), range.from, range.to)
 
   const lines: string[] = []
 
@@ -552,7 +553,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
       lines.push(``)
       for (const e of ghostInRange) {
         const dt = new Date(e.timestamp)
-        const date = dt.toISOString().slice(0, 10)
+        const date = dateKey(dt)
         const time = dt.toTimeString().slice(0, 5)
         const cat = GHOST_CATEGORIES.find(c => c.id === e.category)
         const intLabel = INTENSITY_LABELS[e.intensity]?.name ?? `${e.intensity}/5`
@@ -570,7 +571,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
       lines.push(`### Uczciwe porażki (${failuresInRange.length})`)
       lines.push(``)
       for (const e of failuresInRange) {
-        const date = new Date(e.timestamp).toISOString().slice(0, 10)
+        const date = dateKey(new Date(e.timestamp))
         const cat = GHOST_CATEGORIES.find(c => c.id === e.category)
         lines.push(`**${date}** · ${cat?.label ?? e.category} · "${e.subcategory}"`)
         if (e.whatWouldHaveStoppedYou) lines.push(`- Co by zatrzymało: ${e.whatWouldHaveStoppedYou}`)
@@ -768,7 +769,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
       }
 
       // Ghost Protocol tego konkretnego dnia
-      const dayGhost = ghostEntries.filter(e => new Date(e.timestamp).toISOString().slice(0, 10) === d.date)
+      const dayGhost = ghostEntries.filter(e => dateKey(new Date(e.timestamp)) === d.date)
       if (dayGhost.length > 0) {
         lines.push(`**Ghost Protocol tego dnia (${dayGhost.length}x):**`)
         for (const e of dayGhost) {
