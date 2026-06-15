@@ -122,8 +122,15 @@ function CollapsibleSection({
   )
 }
 
-// Probability of showing the check-in on any given app open while the daily cap is not reached.
-const CHECKIN_TRIGGER_PROBABILITY = 0.4
+// Okna proaktywnego pytania o nastrój. Deterministycznie (nie losowo): raz w
+// oknie rannym, raz w wieczornym — żeby silnik wzorców miał parę ranek+wieczór,
+// której potrzebują insighty o „lift / carryover". Środek dnia i noc: nie pytamy.
+function moodWindow(d: Date): 'morning' | 'evening' | null {
+  const h = d.getHours()
+  if (h >= 6 && h < 12) return 'morning'
+  if (h >= 18 && h < 24) return 'evening'
+  return null
+}
 
 function daysBetween(a: string, b: string): number {
   const [ay, am, ad] = a.split('-').map(Number)
@@ -140,29 +147,34 @@ export default function Dashboard() {
   const evaluated = useRef(false)
   const returnEvaluated = useRef(false)
 
-  // Once todayLog loads, decide randomly whether to show the check-in modal.
-  // Uses sessionStorage to ensure we only evaluate once per page session.
+  // Po załadowaniu logu: jeśli jesteśmy w oknie rannym/wieczornym i nie ma jeszcze
+  // odczytu w tym oknie — zaczep raz o nastrój. Deterministycznie (nie losowo),
+  // żeby para ranek+wieczór zbierała się niezawodnie dla silnika wzorców.
   useEffect(() => {
     if (loading || !todayLog || evaluated.current) return
     evaluated.current = true
 
-    const sessionKey = `moodCheckInShown_${todayKey()}`
-    if (sessionStorage.getItem(sessionKey)) return
+    const win = moodWindow(new Date())
+    if (!win) return  // środek dnia / noc — nie zaczepiamy
 
-    sessionStorage.setItem(sessionKey, '1')
+    // Raz na okno na dzień (osobno ranek i wieczór).
+    const sessionKey = `moodCheckIn_${todayKey()}_${win}`
+    if (sessionStorage.getItem(sessionKey)) return
 
     const checkIns = todayLog.moodCheckIns ?? []
     if (checkIns.length >= MAX_MOOD_CHECKINS_PER_DAY) return
 
-    // Don't show if last check-in was less than 3 hours ago
+    // Cooldown 3h od ostatniego odczytu.
     const lastTs = checkIns.length > 0 ? checkIns[checkIns.length - 1].timestamp : null
     const COOLDOWN_MS = 3 * 60 * 60 * 1000
     if (lastTs && Date.now() - lastTs < COOLDOWN_MS) return
 
-    if (Math.random() < CHECKIN_TRIGGER_PROBABILITY) {
-      // Small delay so the dashboard renders first
-      setTimeout(() => setShowMoodModal(true), 1200)
-    }
+    // Jeśli w tym oknie jest już dziś odczyt — nie pytaj ponownie.
+    if (checkIns.some(c => moodWindow(new Date(c.timestamp)) === win)) return
+
+    // Dopiero teraz oznacz okno jako zaczepione i pokaż (po krótkim renderze).
+    sessionStorage.setItem(sessionKey, '1')
+    setTimeout(() => setShowMoodModal(true), 1200)
   }, [loading, todayLog])
 
   // Detect gap > 2 days → show Return Ceremony (once per return)
