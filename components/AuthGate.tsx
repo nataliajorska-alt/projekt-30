@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth, REGISTRATION_ENABLED } from '@/hooks/useAuth'
 import { SmallCaps, GoldRule, Fleuron, Diamond } from '@/components/ui'
 
 const PUBLIC_PATHS = ['/design-system']
@@ -72,6 +72,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         : msg.includes('wrong-password') || msg.includes('invalid-credential') ? 'Błędne hasło.'
         : msg.includes('user-not-found') ? 'Nie znaleziono konta.'
         : msg.includes('email-already') ? 'E-mail już istnieje.'
+        : msg.includes('registration-disabled') ? 'Rejestracja jest wyłączona.'
         : msg.includes('auth/unauthorized-domain') ? 'Domena nie jest autoryzowana w Firebase.'
         : `Coś poszło nie tak. Sprawdź dane. (${msg.slice(0, 80)})`
       )
@@ -157,14 +158,16 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError('') }}
-              className="font-ui uppercase tracking-luxury text-[10px] text-muted hover:text-gold-deep transition-colors"
-            >
-              {mode === 'login' ? 'Nie mam jeszcze konta  ›' : '‹  Mam już konto'}
-            </button>
-          </div>
+          {REGISTRATION_ENABLED && (
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError('') }}
+                className="font-ui uppercase tracking-luxury text-[10px] text-muted hover:text-gold-deep transition-colors"
+              >
+                {mode === 'login' ? 'Nie mam jeszcze konta  ›' : '‹  Mam już konto'}
+              </button>
+            </div>
+          )}
         </div>
 
         <p className="text-center font-serif-body italic text-muted-light text-[12px] mt-6">

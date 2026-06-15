@@ -22,6 +22,11 @@ const AuthContext = createContext<AuthContextType | null>(null)
 
 const AUTH_TIMEOUT_MS = 8000
 
+// Rejestracja domyślnie WYŁĄCZONA (apka jednoosobowa). Włącz tylko ustawiając
+// NEXT_PUBLIC_ALLOW_REGISTRATION=true w env (np. gdy zakładasz nowe konto), potem
+// wyłącz. Bez tego obcy nie założą konta i nie zaśmiecą projektu / limitów Firebase.
+export const REGISTRATION_ENABLED = process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === 'true'
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -71,6 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signUp = async (email: string, password: string) => {
+    // Twarda blokada po stronie logiki — nawet gdyby UI gdzieś przepuściło.
+    if (!REGISTRATION_ENABLED) throw new Error('registration-disabled')
     await createUserWithEmailAndPassword(auth, email, password)
   }
 
