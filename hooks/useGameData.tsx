@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   doc, setDoc, onSnapshot, collection, getDocs, getDoc,
+  increment, arrayUnion, arrayRemove,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
@@ -56,6 +57,31 @@ const DEFAULT_STATS: UserStats = {
 }
 
 const ALL_PILLARS: Pillar[] = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc']
+
+// ── Zapis statystyk odporny na równoległe zapisy ───────────────────────
+// Pola ADYTYWNE (totalXP, pillarXP, liczniki akcji) zapisujemy jako
+// FieldValue.increment(delta) zamiast wartości bezwzględnej liczonej ze
+// (potencjalnie nieświeżego) snapshotu Reacta. Dzięki temu równoległy zapis
+// — drugie urządzenie albo XP z Learning Vault przez /api/external/xp (które
+// JUŻ używa increment) — sumuje się, zamiast po cichu się nadpisywać i gubić XP.
+// Pola POCHODNE (streak, achievementy, dayMode-zależne liczniki dni, rejestry
+// tygodni) zostają bezwzględne: pisze je tylko klient i odbudowuje recoverStats.
+// `final` jest liczone z `base` przez czyste dodawanie, więc (final − base) to
+// dokładnie delta tej akcji, niezależna od bazy — bezpieczna jako increment.
+function buildStatsWrite(base: UserStats, final: UserStats): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...final }
+  out.totalXP = increment((final.totalXP ?? 0) - (base.totalXP ?? 0))
+  const pillarInc: Record<string, unknown> = {}
+  for (const p of ALL_PILLARS) {
+    pillarInc[p] = increment((final.pillarXP[p] ?? 0) - (base.pillarXP[p] ?? 0))
+  }
+  out.pillarXP = pillarInc
+  out.totalRoutinesCompleted   = increment((final.totalRoutinesCompleted ?? 0)   - (base.totalRoutinesCompleted ?? 0))
+  out.totalQuestsCompleted     = increment((final.totalQuestsCompleted ?? 0)     - (base.totalQuestsCompleted ?? 0))
+  out.totalSideQuestsCompleted = increment((final.totalSideQuestsCompleted ?? 0) - (base.totalSideQuestsCompleted ?? 0))
+  out.totalRulesKept           = increment((final.totalRulesKept ?? 0)           - (base.totalRulesKept ?? 0))
+  return out
+}
 
 // ── Jednorazowa korekta XP questów ─────────────────────────────────────
 // Questy sezonowe były naliczane jako płaskie 50 zamiast realnej wartości q.xp.
@@ -389,8 +415,12 @@ export function useGameData() {
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
     await Promise.all([
-      setDoc(todayRef, { ...todayLog, completedRoutine: newCompleted, totalXP: newTodayXP }, { merge: true }),
-      setDoc(statsRef, finalStats, { merge: true }),
+      setDoc(todayRef, {
+        completedRoutine: completed ? arrayRemove(itemId) : arrayUnion(itemId),
+        totalXP: increment(xpDelta),
+        date: currentDateKey,
+      }, { merge: true }),
+      setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true }),
     ])
   }, [user, todayLog, stats, statsRef, todayRef, currentDateKey, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
@@ -398,9 +428,6 @@ export function useGameData() {
     if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const currentDQ = todayLog.completedDailyQuests ?? []
     const completed = currentDQ.includes(questId)
-    const newCompleted = completed
-      ? currentDQ.filter(id => id !== questId)
-      : [...currentDQ, questId]
     // Questy płacą tyle, ile pokazują na karcie (q.xp). Domyślne XP_VALUES.dailyQuest
     // tylko jako fallback dla wywołań bez jawnej wartości.
     const baseXP = xp
@@ -423,8 +450,12 @@ export function useGameData() {
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
     await Promise.all([
-      setDoc(todayRef, { ...todayLog, completedDailyQuests: newCompleted, totalXP: Math.max(0, (todayLog.totalXP ?? 0) + xpDelta) }, { merge: true }),
-      setDoc(statsRef, finalStats, { merge: true }),
+      setDoc(todayRef, {
+        completedDailyQuests: completed ? arrayRemove(questId) : arrayUnion(questId),
+        totalXP: increment(xpDelta),
+        date: currentDateKey,
+      }, { merge: true }),
+      setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true }),
     ])
   }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkLevelUp])
 
@@ -432,9 +463,6 @@ export function useGameData() {
     if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const currentSQ = todayLog.completedSideQuests ?? []
     const completed = currentSQ.includes(questId)
-    const newCompleted = completed
-      ? currentSQ.filter(id => id !== questId)
-      : [...currentSQ, questId]
     const xpDelta = completed ? -xp : xp
 
     const withStreak = await applyStreakIfNeeded(stats)
@@ -453,8 +481,12 @@ export function useGameData() {
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
     await Promise.all([
-      setDoc(todayRef, { ...todayLog, completedSideQuests: newCompleted, totalXP: Math.max(0, (todayLog.totalXP ?? 0) + xpDelta) }, { merge: true }),
-      setDoc(statsRef, finalStats, { merge: true }),
+      setDoc(todayRef, {
+        completedSideQuests: completed ? arrayRemove(questId) : arrayUnion(questId),
+        totalXP: increment(xpDelta),
+        date: currentDateKey,
+      }, { merge: true }),
+      setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true }),
     ])
   }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkLevelUp])
 
@@ -462,9 +494,6 @@ export function useGameData() {
     if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const currentRules = todayLog.keptRules ?? []
     const kept = currentRules.includes(ruleId)
-    const newKept = kept
-      ? currentRules.filter(id => id !== ruleId)
-      : [...currentRules, ruleId]
     const baseRule = XP_VALUES.rulekept
     const xpDelta = kept ? -(todayLog.dayMode === 'minimum' ? baseRule * 2 : baseRule) : (todayLog.dayMode === 'minimum' ? baseRule * 2 : baseRule)
 
@@ -479,8 +508,12 @@ export function useGameData() {
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
     await Promise.all([
-      setDoc(todayRef, { ...todayLog, keptRules: newKept, totalXP: Math.max(0, (todayLog.totalXP ?? 0) + xpDelta) }, { merge: true }),
-      setDoc(statsRef, finalStats, { merge: true }),
+      setDoc(todayRef, {
+        keptRules: kept ? arrayRemove(ruleId) : arrayUnion(ruleId),
+        totalXP: increment(xpDelta),
+        date: currentDateKey,
+      }, { merge: true }),
+      setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true }),
     ])
   }, [user, todayLog, stats, statsRef, todayRef, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
@@ -499,7 +532,7 @@ export function useGameData() {
     const finalStats = { ...newStats, ...achUpdates }
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
-    await setDoc(statsRef, finalStats, { merge: true })
+    await setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true })
     return true
   }, [user, stats, statsRef, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
@@ -518,7 +551,7 @@ export function useGameData() {
     const finalStats = { ...newStats, ...achUpdates }
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
-    await setDoc(statsRef, finalStats, { merge: true })
+    await setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true })
     return true
   }, [user, stats, statsRef, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
@@ -537,7 +570,7 @@ export function useGameData() {
     const finalStats = { ...newStats, ...achUpdates }
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
-    await setDoc(statsRef, finalStats, { merge: true })
+    await setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true })
     return true
   }, [user, stats, statsRef, checkAchievements, applyStreakIfNeeded, checkLevelUp])
 
@@ -561,7 +594,7 @@ export function useGameData() {
     const finalStats = { ...newStats, ...achUpdates }
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
-    await setDoc(statsRef, finalStats, { merge: true })
+    await setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true })
     return { awarded: true, xp: XP_VALUES.heartBlock }
   }, [user, stats, statsRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
 
@@ -570,7 +603,7 @@ export function useGameData() {
     const update: Partial<import('@/types').DailyLog> = { dayMode: mode }
     if (mode === 'minimum' && reason) update.minimumReason = reason
     if (mode === 'normal') update.minimumReason = undefined
-    await setDoc(todayRef, { ...todayLog, ...update }, { merge: true })
+    await setDoc(todayRef, { ...update, date: currentDateKey }, { merge: true })
     if (mode === 'minimum' && statsRef) {
       await setDoc(statsRef, { consecutiveNormalDays: 0, lastNormalDay: currentDateKey }, { merge: true })
     }
@@ -602,7 +635,6 @@ export function useGameData() {
     const existing = todayLog.moodCheckIns ?? []
     if (existing.length >= MAX_MOOD_CHECKINS_PER_DAY) return
     const newCheckIn: MoodCheckIn = { ...checkin, timestamp: Date.now() }
-    const newCheckIns = [...existing, newCheckIn]
 
     const withStreak = await applyStreakIfNeeded(stats)
     const newStats: UserStats = {
@@ -614,8 +646,8 @@ export function useGameData() {
     checkLevelUp(stats.totalXP, finalStats.totalXP)
 
     await Promise.all([
-      setDoc(todayRef, { moodCheckIns: newCheckIns }, { merge: true }),
-      setDoc(statsRef, finalStats, { merge: true }),
+      setDoc(todayRef, { moodCheckIns: arrayUnion(newCheckIn) }, { merge: true }),
+      setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true }),
     ])
   }, [user, todayRef, todayLog, stats, statsRef, applyStreakIfNeeded, checkAchievements, checkLevelUp])
 
@@ -647,8 +679,10 @@ export function useGameData() {
       ...(context ? { context } : {}),
       ...(intensity ? { intensity } : {}),
     }
-    const existing = todayLog.cigarettes ?? []
-    await setDoc(todayRef, { cigarettes: [...existing, entry] }, { merge: true })
+    // arrayUnion zamiast [...existing, entry]: każdy wpis ma unikalny timestamp,
+    // więc zawsze się dodaje — a równoległy log z drugiego urządzenia nie nadpisze
+    // tablicy (to są dane fazy 1, najważniejsze do ochrony).
+    await setDoc(todayRef, { cigarettes: arrayUnion(entry) }, { merge: true })
   }, [user, todayRef, todayLog])
 
   // Cofnięcie omyłki (np. podwójne tapnięcie). Bez „undo streak", tylko czysta korekta danych.
@@ -682,7 +716,7 @@ export function useGameData() {
     const achUpdates = await checkAchievements(newStats)
     const finalStats = { ...newStats, ...achUpdates }
     checkLevelUp(stats.totalXP, finalStats.totalXP)
-    await setDoc(statsRef, finalStats, { merge: true })
+    await setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true })
   }, [user, stats, statsRef, currentDateKey, checkAchievements, checkLevelUp])
 
   // Ghost Protocol V2: +10 za zalogowanie impulsu, +30 bonus jeśli bez kontaktu
@@ -711,7 +745,7 @@ export function useGameData() {
     const finalStats = { ...newStats, ...achUpdates }
     checkLevelUp(stats.totalXP, finalStats.totalXP)
     await Promise.all([
-      setDoc(statsRef, finalStats, { merge: true }),
+      setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true }),
       todayRef ? setDoc(todayRef, { ghostProtocolCompleted: true }, { merge: true }) : Promise.resolve(),
     ])
   }, [user, stats, statsRef, todayRef, currentDateKey, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
@@ -719,7 +753,6 @@ export function useGameData() {
   const logCustomSideQuest = useCallback(async (title: string, pillar: Pillar, xp: number) => {
     if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const entry: CustomSideQuestEntry = { id: `csq_${Date.now()}`, title, pillar, xp }
-    const current = todayLog.customSideQuests ?? []
     const withStreak = await applyStreakIfNeeded(stats)
     let newStats: UserStats = {
       ...withStreak,
@@ -732,10 +765,14 @@ export function useGameData() {
     const finalStats = { ...newStats, ...achUpdates }
     checkLevelUp(stats.totalXP, finalStats.totalXP)
     await Promise.all([
-      setDoc(todayRef, { ...todayLog, customSideQuests: [...current, entry], totalXP: (todayLog.totalXP ?? 0) + xp }, { merge: true }),
-      setDoc(statsRef, finalStats, { merge: true }),
+      setDoc(todayRef, {
+        customSideQuests: arrayUnion(entry),
+        totalXP: increment(xp),
+        date: currentDateKey,
+      }, { merge: true }),
+      setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true }),
     ])
-  }, [user, todayLog, stats, statsRef, todayRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
+  }, [user, todayLog, stats, statsRef, todayRef, currentDateKey, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
 
   // Honest Failure Log: +15 XP za uczciwość
   const recordHonestFailure = useCallback(async () => {
@@ -752,7 +789,7 @@ export function useGameData() {
     const achUpdates = await checkAchievements(newStats)
     const finalStats = { ...newStats, ...achUpdates }
     checkLevelUp(stats.totalXP, finalStats.totalXP)
-    await setDoc(statsRef, finalStats, { merge: true })
+    await setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true })
   }, [user, stats, statsRef, applyStreakIfNeeded, checkAchievements, checkLevelUp])
 
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(getMonthKey(new Date()))

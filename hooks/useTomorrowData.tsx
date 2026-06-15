@@ -1,10 +1,11 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore'
+import { doc, setDoc, onSnapshot, increment, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
-import type { DailyLog, Pillar, UserStats } from '@/types'
+import type { DailyLog, Pillar } from '@/types'
 import { tomorrowKey } from '@/lib/gameLogic'
+import { useToast } from '@/components/ToastProvider'
 
 const EMPTY_LOG: DailyLog = {
   date: '', completedRoutine: [], completedDailyQuests: [],
@@ -13,6 +14,7 @@ const EMPTY_LOG: DailyLog = {
 
 export function useTomorrowData() {
   const { user } = useAuth()
+  const { addToast } = useToast()
   const [tomorrowLog, setTomorrowLog] = useState<DailyLog | null>(null)
   const [loading, setLoading] = useState(true)
   const dateKey = tomorrowKey()
@@ -28,61 +30,54 @@ export function useTomorrowData() {
         : { ...EMPTY_LOG, date: dateKey }
       )
       setLoading(false)
+    }, () => {
+      // Bez handlera błędu listener przy błędzie sieci/uprawnień zostawiał
+      // loading=true na zawsze (nieskończony spinner). Tu: toast + odblokuj UI.
+      addToast({ message: 'Błąd ładowania jutrzejszego planu. Odśwież stronę.', type: 'error' })
+      setLoading(false)
     })
     return () => unsub()
   }, [user?.uid, dateKey])
 
   const toggleTomorrowRoutine = useCallback(async (itemId: string, xp: number) => {
     if (!user || !tomorrowRef || !tomorrowLog || !statsRef) return
-    const current = tomorrowLog.completedRoutine ?? []
-    const done = current.includes(itemId)
-    const newCompleted = done ? current.filter(id => id !== itemId) : [...current, itemId]
+    const done = (tomorrowLog.completedRoutine ?? []).includes(itemId)
     const xpDelta = done ? -xp : xp
-    const newLogXP = Math.max(0, (tomorrowLog.totalXP ?? 0) + xpDelta)
 
-    const snap = await getDoc(statsRef)
-    if (!snap.exists()) return
-    const stats = snap.data() as UserStats
-
+    // increment/arrayUnion — bez getDoc→setDoc (które gubiło równoległy zapis,
+    // m.in. XP z Learning Vault). Tablica i totalXP aktualizują się atomowo.
     await Promise.all([
-      setDoc(tomorrowRef, { completedRoutine: newCompleted, totalXP: newLogXP, date: dateKey }, { merge: true }),
-      setDoc(statsRef, { totalXP: Math.max(0, (stats.totalXP ?? 0) + xpDelta) }, { merge: true }),
+      setDoc(tomorrowRef, {
+        completedRoutine: done ? arrayRemove(itemId) : arrayUnion(itemId),
+        totalXP: increment(xpDelta),
+        date: dateKey,
+      }, { merge: true }),
+      setDoc(statsRef, { totalXP: increment(xpDelta) }, { merge: true }),
     ])
   }, [user, tomorrowRef, tomorrowLog, statsRef, dateKey])
 
   const toggleTomorrowQuest = useCallback(async (questId: string, pillar: Pillar, xp: number) => {
     if (!user || !tomorrowRef || !tomorrowLog || !statsRef) return
-    const current = tomorrowLog.completedDailyQuests ?? []
-    const done = current.includes(questId)
-    const newCompleted = done ? current.filter(id => id !== questId) : [...current, questId]
+    const done = (tomorrowLog.completedDailyQuests ?? []).includes(questId)
     const xpDelta = done ? -xp : xp
-    const newLogXP = Math.max(0, (tomorrowLog.totalXP ?? 0) + xpDelta)
-
-    const snap = await getDoc(statsRef)
-    if (!snap.exists()) return
-    const stats = snap.data() as UserStats
 
     // ALSO sync to aprilQuestLog — the canonical store DailyQuests reads from.
     // Bez tego quest zrobiony „na zapas" wczoraj nie wyświetli się dziś jako zrobiony.
+    // arrayUnion/arrayRemove jest idempotentne, więc nie trzeba czytać stanu z getDoc.
     const aprilQuestLogRef = doc(db, 'users', user.uid, 'data', 'aprilQuestLog')
-    const aprilSnap = await getDoc(aprilQuestLogRef)
-    const aprilData = aprilSnap.exists() ? (aprilSnap.data() as { completed?: string[] }) : {}
-    const aprilCompleted = aprilData.completed ?? []
-    const newAprilCompleted = done
-      ? aprilCompleted.filter(id => id !== questId)
-      : (aprilCompleted.includes(questId) ? aprilCompleted : [...aprilCompleted, questId])
 
     await Promise.all([
-      setDoc(tomorrowRef, { completedDailyQuests: newCompleted, totalXP: newLogXP, date: dateKey }, { merge: true }),
-      setDoc(statsRef, {
-        totalXP: Math.max(0, (stats.totalXP ?? 0) + xpDelta),
-        pillarXP: {
-          ...stats.pillarXP,
-          [pillar]: Math.max(0, (stats.pillarXP?.[pillar] ?? 0) + xpDelta),
-        },
-        totalQuestsCompleted: Math.max(0, (stats.totalQuestsCompleted ?? 0) + (done ? -1 : 1)),
+      setDoc(tomorrowRef, {
+        completedDailyQuests: done ? arrayRemove(questId) : arrayUnion(questId),
+        totalXP: increment(xpDelta),
+        date: dateKey,
       }, { merge: true }),
-      setDoc(aprilQuestLogRef, { completed: newAprilCompleted }, { merge: true }),
+      setDoc(statsRef, {
+        totalXP: increment(xpDelta),
+        pillarXP: { [pillar]: increment(xpDelta) },
+        totalQuestsCompleted: increment(done ? -1 : 1),
+      }, { merge: true }),
+      setDoc(aprilQuestLogRef, { completed: done ? arrayRemove(questId) : arrayUnion(questId) }, { merge: true }),
     ])
   }, [user, tomorrowRef, tomorrowLog, statsRef, dateKey])
 
