@@ -42,9 +42,25 @@ type Pillar = (typeof ALLOWED_PILLARS)[number]
 
 const MAX_XP_PER_REQUEST = 200
 
+// Klucz dnia MUSI pasować do klienta (lib/gameLogic.todayKey): strefa
+// Europe/Warsaw + przesunięcie o DAY_START_HOUR=3 (dzień „zaczyna się" o 3:00).
+// Serwer Vercela chodzi w UTC, więc bare new Date() zapisywał XP z Vaulta do
+// złego dnia — liczymy datę warszawską przez Intl.
+const DAY_START_HOUR = 3
 function todayKey(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date())
+  const get = (t: string): number => Number(parts.find((p) => p.type === t)?.value)
+  let y = get('year'), m = get('month'), d = get('day')
+  if (get('hour') < DAY_START_HOUR) {
+    const shifted = new Date(Date.UTC(y, m - 1, d))
+    shifted.setUTCDate(shifted.getUTCDate() - 1)
+    y = shifted.getUTCFullYear(); m = shifted.getUTCMonth() + 1; d = shifted.getUTCDate()
+  }
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
 export async function POST(req: Request) {
