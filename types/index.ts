@@ -145,6 +145,17 @@ export interface CustomSideQuestEntry {
   xp: number
 }
 
+// Pozycja rutyny (zadanie dnia, np. „Książka — hiszpański", ćwiczenia)
+// przeniesiona Z innego dnia NA ten dzień. Snapshot z własnym tekstem/xp, bo
+// szablony rutyny są per-dzień-tygodnia — pozycja przeniesiona na wtorek nie
+// istnieje w szablonie wtorku.
+export interface CarriedRoutineItem {
+  id: string
+  text: string
+  xp: number
+  fromDate: string   // YYYY-MM-DD — z którego dnia przyszła
+}
+
 // ── Vault — listy do siebie z różnych emocjonalnych miejsc ──────────
 // future:    list do siebie z przyszłości — quarterly unlock (jak teraz)
 // crisis:    list na trudną chwilę — zawsze otwarty, surface gdy mood ≤2 przez 3 dni
@@ -226,6 +237,10 @@ export interface DailyLog {
   completedDailyQuests: string[]
   completedSideQuests: string[]
   customSideQuests?: CustomSideQuestEntry[]
+  /** Zadania dnia (rutyna „Dzień") przeniesione NA ten dzień z innego dnia. */
+  carriedRoutine?: CarriedRoutineItem[]
+  /** Id zadań dnia przeniesionych Z tego dnia na inny — chowane z listy. */
+  postponedRoutine?: string[]
   keptRules: string[]
   totalXP: number
   dayMode: 'normal' | 'minimum'

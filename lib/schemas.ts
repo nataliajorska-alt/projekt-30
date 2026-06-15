@@ -58,6 +58,13 @@ export const CustomSideQuestEntrySchema = z.object({
   xp: z.number().catch(0),
 })
 
+const CarriedRoutineItemSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  xp: z.number().catch(0),
+  fromDate: z.string(),
+})
+
 // ── DailyLog ─────────────────────────────────────────────────────────────────
 
 export const DailyLogSchema = z.object({
@@ -66,6 +73,8 @@ export const DailyLogSchema = z.object({
   completedDailyQuests: z.array(z.string()).catch([]),
   completedSideQuests: z.array(z.string()).catch([]),
   customSideQuests: z.array(CustomSideQuestEntrySchema).optional(),
+  carriedRoutine: z.array(CarriedRoutineItemSchema).optional(),
+  postponedRoutine: z.array(z.string()).optional(),
   keptRules: z.array(z.string()).catch([]),
   totalXP: z.number().nonnegative().catch(0),
   dayMode: z.enum(['normal', 'minimum']).catch('normal'),

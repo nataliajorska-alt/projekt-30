@@ -6,7 +6,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from './useAuth'
-import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry, Pillar, CigaretteEntry, CigaretteContext, SmokingPhase, GhostLogEntryV2, HonestFailureEntry } from '@/types'
+import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry, CarriedRoutineItem, Pillar, CigaretteEntry, CigaretteContext, SmokingPhase, GhostLogEntryV2, HonestFailureEntry } from '@/types'
 import {
   todayKey,
   XP_VALUES,
@@ -630,6 +630,25 @@ export function useGameData() {
     await setDoc(todayRef, { checkedSubSteps: next }, { merge: true })
   }, [user, todayRef, todayLog])
 
+  // Przeniesienie zadania dnia (rutyna „Dzień", np. książka z hiszpańskiego,
+  // ćwiczenia) na jutro. Zapisuje snapshot do loga jutra (carriedRoutine) i
+  // chowa pozycję dziś (postponedRoutine). Bez XP — to przesunięcie, nie
+  // ukończenie. arrayUnion = bezpieczne pod współbieżnością.
+  const postponeRoutineToTomorrow = useCallback(async (item: { id: string; text: string; xp: number }) => {
+    if (!user || !todayRef) return
+    const [yy, mm, dd] = currentDateKey.split('-').map(Number)
+    const t = new Date(yy, mm - 1, dd)
+    t.setDate(t.getDate() + 1)
+    const tomorrowK = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
+    const tomorrowLogRef = doc(db, 'users', user.uid, 'logs', tomorrowK)
+    const entry: CarriedRoutineItem = { id: item.id, text: item.text, xp: item.xp, fromDate: currentDateKey }
+    await Promise.all([
+      setDoc(todayRef, { postponedRoutine: arrayUnion(item.id), date: currentDateKey }, { merge: true }),
+      setDoc(tomorrowLogRef, { carriedRoutine: arrayUnion(entry), date: tomorrowK }, { merge: true }),
+    ])
+    addToast({ message: 'Przeniesione na jutro.', type: 'success' })
+  }, [user, todayRef, currentDateKey, addToast])
+
   const saveMoodCheckIn = useCallback(async (checkin: Omit<MoodCheckIn, 'timestamp'>) => {
     if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
     const existing = todayLog.moodCheckIns ?? []
@@ -1152,6 +1171,7 @@ export function useGameData() {
     toggleRoutine, toggleDailyQuest, toggleSideQuest, toggleRule,
     submitWeeklyReview, submitMonthlyReview, submitQuarterlyReview, setDayMode,
     streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity, toggleSubStep,
+    postponeRoutineToTomorrow,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
     logCigarette, removeLastCigarette, startSmokingPhase,
     completeHeartBlock,

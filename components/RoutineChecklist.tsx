@@ -61,9 +61,11 @@ interface ItemRowProps {
   onToggle: () => void
   /** Optional inline element rendered between label and XP (e.g. timer pill). */
   inlineExtra?: React.ReactNode
+  /** Gdy podane (i pozycja niezrobiona) — pokazuje przycisk „→ jutro". */
+  onPostpone?: () => void
 }
 
-function ItemRow({ item, done, isMinimum, isOptional, onToggle, inlineExtra }: ItemRowProps) {
+function ItemRow({ item, done, isMinimum, isOptional, onToggle, inlineExtra, onPostpone }: ItemRowProps) {
   const accent = isMinimum ? 'forest' : 'gold'
   const xp = isMinimum ? item.xp * 2 : item.xp
   return (
@@ -89,6 +91,16 @@ function ItemRow({ item, done, isMinimum, isOptional, onToggle, inlineExtra }: I
         </span>
       </button>
       {inlineExtra}
+      {onPostpone && !done && (
+        <button
+          onClick={onPostpone}
+          title="Przenieś na jutro"
+          aria-label="Przenieś na jutro"
+          className="shrink-0 font-ui uppercase tracking-luxury text-[9px] text-muted-light hover:text-gold-deep border border-hairline hover:border-gold px-1.5 py-1 transition-colors"
+        >
+          → jutro
+        </button>
+      )}
       <span
         className={clsx(
           'font-ui uppercase tracking-luxury text-[10px] shrink-0',
@@ -239,7 +251,7 @@ function SupplementGuide({ itemId, dow, checkedSteps, onToggleStep }: GuideProps
 }
 
 export default function RoutineChecklist() {
-  const { todayLog, toggleRoutine, toggleSubStep, setDayMode } = useGameData()
+  const { todayLog, toggleRoutine, toggleSubStep, setDayMode, postponeRoutineToTomorrow } = useGameData()
   const checkedSubSteps = todayLog?.checkedSubSteps ?? []
   const { getEffectiveItems } = useRoutineConfig()
   const [tab, setTab] = useState<Tab>(getDefaultTab)
@@ -262,9 +274,16 @@ export default function RoutineChecklist() {
   const isWeekday = dow >= 1 && dow <= 5
 
   const extraDaily = [...weeklyToday, ...([1, 3, 5].includes(dow) ? [studyItem] : [])]
-  const allDailyItems = isWeekday
+  // Zadania dnia przeniesione Z dziś (chowamy z listy) i NA dziś (carried — dorenderujemy).
+  const postponedAway = todayLog?.postponedRoutine ?? []
+  const allDailyItems = (isWeekday
     ? getEffectiveItems('daily', false, extraDaily)
     : [...extraDaily, ...getEffectiveItems('daily', false).filter(i => i.id.startsWith('custom_'))]
+  ).filter(i => !postponedAway.includes(i.id))
+  // Przenosić można tylko zadania DNIA-SPECYFICZNE (tygodniowe + temat tygodnia),
+  // nie codzienne d1/d2/d3 — te i tak wracają każdego dnia.
+  const postponableIds = new Set<string>([...weeklyToday.map(i => i.id), studyItem.id])
+  const carried = (todayLog?.carriedRoutine ?? []).filter(c => !allDailyItems.some(i => i.id === c.id))
 
   const getItemSplit = (catTab: Tab): { essential: RoutineItem[]; optional: RoutineItem[] } => {
     if (!isMinimum || !minimumReason) {
@@ -416,6 +435,25 @@ export default function RoutineChecklist() {
 
         {/* Items */}
         <div className="pt-3">
+          {/* Zadania przeniesione NA dziś z innego dnia */}
+          {isDailyTab && carried.length > 0 && (
+            <div className="mb-3">
+              <div className="font-ui uppercase tracking-[0.36em] text-[9px] text-gold-deep mb-1.5 mt-1">
+                przeniesione na dziś
+              </div>
+              {carried.map(c => (
+                <ItemRow
+                  key={`carried-${c.id}`}
+                  item={{ id: c.id, text: c.text, xp: c.xp, type: 'daily' }}
+                  done={todayLog?.completedRoutine?.includes(c.id) ?? false}
+                  isMinimum={isMinimum}
+                  isOptional={false}
+                  onToggle={() => toggleRoutine(c.id, c.xp)}
+                />
+              ))}
+            </div>
+          )}
+
           {/* Group label for daily tab on weekdays */}
           {isDailyTab && weeklyToday.length > 0 && (
             <div className="font-ui uppercase tracking-[0.36em] text-[9px] text-gold-deep mb-1.5 mt-1">
@@ -446,6 +484,11 @@ export default function RoutineChecklist() {
                   isMinimum={isMinimum}
                   isOptional={false}
                   onToggle={() => toggleRoutine(item.id, item.xp)}
+                  onPostpone={
+                    isDailyTab && postponableIds.has(item.id) && !done
+                      ? () => postponeRoutineToTomorrow({ id: item.id, text: item.text, xp: item.xp })
+                      : undefined
+                  }
                   inlineExtra={
                     item.id === 'd1' ? (
                       <DeskTimer
@@ -516,6 +559,13 @@ export default function RoutineChecklist() {
             </div>
           )}
         </div>
+
+        {/* Przeniesione na jutro — cicha informacja */}
+        {isDailyTab && postponedAway.length > 0 && (
+          <p className="text-center pt-3 font-serif-body italic text-muted-light text-[13px]">
+            — przeniesione na jutro: {postponedAway.length} —
+          </p>
+        )}
 
         {/* Celebration */}
         {progress === 100 && (

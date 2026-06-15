@@ -42,6 +42,9 @@ export default function TomorrowChecklist() {
     ? getEffectiveItems('daily', false, extraDaily)
     : [...extraDaily, ...getEffectiveItems('daily', false).filter(i => i.id.startsWith('custom_'))]
 
+  // Zadania przeniesione NA jutro z innego dnia (np. dzisiejsza książka z hiszpańskiego).
+  const carriedTomorrow = (tomorrowLog?.carriedRoutine ?? []).filter(c => !allDailyItems.some(i => i.id === c.id))
+
   const ITEMS_MAP = {
     morning: getEffectiveItems('morning', false),
     daily:   allDailyItems,
@@ -144,6 +147,35 @@ export default function TomorrowChecklist() {
 
       {/* Items */}
       <div className="px-3 py-3 space-y-1">
+        {tab === 'daily' && carriedTomorrow.length > 0 && (
+          <>
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="block px-3 pb-1 pt-1">
+              przeniesione na jutro
+            </SmallCaps>
+            {carriedTomorrow.map(c => {
+              const done = tomorrowLog?.completedRoutine?.includes(c.id) ?? false
+              return (
+                <button
+                  key={`carried-${c.id}`}
+                  onClick={() => toggleTomorrowRoutine(c.id, c.xp)}
+                  className={clsx(
+                    'w-full flex items-center gap-3 px-3 py-3 text-left transition-all group',
+                    done ? 'bg-gold-pale/60' : 'hover:bg-cream'
+                  )}
+                >
+                  <span className={clsx('flex-shrink-0 transition-all', done ? 'text-gold' : 'text-hairline group-hover:text-gold-light')}>
+                    <Diamond size={10} filled={done} />
+                  </span>
+                  <p className={clsx('font-serif-body text-[14.5px] leading-snug flex-1', done ? 'text-muted italic line-through decoration-1' : 'text-dark')}>
+                    {c.text}
+                  </p>
+                  <SmallCaps tone={done ? 'gold' : 'muted'} tracking="luxury" size="xs">+ {c.xp}</SmallCaps>
+                </button>
+              )
+            })}
+          </>
+        )}
+
         {tab === 'daily' && isWeekday && weeklyTomorrow.length > 0 && (
           <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="block px-3 pb-1 pt-1">
             codzienne
