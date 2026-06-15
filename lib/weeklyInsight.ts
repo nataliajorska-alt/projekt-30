@@ -13,7 +13,7 @@
 import type { DailyLog } from '@/types'
 import {
   mannWhitneyU, spearman, kruskalWallis, bonferroni,
-  checkMWU, checkSpearman, checkKruskal,
+  checkMWU, checkSpearman, checkKruskal, THRESHOLDS,
 } from './statTests'
 import { HYPOTHESES, type Hypothesis, type HypothesisResult, type ExtractedData } from './weeklyHypotheses'
 
@@ -73,6 +73,12 @@ export function computeWeeklyInsight(
     if (data.test === 'mwu') {
       const r = mannWhitneyU(data.groupA, data.groupB)
       if (!r) { skipReason = 'no_data' }
+      else if (r.nA < THRESHOLDS.MIN_PER_GROUP || r.nB < THRESHOLDS.MIN_PER_GROUP) {
+        // Za mało obserwacji, by test mógł przejść próg n — NIE liczymy go do K
+        // (mianownika Bonferroniego). Inaczej testy-bez-mocy zawyżały korektę i
+        // chowały realne wzorce (p=0.01 × K~8 → 0.08). rawResult/rawP zostają null.
+        skipReason = 'n_too_small'
+      }
       else {
         rawP = r.p
         rawResult = {
@@ -88,6 +94,9 @@ export function computeWeeklyInsight(
     } else if (data.test === 'spearman') {
       const r = spearman(data.xs, data.ys)
       if (!r) { skipReason = 'no_data' }
+      else if (r.n < THRESHOLDS.MIN_TOTAL) {
+        skipReason = 'n_too_small'   // patrz wyżej — out z K
+      }
       else {
         rawP = r.p
         rawResult = {
@@ -102,6 +111,9 @@ export function computeWeeklyInsight(
     } else if (data.test === 'kruskal') {
       const r = kruskalWallis(data.groups)
       if (!r) { skipReason = 'no_data' }
+      else if (r.N < THRESHOLDS.MIN_TOTAL) {
+        skipReason = 'n_too_small'   // patrz wyżej — out z K
+      }
       else {
         rawP = r.p
         // Znajdź najlepszą i najgorszą grupę po średniej (do template).

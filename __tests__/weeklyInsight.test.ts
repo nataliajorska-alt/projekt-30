@@ -183,6 +183,43 @@ describe('computeWeeklyInsight — Bonferroni działa', () => {
   })
 })
 
+describe('computeWeeklyInsight — K nie zawiera testów bez mocy', () => {
+  it('testsRun liczy tylko testy z wystarczającym n (under-powered nie zawyżają Bonferroniego)', () => {
+    // Silny wzorzec rutyny porannej (n≥10 w obu grupach) + hipoteza z za małą
+    // próbką (tylko 2 dni social). Ta druga musi być n_too_small i NIE liczyć
+    // się do K — inaczej zawyżałaby korektę i chowała realny wzorzec.
+    const logs: Record<string, DailyLog> = {}
+    const start = new Date(2026, 3, 5)
+    for (let i = 0; i < 24; i++) {
+      const dt = new Date(start); dt.setDate(dt.getDate() + i)
+      const key = dateK(dt)
+      logs[key] = mkLog(key, {
+        morning: i < 12,                       // 12 z rutyną, 12 bez → n≥10 w obu grupach
+        moods: [i < 12 ? 4 + (i % 2) : 1 + (i % 2)],
+        social: i < 2,                         // tylko 2 dni social → grupa za mała
+      })
+    }
+    const r = computeWeeklyInsight(logs, '2026-W14')
+
+    // K = dokładnie te outcome'y, które faktycznie odpaliły test (miały rawP):
+    // passed / effect_too_small / p_too_high. n_too_small i no_data są POZA K.
+    const ran = r.outcomes.filter(o =>
+      o.passed || o.reason === 'effect_too_small' || o.reason === 'p_too_high'
+    ).length
+    expect(r.testsRun).toBe(ran)
+    expect(r.testsRun).toBeGreaterThan(0)
+
+    const underpowered = r.outcomes.filter(o =>
+      o.reason === 'n_too_small' || o.reason === 'no_data'
+    ).length
+    expect(r.testsRun).toBe(r.outcomes.length - underpowered)
+
+    // Hipoteza „social" (2 dni) nie może być liczona do K.
+    const social = r.outcomes.find(o => o.id === 'social_mood')
+    if (social) expect(['n_too_small', 'no_data']).toContain(social.reason)
+  })
+})
+
 describe('computeWeeklyInsight — output structure', () => {
   it('zawsze ma weekKey, generatedAt, headline, body', () => {
     const r = computeWeeklyInsight({}, '2026-W19')
