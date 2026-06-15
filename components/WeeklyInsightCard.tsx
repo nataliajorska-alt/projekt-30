@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import { useWeeklyInsight } from '@/hooks/useWeeklyInsight'
-import { RefreshCw, ChevronDown } from 'lucide-react'
+import Link from 'next/link'
+import { RefreshCw, ChevronDown, ArrowRight } from 'lucide-react'
 import type { SkipReason } from '@/lib/weeklyInsight'
 import { SmallCaps, Diamond, Fleuron, CornerBrackets } from '@/components/ui'
 
@@ -103,6 +104,17 @@ export default function WeeklyInsightCard({ moodDays }: { moodDays?: number }) {
         <span className="text-gold mx-2">·</span>
         wzorce aktualizują się automatycznie wraz z nowymi danymi.
       </div>
+
+      {/* #4 — zamknięcie pętli: od wzorca do działania, nie tylko do refleksji */}
+      {insight.hasContent && (
+        <Link
+          href="/quests"
+          className="inline-flex items-center gap-1.5 mt-4 font-ui uppercase tracking-luxury text-[10px] text-ivory bg-forest px-4 py-2 transition-opacity hover:opacity-85"
+        >
+          Zaplanuj eksperyment
+          <ArrowRight size={12} strokeWidth={1.5} />
+        </Link>
+      )}
 
       <button
         onClick={() => setShowDetails(s => !s)}

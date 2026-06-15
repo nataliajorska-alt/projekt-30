@@ -15,6 +15,7 @@ import MoodCheckInModal from '@/components/MoodCheckInModal'
 import KeyMomentCapture from '@/components/KeyMomentCapture'
 import ReturnCeremony from '@/components/ReturnCeremony'
 import DashboardNudges from '@/components/DashboardNudges'
+import DashboardInsight from '@/components/DashboardInsight'
 import SafeHoursBanner from '@/components/SafeHoursBanner'
 import CyclePhaseWidget from '@/components/CyclePhaseWidget'
 import MiniGardenWidget from '@/components/MiniGardenWidget'
@@ -261,6 +262,9 @@ export default function Dashboard() {
       {/* I — THE COUNTDOWN: today within the year */}
       <SectionLabel num={1} name="The Countdown" sub="punkt w roku" />
       <CountdownHero />
+
+      {/* Wzorzec tygodnia — pokazuje się tylko gdy silnik insightów coś znalazł */}
+      <ErrorBoundary label="Wzorzec tygodnia"><DashboardInsight /></ErrorBoundary>
 
       {/* II — THE GLANCE: orientation widgets (zwijane, by szybciej dojść do ćwiczenia) */}
       <CollapsibleSection num={2} name="The Glance" sub="stan rzeczy" storageKey="dash.collapse.glance">
