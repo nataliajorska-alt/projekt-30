@@ -1,4 +1,10 @@
 import type { Achievement, UserStats } from '@/types'
+import { LEVELS } from './gameLogic'
+
+// Próg XP danego poziomu z kanonicznej tabeli LEVELS — żeby osiągnięcia
+// „poziom N" nie rozjeżdżały się z faktycznymi progami. Wcześniej zahardkodowane
+// 12000/52000/129000 odpalały odpowiednio na poziomie 8/17/25, nie 10/20/29.
+const lvlXP = (n: number): number => LEVELS.find(l => l.level === n)?.xpRequired ?? 0
 
 export const ACHIEVEMENTS: Achievement[] = [
   {
@@ -110,8 +116,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: 'Osiągnięto poziom 10 — Pewna.',
     icon: '🪐',
     xpReward: 300,
-    condition: (s) => s.totalXP >= 12000,
-    progress: (s) => ({ current: Math.min(s.totalXP, 12000), target: 12000, label: 'XP' }),
+    condition: (s) => s.totalXP >= lvlXP(10),
+    progress: (s) => ({ current: Math.min(s.totalXP, lvlXP(10)), target: lvlXP(10), label: 'XP' }),
   },
   {
     id: 'level_20',
@@ -119,8 +125,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: 'Osiągnięto poziom 20 — Wartościowa.',
     icon: '💎',
     xpReward: 1000,
-    condition: (s) => s.totalXP >= 52000,
-    progress: (s) => ({ current: Math.min(s.totalXP, 52000), target: 52000, label: 'XP' }),
+    condition: (s) => s.totalXP >= lvlXP(20),
+    progress: (s) => ({ current: Math.min(s.totalXP, lvlXP(20)), target: lvlXP(20), label: 'XP' }),
   },
   {
     id: 'level_29',
@@ -128,8 +134,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: 'Poziom 29. Jeden poziom do finału.',
     icon: '👑',
     xpReward: 2000,
-    condition: (s) => s.totalXP >= 129000,
-    progress: (s) => ({ current: Math.min(s.totalXP, 129000), target: 129000, label: 'XP' }),
+    condition: (s) => s.totalXP >= lvlXP(29),
+    progress: (s) => ({ current: Math.min(s.totalXP, lvlXP(29)), target: lvlXP(29), label: 'XP' }),
   },
   {
     id: 'level_30',
@@ -137,8 +143,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: 'Finał projektu. Wszystko, czym się stałaś, jest teraz Twoje.',
     icon: '👸',
     xpReward: 3000,
-    condition: (s) => s.totalXP >= 200000,
-    progress: (s) => ({ current: Math.min(s.totalXP, 200000), target: 200000, label: 'XP' }),
+    condition: (s) => s.totalXP >= lvlXP(30),
+    progress: (s) => ({ current: Math.min(s.totalXP, lvlXP(30)), target: lvlXP(30), label: 'XP' }),
   },
   {
     id: 'routines_100',

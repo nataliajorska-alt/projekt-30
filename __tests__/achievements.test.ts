@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { ACHIEVEMENTS } from '@/lib/achievements'
+import { LEVELS } from '@/lib/gameLogic'
 import type { UserStats, Pillar } from '@/types'
+
+// Progi „poziom N" wyprowadzamy z LEVELS, a nie z literałów — inaczej test
+// utrwalałby ewentualny błąd zamiast go łapać (kiedyś pinował 12000/52000/129000).
+const lvlXP = (n: number): number => LEVELS.find(l => l.level === n)!.xpRequired
 
 const baseStats: UserStats = {
   totalXP: 0,
@@ -128,10 +133,10 @@ describe('XP-based achievements', () => {
   })
 
   it.each([
-    ['level_10', 12000],
-    ['level_20', 52000],
-    ['level_29', 129000],
-    ['level_30', 200000],
+    ['level_10', lvlXP(10)],
+    ['level_20', lvlXP(20)],
+    ['level_29', lvlXP(29)],
+    ['level_30', lvlXP(30)],
   ])('%s unlocks at totalXP >= %i', (id, xp) => {
     expect(get(id).condition(stats({ totalXP: xp - 1 }))).toBe(false)
     expect(get(id).condition(stats({ totalXP: xp }))).toBe(true)
