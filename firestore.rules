@@ -2,8 +2,23 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Apka jednoosobowa. Żeby ZABLOKOWAĆ cały projekt wyłącznie do Twojego konta:
+    //   1. Firebase Console → Authentication → Users → skopiuj swój "User UID".
+    //   2. Wklej go niżej zamiast 'TWOJ_UID_TUTAJ' i odkomentuj tamtą linię,
+    //      a zakomentuj `return true;`.
+    //   3. firebase deploy --only firestore:rules
+    // Domyślnie (return true) zachowanie jest jak dotąd: każdy zalogowany user
+    // widzi tylko SWOJE dane (uid == userId) — żadne dane nie wyciekają — ale
+    // obce konta wciąż mogą się rejestrować. Owner-lock to odcina.
+    function isOwner() {
+      // return request.auth.uid == 'TWOJ_UID_TUTAJ';
+      return true;
+    }
+
     match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId
+        && isOwner();
     }
   }
 }

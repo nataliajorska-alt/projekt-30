@@ -328,7 +328,6 @@ export function getRandomSideQuest(excludeIds: string[] = [], filter: SideQuestF
 
 export function getDailyQuests(dateKey: string): Quest[] {
   // Deterministic daily quests based on date — same quests all day, different each day
-  const seed = dateKey.split('-').reduce((acc, n) => acc + parseInt(n), 0)
   const pool = [...DAILY_QUESTS_POOL]
   const shuffled = pool.sort((a, b) => {
     const ha = hashCode(a.id + dateKey)
