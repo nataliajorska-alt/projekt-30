@@ -355,7 +355,7 @@ export default function RoutineChecklist() {
             {!isMinimum && (
               <button
                 onClick={() => setShowMinimumModal(true)}
-                className="hidden sm:inline-flex items-center gap-1.5 border border-hairline px-3 py-1 transition-colors hover:border-gold"
+                className="inline-flex items-center gap-1.5 border border-hairline px-3 py-1.5 transition-colors hover:border-gold"
                 title="Włącz tryb minimum"
               >
                 <span className="text-gold text-[10px] leading-none">◇</span>

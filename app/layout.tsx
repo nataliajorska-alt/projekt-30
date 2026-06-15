@@ -28,7 +28,8 @@ export const viewport: Viewport = {
   themeColor: '#1A2420',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  // maximumScale celowo usunięte — blokowało pinch-zoom (WCAG 1.4.4) w apce
+  // z mnóstwem tekstu 8–11px na telefonie.
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
