@@ -49,27 +49,29 @@ export default function ContinuityBanner({ show, onToggle, label, focusLabel, fo
             <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-2">
               Oceny filarów
             </SmallCaps>
-            <div className="flex gap-2 flex-wrap">
+            {/* Scorecard: wszystkie 7 filarów w jednej linii (na mobile 4 w rzędzie).
+                Pionowy układ (etykieta nad liczbą) mieści się tam, gdzie poziome
+                pigułki by się nie zmieściły przy szerokości dokumentu. */}
+            <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
               {PILLARS.map(p => {
                 const c = JEWEL[p.id] ?? p.color
                 const val = pillarsRated[p.id] ?? 0
                 return (
                   <div
                     key={p.id}
-                    className="flex items-center gap-2 bg-ivory border border-hairline px-3 py-1.5"
+                    className="bg-ivory border border-hairline px-1.5 py-2 text-center"
                   >
-                    {/* kolor zostaje tylko na rombie (dekoracja); etykieta i liczba
-                        ciemne = czytelne (raw p.color np. złoty Styl mdlał na ivory) */}
-                    <span style={{ color: c }}>
-                      <Diamond size={4} filled />
-                    </span>
-                    <SmallCaps tracking="luxury" size="xs">
-                      <span className="text-dark">{p.shortName}</span>
-                    </SmallCaps>
-                    <span className="font-display font-medium text-[15px] tabular-nums text-dark leading-none">
+                    {/* kolor tylko na rombie; etykieta i liczba ciemne = czytelne */}
+                    <div className="flex items-center justify-center gap-1.5 leading-none">
+                      <span style={{ color: c }}><Diamond size={4} filled /></span>
+                      <span className="font-ui uppercase tracking-[0.06em] text-[9px] text-dark">
+                        {p.shortName}
+                      </span>
+                    </div>
+                    <div className="font-display font-medium text-[17px] tabular-nums text-dark leading-none mt-1.5">
                       {val}
-                      <span className="font-serif-body not-italic text-[10px] text-muted-light ml-0.5">/5</span>
-                    </span>
+                      <span className="font-serif-body italic text-[10px] text-muted-light">/5</span>
+                    </div>
                   </div>
                 )
               })}
