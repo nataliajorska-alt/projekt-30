@@ -4,6 +4,7 @@ import {
   collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { getDaysElapsed, todayKey } from '@/lib/gameLogic'
 import { VaultEntrySchema, VaultReplySchema, parseSafe } from '@/lib/schemas'
@@ -29,7 +30,7 @@ export function useVault() {
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
-    const ref = collection(db, 'users', user.uid, 'vault')
+    const ref = collection(db, ...paths.vaultCol(user.uid))
     const q = query(ref, orderBy('createdAt', 'desc'))
     const snap = await getDocs(q)
 
@@ -39,7 +40,7 @@ export function useVault() {
       const parsed = parseSafe<VaultEntry>(VaultEntrySchema, raw, { ...raw } as VaultEntry, `VaultEntry ${d.id}`)
 
       const repliesSnap = await getDocs(query(
-        collection(db, 'users', user.uid, 'vault', d.id, 'replies'),
+        collection(db, ...paths.vaultRepliesCol(user.uid, d.id)),
         orderBy('createdAt', 'asc'),
       ))
       const replies: VaultReply[] = repliesSnap.docs.map(r => {
@@ -58,7 +59,7 @@ export function useVault() {
 
   const addEntry = useCallback(async (draft: NewLetterDraft) => {
     if (!user) return
-    const ref = collection(db, 'users', user.uid, 'vault')
+    const ref = collection(db, ...paths.vaultCol(user.uid))
     const isVent = draft.letterType === 'vent'
     const dateKey = todayKey()
     const dayOfProject = getDaysElapsed() + 1
@@ -103,9 +104,9 @@ export function useVault() {
   const removeEntry = useCallback(async (id: string) => {
     if (!user) return
     // Usuwamy najpierw replies, potem sam list.
-    const repliesSnap = await getDocs(collection(db, 'users', user.uid, 'vault', id, 'replies'))
+    const repliesSnap = await getDocs(collection(db, ...paths.vaultRepliesCol(user.uid, id)))
     await Promise.all(repliesSnap.docs.map(r => deleteDoc(r.ref)))
-    await deleteDoc(doc(db, 'users', user.uid, 'vault', id))
+    await deleteDoc(doc(db, ...paths.vaultDoc(user.uid, id)))
     setEntries(prev => prev.filter(e => e.id !== id))
   }, [user?.uid])
 
@@ -115,7 +116,7 @@ export function useVault() {
     moodAtWriting?: MoodState,
   ) => {
     if (!user || !content.trim()) return
-    const ref = collection(db, 'users', user.uid, 'vault', letterId, 'replies')
+    const ref = collection(db, ...paths.vaultRepliesCol(user.uid, letterId))
     const dateKey = todayKey()
     const dayOfProject = getDaysElapsed() + 1
     const payload: Record<string, unknown> = {
@@ -142,7 +143,7 @@ export function useVault() {
 
   const removeReply = useCallback(async (letterId: string, replyId: string) => {
     if (!user) return
-    await deleteDoc(doc(db, 'users', user.uid, 'vault', letterId, 'replies', replyId))
+    await deleteDoc(doc(db, ...paths.vaultReplyDoc(user.uid, letterId, replyId)))
     setEntries(prev => prev.map(e =>
       e.id === letterId ? { ...e, replies: (e.replies ?? []).filter(r => r.id !== replyId) } : e
     ))

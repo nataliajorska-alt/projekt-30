@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import type { CycleLog } from '@/lib/cycle-data'
 
@@ -15,7 +16,7 @@ export function useCycleData() {
     setLoading(true)
     try {
       const snap = await getDocs(
-        query(collection(db, 'users', user.uid, 'cycle'), orderBy('startDate', 'desc'))
+        query(collection(db, ...paths.cycleCol(user.uid)), orderBy('startDate', 'desc'))
       )
       setLogs(snap.docs.map(d => ({ ...d.data(), docId: d.id } as CycleLog)))
     } finally {
@@ -32,13 +33,13 @@ export function useCycleData() {
       startDate,
       savedAt: new Date().toISOString(),
     }
-    await addDoc(collection(db, 'users', user.uid, 'cycle'), entry)
+    await addDoc(collection(db, ...paths.cycleCol(user.uid)), entry)
     await fetchLogs()
   }, [user, fetchLogs])
 
   const deleteCycleLog = useCallback(async (docId: string) => {
     if (!user) return
-    await deleteDoc(doc(db, 'users', user.uid, 'cycle', docId))
+    await deleteDoc(doc(db, ...paths.cycleDoc(user.uid, docId)))
     await fetchLogs()
   }, [user, fetchLogs])
 

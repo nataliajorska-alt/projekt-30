@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import type { NominatedContact } from '@/types'
 
@@ -13,7 +14,7 @@ export function useNominatedContacts() {
   const fetch = useCallback(async () => {
     if (!user) { setLoading(false); return }
     try {
-      const snap = await getDoc(doc(db, 'users', user.uid, 'data', 'appSettings'))
+      const snap = await getDoc(doc(db, ...paths.dataDoc(user.uid, 'appSettings')))
       if (snap.exists()) setContacts(snap.data().nominatedContacts ?? [])
     } catch (err) {
       console.error('nominatedContacts fetch error:', err)
@@ -27,7 +28,7 @@ export function useNominatedContacts() {
   const saveContacts = useCallback(async (updated: NominatedContact[]) => {
     if (!user) return
     await setDoc(
-      doc(db, 'users', user.uid, 'data', 'appSettings'),
+      doc(db, ...paths.dataDoc(user.uid, 'appSettings')),
       { nominatedContacts: updated },
       { merge: true }
     )

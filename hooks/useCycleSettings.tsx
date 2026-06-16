@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { DEFAULT_CYCLE_SETTINGS, type CycleSettings } from '@/lib/cycle-data'
 
@@ -13,7 +14,7 @@ export function useCycleSettings() {
 
   useEffect(() => {
     if (!user) return
-    const ref = doc(db, 'users', user.uid, 'data', 'cycleSettings')
+    const ref = doc(db, ...paths.dataDoc(user.uid, 'cycleSettings'))
     getDoc(ref)
       .then(snap => {
         if (snap.exists()) setSettings({ ...DEFAULT_CYCLE_SETTINGS, ...snap.data() })
@@ -26,7 +27,7 @@ export function useCycleSettings() {
     if (!user) return
     setSaving(true)
     try {
-      await setDoc(doc(db, 'users', user.uid, 'data', 'cycleSettings'), s)
+      await setDoc(doc(db, ...paths.dataDoc(user.uid, 'cycleSettings')), s)
       setSettings(s)
     } finally {
       setSaving(false)

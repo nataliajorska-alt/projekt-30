@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { useGameData } from './useGameData'
 import type { Pillar } from '@/types'
@@ -33,7 +34,7 @@ export function useAprilQuests() {
   const [log, setLog] = useState<AprilQuestLog>(DEFAULT_LOG)
   const [loading, setLoading] = useState(true)
 
-  const logRef = user ? doc(db, 'users', user.uid, 'data', 'aprilQuestLog') : null
+  const logRef = user ? doc(db, ...paths.dataDoc(user.uid, 'aprilQuestLog')) : null
 
   useEffect(() => {
     if (!user || !logRef) { setLoading(false); return }

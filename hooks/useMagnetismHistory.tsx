@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { parseSafe, DailyLogSchema } from '@/lib/schemas'
 import type { DailyLog } from '@/types'
@@ -21,7 +22,7 @@ export function useMagnetismHistory(days: number = 7) {
   useEffect(() => {
     if (!user) { setLoading(false); return }
 
-    const logsRef = collection(db, 'users', user.uid, 'logs')
+    const logsRef = collection(db, ...paths.logsCol(user.uid))
     const q = query(logsRef, orderBy('date', 'desc'), limit(days))
 
     getDocs(q).then(snap => {

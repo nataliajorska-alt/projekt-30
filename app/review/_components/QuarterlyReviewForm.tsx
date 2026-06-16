@@ -6,6 +6,7 @@ import { useTimelineData } from '@/hooks/useTimelineData'
 import type { MonthlyReview, QuarterlyReview, GhostLogEntryV2, HonestFailureEntry, Pillar } from '@/types'
 import { SMOKING_PHASE_META } from '@/types'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { doc, setDoc } from 'firebase/firestore'
 import { dateKey, XP_VALUES } from '@/lib/gameLogic'
 import { getMonthAggregate, computeStreaks, type LogMap } from '@/lib/analytics'
@@ -157,7 +158,7 @@ export default function QuarterlyReviewForm({
     if (!user) return
     setSaving(true)
     try {
-      const ref = doc(db, 'users', user.uid, 'quarterlyReviews', currentQuarter)
+      const ref = doc(db, ...paths.quarterlyReviewDoc(user.uid, currentQuarter))
       await setDoc(ref, {
         quarter: currentQuarter, lessons, openFronts, bridgeToNext, whatChanged,
         xpEarned: XP_VALUES.quarterlyReview, savedAt: new Date().toISOString(),

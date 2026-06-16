@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { getISOWeekKey } from '@/lib/gameLogic'
 
@@ -23,7 +24,7 @@ export function useWeeklyInsightBadge(): boolean {
         return
       }
       try {
-        const ref = doc(db, 'users', user.uid, 'insights', weekKey)
+        const ref = doc(db, ...paths.insightDoc(user.uid, weekKey))
         const snap = await getDoc(ref)
         setHasNew(snap.exists())
       } catch {

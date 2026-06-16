@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { collection, query, orderBy, limit, getDocs, where, doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from '@/hooks/useAuth'
 import { todayKey } from '@/lib/gameLogic'
 import type { MoodCheckIn } from '@/types'
@@ -88,7 +89,7 @@ export default function DashboardNudges() {
 
     ;(async () => {
       try {
-        const photosRef = collection(db, 'users', user.uid, 'photos')
+        const photosRef = collection(db, ...paths.photosCol(user.uid))
         const q = query(photosRef, orderBy('createdAt', 'desc'), limit(1))
         const snap = await getDocs(q)
         if (snap.empty) {
@@ -105,7 +106,7 @@ export default function DashboardNudges() {
 
     ;(async () => {
       try {
-        const vaultRef = collection(db, 'users', user.uid, 'vault')
+        const vaultRef = collection(db, ...paths.vaultCol(user.uid))
         const q = query(vaultRef, orderBy('createdAt', 'desc'), limit(1))
         const snap = await getDocs(q)
         if (snap.empty) {
@@ -123,7 +124,7 @@ export default function DashboardNudges() {
     ;(async () => {
       try {
         const crisisQuery = query(
-          collection(db, 'users', user.uid, 'vault'),
+          collection(db, ...paths.vaultCol(user.uid)),
           where('letterType', '==', 'crisis'),
           limit(1),
         )
@@ -139,7 +140,7 @@ export default function DashboardNudges() {
         }
 
         const logSnaps = await Promise.all(
-          dateKeys.map(k => getDoc(doc(db, 'users', user.uid, 'logs', k)))
+          dateKeys.map(k => getDoc(doc(db, ...paths.logDoc(user.uid, k))))
         )
         const dailyAverages: number[] = []
         for (const snap of logSnaps) {

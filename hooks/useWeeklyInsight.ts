@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { useTimelineData } from './useTimelineData'
 import { getISOWeekKey } from '@/lib/gameLogic'
@@ -29,7 +30,7 @@ export function useWeeklyInsight() {
     if (!user || logsLoading) return
     setLoading(true)
 
-    const ref = doc(db, 'users', user.uid, 'insights', weekKey)
+    const ref = doc(db, ...paths.insightDoc(user.uid, weekKey))
     const snap = await getDoc(ref)
 
     if (snap.exists()) {
@@ -69,7 +70,7 @@ export function useWeeklyInsight() {
     if (!user) return
     setLoading(true)
     const fresh = computeWeeklyInsight(logs, weekKey)
-    const ref = doc(db, 'users', user.uid, 'insights', weekKey)
+    const ref = doc(db, ...paths.insightDoc(user.uid, weekKey))
     await setDoc(ref, fresh)
     setInsight(fresh)
     setHasNewBadge(true)

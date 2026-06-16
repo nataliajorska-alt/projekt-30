@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from '@/hooks/useAuth'
 
 export function useSparkSchedule() {
@@ -12,7 +13,7 @@ export function useSparkSchedule() {
 
   useEffect(() => {
     if (!user) return
-    const ref = doc(db, 'users', user.uid, 'data', 'sparkSchedule')
+    const ref = doc(db, ...paths.dataDoc(user.uid, 'sparkSchedule'))
     getDoc(ref)
       .then(snap => {
         if (snap.exists()) setSparks(snap.data().sparks ?? {})
@@ -25,7 +26,7 @@ export function useSparkSchedule() {
     if (!user) return
     setSaving(true)
     try {
-      const ref = doc(db, 'users', user.uid, 'data', 'sparkSchedule')
+      const ref = doc(db, ...paths.dataDoc(user.uid, 'sparkSchedule'))
       await setDoc(ref, { sparks: updated })
       setSparks(updated)
     } finally {

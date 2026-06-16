@@ -7,6 +7,7 @@ import { useTimelineData } from '@/hooks/useTimelineData'
 import { Pillar } from '@/types'
 import PillarRating from './PillarRating'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { doc, setDoc } from 'firebase/firestore'
 import { getMonthKey, XP_VALUES } from '@/lib/gameLogic'
 import { getMonthAggregate } from '@/lib/analytics'
@@ -48,7 +49,7 @@ export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyRevi
     if (!user) return
     setSaving(true)
     try {
-      const ref = doc(db, 'users', user.uid, 'monthlyReviews', monthKey)
+      const ref = doc(db, ...paths.monthlyReviewDoc(user.uid, monthKey))
       await setDoc(ref, {
         month: monthKey, highlights, challenges,
         pillarsRated: ratings, intentionNextMonth: intention,

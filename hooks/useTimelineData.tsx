@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { parseSafe, DailyLogSchema } from '@/lib/schemas'
 import type { DailyLog } from '@/types'
@@ -14,7 +15,7 @@ export function useTimelineData() {
   const fetchLogs = useCallback(async () => {
     if (!user) { setLoading(false); return }
     try {
-      const snap = await getDocs(collection(db, 'users', user.uid, 'logs'))
+      const snap = await getDocs(collection(db, ...paths.logsCol(user.uid)))
       const map: Record<string, DailyLog> = {}
       snap.forEach(doc => {
         const parsed = parseSafe<DailyLog>(

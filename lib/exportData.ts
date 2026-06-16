@@ -1,5 +1,6 @@
 import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import type { DailyLog, WeeklyReview, MonthlyReview, UserStats } from '@/types'
 import { SIDE_QUESTS, getDailyQuests } from '@/lib/questData'
 import { DAILY_RULES } from '@/lib/routineData'
@@ -67,7 +68,7 @@ export interface DateRange {
 // ── Eksport logów dziennych ──────────────────────────────────────
 export async function exportLogsAsCSV(uid: string, range: DateRange = { from: null, to: null }) {
   const snap = await getDocs(query(
-    collection(db, 'users', uid, 'logs'),
+    collection(db, ...paths.logsCol(uid)),
     orderBy('date', 'asc')
   ))
 
@@ -161,7 +162,7 @@ export async function exportLogsAsCSV(uid: string, range: DateRange = { from: nu
 // ── Eksport ukończonych questów ──────────────────────────────────
 export async function exportQuestsAsCSV(uid: string, range: DateRange = { from: null, to: null }) {
   const snap = await getDocs(query(
-    collection(db, 'users', uid, 'logs'),
+    collection(db, ...paths.logsCol(uid)),
     orderBy('date', 'asc')
   ))
 
@@ -208,8 +209,8 @@ export async function exportQuestsAsCSV(uid: string, range: DateRange = { from: 
 // ── Eksport przeglądów tygodniowych i miesięcznych ───────────────
 export async function exportReviewsAsCSV(uid: string, range: DateRange = { from: null, to: null }) {
   const [weeklySnap, monthlySnap] = await Promise.all([
-    getDocs(query(collection(db, 'users', uid, 'weeklyReviews'), orderBy('weekStart', 'asc'))),
-    getDocs(query(collection(db, 'users', uid, 'monthlyReviews'), orderBy('month', 'asc'))),
+    getDocs(query(collection(db, ...paths.weeklyReviewsCol(uid)), orderBy('weekStart', 'asc'))),
+    getDocs(query(collection(db, ...paths.monthlyReviewsCol(uid)), orderBy('month', 'asc'))),
   ])
 
   const pillarCols = PILLAR_LABELS.map(p => `Ocena: ${p}`)
@@ -257,7 +258,7 @@ export async function exportReviewsAsCSV(uid: string, range: DateRange = { from:
 
 // ── Eksport statystyk globalnych ─────────────────────────────────
 export async function exportStatsAsCSV(uid: string) {
-  const snap = await getDoc(doc(db, 'users', uid, 'data', 'stats'))
+  const snap = await getDoc(doc(db, ...paths.dataDoc(uid, 'stats')))
   if (!snap.exists()) return
 
   const s = snap.data() as UserStats
@@ -327,16 +328,16 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
     ghostV2Snap, honestFailureSnap, vaultSnap, photosSnap,
     cycleSnap, aprilQuestSnap,
   ] = await Promise.all([
-    getDocs(query(collection(db, 'users', uid, 'logs'), orderBy('date', 'asc'))),
-    getDocs(query(collection(db, 'users', uid, 'weeklyReviews'), orderBy('weekStart', 'asc'))),
-    getDocs(query(collection(db, 'users', uid, 'monthlyReviews'), orderBy('month', 'asc'))),
-    getDoc(doc(db, 'users', uid, 'data', 'stats')),
-    getDoc(doc(db, 'users', uid, 'data', 'ghostLogV2')),
-    getDoc(doc(db, 'users', uid, 'data', 'honestFailureLog')),
-    getDocs(query(collection(db, 'users', uid, 'vault'), orderBy('createdAt', 'asc'))),
-    getDocs(query(collection(db, 'users', uid, 'photos'), orderBy('dateKey', 'asc'))),
-    getDocs(query(collection(db, 'users', uid, 'cycle'), orderBy('startDate', 'asc'))),
-    getDoc(doc(db, 'users', uid, 'data', 'aprilQuestLog')),
+    getDocs(query(collection(db, ...paths.logsCol(uid)), orderBy('date', 'asc'))),
+    getDocs(query(collection(db, ...paths.weeklyReviewsCol(uid)), orderBy('weekStart', 'asc'))),
+    getDocs(query(collection(db, ...paths.monthlyReviewsCol(uid)), orderBy('month', 'asc'))),
+    getDoc(doc(db, ...paths.dataDoc(uid, 'stats'))),
+    getDoc(doc(db, ...paths.dataDoc(uid, 'ghostLogV2'))),
+    getDoc(doc(db, ...paths.dataDoc(uid, 'honestFailureLog'))),
+    getDocs(query(collection(db, ...paths.vaultCol(uid)), orderBy('createdAt', 'asc'))),
+    getDocs(query(collection(db, ...paths.photosCol(uid)), orderBy('dateKey', 'asc'))),
+    getDocs(query(collection(db, ...paths.cycleCol(uid)), orderBy('startDate', 'asc'))),
+    getDoc(doc(db, ...paths.dataDoc(uid, 'aprilQuestLog'))),
   ])
   // ── NOWE: imports danych statycznych ──────────────────────────
   const { ACHIEVEMENTS } = await import('./achievements')

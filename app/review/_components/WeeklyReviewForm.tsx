@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Pillar } from '@/types'
 import PillarRating from './PillarRating'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { doc, setDoc } from 'firebase/firestore'
 import { XP_VALUES } from '@/lib/gameLogic'
 import type { WeeklyReview } from '@/types'
@@ -50,7 +51,7 @@ export default function WeeklyReviewForm({ user, stats, submitWeeklyReview, last
     if (!user) return
     setSaving(true)
     try {
-      const ref = doc(db, 'users', user.uid, 'reviews', weekStart)
+      const ref = doc(db, ...paths.reviewDoc(user.uid, weekStart))
       await setDoc(ref, {
         weekStart, highlights, challenges, nextWeekFocus: nextFocus,
         pillarsRated: ratings, xpEarned: XP_VALUES.weeklyReview,

@@ -5,6 +5,7 @@ import {
   increment, arrayUnion, arrayRemove,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import type { DailyLog, UserStats, MoodCheckIn, KeyMoment, CustomSideQuestEntry, CarriedRoutineItem, Pillar, CigaretteEntry, CigaretteContext, SmokingPhase, GhostLogEntryV2, HonestFailureEntry } from '@/types'
 import {
@@ -114,8 +115,8 @@ export function useGameData() {
     return () => clearInterval(interval)
   }, [])
 
-  const statsRef = user ? doc(db, 'users', user.uid, 'data', 'stats') : null
-  const todayRef = user ? doc(db, 'users', user.uid, 'logs', currentDateKey) : null
+  const statsRef = user ? doc(db, ...paths.dataDoc(user.uid, 'stats')) : null
+  const todayRef = user ? doc(db, ...paths.logDoc(user.uid, currentDateKey)) : null
 
   useEffect(() => {
     if (!user || !statsRef || !todayRef) { setLoading(false); return }
@@ -167,7 +168,7 @@ export function useGameData() {
           // Heal corrupt totalXP in-place so the bad value doesn't come back next read.
           const rawXP = (raw as { totalXP?: unknown }).totalXP
           if (!Number.isFinite(rawXP) || (rawXP as number) < 0) {
-            setDoc(doc(db, 'users', user!.uid, 'logs', currentDateKey), { totalXP: parsed.totalXP }, { merge: true })
+            setDoc(doc(db, ...paths.logDoc(user!.uid, currentDateKey)), { totalXP: parsed.totalXP }, { merge: true })
           }
         } else {
           setTodayLog(emptyDailyLog)
@@ -640,7 +641,7 @@ export function useGameData() {
     const t = new Date(yy, mm - 1, dd)
     t.setDate(t.getDate() + 1)
     const tomorrowK = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
-    const tomorrowLogRef = doc(db, 'users', user.uid, 'logs', tomorrowK)
+    const tomorrowLogRef = doc(db, ...paths.logDoc(user.uid, tomorrowK))
     const entry: CarriedRoutineItem = { id: item.id, text: item.text, xp: item.xp, fromDate: currentDateKey }
     await Promise.all([
       setDoc(todayRef, { postponedRoutine: arrayUnion(item.id), date: currentDateKey }, { merge: true }),
@@ -823,11 +824,11 @@ export function useGameData() {
 
     const [currentStatsSnap, logsSnap, weeklySnap, monthlySnap, ghostV2Snap, failureSnap] = await Promise.all([
       getDoc(statsRef),
-      getDocs(collection(db, 'users', user.uid, 'logs')),
-      getDocs(collection(db, 'users', user.uid, 'reviews')),
-      getDocs(collection(db, 'users', user.uid, 'monthlyReviews')),
-      getDoc(doc(db, 'users', user.uid, 'data', 'ghostLogV2')),
-      getDoc(doc(db, 'users', user.uid, 'data', 'honestFailureLog')),
+      getDocs(collection(db, ...paths.logsCol(user.uid))),
+      getDocs(collection(db, ...paths.reviewsCol(user.uid))),
+      getDocs(collection(db, ...paths.monthlyReviewsCol(user.uid))),
+      getDoc(doc(db, ...paths.dataDoc(user.uid, 'ghostLogV2'))),
+      getDoc(doc(db, ...paths.dataDoc(user.uid, 'honestFailureLog'))),
     ])
 
     // Pola których pętla po logach nie odbuduje — czytamy je z aktualnych stats,

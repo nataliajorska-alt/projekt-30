@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { doc, setDoc, onSnapshot, increment, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import type { DailyLog, Pillar } from '@/types'
 import { tomorrowKey } from '@/lib/gameLogic'
@@ -19,8 +20,8 @@ export function useTomorrowData() {
   const [loading, setLoading] = useState(true)
   const dateKey = tomorrowKey()
 
-  const tomorrowRef = user ? doc(db, 'users', user.uid, 'logs', dateKey) : null
-  const statsRef    = user ? doc(db, 'users', user.uid, 'data', 'stats') : null
+  const tomorrowRef = user ? doc(db, ...paths.logDoc(user.uid, dateKey)) : null
+  const statsRef    = user ? doc(db, ...paths.dataDoc(user.uid, 'stats')) : null
 
   useEffect(() => {
     if (!user || !tomorrowRef) { setLoading(false); return }
@@ -64,7 +65,7 @@ export function useTomorrowData() {
     // ALSO sync to aprilQuestLog — the canonical store DailyQuests reads from.
     // Bez tego quest zrobiony „na zapas" wczoraj nie wyświetli się dziś jako zrobiony.
     // arrayUnion/arrayRemove jest idempotentne, więc nie trzeba czytać stanu z getDoc.
-    const aprilQuestLogRef = doc(db, 'users', user.uid, 'data', 'aprilQuestLog')
+    const aprilQuestLogRef = doc(db, ...paths.dataDoc(user.uid, 'aprilQuestLog'))
 
     await Promise.all([
       setDoc(tomorrowRef, {

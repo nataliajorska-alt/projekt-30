@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from '@/hooks/useAuth'
 import {
   MORNING_ROUTINE, EVENING_ROUTINE, DAILY_HABITS,
@@ -24,7 +25,7 @@ export function useRoutineConfig() {
 
   useEffect(() => {
     if (!user) return
-    const ref = doc(db, 'users', user.uid, 'config', 'routines')
+    const ref = doc(db, ...paths.configDoc(user.uid, 'routines'))
     const unsub = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
         setConfig({ ...DEFAULT_CONFIG, ...snap.data() } as RoutineConfig)
@@ -40,7 +41,7 @@ export function useRoutineConfig() {
 
   const saveConfig = useCallback(async (updates: Partial<RoutineConfig>) => {
     if (!user) return
-    const ref = doc(db, 'users', user.uid, 'config', 'routines')
+    const ref = doc(db, ...paths.configDoc(user.uid, 'routines'))
     const next = { ...config, ...updates, updatedAt: new Date().toISOString() }
     setConfig(next)
     await setDoc(ref, next, { merge: true })

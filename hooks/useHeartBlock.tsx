@@ -4,6 +4,7 @@ import {
   collection, doc, getDoc, setDoc, getDocs, query, orderBy, serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { parseSafe, HeartBlockSchema } from '@/lib/schemas'
 import { todayKey, getISOWeekKey } from '@/lib/gameLogic'
@@ -50,13 +51,13 @@ export function useHeartBlock() {
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
-    const ref = doc(db, 'users', user.uid, 'heartBlocks', weekKey)
+    const ref = doc(db, ...paths.heartBlockDoc(user.uid, weekKey))
     const snap = await getDoc(ref)
     setBlock(snap.exists()
       ? parseSafe<HeartBlock>(HeartBlockSchema, snap.data(), emptyBlock(weekKey), `HeartBlock ${weekKey}`)
       : emptyBlock(weekKey))
 
-    const histRef = collection(db, 'users', user.uid, 'heartBlocks')
+    const histRef = collection(db, ...paths.heartBlocksCol(user.uid))
     const q = query(histRef, orderBy('weekKey', 'desc'))
     const histSnap = await getDocs(q)
     setHistory(histSnap.docs.map(d => parseSafe<HeartBlock>(HeartBlockSchema, d.data(), emptyBlock(d.id), `HeartBlock ${d.id}`)))
@@ -74,7 +75,7 @@ export function useHeartBlock() {
       updatedAt: new Date().toISOString(),
     }
     setBlock(merged)
-    const ref = doc(db, 'users', user.uid, 'heartBlocks', weekKey)
+    const ref = doc(db, ...paths.heartBlockDoc(user.uid, weekKey))
     await setDoc(ref, { ...merged, _serverUpdatedAt: serverTimestamp() }, { merge: true })
   }, [user?.uid, weekKey, block])
 

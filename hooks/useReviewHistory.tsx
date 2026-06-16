@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { collection, getDocs, query, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import type { WeeklyReview, MonthlyReview, QuarterlyReview } from '@/types'
 import { parseSafe, WeeklyReviewSchema, MonthlyReviewSchema, QuarterlyReviewSchema, ZERO_PILLAR_RATING } from '@/lib/schemas'
@@ -33,9 +34,9 @@ export function useReviewHistory() {
       setLoading(true)
       try {
         const [weeklySnap, monthlySnap, quarterlySnap] = await Promise.all([
-          getDocs(query(collection(db, 'users', user.uid, 'reviews'), orderBy('weekStart', 'desc'))),
-          getDocs(query(collection(db, 'users', user.uid, 'monthlyReviews'), orderBy('month', 'desc'))),
-          getDocs(query(collection(db, 'users', user.uid, 'quarterlyReviews'), orderBy('quarter', 'desc'))),
+          getDocs(query(collection(db, ...paths.reviewsCol(user.uid)), orderBy('weekStart', 'desc'))),
+          getDocs(query(collection(db, ...paths.monthlyReviewsCol(user.uid)), orderBy('month', 'desc'))),
+          getDocs(query(collection(db, ...paths.quarterlyReviewsCol(user.uid)), orderBy('quarter', 'desc'))),
         ])
 
         setWeeklyReviews(weeklySnap.docs.map(d => parseSafe<WeeklyReview>(

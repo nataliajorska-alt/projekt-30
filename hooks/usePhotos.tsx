@@ -5,6 +5,7 @@ import {
   query, orderBy, serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { useToast } from '@/components/ToastProvider'
 import { todayKey, getDaysElapsed } from '@/lib/gameLogic'
@@ -24,7 +25,7 @@ export function usePhotos() {
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
     try {
-      const colRef = collection(db, 'users', user.uid, 'photos')
+      const colRef = collection(db, ...paths.photosCol(user.uid))
       const q = query(colRef, orderBy('createdAt', 'desc'))
       const snap = await getDocs(q)
       setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() } as PhotoEntry)))
@@ -72,7 +73,7 @@ export function usePhotos() {
       const publicId: string = data.public_id
 
       // Zapisz metadane do Firestore
-      const colRef = collection(db, 'users', user.uid, 'photos')
+      const colRef = collection(db, ...paths.photosCol(user.uid))
       const docRef = await addDoc(colRef, {
         url,
         publicId,
@@ -109,7 +110,7 @@ export function usePhotos() {
     if (!user) return
     try {
       // Usuwamy tylko rekord z Firestore (Cloudinary bez API secret wymaga backendu)
-      await deleteDoc(doc(db, 'users', user.uid, 'photos', photo.id))
+      await deleteDoc(doc(db, ...paths.photoDoc(user.uid, photo.id)))
       setPhotos(prev => prev.filter(p => p.id !== photo.id))
       addToast({ message: 'Zdjęcie usunięte', type: 'success' })
     } catch (err) {

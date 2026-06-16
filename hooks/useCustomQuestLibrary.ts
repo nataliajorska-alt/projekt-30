@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 
 export interface CustomQuestIdea {
@@ -19,7 +20,7 @@ export function useCustomQuestLibrary() {
   const fetch = useCallback(async () => {
     if (!user) { setLoading(false); return }
     try {
-      const snap = await getDoc(doc(db, 'users', user.uid, 'data', 'appSettings'))
+      const snap = await getDoc(doc(db, ...paths.dataDoc(user.uid, 'appSettings')))
       if (snap.exists()) setQuests(snap.data().customQuestIdeas ?? [])
     } catch (err) {
       console.error('customQuestLibrary fetch error:', err)
@@ -33,7 +34,7 @@ export function useCustomQuestLibrary() {
   const saveQuests = useCallback(async (updated: CustomQuestIdea[]) => {
     if (!user) return
     await setDoc(
-      doc(db, 'users', user.uid, 'data', 'appSettings'),
+      doc(db, ...paths.dataDoc(user.uid, 'appSettings')),
       { customQuestIdeas: updated },
       { merge: true }
     )

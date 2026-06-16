@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import type { GhostLogEntryV2, HonestFailureEntry } from '@/types'
 
@@ -15,8 +16,8 @@ export function useGhostV2() {
     if (!user) { setLoading(false); return }
     try {
       const [impulseSnap, failureSnap] = await Promise.all([
-        getDoc(doc(db, 'users', user.uid, 'data', 'ghostLogV2')),
-        getDoc(doc(db, 'users', user.uid, 'data', 'honestFailureLog')),
+        getDoc(doc(db, ...paths.dataDoc(user.uid, 'ghostLogV2'))),
+        getDoc(doc(db, ...paths.dataDoc(user.uid, 'honestFailureLog'))),
       ])
       if (impulseSnap.exists()) setEntries((impulseSnap.data().entries ?? []) as GhostLogEntryV2[])
       if (failureSnap.exists()) setFailures((failureSnap.data().entries ?? []) as HonestFailureEntry[])
@@ -31,7 +32,7 @@ export function useGhostV2() {
 
   const saveImpulseEntry = useCallback(async (entry: GhostLogEntryV2) => {
     if (!user) return
-    const ref = doc(db, 'users', user.uid, 'data', 'ghostLogV2')
+    const ref = doc(db, ...paths.dataDoc(user.uid, 'ghostLogV2'))
     const snap = await getDoc(ref)
     const existing: GhostLogEntryV2[] = snap.exists() ? (snap.data().entries ?? []) : []
     const updated = [...existing, entry]
@@ -41,7 +42,7 @@ export function useGhostV2() {
 
   const saveFailureEntry = useCallback(async (entry: HonestFailureEntry) => {
     if (!user) return
-    const ref = doc(db, 'users', user.uid, 'data', 'honestFailureLog')
+    const ref = doc(db, ...paths.dataDoc(user.uid, 'honestFailureLog'))
     const snap = await getDoc(ref)
     const existing: HonestFailureEntry[] = snap.exists() ? (snap.data().entries ?? []) : []
     const updated = [...existing, entry]

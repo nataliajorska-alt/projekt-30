@@ -17,6 +17,7 @@ import {
 import { aggregateXpByMonth } from '@/lib/analytics'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import * as paths from '@/lib/paths'
 import { Printer, Lock, Star, Camera } from 'lucide-react'
 import type { Pillar } from '@/types'
 import {
@@ -84,7 +85,7 @@ function ReflectionForm({ uid, existing }: ReflectionFormProps) {
     setSaving(true)
     try {
       await setDoc(
-        doc(db, 'users', uid, 'data', 'annualReflection'),
+        doc(db, ...paths.dataDoc(uid, 'annualReflection')),
         { ...values, savedAt: new Date().toISOString() },
         { merge: true }
       )
