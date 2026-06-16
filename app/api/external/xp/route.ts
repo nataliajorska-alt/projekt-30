@@ -12,12 +12,17 @@
  *   {
  *     xp: number,        // dodatnia liczba całkowita, max 200 per request
  *     source: string,    // do logów (np. "vault:finish-session", "vault:salon-view")
- *     pillar: Pillar     // jeden z 7 filarów P30
+ *     pillar: Pillar,    // jeden z 7 filarów P30
+ *     eventId?: string   // opcjonalny — idempotency (ten sam id nie naliczy XP 2x)
  *   }
  *
+ * Hardening: stałe-czasowo porównanie klucza (timingSafeEqual), rate-limit
+ * (60/min per instancja), dzienny limit XP z zewnątrz (2000), idempotency po eventId.
+ *
  * Response:
- *   200 { ok: true, totalXP, pillarXP }
+ *   200 { ok: true, totalXP, pillarXP } | { ok: true, duplicate: true }
  *   401 { ok: false, error: "unauthorized" }
+ *   429 { ok: false, error: "rate limited" | "daily external XP cap reached" }
  *   400 { ok: false, error: "..." }
  *   500 { ok: false, error: "..." }
  */
@@ -25,6 +30,7 @@
 import { NextResponse } from 'next/server'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdmin } from '@/lib/firebase-admin'
+import { createHash, timingSafeEqual } from 'node:crypto'
 
 export const runtime = 'nodejs'
 
@@ -41,6 +47,31 @@ const ALLOWED_PILLARS = [
 type Pillar = (typeof ALLOWED_PILLARS)[number]
 
 const MAX_XP_PER_REQUEST = 200
+
+// Dzienny limit XP z zewnątrz — zapora przed niekontrolowanym pompowaniem XP
+// nawet z ważnym kluczem (Vault w normalnym użyciu nie zbliża się do tego).
+const MAX_EXTERNAL_XP_PER_DAY = 2000
+
+// Porównanie sekretu w stałym czasie (po SHA-256, więc długości zawsze równe) —
+// zamiast `!==`, które przez czas odpowiedzi wycieka długość/prefiks klucza.
+function safeEqual(a: string, b: string): boolean {
+  const ha = createHash('sha256').update(a).digest()
+  const hb = createHash('sha256').update(b).digest()
+  return timingSafeEqual(ha, hb)
+}
+
+// Rate-limit w pamięci (per instancja serverless). Słabe na serverless, ale
+// tania bariera przed floodem od posiadacza klucza. Jeden caller (Vault).
+const RATE_WINDOW_MS = 60_000
+const RATE_MAX = 60
+const rateHits: number[] = []
+function rateLimited(): boolean {
+  const now = Date.now()
+  while (rateHits.length && rateHits[0] < now - RATE_WINDOW_MS) rateHits.shift()
+  if (rateHits.length >= RATE_MAX) return true
+  rateHits.push(now)
+  return false
+}
 
 // Klucz dnia MUSI pasować do klienta (lib/gameLogic.todayKey): strefa
 // Europe/Warsaw + przesunięcie o DAY_START_HOUR=3 (dzień „zaczyna się" o 3:00).
@@ -74,8 +105,13 @@ export async function POST(req: Request) {
   }
   const authHeader = req.headers.get('authorization') ?? ''
   const provided = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
-  if (!provided || provided !== expectedKey) {
+  if (!provided || !safeEqual(provided, expectedKey)) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
+  }
+
+  // Rate-limit (po auth — chronimy przed floodem uwierzytelnionych żądań).
+  if (rateLimited()) {
+    return NextResponse.json({ ok: false, error: 'rate limited' }, { status: 429 })
   }
 
   // 2. Owner UID z env
@@ -94,10 +130,11 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: 'invalid json' }, { status: 400 })
   }
-  const { xp, source, pillar } = (body ?? {}) as Partial<{
+  const { xp, source, pillar, eventId } = (body ?? {}) as Partial<{
     xp: unknown
     source: unknown
     pillar: unknown
+    eventId: unknown
   }>
 
   // Walidacja xp
@@ -126,11 +163,36 @@ export async function POST(req: Request) {
   // Walidacja source (info do logów, nieobowiązkowa walidacja zawartości)
   const sourceStr = typeof source === 'string' && source.length > 0 ? source.slice(0, 80) : 'external'
 
+  // Idempotency: gdy Vault poda eventId, ten sam event nie naliczy XP dwa razy
+  // (ochrona przed replayem). Bez eventId — zachowanie jak dotąd.
+  const eventIdSafe = typeof eventId === 'string' && eventId.length > 0 ? eventId.slice(0, 128) : null
+
   // 4. Apply XP
   try {
     const { db } = getAdmin()
     const statsRef = db.collection('users').doc(ownerUid).collection('data').doc('stats')
     const todayRef = db.collection('users').doc(ownerUid).collection('logs').doc(todayKey())
+
+    // Dzienny limit XP z zewnątrz (czytamy dzisiejszy log i sumujemy externalXP).
+    const todaySnap = await todayRef.get()
+    const ext = (todaySnap.data()?.externalXP ?? {}) as Record<string, unknown>
+    const todayExternal = Object.values(ext).reduce<number>(
+      (s, v) => s + (typeof v === 'number' ? v : 0), 0,
+    )
+    if (todayExternal + xp > MAX_EXTERNAL_XP_PER_DAY) {
+      return NextResponse.json({ ok: false, error: 'daily external XP cap reached' }, { status: 429 })
+    }
+
+    // Idempotency — replay tego samego eventId nie nalicza ponownie. create()
+    // failuje atomowo, jeśli dokument już istnieje (ten event był już policzony).
+    if (eventIdSafe) {
+      const eventRef = db.collection('users').doc(ownerUid).collection('externalEvents').doc(eventIdSafe)
+      try {
+        await eventRef.create({ xp, pillar: pillarSafe, source: sourceStr, at: FieldValue.serverTimestamp() })
+      } catch {
+        return NextResponse.json({ ok: true, duplicate: true, source: sourceStr })
+      }
+    }
 
     // Inkrementacja totalXP + pillarXP.{pillar} w stats; totalXP w today log.
     // Plus log.externalXP[pillar] — żeby recoverStats mogło odbudować
