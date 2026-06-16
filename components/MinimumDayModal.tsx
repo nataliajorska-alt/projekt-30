@@ -1,11 +1,15 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useModalDismiss } from '@/hooks/useModalDismiss'
 import clsx from 'clsx'
 import { X, BatteryLow } from 'lucide-react'
 import { MINIMUM_DAY_REASONS } from '@/types'
 import type { MinimumDayReason } from '@/types'
 import { SmallCaps, Diamond } from '@/components/ui'
+import { useCycleData } from '@/hooks/useCycleData'
+import { useCycleSettings } from '@/hooks/useCycleSettings'
+import { getPhaseIdForDate } from '@/lib/cycle-data'
+import { todayKey } from '@/lib/gameLogic'
 
 interface Props {
   onConfirm: (reason: MinimumDayReason) => void
@@ -15,6 +19,21 @@ interface Props {
 export default function MinimumDayModal({ onConfirm, onClose }: Props) {
   const dialogRef = useModalDismiss<HTMLDivElement>(onClose)
   const [selected, setSelected] = useState<MinimumDayReason | null>(null)
+  const [phaseHint, setPhaseHint] = useState(false)
+
+  // Pre-fill „okres", gdy z cyklu wynika, że dziś miesiączka — żeby nie wybierać
+  // ręcznie tego, co system już wie. Raz, gdy dane cyklu się załadują; możesz zmienić.
+  const { logs: cycleLogs } = useCycleData()
+  const { settings: cycleSettings } = useCycleSettings()
+  const autofillDone = useRef(false)
+  useEffect(() => {
+    if (autofillDone.current || cycleLogs.length === 0) return
+    autofillDone.current = true
+    if (getPhaseIdForDate(cycleLogs, todayKey(), cycleSettings) === 'menstruacja') {
+      setSelected('okres')
+      setPhaseHint(true)
+    }
+  }, [cycleLogs, cycleSettings])
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0">
@@ -43,6 +62,12 @@ export default function MinimumDayModal({ onConfirm, onClose }: Props) {
         <p className="font-serif-body italic text-muted text-[13px] mt-2 mb-5 leading-relaxed">
           pokażę ci tylko to, co najważniejsze.
         </p>
+
+        {phaseHint && (
+          <p className="flex items-center gap-1.5 font-ui uppercase tracking-luxury text-[9px] text-gold-deep -mt-3 mb-4">
+            <Diamond size={4} className="text-gold" /> wygląda na okres — podpowiedziałam powód
+          </p>
+        )}
 
         <div className="space-y-2 mb-5">
           {MINIMUM_DAY_REASONS.map(({ value, label, emoji, description }) => {
