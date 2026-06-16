@@ -17,6 +17,7 @@ import KeyMomentCapture from '@/components/KeyMomentCapture'
 import ReturnCeremony from '@/components/ReturnCeremony'
 import DashboardNudges from '@/components/DashboardNudges'
 import DashboardInsight from '@/components/DashboardInsight'
+import DashboardNow from '@/components/DashboardNow'
 import SafeHoursBanner from '@/components/SafeHoursBanner'
 import CyclePhaseWidget from '@/components/CyclePhaseWidget'
 import MiniGardenWidget from '@/components/MiniGardenWidget'
@@ -271,6 +272,11 @@ export default function Dashboard() {
           <span className="flex-1 h-px bg-hairline" />
         </div>
       </header>
+
+      {/* Pasek „Teraz" — pojedyncza odpowiedź „co teraz zrobić" (tylko widok Dziś) */}
+      {!viewingTomorrow && (
+        <ErrorBoundary label="Teraz"><DashboardNow /></ErrorBoundary>
+      )}
 
       {/* I — THE COUNTDOWN: today within the year */}
       <SectionLabel num={1} name="The Countdown" sub="punkt w roku" />
