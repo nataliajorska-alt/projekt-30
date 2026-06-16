@@ -143,3 +143,15 @@
 .ritual-ta { width: 100%; resize: vertical; color: #2a2a26; font-family: 'Cormorant Garamond','EB Garamond',serif; font-size: 14px; line-height: 28px; padding: 7px 18px 14px; outline: none; background-color: #d2cab0; background-image: repeating-linear-gradient(#d2cab0, #d2cab0 27px, #c3b994 27px, #c3b994 28px); border: 1px solid #d9cda8; transition: border-color .15s, box-shadow .15s; }
 .ritual-ta::placeholder { color: #b7a787; font-style: italic; }
 .ritual-ta:focus { border-color: #b29355; box-shadow: 0 0 0 3px rgba(178,147,85,.14); }
+
+/* ── Reduced motion: szanuj systemową preferencję (a11y) ────────── */
+/* Spłaszcza animacje i transitiony — cząsteczki, animate-pulse, floating-icon
+   itd. przestają się ruszać dla osób z włączonym prefers-reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

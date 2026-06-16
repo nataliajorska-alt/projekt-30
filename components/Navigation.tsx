@@ -312,7 +312,7 @@ function MobileNav({ pathname }: { pathname: string }) {
                   onClick={() => setOpenGroup(null)}
                   aria-label={item.label}
                   title={item.label}
-                  className="flex flex-col items-center gap-1.5 px-1 py-1 flex-1 min-w-0 transition-all"
+                  className="flex flex-col items-center justify-center gap-1.5 px-1 py-2 min-h-[44px] flex-1 min-w-0 transition-all"
                 >
                   <span className="relative flex items-center">
                     <item.icon size={20} strokeWidth={1.5} className="text-parchment/70" />
@@ -330,7 +330,7 @@ function MobileNav({ pathname }: { pathname: string }) {
                 onClick={() => setOpenGroup(null)}
                 aria-label={item.label}
                 title={item.label}
-                className="flex flex-col items-center gap-1.5 px-1 py-1 flex-1 min-w-0 transition-all"
+                className="flex flex-col items-center justify-center gap-1.5 px-1 py-2 min-h-[44px] flex-1 min-w-0 transition-all"
               >
                 <item.icon
                   size={20}
@@ -356,7 +356,7 @@ function MobileNav({ pathname }: { pathname: string }) {
               onClick={() => setOpenGroup(groupOpen ? null : item.label)}
               aria-label={item.label}
               title={item.label}
-              className="flex flex-col items-center gap-1.5 px-1 py-1 flex-1 min-w-0 transition-all"
+              className="flex flex-col items-center justify-center gap-1.5 px-1 py-2 min-h-[44px] flex-1 min-w-0 transition-all"
             >
               <span className="relative flex items-center">
                 <item.icon

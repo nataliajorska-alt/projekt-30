@@ -32,7 +32,7 @@ function ScaleSelector({
             <button
               key={n}
               onClick={() => onChange(n)}
-              className={`flex-1 h-10 border transition-all duration-150 flex items-center justify-center gap-1.5 ${
+              className={`flex-1 h-11 border transition-all duration-150 flex items-center justify-center gap-1.5 ${
                 sel
                   ? 'bg-dark-deep text-ivory border-gold'
                   : 'border-hairline bg-cream/30 text-muted hover:border-gold-light hover:text-dark'

@@ -95,7 +95,7 @@ interface FabActionProps {
 
 function FabAction({ label, icon, href, onClick }: FabActionProps) {
   const inner = (
-    <span className="flex items-center gap-3 bg-ivory border border-gold-light/60 hover:border-gold pl-4 pr-2 py-1.5 transition-colors">
+    <span className="flex items-center gap-3 bg-ivory border border-gold-light/60 hover:border-gold pl-4 pr-2 py-1.5 min-h-[44px] transition-colors">
       <SmallCaps tone="dark" tracking="luxury" size="xs">
         {label}
       </SmallCaps>

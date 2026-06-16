@@ -62,6 +62,8 @@ export default function NegativeChecklist() {
               >
                 <button
                   onClick={() => toggleRule(rule.id)}
+                  role="checkbox"
+                  aria-checked={done}
                   className="order-1 flex items-center gap-3.5 flex-1 min-w-0 text-left group hover:opacity-95"
                 >
                   <CheckSquare done={done} />
