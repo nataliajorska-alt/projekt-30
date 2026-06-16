@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import clsx from 'clsx'
+import { useModalDismiss } from '@/hooks/useModalDismiss'
 import { X } from 'lucide-react'
 import { dateKey, formatDate } from '@/lib/gameLogic'
 import { SmallCaps, Diamond } from '@/components/ui'
@@ -46,11 +47,12 @@ export default function PostponeModal({
     .filter(c => c.date >= floor)
     .slice(0, 3)
   const [selected, setSelected] = useState(quickPicks[0]?.date ?? floor)
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0">
       <div className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-ivory border border-gold-light/40 w-full max-w-sm p-6 animate-slide-up">
+      <div ref={dialogRef} role="dialog" aria-modal="true" className="relative bg-ivory border border-gold-light/40 w-full max-w-sm p-6 animate-slide-up">
         <div className="flex items-start justify-between mb-4">
           <div>
             <SmallCaps tone="gold-deep" tracking="luxury" size="xs">

@@ -430,7 +430,7 @@ function WriteModal({ letterType, onSave, onBack, onClose }: {
             placeholder="tytuł listu (opcjonalny)"
             value={title}
             onChange={e => setTitle(e.target.value)}
-            className="w-full font-display text-2xl text-ivory bg-transparent border-none outline-none placeholder:text-parchment/30"
+            className="w-full font-display text-2xl text-ivory bg-transparent border-none outline-none placeholder:text-parchment/50"
           />
         )}
         <textarea
@@ -438,7 +438,7 @@ function WriteModal({ letterType, onSave, onBack, onClose }: {
           placeholder={isVent ? 'wypuść wszystko. nic z tego nie zostanie zapisane.' : 'zaczynam pisać…'}
           value={content}
           onChange={e => setContent(e.target.value)}
-          className="flex-1 w-full font-serif-body text-[15px] text-ivory bg-transparent border-none outline-none resize-none placeholder:text-parchment/30 leading-relaxed min-h-[300px]"
+          className="flex-1 w-full font-serif-body text-[15px] text-ivory bg-transparent border-none outline-none resize-none placeholder:text-parchment/50 leading-relaxed min-h-[300px]"
         />
       </div>
 

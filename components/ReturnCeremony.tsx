@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import clsx from 'clsx'
+import { useModalDismiss } from '@/hooks/useModalDismiss'
 import { SmallCaps, GoldRule, Fleuron, Diamond, CornerBrackets } from '@/components/ui'
 import { toRoman } from '@/lib/romanNumerals'
 
@@ -57,6 +58,7 @@ interface Props {
 }
 
 export default function ReturnCeremony({ daysMissed, onComplete, onDismiss }: Props) {
+  const dialogRef = useModalDismiss<HTMLDivElement>(onDismiss)
   const [checked, setChecked] = useState([false, false, false])
   const [completing, setCompleting] = useState(false)
   const [done, setDone] = useState(false)
@@ -81,7 +83,7 @@ export default function ReturnCeremony({ daysMissed, onComplete, onDismiss }: Pr
     setChecked(prev => prev.map((v, j) => (j === i ? !v : v)))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-deep grain-linen">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-deep grain-linen">
       {/* Outer frame */}
       <div className="pointer-events-none absolute inset-6 border border-gold-light/40" />
       <div className="pointer-events-none absolute inset-9 border border-gold-light/15" />
@@ -216,7 +218,7 @@ export default function ReturnCeremony({ daysMissed, onComplete, onDismiss }: Pr
 
           <button
             onClick={onDismiss}
-            className="w-full mt-3 py-2 font-ui uppercase tracking-luxury text-[10px] text-parchment/30 hover:text-parchment/60 transition-colors"
+            className="w-full mt-3 py-2 font-ui uppercase tracking-luxury text-[10px] text-parchment/60 hover:text-parchment/90 transition-colors"
           >
             pomiń
           </button>

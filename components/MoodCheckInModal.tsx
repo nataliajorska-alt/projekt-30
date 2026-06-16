@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useModalDismiss } from '@/hooks/useModalDismiss'
 import { X } from 'lucide-react'
 import type { MoodState } from '@/types'
 import { MOOD_STATES } from '@/types'
@@ -49,6 +50,7 @@ function ScaleSelector({
 }
 
 export default function MoodCheckInModal({ onSave, onDismiss }: Props) {
+  const dialogRef = useModalDismiss<HTMLDivElement>(onDismiss)
   const [energy, setEnergy] = useState<number | null>(null)
   const [mood, setMood] = useState<number | null>(null)
   const [state, setState] = useState<MoodState | null>(null)
@@ -69,7 +71,7 @@ export default function MoodCheckInModal({ onSave, onDismiss }: Props) {
       />
 
       {/* Card */}
-      <div className="relative w-full sm:max-w-sm mx-4 mb-4 sm:mb-0 bg-ivory border border-gold-light/40 p-7 animate-slide-up">
+      <div ref={dialogRef} role="dialog" aria-modal="true" className="relative w-full sm:max-w-sm mx-4 mb-4 sm:mb-0 bg-ivory border border-gold-light/40 p-7 animate-slide-up">
         <button
           onClick={onDismiss}
           className="absolute top-4 right-4 text-muted-light hover:text-dark transition-colors"

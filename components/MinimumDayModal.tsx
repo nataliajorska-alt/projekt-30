@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useModalDismiss } from '@/hooks/useModalDismiss'
 import clsx from 'clsx'
 import { X, BatteryLow } from 'lucide-react'
 import { MINIMUM_DAY_REASONS } from '@/types'
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function MinimumDayModal({ onConfirm, onClose }: Props) {
+  const dialogRef = useModalDismiss<HTMLDivElement>(onClose)
   const [selected, setSelected] = useState<MinimumDayReason | null>(null)
 
   return (
@@ -20,7 +22,7 @@ export default function MinimumDayModal({ onConfirm, onClose }: Props) {
         className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative bg-ivory border border-gold-light/40 w-full max-w-sm p-7 animate-slide-up">
+      <div ref={dialogRef} role="dialog" aria-modal="true" className="relative bg-ivory border border-gold-light/40 w-full max-w-sm p-7 animate-slide-up">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-muted-light hover:text-dark transition-colors"
