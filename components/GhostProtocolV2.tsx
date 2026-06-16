@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
@@ -240,7 +240,7 @@ interface GhostProtocolV2Props {
 
 export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2Props = {}) {
   const { todayLog, recordGhostImpulseV2, recordHonestFailure } = useGameData()
-  const { saveImpulseEntry, saveFailureEntry } = useGhostV2()
+  const { saveImpulseEntry, saveFailureEntry, failures } = useGhostV2()
   const { contacts } = useNominatedContacts()
 
   const [flow, setFlow] = useState<ActiveFlow | null>(
@@ -288,6 +288,16 @@ export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2P
   const hCategoryMeta = hCategory
     ? GHOST_CATEGORIES.find(c => c.id === hCategory) ?? null
     : null
+
+  // Twój własny „plan na następny raz" z ostatniego uczciwego logu tej samej
+  // kategorii — pokazywany przy interwencji, żeby wracał, gdy wraca ten sam impuls.
+  const lastPlanForCategory = useMemo(() => {
+    if (!selectedCategory) return null
+    const match = [...failures]
+      .filter(f => f.category === selectedCategory && f.planForNextTime?.trim())
+      .sort((a, b) => b.timestamp - a.timestamp)[0]
+    return match?.planForNextTime?.trim() ?? null
+  }, [failures, selectedCategory])
 
   const pickCategory = useCallback((id: GhostCategory) => {
     setSelectedCategory(id)
@@ -619,6 +629,17 @@ export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2P
                 </>
               )}
             </div>
+
+            {lastPlanForCategory && (
+              <div className="border border-gold-light/20 bg-forest/20 px-5 py-4 mb-5 text-left">
+                <SmallCaps tone="gold-light" tracking="luxury" size="xs" as="div" className="mb-1.5">
+                  ostatnio zaplanowałaś
+                </SmallCaps>
+                <p className="font-serif-body italic text-parchment text-[13px] leading-relaxed">
+                  „{lastPlanForCategory}"
+                </p>
+              </div>
+            )}
 
             <RedirectEnergyWidget compact />
 
