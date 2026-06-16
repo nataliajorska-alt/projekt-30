@@ -1,11 +1,12 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { X, RotateCcw } from 'lucide-react'
 import { SIDE_QUESTS } from '@/lib/questData'
 import { PILLARS, getPillar } from '@/lib/pillars'
 import { useGameData } from '@/hooks/useGameData'
 import { useHiddenSideQuests } from '@/hooks/useHiddenSideQuests'
+import { useEverCompletedSideQuests } from '@/hooks/useEverCompletedSideQuests'
 import { Pillar, Quest } from '@/types'
 import QuestSteps from '@/components/QuestSteps'
 import { SmallCaps, Fleuron } from '@/components/ui'
@@ -15,9 +16,10 @@ const DIFFICULTY_LABELS = { easy: 'Łatwy', medium: 'Średni', hard: 'Wymagając
 const DIFFICULTY_FILLED = { easy: 1, medium: 2, hard: 3 }
 type Filter = Pillar | 'all'
 type Diff = keyof typeof DIFFICULTY_LABELS
+type StatusFilter = 'all' | 'todo' | 'done'
 
 // Romby trudności — wypełnione/puste, jak w redesignie (rotowane kwadraty)
-function DifficultyPips({ d }: { d: Diff }) {
+function DifficultyPips({ d, onDark = false }: { d: Diff; onDark?: boolean }) {
   const filled = DIFFICULTY_FILLED[d]
   return (
     <span className="inline-flex items-center gap-[3px]">
@@ -26,7 +28,7 @@ function DifficultyPips({ d }: { d: Diff }) {
           key={i}
           className={clsx(
             'w-[5px] h-[5px] rotate-45 border',
-            i <= filled ? 'bg-gold border-gold' : 'border-gold-light'
+            i <= filled ? 'bg-gold border-gold' : onDark ? 'border-cream/40' : 'border-gold-light'
           )}
         />
       ))}
@@ -34,10 +36,42 @@ function DifficultyPips({ d }: { d: Diff }) {
   )
 }
 
+// Kompaktowy chip filtra drugiego rzędu (trudność/status) — lżejszy niż grid filarów.
+function FilterPill({
+  active, onClick, label, count, pips,
+}: {
+  active: boolean
+  onClick: () => void
+  label: string
+  count?: number
+  pips?: ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={clsx(
+        'inline-flex items-center gap-1.5 border px-3 py-1.5 font-ui uppercase tracking-luxury text-[9px] transition-colors',
+        active ? 'bg-dark text-cream border-dark' : 'border-hairline text-muted hover:text-dark hover:border-gold-light',
+      )}
+    >
+      {pips}
+      {label}
+      {typeof count === 'number' && (
+        <span className={clsx('font-display italic text-[11px] normal-case', active ? 'text-gold-light' : 'text-muted-light')}>
+          {count}
+        </span>
+      )}
+    </button>
+  )
+}
+
 export default function QuestsPage() {
   const { todayLog, toggleSideQuest } = useGameData()
   const { hidden, hide, unhide } = useHiddenSideQuests()
+  const { everDone, markDone, unmarkDone } = useEverCompletedSideQuests()
   const [filter, setFilter] = useState<Filter>('all')
+  const [diffFilter, setDiffFilter] = useState<Diff | 'all'>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [sortByReward, setSortByReward] = useState(false)
   const [completing, setCompleting] = useState<string | null>(null)
   const [showHidden, setShowHidden] = useState(false)
@@ -60,23 +94,77 @@ export default function QuestsPage() {
     [hidden],
   )
 
-  // Liczniki per filar (do chipów filtrów) — z widocznych questów.
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {}
-    for (const q of visibleQuests) c[q.pillar] = (c[q.pillar] ?? 0) + 1
-    return c
-  }, [visibleQuests])
-
+  // Trzy wymiary filtrów łączą się (AND): kategoria (filar) + trudność + status.
+  // Status „ukończone" = TRWAŁY (everDone), a nie tylko dzisiejszy.
   const filtered = useMemo(() => {
-    const base = filter === 'all' ? visibleQuests : visibleQuests.filter(q => q.pillar === filter)
+    const base = visibleQuests.filter(q =>
+      (filter === 'all' || q.pillar === filter) &&
+      (diffFilter === 'all' || q.difficulty === diffFilter) &&
+      (statusFilter === 'all' || (statusFilter === 'done'
+        ? everDone.includes(q.id)
+        : !everDone.includes(q.id))),
+    )
     return sortByReward ? [...base].sort((a, b) => b.xp - a.xp) : base
-  }, [filter, sortByReward, visibleQuests])
+  }, [visibleQuests, filter, diffFilter, statusFilter, sortByReward, everDone])
 
-  const completedInView = filtered.filter(q => completedIds.includes(q.id)).length
+  const completedInView = filtered.filter(q => everDone.includes(q.id)).length
 
-  const handleComplete = async (questId: string, pillar: Pillar, xp: number) => {
-    setCompleting(questId)
-    await toggleSideQuest(questId, pillar, xp)
+  // Liczniki fasetowane: każdy chip pokazuje, ile zobaczysz po jego wyborze przy
+  // POZOSTAŁYCH aktywnych filtrach (np. liczby filarów liczone po trudność+status).
+  const pillarCounts = useMemo(() => {
+    const per: Record<string, number> = {}
+    let all = 0
+    for (const q of visibleQuests) {
+      const okDiff = diffFilter === 'all' || q.difficulty === diffFilter
+      const okStatus = statusFilter === 'all' || (statusFilter === 'done'
+        ? everDone.includes(q.id) : !everDone.includes(q.id))
+      if (okDiff && okStatus) { per[q.pillar] = (per[q.pillar] ?? 0) + 1; all++ }
+    }
+    return { per, all }
+  }, [visibleQuests, diffFilter, statusFilter, everDone])
+
+  const diffCounts = useMemo(() => {
+    const c: Record<Diff | 'all', number> = { easy: 0, medium: 0, hard: 0, all: 0 }
+    for (const q of visibleQuests) {
+      const okPillar = filter === 'all' || q.pillar === filter
+      const okStatus = statusFilter === 'all' || (statusFilter === 'done'
+        ? everDone.includes(q.id) : !everDone.includes(q.id))
+      if (okPillar && okStatus) { c[q.difficulty as Diff]++; c.all++ }
+    }
+    return c
+  }, [visibleQuests, filter, statusFilter, everDone])
+
+  const statusCounts = useMemo(() => {
+    let todo = 0, done = 0
+    for (const q of visibleQuests) {
+      const okPillar = filter === 'all' || q.pillar === filter
+      const okDiff = diffFilter === 'all' || q.difficulty === diffFilter
+      if (okPillar && okDiff) { everDone.includes(q.id) ? done++ : todo++ }
+    }
+    return { todo, done, all: todo + done }
+  }, [visibleQuests, filter, diffFilter, everDone])
+
+  const anyFilterActive = filter !== 'all' || diffFilter !== 'all' || statusFilter !== 'all'
+  const clearFilters = () => { setFilter('all'); setDiffFilter('all'); setStatusFilter('all') }
+
+  // Podejmij: nalicz XP (raz — tylko jeśli nie zaliczony dziś) i oznacz TRWALE.
+  const handleComplete = async (quest: Quest) => {
+    setCompleting(quest.id)
+    if (!completedIds.includes(quest.id)) {
+      await toggleSideQuest(quest.id, quest.pillar, quest.xp)
+    }
+    await markDone(quest.id)
+    setCompleting(null)
+  }
+
+  // Cofnij: zdejmij trwały status; jeśli był zaliczony DZIŚ — cofnij też dzisiejsze XP.
+  // (XP zdobyte w poprzednie dni zostają — to były realne ukończenia.)
+  const handleUncomplete = async (quest: Quest) => {
+    setCompleting(quest.id)
+    if (completedIds.includes(quest.id)) {
+      await toggleSideQuest(quest.id, quest.pillar, quest.xp)
+    }
+    await unmarkDone(quest.id)
     setCompleting(null)
   }
 
@@ -104,7 +192,10 @@ export default function QuestsPage() {
         <span className="flex-1 h-px bg-hairline" />
       </div>
 
-      {/* ── Filters (równy grid z licznikami) ──────────────────── */}
+      {/* ── Filtr: Kategoria (filary) ──────────────────────────── */}
+      <SmallCaps tone="muted-light" tracking="luxury" size="xs" as="div" className="mb-2">
+        Kategoria
+      </SmallCaps>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
         <button
           onClick={() => setFilter('all')}
@@ -116,9 +207,6 @@ export default function QuestsPage() {
           )}
         >
           Wszystkie
-          <span className={clsx('font-display italic text-[12px] ml-0.5', filter === 'all' ? 'text-gold-light' : 'text-muted-light')}>
-            {visibleQuests.length}
-          </span>
         </button>
         {PILLARS.map(p => {
           const on = filter === p.id
@@ -134,11 +222,35 @@ export default function QuestsPage() {
               <span className={clsx('text-[8px]', on ? 'text-gold' : 'text-gold-light')}>◇</span>
               {p.shortName}
               <span className={clsx('font-display italic text-[12px] ml-0.5', on ? 'text-gold-light' : 'text-muted-light')}>
-                {counts[p.id] ?? 0}
+                {pillarCounts.per[p.id] ?? 0}
               </span>
             </button>
           )
         })}
+      </div>
+
+      {/* ── Filtry: Trudność + Status ──────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-8 gap-y-2.5 mb-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-ui uppercase tracking-editorial text-[9px] text-muted-light mr-1 shrink-0">Trudność</span>
+          <FilterPill active={diffFilter === 'all'} onClick={() => setDiffFilter('all')} label="Wszystkie" />
+          {(['easy', 'medium', 'hard'] as Diff[]).map(d => (
+            <FilterPill
+              key={d}
+              active={diffFilter === d}
+              onClick={() => setDiffFilter(d)}
+              label={DIFFICULTY_LABELS[d]}
+              count={diffCounts[d]}
+              pips={<DifficultyPips d={d} onDark={diffFilter === d} />}
+            />
+          ))}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-ui uppercase tracking-editorial text-[9px] text-muted-light mr-1 shrink-0">Status</span>
+          <FilterPill active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} label="Wszystkie" />
+          <FilterPill active={statusFilter === 'todo'} onClick={() => setStatusFilter('todo')} label="Do zrobienia" count={statusCounts.todo} />
+          <FilterPill active={statusFilter === 'done'} onClick={() => setStatusFilter('done')} label="Ukończone" count={statusCounts.done} />
+        </div>
       </div>
 
       {/* ── Results meta + sort ────────────────────────────────── */}
@@ -150,6 +262,14 @@ export default function QuestsPage() {
           <strong className="font-display not-italic normal-case italic text-gold-deep text-[14px] mx-0.5">{completedInView}</strong> ukończone
         </div>
         <div className="flex items-baseline gap-4 shrink-0">
+          {anyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="font-serif-body italic text-[14px] text-muted hover:text-wine transition-colors whitespace-nowrap"
+            >
+              Wyczyść ×
+            </button>
+          )}
           {hidden.length > 0 && (
             <button
               onClick={() => setShowHidden(v => !v)}
@@ -200,7 +320,7 @@ export default function QuestsPage() {
       {/* ── Quest grid ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-[18px]">
         {filtered.map(quest => {
-          const done = completedIds.includes(quest.id)
+          const done = everDone.includes(quest.id) // status trwały, nie tylko dziś
           const pillar = getPillar(quest.pillar)
           const isCompleting = completing === quest.id
           const diff = quest.difficulty as Diff
@@ -286,8 +406,9 @@ export default function QuestsPage() {
 
                 {done ? (
                   <button
-                    onClick={() => handleComplete(quest.id, quest.pillar, quest.xp)}
-                    className="group inline-flex items-center gap-2.5 shrink-0"
+                    onClick={() => handleUncomplete(quest)}
+                    disabled={isCompleting}
+                    className="group inline-flex items-center gap-2.5 shrink-0 disabled:opacity-60"
                     title="Cofnij ukończenie"
                   >
                     <span className="w-[18px] h-[18px] bg-gold border border-gold rotate-45 inline-flex items-center justify-center shrink-0">
@@ -298,7 +419,7 @@ export default function QuestsPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleComplete(quest.id, quest.pillar, quest.xp)}
+                    onClick={() => handleComplete(quest)}
                     disabled={isCompleting}
                     className="shrink-0 inline-flex items-center gap-2.5 bg-dark text-cream border border-dark px-5 py-2.5 hover:bg-gold-deep hover:border-gold-deep transition-colors disabled:opacity-60 whitespace-nowrap"
                   >
@@ -318,13 +439,25 @@ export default function QuestsPage() {
         })}
       </div>
 
-      {/* ── Empty state (np. po ukryciu wszystkiego w filtrze) ──── */}
+      {/* ── Empty state (filtry nic nie zwracają / wszystko ukryte) ── */}
       {filtered.length === 0 && (
-        <p className="text-center font-serif-body italic text-[15px] text-muted py-12">
-          {hidden.length > 0
-            ? 'Wszystko w tym widoku jest ukryte — przywróć questy przyciskiem „Ukryte" powyżej.'
-            : 'Brak questów w tym widoku.'}
-        </p>
+        <div className="text-center py-12">
+          <p className="font-serif-body italic text-[15px] text-muted">
+            {anyFilterActive
+              ? 'Brak questów dla wybranych filtrów.'
+              : hidden.length > 0
+                ? 'Wszystko jest ukryte — przywróć questy przyciskiem „Ukryte" powyżej.'
+                : 'Brak questów w tym widoku.'}
+          </p>
+          {anyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="mt-3 font-ui uppercase tracking-luxury text-[10px] text-gold-deep hover:text-dark transition-colors"
+            >
+              Wyczyść filtry
+            </button>
+          )}
+        </div>
       )}
 
       {/* ── Closing ────────────────────────────────────────────── */}

@@ -5,6 +5,7 @@ import { useGameData } from '@/hooks/useGameData'
 import { getRandomSideQuest, countSideQuests, type QuestScale } from '@/lib/questData'
 import { useCustomQuestLibrary } from '@/hooks/useCustomQuestLibrary'
 import { useHiddenSideQuests } from '@/hooks/useHiddenSideQuests'
+import { useEverCompletedSideQuests } from '@/hooks/useEverCompletedSideQuests'
 import { getPillar, PILLARS } from '@/lib/pillars'
 import type { Quest, Pillar } from '@/types'
 import { Shuffle, Check, Undo2, Plus } from 'lucide-react'
@@ -148,6 +149,7 @@ export default function SideQuestPicker() {
   const { todayLog, toggleSideQuest } = useGameData()
   const { quests: libraryQuests } = useCustomQuestLibrary()
   const { hidden: hiddenSideQuests, loading: hiddenLoading } = useHiddenSideQuests()
+  const { markDone, unmarkDone } = useEverCompletedSideQuests()
   const [activeQuest, setActiveQuest] = useState<Quest | null>(null)
   const [completed, setCompleted] = useState(false)
   const [showCustomForm, setShowCustomForm] = useState(false)
@@ -194,6 +196,8 @@ export default function SideQuestPicker() {
   const handleComplete = async () => {
     if (!activeQuest) return
     await toggleSideQuest(activeQuest.id, activeQuest.pillar, activeQuest.xp)
+    // Trwały status „ukończono" w bibliotece (tylko questy z biblioteki, nie własne cqi_*)
+    if (activeQuest.id.startsWith('sq_')) markDone(activeQuest.id)
     setCompleted(true)
   }
 
@@ -448,6 +452,8 @@ export default function SideQuestPicker() {
                     <button
                       onClick={async () => {
                         await toggleSideQuest(activeQuest.id, activeQuest.pillar, activeQuest.xp)
+                        // symetrycznie do handleComplete: cofnięcie zdejmuje też trwały status
+                        if (activeQuest.id.startsWith('sq_')) unmarkDone(activeQuest.id)
                         setCompleted(false)
                       }}
                       className="inline-flex items-center gap-2 border border-hairline text-muted px-4 py-2 hover:border-red-300 hover:text-red-600 transition-colors"
