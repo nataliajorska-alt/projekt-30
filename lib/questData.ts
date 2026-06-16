@@ -301,11 +301,14 @@ export type QuestScale = 'all' | 'quick' | 'epic'
 export interface SideQuestFilter {
   pillar?: Pillar | null
   scale?: QuestScale
+  /** Id-ki ukryte przez użytkowniczkę (useHiddenSideQuests) — wypadają z puli. */
+  hiddenIds?: string[]
 }
 
 function filterPool(filter: SideQuestFilter): Quest[] {
-  const { pillar = null, scale = 'all' } = filter
+  const { pillar = null, scale = 'all', hiddenIds } = filter
   let pool = SIDE_QUESTS
+  if (hiddenIds && hiddenIds.length > 0) pool = pool.filter(q => !hiddenIds.includes(q.id))
   if (pillar) pool = pool.filter(q => q.pillar === pillar)
   if (scale === 'quick') pool = pool.filter(q => q.xp < EPIC_XP_THRESHOLD)
   else if (scale === 'epic') pool = pool.filter(q => q.xp >= EPIC_XP_THRESHOLD)

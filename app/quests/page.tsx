@@ -1,10 +1,12 @@
 'use client'
 import { useState, useMemo } from 'react'
 import clsx from 'clsx'
+import { X, RotateCcw } from 'lucide-react'
 import { SIDE_QUESTS } from '@/lib/questData'
 import { PILLARS, getPillar } from '@/lib/pillars'
 import { useGameData } from '@/hooks/useGameData'
-import { Pillar } from '@/types'
+import { useHiddenSideQuests } from '@/hooks/useHiddenSideQuests'
+import { Pillar, Quest } from '@/types'
 import QuestSteps from '@/components/QuestSteps'
 import { SmallCaps, Fleuron } from '@/components/ui'
 import { toRoman } from '@/lib/romanNumerals'
@@ -34,24 +36,41 @@ function DifficultyPips({ d }: { d: Diff }) {
 
 export default function QuestsPage() {
   const { todayLog, toggleSideQuest } = useGameData()
+  const { hidden, hide, unhide } = useHiddenSideQuests()
   const [filter, setFilter] = useState<Filter>('all')
   const [sortByReward, setSortByReward] = useState(false)
   const [completing, setCompleting] = useState<string | null>(null)
+  const [showHidden, setShowHidden] = useState(false)
 
   const completedIds = todayLog?.completedSideQuests ?? []
   const totalCompleted = completedIds.length
 
-  // Liczniki per filar (do chipów filtrów)
+  // Biblioteka bez ukrytych — napędza liczniki, grid i nagłówek.
+  const visibleQuests = useMemo(
+    () => SIDE_QUESTS.filter(q => !hidden.includes(q.id)),
+    [hidden],
+  )
+
+  // Ukryte odwzorowane na pełne questy do panelu „przywróć" (pomijamy id-ki,
+  // których już nie ma w bibliotece, gdyby kiedyś zniknęły z SIDE_QUESTS).
+  const hiddenQuests = useMemo(
+    () => hidden
+      .map(id => SIDE_QUESTS.find(q => q.id === id))
+      .filter((q): q is Quest => Boolean(q)),
+    [hidden],
+  )
+
+  // Liczniki per filar (do chipów filtrów) — z widocznych questów.
   const counts = useMemo(() => {
     const c: Record<string, number> = {}
-    for (const q of SIDE_QUESTS) c[q.pillar] = (c[q.pillar] ?? 0) + 1
+    for (const q of visibleQuests) c[q.pillar] = (c[q.pillar] ?? 0) + 1
     return c
-  }, [])
+  }, [visibleQuests])
 
   const filtered = useMemo(() => {
-    const base = filter === 'all' ? SIDE_QUESTS : SIDE_QUESTS.filter(q => q.pillar === filter)
+    const base = filter === 'all' ? visibleQuests : visibleQuests.filter(q => q.pillar === filter)
     return sortByReward ? [...base].sort((a, b) => b.xp - a.xp) : base
-  }, [filter, sortByReward])
+  }, [filter, sortByReward, visibleQuests])
 
   const completedInView = filtered.filter(q => completedIds.includes(q.id)).length
 
@@ -72,7 +91,7 @@ export default function QuestsPage() {
           Side <em className="italic font-normal text-gold-deep">Questy</em>
         </h1>
         <p className="mt-2 font-serif-body italic text-[14px] text-muted">
-          <strong className="font-display not-italic font-medium text-gold-deep">{toRoman(SIDE_QUESTS.length)}</strong> questów w bibliotece
+          <strong className="font-display not-italic font-medium text-gold-deep">{toRoman(visibleQuests.length)}</strong> questów w bibliotece
           <span className="text-gold mx-2">·</span>
           <strong className="font-display not-italic font-medium text-gold-deep">{toRoman(totalCompleted)}</strong> {totalCompleted === 1 ? 'ukończony' : 'ukończone'} dziś
         </p>
@@ -98,7 +117,7 @@ export default function QuestsPage() {
         >
           Wszystkie
           <span className={clsx('font-display italic text-[12px] ml-0.5', filter === 'all' ? 'text-gold-light' : 'text-muted-light')}>
-            {SIDE_QUESTS.length}
+            {visibleQuests.length}
           </span>
         </button>
         {PILLARS.map(p => {
@@ -126,17 +145,57 @@ export default function QuestsPage() {
       <div className="flex items-baseline justify-between border-t border-hairline pt-3.5 pb-1 mb-6 gap-3">
         <div className="font-ui uppercase tracking-editorial text-[10px] text-muted">
           Pokazuję <strong className="font-display not-italic normal-case italic text-gold-deep text-[14px] mx-0.5">{filtered.length}</strong> z{' '}
-          <strong className="font-display not-italic normal-case italic text-gold-deep text-[14px] mx-0.5">{SIDE_QUESTS.length}</strong>
+          <strong className="font-display not-italic normal-case italic text-gold-deep text-[14px] mx-0.5">{visibleQuests.length}</strong>
           <span className="text-gold mx-1.5">·</span>
           <strong className="font-display not-italic normal-case italic text-gold-deep text-[14px] mx-0.5">{completedInView}</strong> ukończone
         </div>
-        <button
-          onClick={() => setSortByReward(v => !v)}
-          className="font-serif-body italic text-[14px] text-gold-deep hover:text-dark transition-colors shrink-0 whitespace-nowrap"
-        >
-          Sortuj · {sortByReward ? 'wg nagrody' : 'domyślnie'} ›
-        </button>
+        <div className="flex items-baseline gap-4 shrink-0">
+          {hidden.length > 0 && (
+            <button
+              onClick={() => setShowHidden(v => !v)}
+              className="font-serif-body italic text-[14px] text-muted hover:text-dark transition-colors whitespace-nowrap"
+            >
+              Ukryte · {hidden.length} {showHidden ? '∨' : '›'}
+            </button>
+          )}
+          <button
+            onClick={() => setSortByReward(v => !v)}
+            className="font-serif-body italic text-[14px] text-gold-deep hover:text-dark transition-colors whitespace-nowrap"
+          >
+            Sortuj · {sortByReward ? 'wg nagrody' : 'domyślnie'} ›
+          </button>
+        </div>
       </div>
+
+      {/* ── Ukryte questy (przywracanie) ───────────────────────── */}
+      {showHidden && hiddenQuests.length > 0 && (
+        <div className="mb-6 border border-dashed border-hairline bg-cream/40 p-4 animate-fade-in">
+          <SmallCaps tone="muted" tracking="luxury" size="xs" as="div" className="mb-3">
+            Ukryte questy · {hiddenQuests.length}
+          </SmallCaps>
+          <ul className="space-y-1">
+            {hiddenQuests.map(q => {
+              const p = getPillar(q.pillar)
+              return (
+                <li key={q.id} className="flex items-center justify-between gap-3 py-1">
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    <span className="text-gold text-[8px] shrink-0">◆</span>
+                    <span className="font-serif-body text-[14px] text-muted truncate">{q.title}</span>
+                    <span className="font-ui uppercase tracking-editorial text-[9px] text-muted-light shrink-0">{p.shortName}</span>
+                  </span>
+                  <button
+                    onClick={() => unhide(q.id)}
+                    className="shrink-0 inline-flex items-center gap-1.5 font-ui uppercase tracking-luxury text-[10px] text-gold-deep hover:text-dark transition-colors"
+                  >
+                    <RotateCcw size={11} strokeWidth={1.5} />
+                    przywróć
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* ── Quest grid ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-[18px]">
@@ -150,7 +209,7 @@ export default function QuestsPage() {
             <article
               key={quest.id}
               className={clsx(
-                'relative border p-6 pb-5 flex flex-col md:min-h-[232px] transition-colors',
+                'group/card relative border p-6 pb-5 flex flex-col md:min-h-[232px] transition-colors',
                 done ? 'bg-cream border-hairline' : 'bg-ivory border-hairline'
               )}
             >
@@ -158,8 +217,24 @@ export default function QuestsPage() {
               <span aria-hidden className={clsx('pointer-events-none absolute top-2 left-2 w-2 h-2 border-t border-l', done ? 'border-gold' : 'border-gold-light/75')} />
               <span aria-hidden className={clsx('pointer-events-none absolute bottom-2 right-2 w-2 h-2 border-b border-r', done ? 'border-gold' : 'border-gold-light/75')} />
 
-              {/* top: taxonomy + reward */}
-              <div className="flex items-start justify-between gap-4 mb-3">
+              {/* hide — chowa quest z biblioteki (odwracalne przez „Ukryte") */}
+              <button
+                onClick={() => hide(quest.id)}
+                aria-label={`Ukryj „${quest.title}" z biblioteki`}
+                title="Ukryj z biblioteki"
+                className={clsx(
+                  'absolute top-1.5 right-1.5 z-10 inline-flex items-center justify-center w-5 h-5 rounded-full text-muted-light hover:text-wine transition-all',
+                  'opacity-100 md:opacity-0 md:group-hover/card:opacity-100 focus-visible:opacity-100',
+                  done ? 'bg-cream/90 hover:bg-cream' : 'bg-ivory/90 hover:bg-cream',
+                )}
+              >
+                <X size={12} strokeWidth={1.5} />
+              </button>
+
+              {/* top: taxonomy + reward — na mobile robimy miejsce w rogu na
+                  zawsze-widoczny przycisk „×" (na desktopie pojawia się on dopiero
+                  na hover, więc nagroda zostaje wyrównana do prawej) */}
+              <div className="flex items-start justify-between gap-4 mb-3 max-md:pr-6">
                 <div className="flex items-center gap-3.5 flex-wrap min-w-0">
                   <span
                     className="inline-flex items-center gap-2 font-ui uppercase tracking-editorial text-[10px]"
@@ -242,6 +317,15 @@ export default function QuestsPage() {
           )
         })}
       </div>
+
+      {/* ── Empty state (np. po ukryciu wszystkiego w filtrze) ──── */}
+      {filtered.length === 0 && (
+        <p className="text-center font-serif-body italic text-[15px] text-muted py-12">
+          {hidden.length > 0
+            ? 'Wszystko w tym widoku jest ukryte — przywróć questy przyciskiem „Ukryte" powyżej.'
+            : 'Brak questów w tym widoku.'}
+        </p>
+      )}
 
       {/* ── Closing ────────────────────────────────────────────── */}
       <div className="mt-14 text-center">

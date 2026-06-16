@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { getRandomSideQuest, countSideQuests, type QuestScale } from '@/lib/questData'
 import { useCustomQuestLibrary } from '@/hooks/useCustomQuestLibrary'
+import { useHiddenSideQuests } from '@/hooks/useHiddenSideQuests'
 import { getPillar, PILLARS } from '@/lib/pillars'
 import type { Quest, Pillar } from '@/types'
 import { Shuffle, Check, Undo2, Plus } from 'lucide-react'
@@ -146,6 +147,7 @@ function CustomQuestForm({ onClose }: { onClose: () => void }) {
 export default function SideQuestPicker() {
   const { todayLog, toggleSideQuest } = useGameData()
   const { quests: libraryQuests } = useCustomQuestLibrary()
+  const { hidden: hiddenSideQuests, loading: hiddenLoading } = useHiddenSideQuests()
   const [activeQuest, setActiveQuest] = useState<Quest | null>(null)
   const [completed, setCompleted] = useState(false)
   const [showCustomForm, setShowCustomForm] = useState(false)
@@ -156,6 +158,9 @@ export default function SideQuestPicker() {
   const noFilter = filterPillar === null && filterScale === 'all'
 
   const roll = () => {
+    // Poczekaj aż wczytają się ukryte questy — inaczej w pierwszych ~chwilach po
+    // wejściu hiddenSideQuests jest jeszcze [] i mogłoby wpaść ukryte do losowania.
+    if (hiddenLoading) return
     const alreadyDone = todayLog?.completedSideQuests ?? []
 
     // Własne questy z biblioteki dorzucamy tylko gdy nie ma aktywnego filtra
@@ -179,7 +184,7 @@ export default function SideQuestPicker() {
       }
     }
 
-    const quest = getRandomSideQuest(alreadyDone, { pillar: filterPillar, scale: filterScale })
+    const quest = getRandomSideQuest(alreadyDone, { pillar: filterPillar, scale: filterScale, hiddenIds: hiddenSideQuests })
     if (quest) {
       setActiveQuest(quest)
       setCompleted(false)
@@ -195,7 +200,7 @@ export default function SideQuestPicker() {
   const pillar = activeQuest ? getPillar(activeQuest.pillar) : null
   const customDone = todayLog?.customSideQuests ?? []
   const totalDone = (todayLog?.completedSideQuests?.length ?? 0) + customDone.length
-  const matchingCount = countSideQuests({ pillar: filterPillar, scale: filterScale })
+  const matchingCount = countSideQuests({ pillar: filterPillar, scale: filterScale, hiddenIds: hiddenSideQuests })
 
   return (
     <div className="bg-ivory border border-gold-light/40 overflow-hidden mb-4">
