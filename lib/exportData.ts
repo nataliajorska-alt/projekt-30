@@ -209,7 +209,7 @@ export async function exportQuestsAsCSV(uid: string, range: DateRange = { from: 
 // ── Eksport przeglądów tygodniowych i miesięcznych ───────────────
 export async function exportReviewsAsCSV(uid: string, range: DateRange = { from: null, to: null }) {
   const [weeklySnap, monthlySnap] = await Promise.all([
-    getDocs(query(collection(db, ...paths.weeklyReviewsCol(uid)), orderBy('weekStart', 'asc'))),
+    getDocs(query(collection(db, ...paths.reviewsCol(uid)), orderBy('weekStart', 'asc'))),
     getDocs(query(collection(db, ...paths.monthlyReviewsCol(uid)), orderBy('month', 'asc'))),
   ])
 
@@ -329,7 +329,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
     cycleSnap, aprilQuestSnap,
   ] = await Promise.all([
     getDocs(query(collection(db, ...paths.logsCol(uid)), orderBy('date', 'asc'))),
-    getDocs(query(collection(db, ...paths.weeklyReviewsCol(uid)), orderBy('weekStart', 'asc'))),
+    getDocs(query(collection(db, ...paths.reviewsCol(uid)), orderBy('weekStart', 'asc'))),
     getDocs(query(collection(db, ...paths.monthlyReviewsCol(uid)), orderBy('month', 'asc'))),
     getDoc(doc(db, ...paths.dataDoc(uid, 'stats'))),
     getDoc(doc(db, ...paths.dataDoc(uid, 'ghostLogV2'))),

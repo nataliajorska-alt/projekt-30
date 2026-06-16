@@ -12,9 +12,10 @@
 //  • Admin SDK w app/api/external/xp/route.ts (db.collection().doc()) — 3 ścieżki, inny
 //    kształt API, nie rozpakowuje krotek; zostaje inline (users/data/stats, users/logs/{k},
 //    users/externalEvents/{id}).
-//  • FLAGA: recenzje tygodniowe zapisywane są do kolekcji `reviews` (UI + historia), ale
-//    lib/exportData.ts czyta z `weeklyReviews` (patrz weeklyReviewsCol) — prawdopodobnie
-//    osobna, pusta kolekcja => eksport może gubić recenzje tygodniowe. Zachowane bez zmian.
+//
+// Historia: recenzje tygodniowe żyją w kolekcji `reviews` (reviewsCol/reviewDoc). Eksport
+// czytał wcześniej z nieistniejącej `weeklyReviews` (nikt tam nie pisał) i gubił recenzje
+// tygodniowe — naprawione, eksport czyta `reviews`; helper weeklyReviewsCol usunięty.
 
 type Uid = string
 
@@ -44,10 +45,6 @@ export const logDoc = (uid: Uid, dateKey: string): [string, string, string, stri
 export const reviewsCol = (uid: Uid): [string, string, string] => ['users', uid, 'reviews']
 export const reviewDoc = (uid: Uid, weekStart: string): [string, string, string, string] =>
   ['users', uid, 'reviews', weekStart]
-
-// users/{uid}/weeklyReviews  (TYLKO lib/exportData.ts — patrz FLAGA u góry pliku)
-export const weeklyReviewsCol = (uid: Uid): [string, string, string] =>
-  ['users', uid, 'weeklyReviews']
 
 // users/{uid}/monthlyReviews
 export const monthlyReviewsCol = (uid: Uid): [string, string, string] =>
