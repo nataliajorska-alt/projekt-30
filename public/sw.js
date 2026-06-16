@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v17-mostek';
+const CACHE_NAME = 'p30-v18-mostek-oddech';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {

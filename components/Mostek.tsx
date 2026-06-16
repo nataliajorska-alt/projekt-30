@@ -6,10 +6,10 @@
 // idzie do storage — po wyjściu z ekranu przepada. Tak ma być: brak logu,
 // licznika, oceny.
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Volume2, VolumeX } from 'lucide-react'
 import { SmallCaps, GoldRule, Fleuron, Diamond } from '@/components/ui'
 import {
   MOSTEK_KOTWICE, MOSTEK_ODDECHY, MOSTEK_OBSERWACJE,
@@ -18,6 +18,48 @@ import {
 } from '@/lib/mostek-data'
 
 type Stage = 'kotwica' | 'oddech' | 'obserwacja' | 'ruch' | 'zamkniecie'
+
+// ─── Dźwięk oddechu (opcjonalny — sercem trybu „zamknięte oczy") ──
+// iPhone: wibracji w web nie ma, więc rytm niesie cichy ton (to gong z fazy 3).
+// Preferencja żyje w pamięci modułu (sesja JS), NIE w storage — jak reszta
+// Mostka. AudioContext tworzony dopiero przy tapnięciu — gest odblokowuje audio
+// na iOS. Uwaga: na iPhonie ton słychać tylko z włączonym dzwonkiem (przełącznik
+// ciszy wycisza web audio — ograniczenie iOS, nie do obejścia).
+let _breathSoundOn = false
+let _audioCtx: AudioContext | null = null
+
+// Wołane najpierw z toggleSound (gest), więc kontekst powstaje/odblokowuje się
+// pod tapnięciem — wymóg iOS. Trzymamy go jako singleton (nie zamykamy między
+// wejściami), żeby nie wymuszać ponownego odblokowania. Gdyby iOS zawiesił go w
+// tle, resume() poza gestem może odmówić — łapiemy cicho, dźwięk wróci po tapnięciu.
+function ensureAudioCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null
+  const AC = window.AudioContext
+    || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!AC) return null
+  if (!_audioCtx) _audioCtx = new AC()
+  if (_audioCtx.state === 'suspended') void _audioCtx.resume().catch(() => {})
+  return _audioCtx
+}
+
+// Miękki ton sinusoidalny na zmianę fazy. Wydech niżej i dłużej (osiada).
+function playBreathTone(phase: string) {
+  const ctx = ensureAudioCtx()
+  if (!ctx) return
+  const now = ctx.currentTime
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.type = 'sine'
+  osc.frequency.value = phase === 'wydech' ? 196 : phase === 'dobierz' ? 262 : 233
+  const dur = phase === 'wydech' ? 1.2 : 0.7
+  gain.gain.setValueAtTime(0.0001, now)
+  gain.gain.linearRampToValueAtTime(0.05, now + 0.12)
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + dur)
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.start(now)
+  osc.stop(now + dur + 0.05)
+}
 
 // ─── Oddech ───────────────────────────────────────────────────────
 // Sekwencja faz skompilowana z wariantu. Niezmiennik: wydech > wdech.
@@ -54,6 +96,19 @@ function BreathStage({ breath, onAdvance }: { breath: MostekBreath; onAdvance: (
   const [mounted, setMounted] = useState(false)
   const [remaining, setRemaining] = useState(seq[0].dur)
   const [reduceMotion, setReduceMotion] = useState(false)
+  const [soundOn, setSoundOn] = useState(_breathSoundOn)
+  const soundOnRef = useRef(soundOn)
+  soundOnRef.current = soundOn
+
+  // Przełącznik dźwięku. Tapnięcie jest gestem, który odblokowuje audio na iOS,
+  // więc tu tworzymy/wznawiamy kontekst i gramy ton potwierdzający.
+  const toggleSound = useCallback(() => {
+    const next = !soundOnRef.current
+    soundOnRef.current = next
+    _breathSoundOn = next
+    setSoundOn(next)
+    if (next) playBreathTone('wdech')
+  }, [])
 
   // Reduced motion: skala stoi, rytm niesie słowo fazy + odliczanie.
   useEffect(() => {
@@ -91,6 +146,12 @@ function BreathStage({ breath, onAdvance }: { breath: MostekBreath; onAdvance: (
     return () => clearInterval(iv)
   }, [stepIdx, seq])
 
+  // Ton na zmianę fazy (gdy włączony). Osobny efekt — nie restartuje timerów;
+  // stan dźwięku czytamy z refu, żeby przełączenie nie zrywało odliczania.
+  useEffect(() => {
+    if (soundOnRef.current) playBreathTone(seq[stepIdx].label)
+  }, [stepIdx, seq])
+
   const step = seq[stepIdx]
   const scale = mounted ? step.scale : 1
 
@@ -98,7 +159,7 @@ function BreathStage({ breath, onAdvance }: { breath: MostekBreath; onAdvance: (
     <div className="w-full flex flex-col items-center">
       {/* Koło oddechu */}
       <div className="relative flex items-center justify-center h-64 w-64 mb-2" aria-hidden>
-        {/* poświata */}
+        {/* poświata — na wydechu miękko osiada (akcent: to wydech rozładowuje) */}
         <div
           className="absolute rounded-full"
           style={{
@@ -106,7 +167,8 @@ function BreathStage({ breath, onAdvance }: { breath: MostekBreath; onAdvance: (
             height: 150,
             background: 'radial-gradient(circle, rgba(178,147,85,0.16), rgba(178,147,85,0) 70%)',
             transform: `scale(${scale})`,
-            transition: reduceMotion ? 'none' : `transform ${step.dur}s ease-in-out`,
+            opacity: reduceMotion ? 1 : step.label === 'wydech' ? 0.4 : 1,
+            transition: reduceMotion ? 'none' : `transform ${step.dur}s ease-in-out, opacity ${step.dur}s ease-in-out`,
           }}
         />
         {/* obrys */}
@@ -131,6 +193,25 @@ function BreathStage({ breath, onAdvance }: { breath: MostekBreath; onAdvance: (
       <p className="font-serif-body italic text-muted text-[13px] leading-relaxed text-center max-w-xs mt-4">
         {breath.hint}
       </p>
+
+      {/* Dźwięk — sercem trybu „zamknięte oczy" na iPhonie (gong z fazy 3) */}
+      <button
+        onClick={toggleSound}
+        aria-pressed={soundOn}
+        className={`mt-5 inline-flex items-center gap-2 border px-4 py-2 transition-colors ${
+          soundOn ? 'border-gold' : 'border-hairline hover:border-gold'
+        }`}
+      >
+        {soundOn ? <Volume2 size={13} className="text-gold-deep" /> : <VolumeX size={13} className="text-muted" />}
+        <SmallCaps tone={soundOn ? 'gold-deep' : 'muted'} tracking="luxury" size="xs">
+          {soundOn ? 'dźwięk włączony' : 'oddychaj z dźwiękiem'}
+        </SmallCaps>
+      </button>
+      {soundOn && (
+        <p className="font-serif-body italic text-muted-light text-[12px] leading-relaxed text-center max-w-xs mt-3">
+          możesz zamknąć oczy i oddychać z tonem. jeśli cisza — włącz dzwonek telefonu.
+        </p>
+      )}
 
       {/* Sterowanie — odsłaniane stopniowo, Mostek nie trzyma, ale i nie pozwala przeklikać */}
       <div className="mt-8 h-12 flex items-center justify-center">
@@ -201,6 +282,28 @@ export default function Mostek() {
     if (obsIdx + 1 < picks.obserwacje.length) setObsIdx(obsIdx + 1)
     else setStage('ruch')
   }, [obsIdx, picks.obserwacje.length])
+
+  // Wake-lock: ekran nie gaśnie w środku oddechu. iOS zwalnia lock przy ukryciu
+  // karty — ponawiamy po powrocie. Typy wakeLock bywają poza lib DOM → wąski cast.
+  useEffect(() => {
+    type Sentinel = { release: () => Promise<void> }
+    const nav = navigator as unknown as { wakeLock?: { request: (t: 'screen') => Promise<Sentinel> } }
+    if (!nav.wakeLock) return
+    let lock: Sentinel | null = null
+    let cancelled = false
+    const request = async () => {
+      if (cancelled || document.visibilityState !== 'visible') return
+      try { lock = await nav.wakeLock!.request('screen') } catch { /* odmowa / brak wsparcia */ }
+    }
+    void request()
+    const onVis = () => { if (document.visibilityState === 'visible') void request() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVis)
+      void lock?.release().catch(() => {})
+    }
+  }, [])
 
   return (
     <div className="max-w-md mx-auto px-5 pt-10 pb-28 min-h-[100dvh] flex flex-col">
