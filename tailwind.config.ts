@@ -22,9 +22,9 @@ const config: Config = {
         gold: '#B29355',          // design --gold   (was #B8963E — yellower)
         'gold-light': '#C9B27F',  // design --gold-soft (was #D4AF6B)
         'gold-dark': '#8B6914',
-        'gold-deep': '#8E7338',   // design --gold-deep (was #8A6F2A)
+        'gold-deep': '#826933',   // a11y: ciemniejszy o tyle, by jako tekst dać AA 4.5:1 na ivory/cream (był #8E7338 = 4.25, fail dla zwykłego tekstu); wciąż czyta się jako złoto
         'gold-pale': '#F3E9C8',   // matches design level text color (was #F5EDD8)
-        muted: '#8A7A55',         // design --muted   (was #6B5E52 — cooler gray)
+        muted: '#796B4B',         // a11y: ciemniejszy taupe, by jako tekst dać AA 4.5:1 na ivory/cream (był #8A7A55 = 3.96, fail); ~98% użyć to tekst
         'muted-light': '#B7A787', // design --quiet   (was #9B8E84)
         hairline: '#D9CDA8',      // design --line   (was #C9BFB1 — gray)
         border: '#E5DCC1',        // design --line-soft (was #E2D9CE)
