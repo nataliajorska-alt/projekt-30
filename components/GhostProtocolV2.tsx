@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import Link from 'next/link'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { useGhostV2 } from '@/hooks/useGhostV2'
@@ -195,9 +196,25 @@ function ExpressScreen({
         <GhostButton onClick={onTouchstone} variant="secondary">
           <SmallCaps tone="ivory" tracking="luxury" size="xs">Prawda na zimno</SmallCaps>
         </GhostButton>
+
+        {/* Rozjazd: to nie impuls kryzysowy, tylko cichy ciężar → Mostek.
+            Routuje właściwy stan do właściwego narzędzia, zanim wepchnie łagodny
+            ciężar w tryb kryzysu. */}
+        <div className="mt-6 pt-5 border-t border-gold-light/15 text-center">
+          <p className="font-serif-body italic text-parchment/70 text-[13px] leading-relaxed mb-2">
+            to nie impuls, żeby coś sprawdzić — tylko cichy ciężar w mostku?
+          </p>
+          <Link
+            href="/mostek"
+            className="inline-flex items-center gap-1.5 font-ui uppercase tracking-luxury text-[10px] text-gold-light hover:text-ivory transition-colors py-1"
+          >
+            Mostek <span aria-hidden>→</span>
+          </Link>
+        </div>
+
         <button
           onClick={onCategorize}
-          className="w-full text-center font-ui uppercase tracking-luxury text-[10px] text-parchment/60 hover:text-parchment transition-colors mt-4 py-1"
+          className="w-full text-center font-ui uppercase tracking-luxury text-[10px] text-parchment/60 hover:text-parchment transition-colors mt-5 py-1"
         >
           nazwij, co to było
         </button>

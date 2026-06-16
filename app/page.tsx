@@ -9,6 +9,7 @@ import TomorrowBriefing from '@/components/TomorrowBriefing'
 import SideQuestPicker from '@/components/SideQuestPicker'
 import NegativeChecklist from '@/components/NegativeChecklist'
 import HeartBlockCard from '@/components/HeartBlockCard'
+import MostekCard from '@/components/MostekCard'
 import DailyXPSummary from '@/components/DailyXPSummary'
 import MagnetismMeter from '@/components/MagnetismMeter'
 import MoodCheckInModal from '@/components/MoodCheckInModal'
@@ -316,6 +317,7 @@ export default function Dashboard() {
           <ErrorBoundary label="Moment dnia"><KeyMomentCapture /></ErrorBoundary>
           <ErrorBoundary label="Negative checklist"><NegativeChecklist /></ErrorBoundary>
           <ErrorBoundary label="Heart Block"><HeartBlockCard /></ErrorBoundary>
+          <ErrorBoundary label="Mostek"><MostekCard /></ErrorBoundary>
         </>
       )}
 
