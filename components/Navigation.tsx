@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
 import { useAuth } from '@/hooks/useAuth'
 import { useWeeklyInsightBadge } from '@/hooks/useWeeklyInsightBadge'
+import { useLearningVaultBadge } from '@/hooks/useLearningVaultBadge'
 import {
   Home, Sword, Trophy, BookOpen, CalendarDays,
   LogOut, Settings, Lock, Camera, Scroll,
@@ -86,7 +87,7 @@ function isGroupActive(item: GroupItem, pathname: string) {
 
 // ── Desktop sidebar ──────────────────────────────────────────────
 
-function DesktopNav({ pathname }: { pathname: string }) {
+function DesktopNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: boolean }) {
   const { logOut } = useAuth()
   const insightBadge = useWeeklyInsightBadge()
   const [openGroup, setOpenGroup] = useState<string | null>(() => {
@@ -142,7 +143,15 @@ function DesktopNav({ pathname }: { pathname: string }) {
                     onClick={() => setOpenGroup(null)}
                     className="px-8 py-3 flex items-center gap-2 font-ui uppercase tracking-[0.3em] text-[12px] text-parchment/80 hover:text-gold-pale transition-colors"
                   >
-                    <span className="flex-1">{item.label}</span>
+                    <span className="relative flex-1">
+                      {item.label}
+                      {vaultBadge && (
+                        <span
+                          className="absolute -top-1 -right-2.5 w-1.5 h-1.5 rounded-full bg-yellow-400 ring-2 ring-dark"
+                          aria-label="Dziś nic z Learning Vault"
+                        />
+                      )}
+                    </span>
                     <ArrowUpRight size={12} strokeWidth={1.5} className="opacity-50" />
                   </a>
                 </div>
@@ -240,7 +249,7 @@ function DesktopNav({ pathname }: { pathname: string }) {
 
 // ── Mobile bottom nav ────────────────────────────────────────────
 
-function MobileNav({ pathname }: { pathname: string }) {
+function MobileNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: boolean }) {
   const insightBadge = useWeeklyInsightBadge()
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -317,6 +326,12 @@ function MobileNav({ pathname }: { pathname: string }) {
                   <span className="relative flex items-center">
                     <item.icon size={20} strokeWidth={1.5} className="text-parchment/70" />
                     <ArrowUpRight size={9} strokeWidth={2} className="absolute -top-1 -right-1.5 text-gold-light/80" />
+                    {vaultBadge && (
+                      <span
+                        className="absolute -top-1 -left-1.5 w-1.5 h-1.5 rounded-full bg-yellow-400 ring-2 ring-forest-deep"
+                        aria-label="Dziś nic z Learning Vault"
+                      />
+                    )}
                   </span>
                   <span className="h-px w-5 bg-transparent" />
                 </a>
@@ -387,10 +402,13 @@ function MobileNav({ pathname }: { pathname: string }) {
 
 export default function Navigation() {
   const pathname = usePathname()
+  // Jeden listener na dzisiejszy log — współdzielony przez oba subnavy (oba są
+  // zawsze zamontowane, różni je tylko CSS), zamiast dwóch osobnych.
+  const vaultBadge = useLearningVaultBadge()
   return (
     <>
-      <DesktopNav pathname={pathname} />
-      <MobileNav pathname={pathname} />
+      <DesktopNav pathname={pathname} vaultBadge={vaultBadge} />
+      <MobileNav pathname={pathname} vaultBadge={vaultBadge} />
     </>
   )
 }
