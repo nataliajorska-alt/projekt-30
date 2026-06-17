@@ -1,7 +1,7 @@
 'use client'
-import { useState, useMemo, type ReactNode } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import clsx from 'clsx'
-import { X, RotateCcw } from 'lucide-react'
+import { X, RotateCcw, ChevronDown } from 'lucide-react'
 import { SIDE_QUESTS } from '@/lib/questData'
 import { PILLARS, getPillar } from '@/lib/pillars'
 import { useGameData } from '@/hooks/useGameData'
@@ -36,32 +36,120 @@ function DifficultyPips({ d, onDark = false }: { d: Diff; onDark?: boolean }) {
   )
 }
 
-// Kompaktowy chip filtra drugiego rzędu (trudność/status) — lżejszy niż grid filarów.
-function FilterPill({
-  active, onClick, label, count, pips,
+type FilterOption = { value: string; label: string; count?: number }
+
+// Kompaktowy filtr-dropdown: przycisk (etykieta + wybrana wartość) + lista do wyboru.
+// `searchable` dodaje pole szukania (dla Tematu — jest ~160 tagów).
+function FilterSelect({
+  label, value, options, onSelect, searchable = false,
 }: {
-  active: boolean
-  onClick: () => void
   label: string
-  count?: number
-  pips?: ReactNode
+  value: string
+  options: FilterOption[]
+  onSelect: (v: string) => void
+  searchable?: boolean
 }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [alignRight, setAlignRight] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Zamknięcie: klik poza listą albo Escape.
+  useEffect(() => {
+    if (!open) return
+    const onDocClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  useEffect(() => { if (!open) setQuery('') }, [open])
+
+  // Przy otwarciu: jeśli lista wyszłaby poza prawą krawędź (na wąskich ekranach
+  // z overflow-x:hidden i tak by się obcięła) — wyrównaj ją do prawej.
+  useEffect(() => {
+    if (!open || !ref.current) return
+    const rect = ref.current.getBoundingClientRect()
+    setAlignRight(rect.left + 260 > window.innerWidth - 8)
+  }, [open])
+
+  const active = value !== 'all'
+  // Aktualnie wybrana opcja zawsze na liście (tag mógł wypaść z fasety po innych filtrach).
+  const opts = active && !options.some(o => o.value === value)
+    ? [...options, { value, label: value }]
+    : options
+  const currentLabel = opts.find(o => o.value === value)?.label ?? value
+  const q = query.trim().toLowerCase()
+  const shown = searchable && q ? opts.filter(o => o.label.toLowerCase().includes(q)) : opts
+
   return (
-    <button
-      onClick={onClick}
-      className={clsx(
-        'inline-flex items-center gap-1.5 border px-3 py-1.5 font-ui uppercase tracking-luxury text-[9px] transition-colors',
-        active ? 'bg-dark text-cream border-dark' : 'border-hairline text-muted hover:text-dark hover:border-gold-light',
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={clsx(
+          'inline-flex items-center gap-2 border px-3 py-1.5 transition-colors',
+          active ? 'border-gold-light bg-gold-pale/40 text-dark' : 'border-hairline text-muted hover:text-dark hover:border-gold-light',
+        )}
+      >
+        <span className="font-ui uppercase tracking-luxury text-[8px] text-muted-light">{label}</span>
+        <span className="font-serif-body italic text-[13px] leading-none whitespace-nowrap">{currentLabel}</span>
+        <ChevronDown size={12} strokeWidth={1.5} className={clsx('text-muted-light transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          className={clsx(
+            'absolute top-full mt-1.5 z-30 w-max min-w-[170px] max-w-[min(260px,calc(100vw-2rem))] bg-ivory border border-hairline shadow-lg shadow-dark/10',
+            alignRight ? 'right-0' : 'left-0',
+          )}
+        >
+          {searchable && (
+            <div className="p-2 border-b border-hairline">
+              <input
+                autoFocus
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="szukaj tematu…"
+                className="w-full bg-cream/40 border border-hairline px-2.5 py-1.5 font-serif-body italic text-[13px] text-dark outline-none focus:border-gold transition-colors placeholder:text-muted-light/60"
+              />
+            </div>
+          )}
+          <div className="max-h-[260px] overflow-y-auto py-1">
+            {shown.map(o => (
+              <button
+                key={o.value}
+                type="button"
+                role="option"
+                aria-selected={o.value === value}
+                onClick={() => { onSelect(o.value); setOpen(false) }}
+                className={clsx(
+                  'w-full flex items-center justify-between gap-4 px-3 py-1.5 text-left transition-colors',
+                  o.value === value ? 'bg-cream text-dark' : 'text-muted hover:bg-cream/50 hover:text-dark',
+                )}
+              >
+                <span className="font-serif-body text-[13px]">{o.label}</span>
+                {typeof o.count === 'number' && (
+                  <span className="font-display italic text-[12px] text-muted-light shrink-0">{o.count}</span>
+                )}
+              </button>
+            ))}
+            {shown.length === 0 && (
+              <div className="px-3 py-2 font-serif-body italic text-[12px] text-muted-light">brak tematów</div>
+            )}
+          </div>
+        </div>
       )}
-    >
-      {pips}
-      {label}
-      {typeof count === 'number' && (
-        <span className={clsx('font-display italic text-[11px] normal-case', active ? 'text-gold-light' : 'text-muted-light')}>
-          {count}
-        </span>
-      )}
-    </button>
+    </div>
   )
 }
 
@@ -72,6 +160,7 @@ export default function QuestsPage() {
   const [filter, setFilter] = useState<Filter>('all')
   const [diffFilter, setDiffFilter] = useState<Diff | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [tagFilter, setTagFilter] = useState<string>('all')
   const [sortByReward, setSortByReward] = useState(false)
   const [completing, setCompleting] = useState<string | null>(null)
   const [showHidden, setShowHidden] = useState(false)
@@ -94,58 +183,61 @@ export default function QuestsPage() {
     [hidden],
   )
 
-  // Trzy wymiary filtrów łączą się (AND): kategoria (filar) + trudność + status.
-  // Status „ukończone" = TRWAŁY (everDone), a nie tylko dzisiejszy.
+  // Cztery wymiary filtrów łączą się (AND): kategoria (filar) + temat (tag) +
+  // trudność + status. Status „ukończone" = TRWAŁY (everDone), nie tylko dzisiejszy.
+  const okPillar = (q: Quest) => filter === 'all' || q.pillar === filter
+  const okTag = (q: Quest) => tagFilter === 'all' || (q.tags ?? []).includes(tagFilter)
+  const okDiff = (q: Quest) => diffFilter === 'all' || q.difficulty === diffFilter
+  const okStatus = (q: Quest) =>
+    statusFilter === 'all' || (statusFilter === 'done' ? everDone.includes(q.id) : !everDone.includes(q.id))
+
   const filtered = useMemo(() => {
-    const base = visibleQuests.filter(q =>
-      (filter === 'all' || q.pillar === filter) &&
-      (diffFilter === 'all' || q.difficulty === diffFilter) &&
-      (statusFilter === 'all' || (statusFilter === 'done'
-        ? everDone.includes(q.id)
-        : !everDone.includes(q.id))),
-    )
+    const base = visibleQuests.filter(q => okPillar(q) && okTag(q) && okDiff(q) && okStatus(q))
     return sortByReward ? [...base].sort((a, b) => b.xp - a.xp) : base
-  }, [visibleQuests, filter, diffFilter, statusFilter, sortByReward, everDone])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleQuests, filter, tagFilter, diffFilter, statusFilter, sortByReward, everDone])
 
   const completedInView = filtered.filter(q => everDone.includes(q.id)).length
 
-  // Liczniki fasetowane: każdy chip pokazuje, ile zobaczysz po jego wyborze przy
-  // POZOSTAŁYCH aktywnych filtrach (np. liczby filarów liczone po trudność+status).
-  const pillarCounts = useMemo(() => {
-    const per: Record<string, number> = {}
-    let all = 0
-    for (const q of visibleQuests) {
-      const okDiff = diffFilter === 'all' || q.difficulty === diffFilter
-      const okStatus = statusFilter === 'all' || (statusFilter === 'done'
-        ? everDone.includes(q.id) : !everDone.includes(q.id))
-      if (okDiff && okStatus) { per[q.pillar] = (per[q.pillar] ?? 0) + 1; all++ }
-    }
-    return { per, all }
-  }, [visibleQuests, diffFilter, statusFilter, everDone])
+  // Liczniki fasetowane: każda opcja pokazuje, ile zobaczysz po jej wyborze przy
+  // POZOSTAŁYCH aktywnych filtrach. Każdy licznik fasetuje po trzech innych wymiarach.
+  const pillarCounts: Record<string, number> = {}
+  for (const q of visibleQuests) if (okTag(q) && okDiff(q) && okStatus(q)) pillarCounts[q.pillar] = (pillarCounts[q.pillar] ?? 0) + 1
 
-  const diffCounts = useMemo(() => {
-    const c: Record<Diff | 'all', number> = { easy: 0, medium: 0, hard: 0, all: 0 }
-    for (const q of visibleQuests) {
-      const okPillar = filter === 'all' || q.pillar === filter
-      const okStatus = statusFilter === 'all' || (statusFilter === 'done'
-        ? everDone.includes(q.id) : !everDone.includes(q.id))
-      if (okPillar && okStatus) { c[q.difficulty as Diff]++; c.all++ }
-    }
-    return c
-  }, [visibleQuests, filter, statusFilter, everDone])
+  const diffCounts: Record<string, number> = { easy: 0, medium: 0, hard: 0 }
+  for (const q of visibleQuests) if (okPillar(q) && okTag(q) && okStatus(q)) diffCounts[q.difficulty] += 1
 
-  const statusCounts = useMemo(() => {
-    let todo = 0, done = 0
-    for (const q of visibleQuests) {
-      const okPillar = filter === 'all' || q.pillar === filter
-      const okDiff = diffFilter === 'all' || q.difficulty === diffFilter
-      if (okPillar && okDiff) { everDone.includes(q.id) ? done++ : todo++ }
-    }
-    return { todo, done, all: todo + done }
-  }, [visibleQuests, filter, diffFilter, everDone])
+  let statusTodo = 0, statusDone = 0
+  for (const q of visibleQuests) if (okPillar(q) && okTag(q) && okDiff(q)) { everDone.includes(q.id) ? (statusDone += 1) : (statusTodo += 1) }
 
-  const anyFilterActive = filter !== 'all' || diffFilter !== 'all' || statusFilter !== 'all'
-  const clearFilters = () => { setFilter('all'); setDiffFilter('all'); setStatusFilter('all') }
+  // Temat: faseta po pillar+diff+status; quest może mieć kilka tagów.
+  const tagCounts: Record<string, number> = {}
+  for (const q of visibleQuests) if (okPillar(q) && okDiff(q) && okStatus(q)) for (const t of q.tags ?? []) tagCounts[t] = (tagCounts[t] ?? 0) + 1
+
+  // Opcje dropdownów
+  const pillarOptions: FilterOption[] = [
+    { value: 'all', label: 'Wszystkie' },
+    ...PILLARS.map(p => ({ value: p.id, label: p.shortName, count: pillarCounts[p.id] ?? 0 })),
+  ]
+  const diffOptions: FilterOption[] = [
+    { value: 'all', label: 'Wszystkie' },
+    ...(['easy', 'medium', 'hard'] as Diff[]).map(d => ({ value: d, label: DIFFICULTY_LABELS[d], count: diffCounts[d] ?? 0 })),
+  ]
+  const statusOptions: FilterOption[] = [
+    { value: 'all', label: 'Wszystkie' },
+    { value: 'todo', label: 'Do zrobienia', count: statusTodo },
+    { value: 'done', label: 'Ukończone', count: statusDone },
+  ]
+  // Tematy: najpierw najczęstsze, potem alfabetycznie (PL). Tylko z liczbą > 0.
+  const tagOptions: FilterOption[] = [
+    { value: 'all', label: 'Wszystkie tematy' },
+    ...Object.keys(tagCounts)
+      .sort((a, b) => tagCounts[b] - tagCounts[a] || a.localeCompare(b, 'pl'))
+      .map(t => ({ value: t, label: t, count: tagCounts[t] })),
+  ]
+
+  const anyFilterActive = filter !== 'all' || tagFilter !== 'all' || diffFilter !== 'all' || statusFilter !== 'all'
+  const clearFilters = () => { setFilter('all'); setTagFilter('all'); setDiffFilter('all'); setStatusFilter('all') }
 
   // Podejmij: nalicz XP (raz — tylko jeśli nie zaliczony dziś) i oznacz TRWALE.
   const handleComplete = async (quest: Quest) => {
@@ -192,50 +284,20 @@ export default function QuestsPage() {
         <span className="flex-1 h-px bg-hairline" />
       </div>
 
-      {/* ── Filtry: Kategoria + Trudność + Status (kompaktowo) ──── */}
-      <div className="space-y-2 mb-4">
-        {/* Kategoria — 7 filarów + Wszystkie */}
-        <div className="flex items-start gap-2.5">
-          <span className="w-[74px] shrink-0 pt-1.5 font-ui uppercase tracking-luxury text-[9px] text-muted-light whitespace-nowrap">Kategoria</span>
-          <div className="flex flex-wrap gap-1.5 flex-1">
-            <FilterPill active={filter === 'all'} onClick={() => setFilter('all')} label="Wszystkie" />
-            {PILLARS.map(p => (
-              <FilterPill
-                key={p.id}
-                active={filter === p.id}
-                onClick={() => setFilter(p.id as Filter)}
-                label={p.shortName}
-                count={pillarCounts.per[p.id] ?? 0}
-              />
-            ))}
-          </div>
-        </div>
-        {/* Trudność */}
-        <div className="flex items-start gap-2.5">
-          <span className="w-[74px] shrink-0 pt-1.5 font-ui uppercase tracking-luxury text-[9px] text-muted-light whitespace-nowrap">Trudność</span>
-          <div className="flex flex-wrap gap-1.5 flex-1">
-            <FilterPill active={diffFilter === 'all'} onClick={() => setDiffFilter('all')} label="Wszystkie" />
-            {(['easy', 'medium', 'hard'] as Diff[]).map(d => (
-              <FilterPill
-                key={d}
-                active={diffFilter === d}
-                onClick={() => setDiffFilter(d)}
-                label={DIFFICULTY_LABELS[d]}
-                count={diffCounts[d]}
-                pips={<DifficultyPips d={d} onDark={diffFilter === d} />}
-              />
-            ))}
-          </div>
-        </div>
-        {/* Status */}
-        <div className="flex items-start gap-2.5">
-          <span className="w-[74px] shrink-0 pt-1.5 font-ui uppercase tracking-luxury text-[9px] text-muted-light whitespace-nowrap">Status</span>
-          <div className="flex flex-wrap gap-1.5 flex-1">
-            <FilterPill active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} label="Wszystkie" />
-            <FilterPill active={statusFilter === 'todo'} onClick={() => setStatusFilter('todo')} label="Do zrobienia" count={statusCounts.todo} />
-            <FilterPill active={statusFilter === 'done'} onClick={() => setStatusFilter('done')} label="Ukończone" count={statusCounts.done} />
-          </div>
-        </div>
+      {/* ── Filtry: dropdowny (Kategoria · Temat · Trudność · Status) ── */}
+      <div className="flex flex-wrap items-center gap-2 mb-5">
+        <FilterSelect label="Kategoria" value={filter} options={pillarOptions} onSelect={v => setFilter(v as Filter)} />
+        <FilterSelect label="Temat" value={tagFilter} options={tagOptions} onSelect={setTagFilter} searchable />
+        <FilterSelect label="Trudność" value={diffFilter} options={diffOptions} onSelect={v => setDiffFilter(v as Diff | 'all')} />
+        <FilterSelect label="Status" value={statusFilter} options={statusOptions} onSelect={v => setStatusFilter(v as StatusFilter)} />
+        {anyFilterActive && (
+          <button
+            onClick={clearFilters}
+            className="ml-0.5 font-serif-body italic text-[13px] text-muted hover:text-wine transition-colors whitespace-nowrap"
+          >
+            Wyczyść ×
+          </button>
+        )}
       </div>
 
       {/* ── Results meta + sort ────────────────────────────────── */}
@@ -247,14 +309,6 @@ export default function QuestsPage() {
           <strong className="font-display not-italic normal-case italic text-gold-deep text-[14px] mx-0.5">{completedInView}</strong> ukończone
         </div>
         <div className="flex items-baseline gap-4 shrink-0">
-          {anyFilterActive && (
-            <button
-              onClick={clearFilters}
-              className="font-serif-body italic text-[14px] text-muted hover:text-wine transition-colors whitespace-nowrap"
-            >
-              Wyczyść ×
-            </button>
-          )}
           {hidden.length > 0 && (
             <button
               onClick={() => setShowHidden(v => !v)}
