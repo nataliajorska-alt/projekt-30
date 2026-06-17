@@ -192,64 +192,49 @@ export default function QuestsPage() {
         <span className="flex-1 h-px bg-hairline" />
       </div>
 
-      {/* ── Filtr: Kategoria (filary) ──────────────────────────── */}
-      <SmallCaps tone="muted-light" tracking="luxury" size="xs" as="div" className="mb-2">
-        Kategoria
-      </SmallCaps>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
-        <button
-          onClick={() => setFilter('all')}
-          className={clsx(
-            'flex items-center justify-center gap-2 border px-4 py-2.5 font-ui uppercase tracking-[0.3em] text-[10px] transition-colors',
-            filter === 'all'
-              ? 'bg-dark text-cream border-dark'
-              : 'border-hairline text-muted hover:text-dark hover:border-gold-light'
-          )}
-        >
-          Wszystkie
-        </button>
-        {PILLARS.map(p => {
-          const on = filter === p.id
-          return (
-            <button
-              key={p.id}
-              onClick={() => setFilter(p.id as Filter)}
-              className={clsx(
-                'flex items-center justify-center gap-2 border px-4 py-2.5 font-ui uppercase tracking-[0.3em] text-[10px] transition-colors',
-                on ? 'bg-dark text-cream border-dark' : 'border-hairline text-muted hover:text-dark hover:border-gold-light'
-              )}
-            >
-              <span className={clsx('text-[8px]', on ? 'text-gold' : 'text-gold-light')}>◇</span>
-              {p.shortName}
-              <span className={clsx('font-display italic text-[12px] ml-0.5', on ? 'text-gold-light' : 'text-muted-light')}>
-                {pillarCounts.per[p.id] ?? 0}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* ── Filtry: Trudność + Status ──────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-8 gap-y-2.5 mb-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-ui uppercase tracking-editorial text-[9px] text-muted-light mr-1 shrink-0">Trudność</span>
-          <FilterPill active={diffFilter === 'all'} onClick={() => setDiffFilter('all')} label="Wszystkie" />
-          {(['easy', 'medium', 'hard'] as Diff[]).map(d => (
-            <FilterPill
-              key={d}
-              active={diffFilter === d}
-              onClick={() => setDiffFilter(d)}
-              label={DIFFICULTY_LABELS[d]}
-              count={diffCounts[d]}
-              pips={<DifficultyPips d={d} onDark={diffFilter === d} />}
-            />
-          ))}
+      {/* ── Filtry: Kategoria + Trudność + Status (kompaktowo) ──── */}
+      <div className="space-y-2 mb-4">
+        {/* Kategoria — 7 filarów + Wszystkie */}
+        <div className="flex items-start gap-2.5">
+          <span className="w-[74px] shrink-0 pt-1.5 font-ui uppercase tracking-luxury text-[9px] text-muted-light whitespace-nowrap">Kategoria</span>
+          <div className="flex flex-wrap gap-1.5 flex-1">
+            <FilterPill active={filter === 'all'} onClick={() => setFilter('all')} label="Wszystkie" />
+            {PILLARS.map(p => (
+              <FilterPill
+                key={p.id}
+                active={filter === p.id}
+                onClick={() => setFilter(p.id as Filter)}
+                label={p.shortName}
+                count={pillarCounts.per[p.id] ?? 0}
+              />
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-ui uppercase tracking-editorial text-[9px] text-muted-light mr-1 shrink-0">Status</span>
-          <FilterPill active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} label="Wszystkie" />
-          <FilterPill active={statusFilter === 'todo'} onClick={() => setStatusFilter('todo')} label="Do zrobienia" count={statusCounts.todo} />
-          <FilterPill active={statusFilter === 'done'} onClick={() => setStatusFilter('done')} label="Ukończone" count={statusCounts.done} />
+        {/* Trudność */}
+        <div className="flex items-start gap-2.5">
+          <span className="w-[74px] shrink-0 pt-1.5 font-ui uppercase tracking-luxury text-[9px] text-muted-light whitespace-nowrap">Trudność</span>
+          <div className="flex flex-wrap gap-1.5 flex-1">
+            <FilterPill active={diffFilter === 'all'} onClick={() => setDiffFilter('all')} label="Wszystkie" />
+            {(['easy', 'medium', 'hard'] as Diff[]).map(d => (
+              <FilterPill
+                key={d}
+                active={diffFilter === d}
+                onClick={() => setDiffFilter(d)}
+                label={DIFFICULTY_LABELS[d]}
+                count={diffCounts[d]}
+                pips={<DifficultyPips d={d} onDark={diffFilter === d} />}
+              />
+            ))}
+          </div>
+        </div>
+        {/* Status */}
+        <div className="flex items-start gap-2.5">
+          <span className="w-[74px] shrink-0 pt-1.5 font-ui uppercase tracking-luxury text-[9px] text-muted-light whitespace-nowrap">Status</span>
+          <div className="flex flex-wrap gap-1.5 flex-1">
+            <FilterPill active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} label="Wszystkie" />
+            <FilterPill active={statusFilter === 'todo'} onClick={() => setStatusFilter('todo')} label="Do zrobienia" count={statusCounts.todo} />
+            <FilterPill active={statusFilter === 'done'} onClick={() => setStatusFilter('done')} label="Ukończone" count={statusCounts.done} />
+          </div>
         </div>
       </div>
 
