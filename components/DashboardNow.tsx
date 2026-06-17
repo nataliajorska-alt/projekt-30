@@ -28,11 +28,20 @@ export default function DashboardNow() {
   const morningDone = isDone('morning')
   const eveningDone = isDone('evening')
 
+  // Świadomość pory dnia: „wieczorny rytuał" podpowiadamy DOPIERO wieczorem,
+  // a nie o 7:30 rano (gdy poranek wypadł jako zrobiony — np. zaliczony albo
+  // w dzień minimum, gdy poranny zestaw jest pusty). Dzień resetuje się o 3:00,
+  // więc okno wieczoru to 18:00–02:59.
+  const hour = new Date().getHours()
+  const eveningWindow = hour >= 18 || hour < 3
+
   let label: string
   let closed = false
-  if (!morningDone) label = 'dokończ poranny rytuał'
-  else if (!eveningDone) label = 'czas na wieczorny rytuał'
-  else {
+  if (!morningDone) {
+    label = 'dokończ poranny rytuał'
+  } else if (!eveningDone) {
+    label = eveningWindow ? 'czas na wieczorny rytuał' : 'poranek zrobiony — wróć wieczorem'
+  } else {
     label = 'dzień domknięty — możesz odpocząć'
     closed = true
   }
