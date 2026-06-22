@@ -107,8 +107,9 @@ const APRIL_ONLY_QUESTS: AprilQuest[] = [
 // Import po definicji APRIL_ONLY_QUESTS — mayData/juneData reużywają typu AprilQuest
 import { MAY_QUESTS } from './mayData'
 import { JUNE_QUESTS } from './juneData'
+import { JULY_QUESTS } from './julyData'
 
-export const APRIL_QUESTS: AprilQuest[] = [...APRIL_ONLY_QUESTS, ...MAY_QUESTS, ...JUNE_QUESTS]
+export const APRIL_QUESTS: AprilQuest[] = [...APRIL_ONLY_QUESTS, ...MAY_QUESTS, ...JUNE_QUESTS, ...JULY_QUESTS]
 
 export function getAprilQuestsForDate(dateKey: string): AprilQuest[] {
   return APRIL_QUESTS.filter(q => q.date === dateKey)
