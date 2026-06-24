@@ -588,7 +588,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
 
   // ── MYŚLI I EMOCJE (CBT) ──────────────────────────────────────
   const cbtEntries: any[] = cbtSnap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
+    .map(d => ({ id: d.id, ...d.data() }) as any)
     .filter(e => inRange(e.dateKey, range.from, range.to))
   const cbtThoughts = cbtEntries.filter(e => e.kind === 'thought')
   const cbtEmotions = cbtEntries.filter(e => e.kind === 'emotion')
