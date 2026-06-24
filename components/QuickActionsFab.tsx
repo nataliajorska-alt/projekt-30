@@ -2,12 +2,11 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Plus, Heart, PenLine, Camera, Wind, Zap } from 'lucide-react'
+import { Plus, Heart, PenLine, Camera, Wind, Brain } from 'lucide-react'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import MoodCheckInModal from './MoodCheckInModal'
 import SmokeButton from './SmokeButton'
-import GhostProtocolV2 from './GhostProtocolV2'
 import type { MoodState } from '@/types'
 import { SmallCaps } from '@/components/ui'
 
@@ -18,7 +17,6 @@ export default function QuickActionsFab() {
   const [open, setOpen] = useState(false)
   const [showMood, setShowMood] = useState(false)
   const [showSmoke, setShowSmoke] = useState(false)
-  const [showImpulse, setShowImpulse] = useState(false)
   const fabRef = useRef<HTMLDivElement>(null)
   const { saveMoodCheckIn } = useGameData()
 
@@ -41,7 +39,6 @@ export default function QuickActionsFab() {
     await saveMoodCheckIn(data)
   }
   const handleSmoke = () => { setOpen(false); setShowSmoke(true) }
-  const handleImpulse = () => { setOpen(false); setShowImpulse(true) }
 
   return (
     <>
@@ -55,7 +52,7 @@ export default function QuickActionsFab() {
           open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
         )}>
           <FabAction label="Mood" onClick={handleMood} icon={<Heart size={14} strokeWidth={1.5} />} />
-          <FabAction label="Impuls" onClick={handleImpulse} icon={<Zap size={14} strokeWidth={1.5} />} />
+          <FabAction label="Myśli" href="/mysli" icon={<Brain size={14} strokeWidth={1.5} />} />
           <FabAction label="Papieros" onClick={handleSmoke} icon={<Wind size={14} strokeWidth={1.5} />} />
           <FabAction label="Wpis do skarbca" href="/vault?action=write" icon={<PenLine size={14} strokeWidth={1.5} />} />
           <FabAction label="Dodaj zdjęcie" href="/photos?action=upload" icon={<Camera size={14} strokeWidth={1.5} />} />
@@ -81,7 +78,6 @@ export default function QuickActionsFab() {
         />
       )}
       {showSmoke && <SmokeButton onClose={() => setShowSmoke(false)} />}
-      {showImpulse && <GhostProtocolV2 autoLaunch="impulse" onExit={() => setShowImpulse(false)} />}
     </>
   )
 }
