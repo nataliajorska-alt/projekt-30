@@ -326,7 +326,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
   const [
     logsSnap, weeklySnap, monthlySnap, statsSnap,
     ghostV2Snap, honestFailureSnap, vaultSnap, photosSnap,
-    cycleSnap, aprilQuestSnap,
+    cycleSnap, aprilQuestSnap, cbtSnap,
   ] = await Promise.all([
     getDocs(query(collection(db, ...paths.logsCol(uid)), orderBy('date', 'asc'))),
     getDocs(query(collection(db, ...paths.reviewsCol(uid)), orderBy('weekStart', 'asc'))),
@@ -338,6 +338,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
     getDocs(query(collection(db, ...paths.photosCol(uid)), orderBy('dateKey', 'asc'))),
     getDocs(query(collection(db, ...paths.cycleCol(uid)), orderBy('startDate', 'asc'))),
     getDoc(doc(db, ...paths.dataDoc(uid, 'aprilQuestLog'))),
+    getDocs(query(collection(db, ...paths.cbtJournalCol(uid)), orderBy('timestamp', 'asc'))),
   ])
   // ── NOWE: imports danych statycznych ──────────────────────────
   const { ACHIEVEMENTS } = await import('./achievements')
@@ -578,6 +579,52 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
         if (e.whatWouldHaveStoppedYou) lines.push(`- Co by zatrzymało: ${e.whatWouldHaveStoppedYou}`)
         if (e.howYouFeelNow) lines.push(`- Jak się czuję: ${e.howYouFeelNow}`)
         if (e.planForNextTime) lines.push(`- Plan na następny raz: ${e.planForNextTime}`)
+        lines.push(``)
+      }
+    }
+    lines.push(`---`)
+    lines.push(``)
+  }
+
+  // ── MYŚLI I EMOCJE (CBT) ──────────────────────────────────────
+  const cbtEntries: any[] = cbtSnap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(e => inRange(e.dateKey, range.from, range.to))
+  const cbtThoughts = cbtEntries.filter(e => e.kind === 'thought')
+  const cbtEmotions = cbtEntries.filter(e => e.kind === 'emotion')
+
+  if (cbtThoughts.length > 0 || cbtEmotions.length > 0) {
+    lines.push(`## Myśli i emocje — dziennik CBT`)
+    lines.push(``)
+    lines.push(`_Praca poznawczo-behawioralna: łapanie myśli automatycznych, wywiad sokratejski i rozkładanie emocji na czynniki._`)
+    lines.push(``)
+
+    if (cbtThoughts.length > 0) {
+      lines.push(`### Myśli automatyczne (${cbtThoughts.length})`)
+      lines.push(``)
+      for (const e of cbtThoughts) {
+        const time = new Date(e.timestamp).toTimeString().slice(0, 5)
+        lines.push(`**${e.dateKey} ${time}**`)
+        if (e.situation) lines.push(`- Sytuacja: ${e.situation}`)
+        const emo = (e.emotions ?? []).map((x: any) => `${x.name}${x.pct ? ` ${x.pct}%` : ''}`).join(' · ')
+        if (emo) lines.push(`- Emocje: ${emo}`)
+        if (e.thoughts) lines.push(`- Myśli automatyczne: ${e.thoughts}`)
+        if (e.hot) lines.push(`- Gorąca myśl: ${e.hot}`)
+        if (e.reframe) lines.push(`- Przeformułowanie: ${e.reframe}`)
+        if (e.reframeFeel) lines.push(`- Jak się z tym czuję: ${e.reframeFeel}`)
+        lines.push(``)
+      }
+    }
+
+    if (cbtEmotions.length > 0) {
+      lines.push(`### Instrukcja obsługi emocji (${cbtEmotions.length})`)
+      lines.push(``)
+      for (const e of cbtEmotions) {
+        const time = new Date(e.timestamp).toTimeString().slice(0, 5)
+        const arrow = e.after < e.before ? '↓' : e.after > e.before ? '↑' : '→'
+        lines.push(`**${e.dateKey} ${time}** · ${e.name} · natężenie ${e.before} ${arrow} ${e.after}`)
+        const parts: [string, string][] = [['w ciele', e.body], ['kolor', e.color], ['kształt', e.shape], ['faktura', e.texture], ['zapach', e.smell], ['dźwięk', e.sound], ['metafora', e.metaphor]]
+        for (const [k, v] of parts) if (v) lines.push(`- ${k}: ${v}`)
         lines.push(``)
       }
     }

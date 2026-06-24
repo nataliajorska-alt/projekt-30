@@ -91,6 +91,9 @@ export const DailyLogSchema = z.object({
   // Jednorazowa korekta: questy tego dnia wyrównane do realnej wartości (q.xp
   // zamiast płaskich 50). Gdy true — korekta już zastosowana, nie powtarzaj.
   questXpAdjusted: z.boolean().optional(),
+  // Dzienny „capture" CBT: pierwszy wpis (myśl LUB emocja) tego dnia przyznał +10.
+  // Gdy true — dzienny bonus już zaliczony, kolejne wpisy nie naliczają capture.
+  cbtCaptureAwarded: z.boolean().optional(),
   // XP z zewnętrznych aplikacji (na razie The Learning Vault), per filar.
   externalXP: z.object({
     pozycja:   z.number().nonnegative().optional(),
@@ -251,6 +254,61 @@ export const HeartBlockSchema = z.object({
   rituals:        HeartBlockRitualsSchema,
   completedAt:    z.string().nullable().catch(null),
   updatedAt:      z.string().catch(() => new Date().toISOString()),
+})
+
+// ── CBT (dziennik „Myśli i emocje") ──────────────────────────────────────────
+
+const CBTEmotionTagSchema = z.object({
+  name: z.string().catch(''),
+  pct: z.number().min(0).max(100).catch(0),
+})
+
+export const CBTThoughtEntrySchema = z.object({
+  id:             z.string().catch(''),
+  kind:           z.literal('thought'),
+  dateKey:        z.string().catch(''),
+  timestamp:      z.number().nonnegative().catch(() => Date.now()),
+  situation:      z.string().catch(''),
+  emotions:       z.array(CBTEmotionTagSchema).catch([]),
+  thoughts:       z.string().catch(''),
+  hot:            z.string().catch(''),
+  interro:        z.record(z.string()).catch({}),
+  reframe:        z.string().catch(''),
+  reframeFeel:    z.string().catch(''),
+  xpEarned:       z.number().nonnegative().catch(0),
+  reframeAwarded: z.boolean().catch(false),
+  updatedAt:      z.string().catch(() => new Date().toISOString()),
+})
+
+export const CBTEmotionEntrySchema = z.object({
+  id:        z.string().catch(''),
+  kind:      z.literal('emotion'),
+  dateKey:   z.string().catch(''),
+  timestamp: z.number().nonnegative().catch(() => Date.now()),
+  name:      z.string().catch(''),
+  before:    z.number().min(0).max(10).catch(5),
+  after:     z.number().min(0).max(10).catch(5),
+  body:      z.string().catch(''),
+  color:     z.string().catch(''),
+  shape:     z.string().catch(''),
+  texture:   z.string().catch(''),
+  smell:     z.string().catch(''),
+  sound:     z.string().catch(''),
+  metaphor:  z.string().catch(''),
+  xpEarned:  z.number().nonnegative().catch(0),
+  updatedAt: z.string().catch(() => new Date().toISOString()),
+})
+
+// Wpis dziennika to myśl ALBO emocja — rozróżniane po polu `kind`.
+export const CBTEntrySchema = z.discriminatedUnion('kind', [
+  CBTThoughtEntrySchema,
+  CBTEmotionEntrySchema,
+])
+
+export const CBTShieldSchema = z.object({
+  selected:  z.array(z.string()).catch([]),
+  custom:    z.array(z.string()).catch([]),
+  updatedAt: z.string().catch(() => new Date().toISOString()),
 })
 
 // ── WeeklyInsight (cache regenerowalny) ─────────────────────────────────────────

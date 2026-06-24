@@ -29,6 +29,7 @@ export type DataDocName =
   | 'aprilQuestLog'
   | 'sparkSchedule'
   | 'annualReflection'
+  | 'cbtShield'
 export const dataDoc = (uid: Uid, name: DataDocName): [string, string, string, string] =>
   ['users', uid, 'data', name]
 
@@ -84,6 +85,12 @@ export const vaultReplyDoc = (
   replyId: string,
 ): [string, string, string, string, string, string] =>
   ['users', uid, 'vault', letterId, 'replies', replyId]
+
+// users/{uid}/cbtJournal  (dziennik CBT: myśli automatyczne + emocje, osobne dokumenty)
+export const cbtJournalCol = (uid: Uid): [string, string, string] =>
+  ['users', uid, 'cbtJournal']
+export const cbtJournalDoc = (uid: Uid, id: string): [string, string, string, string] =>
+  ['users', uid, 'cbtJournal', id]
 
 // users/{uid}/photos
 export const photosCol = (uid: Uid): [string, string, string] => ['users', uid, 'photos']

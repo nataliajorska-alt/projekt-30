@@ -266,6 +266,12 @@ export interface DailyLog {
    */
   questXpAdjusted?: boolean
   /**
+   * Dzienny „capture" CBT (moduł /mysli): pierwszy wpis tego dnia (myśl lub
+   * emocja) przyznał +10 XP. Gdy true — dzienny bonus zaliczony, kolejne wpisy
+   * naliczają już tylko bonus za przeformułowanie. Źródło prawdy dla flagi.
+   */
+  cbtCaptureAwarded?: boolean
+  /**
    * Suma XP wpisana w tym dniu przez zewnętrzne aplikacje (na razie tylko
    * The Learning Vault), rozbita per filar. Endpoint /api/external/xp
    * inkrementuje to pole atomowo. recoverStats czyta to pole, żeby pillarXP

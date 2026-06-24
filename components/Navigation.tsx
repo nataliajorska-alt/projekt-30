@@ -9,7 +9,7 @@ import { useLearningVaultBadge } from '@/hooks/useLearningVaultBadge'
 import {
   Home, Sword, Trophy, BookOpen, CalendarDays,
   LogOut, Settings, Lock, Camera, Scroll,
-  Archive, Moon, Heart,
+  Archive, Moon, Heart, Brain,
   Sprout, TreePine, Columns3, Sparkles,
   GraduationCap, ArrowUpRight,
 } from 'lucide-react'
@@ -53,6 +53,7 @@ const NAV: NavItem[] = [
     children: [
       { href: '/cycle',  icon: Moon,     label: 'Cykl' },
       { href: '/serce',  icon: Heart,    label: 'Serce' },
+      { href: '/mysli',  icon: Brain,    label: 'Myśli' },
       { href: '/review', icon: BookOpen, label: 'Przegląd' },
     ],
   },

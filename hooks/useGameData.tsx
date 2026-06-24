@@ -812,6 +812,52 @@ export function useGameData() {
     await setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true })
   }, [user, stats, statsRef, applyStreakIfNeeded, checkAchievements, checkLevelUp])
 
+  // CBT (moduł /mysli) — dzienny „capture": +10 za PIERWSZY wpis dnia (myśl lub
+  // emocja). Nagroda za pokazanie się, raz dziennie (flaga cbtCaptureAwarded w
+  // logu dnia). Pisane TYLKO do stats (jak mood) — recoverStats odbudowuje XP z
+  // kolekcji cbtJournal sumując xpEarned. Zwraca przyznane XP, żeby useCBT
+  // ostemplował xpEarned na wpisie (spójność z odbudową).
+  const awardCBTCapture = useCallback(async (): Promise<number> => {
+    if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return 0
+    if (todayLog.cbtCaptureAwarded) return 0
+    const xp = XP_VALUES.cbtCapture
+    const withStreak = await applyStreakIfNeeded(stats)
+    let newStats: UserStats = {
+      ...withStreak,
+      totalXP: withStreak.totalXP + xp,
+      pillarXP: { ...withStreak.pillarXP, pozycja: (withStreak.pillarXP.pozycja ?? 0) + xp },
+    }
+    newStats = applyPillarBalanceIfNeeded(newStats, 'pozycja')
+    const achUpdates = await checkAchievements(newStats)
+    const finalStats = { ...newStats, ...achUpdates }
+    checkLevelUp(stats.totalXP, finalStats.totalXP)
+    await Promise.all([
+      setDoc(todayRef, { cbtCaptureAwarded: true, date: currentDateKey }, { merge: true }),
+      setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true }),
+    ])
+    return xp
+  }, [user, todayLog, stats, statsRef, todayRef, currentDateKey, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
+
+  // CBT — bonus +20 za domknięcie wywiadu sokratejskiego z przeformułowaniem
+  // (praca poznawcza). Bez dziennego limitu — naturalnie ograniczony liczbą
+  // realnie domkniętych wpisów. Tylko do stats; odbudowa jak wyżej.
+  const awardCBTReframe = useCallback(async (): Promise<number> => {
+    if (!user || !statsRef || !statsLoadedRef.current) return 0
+    const xp = XP_VALUES.cbtReframe
+    const withStreak = await applyStreakIfNeeded(stats)
+    let newStats: UserStats = {
+      ...withStreak,
+      totalXP: withStreak.totalXP + xp,
+      pillarXP: { ...withStreak.pillarXP, pozycja: (withStreak.pillarXP.pozycja ?? 0) + xp },
+    }
+    newStats = applyPillarBalanceIfNeeded(newStats, 'pozycja')
+    const achUpdates = await checkAchievements(newStats)
+    const finalStats = { ...newStats, ...achUpdates }
+    checkLevelUp(stats.totalXP, finalStats.totalXP)
+    await setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true })
+    return xp
+  }, [user, stats, statsRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
+
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(getMonthKey(new Date()))
 
   // Full stats reconstruction from Firestore source documents.
@@ -822,13 +868,14 @@ export function useGameData() {
   const recoverStats = useCallback(async () => {
     if (!user || !statsRef) return null
 
-    const [currentStatsSnap, logsSnap, weeklySnap, monthlySnap, ghostV2Snap, failureSnap] = await Promise.all([
+    const [currentStatsSnap, logsSnap, weeklySnap, monthlySnap, ghostV2Snap, failureSnap, cbtSnap] = await Promise.all([
       getDoc(statsRef),
       getDocs(collection(db, ...paths.logsCol(user.uid))),
       getDocs(collection(db, ...paths.reviewsCol(user.uid))),
       getDocs(collection(db, ...paths.monthlyReviewsCol(user.uid))),
       getDoc(doc(db, ...paths.dataDoc(user.uid, 'ghostLogV2'))),
       getDoc(doc(db, ...paths.dataDoc(user.uid, 'honestFailureLog'))),
+      getDocs(collection(db, ...paths.cbtJournalCol(user.uid))),
     ])
 
     // Pola których pętla po logach nie odbuduje — czytamy je z aktualnych stats,
@@ -1051,6 +1098,16 @@ export function useGameData() {
     // V2 dorzuca do filaru pozycja całość zarobionego XP (zgodnie z recordGhostImpulseV2/recordHonestFailure).
     pillarXP.pozycja = (pillarXP.pozycja ?? 0) + fromGhostV2 + fromHonestFailure
 
+    // ── CBT (moduł /mysli, osobna kolekcja cbtJournal) ──
+    // Każdy wpis nosi własne xpEarned (capture +10 + ewentualny bonus +20 za
+    // reframe). Sumujemy — to całe XP CBT. Bez tego rebuild gubiłby je, bo XP
+    // CBT idzie tylko do stats, nie do log.totalXP (jak mood / ghost V2).
+    const fromCBT = cbtSnap.docs.reduce((sum, d) => {
+      const x = (d.data() as { xpEarned?: unknown }).xpEarned
+      return sum + (typeof x === 'number' && x > 0 ? x : 0)
+    }, 0)
+    pillarXP.pozycja = (pillarXP.pozycja ?? 0) + fromCBT
+
     // Jeśli V2 ma więcej unikalnych dni z impulsami niż log.ghostProtocolCompleted — użyj większego.
     if (ghostV2Entries.length > 0) {
       const v2DayKeys = new Set(
@@ -1067,7 +1124,7 @@ export function useGameData() {
     // historycznych passy — żeby achievement złapał się nawet jeśli aktualna passa = 0.
     const baseXP = fromLogs + fromWeeklyReviews + fromMonthlyReviews
                  + fromMoodCheckIns + fromHeartBlocks + fromPillarBalance
-                 + fromGhostV2 + fromHonestFailure
+                 + fromGhostV2 + fromHonestFailure + fromCBT
     const statsForEval: UserStats = {
       ...DEFAULT_STATS,
       totalXP: baseXP,
@@ -1140,6 +1197,7 @@ export function useGameData() {
         fromPillarBalance,
         fromGhostV2,
         fromHonestFailure,
+        fromCBT,
         // fromExternal informacyjnie — XP z Learning Vault, JUŻ wliczone
         // w fromLogs (endpoint inkrementuje log.totalXP). Pokazujemy
         // osobno tylko dla rozbicia UI, nie sumujemy ponownie.
@@ -1154,6 +1212,7 @@ export function useGameData() {
         pillarBalanceCount:   preservedPillarBalance.length,
         ghostV2Count:         ghostV2Entries.length,
         honestFailureCount:   failureEntries.length,
+        cbtCount:             cbtSnap.docs.length,
       },
     }
   }, [user, statsRef, currentDateKey])
@@ -1177,6 +1236,7 @@ export function useGameData() {
     logCigarette, removeLastCigarette, startSmokingPhase,
     completeHeartBlock,
     recordGhostImpulseV2, recordHonestFailure, logCustomSideQuest,
+    awardCBTCapture, awardCBTReframe,
     recoverStats, applyRecoveredStats,
   }
 }
