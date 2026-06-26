@@ -18,9 +18,20 @@ export default function DashboardNow() {
   const isMinimum = todayLog.dayMode === 'minimum'
   const reason = todayLog.minimumReason
 
+  // „Po wstaniu 30 minut bez telefonu" — okno tylko zaraz po przebudzeniu.
+  // Gdy reszta poranka jest odhaczona, a ten blok nie, to znaczy, że dziś już
+  // nie będzie (nie zrobiłaś rano). Nie blokujemy na nim paska „Teraz" — niech
+  // poranek liczy się jako domknięty i przełącza na dzień, bez „dokończ rytuał".
+  const PHONE_ITEM_ID = 'm1'
+
   const isDone = (cat: 'morning' | 'evening') => {
     const full = getEffectiveItems(cat, false)
-    const essential = isMinimum && reason ? filterItemsForMinimumDay(full, reason) : full
+    let essential = isMinimum && reason ? filterItemsForMinimumDay(full, reason) : full
+    if (cat === 'morning') {
+      const withoutPhone = essential.filter((i) => i.id !== PHONE_ITEM_ID)
+      // Wycinamy tylko gdy zostają inne pozycje — nie chcemy pustego zbioru.
+      if (withoutPhone.length > 0) essential = withoutPhone
+    }
     // Pusty zbiór: w trybie minimum traktujemy jako domknięty (jak progress=100).
     return essential.length === 0 ? isMinimum : essential.every((i) => done.includes(i.id))
   }
