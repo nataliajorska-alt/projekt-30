@@ -260,7 +260,7 @@ export interface SignificanceCheck {
 export const THRESHOLDS = {
   MIN_PER_GROUP: 10,    // minimum n per grupa dla MWU
   MIN_TOTAL: 10,        // minimum n dla Spearmana / Kruskala
-  MIN_EFFECT: 0.3,      // |effect size| ≥ 0.3 (medium)
+  MIN_EFFECT: 0.2,      // |effect size| ≥ 0.2 (small-medium; poluzowane z 0.3, by subtelne wzorce przebijały korektę Bonferroniego)
   MAX_P: 0.05,          // przed korektą Bonferroniego
 } as const
 

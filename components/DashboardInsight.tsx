@@ -7,7 +7,7 @@ import { SmallCaps, Fleuron, CornerBrackets } from '@/components/ui'
 
 // Kompaktowy pasek „wzorca tygodnia" na dashboardzie.
 //
-// #3 — Silnik insightów (rygor: n≥10, |effect|≥0.3, korekta Bonferroniego)
+// #3 — Silnik insightów (rygor: n≥10, |effect|≥0.2, korekta Bonferroniego)
 // renderował się DOTĄD wyłącznie w /timeline?tab=patterns. To najmocniejszy atut
 // aplikacji, a był schowany dwa tapnięcia głębiej. Tu pokazujemy nagłówek +
 // najsilniejszy wzorzec od razu na „Dziś", ale TYLKO gdy naprawdę coś wyszło

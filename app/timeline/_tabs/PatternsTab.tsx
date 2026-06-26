@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import clsx from 'clsx'
 import {
-  computeCorrelations,
+  computeCorrelations, MIN_LIFT_GROUP,
   type ComparisonInsight, type DayOfWeekInsight, type LiftInsight, type CarryoverInsight,
 } from '@/lib/correlations'
 import type { DailyLog } from '@/types'
@@ -163,6 +163,18 @@ const BADGE_LABEL: Record<Exclude<Verdict, 'nodata'> | 'obs', string> = {
   weak:    'Słaby sygnał',
   reverse: 'Odwrotnie',
   obs:     'Obserwacja',
+}
+
+// Konkretny powód, czemu hipoteza jeszcze nie ma danych — która grupa jest pusta
+// lub za mała. Lepsze niż generyczne „za mało danych": pokazuje, czego dołożyć.
+function noDataReason(ins: Directional): string {
+  const need = MIN_LIFT_GROUP
+  const wLow  = ins.withCount < need
+  const woLow = ins.withoutCount < need
+  if (wLow && woLow) return `za mało dni w obu grupach (${ins.withCount}/${need} i ${ins.withoutCount}/${need})`
+  if (wLow)  return `tylko ${ins.withCount}/${need} dni, gdy to robisz — dołóż takie dni`
+  if (woLow) return `tylko ${ins.withoutCount}/${need} dni bez tego — za mało kontrastu`
+  return 'zbiera dane'
 }
 
 // ── Section primitives ───────────────────────────────────────────
@@ -549,14 +561,19 @@ export default function PatternsTab({ logs, cigarettesPhase }: { logs: Record<st
       )}
 
       {noData.length > 0 && (
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border border-dashed border-hairline bg-cream/50 px-5 py-3.5">
+        <div className="border border-dashed border-hairline bg-cream/50 px-5 py-3.5">
           <SmallCaps tone="muted" tracking="luxury" size="xs">Jeszcze zbiera dane</SmallCaps>
-          <span className="font-serif-body text-[14px] text-dark">
-            {noData.map(i => LEVER_LABEL[i.id] ?? i.title).join(' · ')}
-          </span>
-          <span className="font-serif-body italic text-muted-light text-[13px]">
-            hipoteza aktywuje się przy n ≥ 10 dni w każdej grupie.
-          </span>
+          <ul className="mt-2.5 space-y-1.5">
+            {noData.map(i => (
+              <li key={i.id} className="flex flex-wrap items-baseline gap-x-2 leading-snug">
+                <span className="font-serif-body text-[14px] text-dark">{LEVER_LABEL[i.id] ?? i.title}</span>
+                <span className="font-serif-body italic text-muted-light text-[13px]">— {noDataReason(i)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="font-serif-body italic text-muted-light text-[12px] mt-2.5 pt-2.5 border-t border-hairline">
+            każda grupa potrzebuje min. {MIN_LIFT_GROUP} dni z check-inem, żeby było co porównać.
+          </p>
         </div>
       )}
 

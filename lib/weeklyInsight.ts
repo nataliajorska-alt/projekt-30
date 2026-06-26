@@ -44,6 +44,21 @@ export interface WeeklyInsight {
   body: string
   /** Czy w ogóle warto pokazać — false oznacza "nic ciekawego nie wyszło, ale zachowaj cache". */
   hasContent: boolean
+  /** Podpis danych wejściowych — pozwala wykryć, że logi się zmieniły i przeliczyć cache. */
+  inputSig?: number
+}
+
+// Podpis wejścia — rośnie z każdym nowym dniem / check-inem / elementem rutyny.
+// Hook porównuje go z cache'em, żeby przeliczyć insight gdy dojdą nowe dane
+// (codziennie, nie tylko w niedzielę).
+export function logsSignature(logs: Record<string, DailyLog>): number {
+  let sig = 0
+  for (const l of Object.values(logs)) {
+    sig += 1
+    sig += (l.moodCheckIns?.length ?? 0) * 7
+    sig += (l.completedRoutine?.length ?? 0)
+  }
+  return sig
 }
 
 // ── Pure pipeline ─────────────────────────────────────────────────────────
@@ -204,6 +219,7 @@ export function computeWeeklyInsight(
     headline,
     body,
     hasContent,
+    inputSig: logsSignature(logs),
   }
 }
 
@@ -225,7 +241,7 @@ function composeText(
     }
     return {
       headline: 'Brak istotnych wzorców',
-      body: `Sprawdziłam ${K} z ${total} możliwych wzorców (reszta nie miała wystarczająco danych) — żaden nie przekroczył progu rygoru (n≥10, |effect|≥0.3, p<0.05 po korekcie Bonferroniego). To znaczy: jeszcze nic statystycznie pewnego — albo Twoje dni są bardziej zróżnicowane niż jakikolwiek pojedynczy czynnik. Też wartościowa informacja.`,
+      body: `Sprawdziłam ${K} z ${total} możliwych wzorców (reszta nie miała wystarczająco danych) — żaden nie przekroczył progu rygoru (n≥10, |effect|≥0.2, p<0.05 po korekcie Bonferroniego). To znaczy: jeszcze nic statystycznie pewnego — albo Twoje dni są bardziej zróżnicowane niż jakikolwiek pojedynczy czynnik. Też wartościowa informacja.`,
       hasContent: false,
     }
   }

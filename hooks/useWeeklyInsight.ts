@@ -6,16 +6,9 @@ import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { useTimelineData } from './useTimelineData'
 import { getISOWeekKey } from '@/lib/gameLogic'
-import { computeWeeklyInsight, type WeeklyInsight } from '@/lib/weeklyInsight'
+import { computeWeeklyInsight, logsSignature, type WeeklyInsight } from '@/lib/weeklyInsight'
 import { parseSafe, WeeklyInsightSchema } from '@/lib/schemas'
 import { fireInsightSeen } from './useWeeklyInsightBadge'
-
-// Lazy generation: tylko od niedzieli (lokalny dzień tygodnia 0) lub poniedziałku (1)
-// dla bieżącego tygodnia ISO. Wcześniej w tygodniu czeka — zbyt mało danych.
-function shouldGenerateNow(now: Date = new Date()): boolean {
-  const dow = now.getDay()
-  return dow === 0 || dow === 1
-}
 
 export function useWeeklyInsight() {
   const { user } = useAuth()
@@ -32,6 +25,7 @@ export function useWeeklyInsight() {
 
     const ref = doc(db, ...paths.insightDoc(user.uid, weekKey))
     const snap = await getDoc(ref)
+    const sig = logsSignature(logs)
 
     if (snap.exists()) {
       const data = parseSafe<WeeklyInsight>(
@@ -40,22 +34,20 @@ export function useWeeklyInsight() {
         { weekKey, generatedAt: new Date().toISOString(), totalHypotheses: 0, testsRun: 0, passedCount: 0, outcomes: [], headline: '', body: '', hasContent: false },
         `WeeklyInsight ${weekKey}`,
       )
-      setInsight(data)
-      // Badge: "nowy" gdy sessionStorage nie pamięta że już widział tego tygodnia.
-      const seenKey = `insight_seen_${weekKey}`
-      setHasNewBadge(!sessionStorage.getItem(seenKey))
-      setLoading(false)
-      return
+      // Cache jest aktualny tylko gdy policzony z tych samych danych. Gdy dojdą
+      // nowe check-iny/dni — przelicz (insight odświeża się codziennie, nie raz
+      // w tygodniu).
+      if (data.inputSig === sig) {
+        setInsight(data)
+        // Badge: "nowy" gdy sessionStorage nie pamięta że już widział tego tygodnia.
+        const seenKey = `insight_seen_${weekKey}`
+        setHasNewBadge(!sessionStorage.getItem(seenKey))
+        setLoading(false)
+        return
+      }
     }
 
-    // Brak cachu — generuj tylko jeśli niedziela/poniedziałek.
-    if (!shouldGenerateNow()) {
-      setInsight(null)
-      setHasNewBadge(false)
-      setLoading(false)
-      return
-    }
-
+    // Brak cachu albo dane się zmieniły — przelicz (każdego dnia, nie tylko nd/pn).
     const fresh = computeWeeklyInsight(logs, weekKey)
     await setDoc(ref, fresh)
     setInsight(fresh)

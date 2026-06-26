@@ -214,7 +214,7 @@ describe('checkKruskal', () => {
 describe('THRESHOLDS — sanity', () => {
   it('progi mają rozsądne wartości', () => {
     expect(THRESHOLDS.MIN_PER_GROUP).toBeGreaterThanOrEqual(8)
-    expect(THRESHOLDS.MIN_EFFECT).toBeGreaterThanOrEqual(0.3)
+    expect(THRESHOLDS.MIN_EFFECT).toBeGreaterThanOrEqual(0.2)
     expect(THRESHOLDS.MAX_P).toBeLessThanOrEqual(0.05)
   })
 })

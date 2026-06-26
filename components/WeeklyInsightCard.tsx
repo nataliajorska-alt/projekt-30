@@ -100,7 +100,7 @@ export default function WeeklyInsightCard({ moodDays }: { moodDays?: number }) {
       </div>
 
       <div className="mt-5 pt-4 border-t border-border font-serif-body italic text-muted-light text-[13px] leading-relaxed">
-        próg rygoru: n ≥ 10 dni, |efekt| ≥ 0,3
+        próg rygoru: n ≥ 10 dni, |efekt| ≥ 0,2
         <span className="text-gold mx-2">·</span>
         wzorce aktualizują się automatycznie wraz z nowymi danymi.
       </div>

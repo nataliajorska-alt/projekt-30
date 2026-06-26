@@ -179,6 +179,8 @@ export type CorrelationInsight =
 
 const MIN_PER_GROUP = 3    // minimum logs per group to display result
 const MIN_TOTAL     = 7    // minimum logs with mood data to run any analysis
+// Min dni z ważnym pomiarem w KAŻDEJ grupie, by hipoteza lift/carryover ruszyła.
+export const MIN_LIFT_GROUP = 3
 
 export function computeCorrelations(
   logs: Record<string, DailyLog>,
@@ -394,7 +396,6 @@ export function computeCorrelations(
     l => (l.moodCheckIns?.length ?? 0) >= 2
   )
   const MIN_LIFT_TOTAL = 5
-  const MIN_LIFT_GROUP = 3
 
   // ─ L1. Morning routine → mood lift in the same day ───────────────────────
   {

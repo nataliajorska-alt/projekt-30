@@ -326,6 +326,7 @@ export const WeeklyInsightSchema = z.object({
   headline:        z.string().catch(''),
   body:            z.string().catch(''),
   hasContent:      z.boolean().catch(false),
+  inputSig:        z.number().optional().catch(undefined),
 })
 
 // ── Safe parse helper ────────────────────────────────────────────────────────
