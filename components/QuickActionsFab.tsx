@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Plus, Heart, PenLine, Camera, Wind, Brain } from 'lucide-react'
+import { Plus, Heart, Wind, Brain, Feather } from 'lucide-react'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import MoodCheckInModal from './MoodCheckInModal'
@@ -54,8 +54,7 @@ export default function QuickActionsFab() {
           <FabAction label="Mood" onClick={handleMood} icon={<Heart size={14} strokeWidth={1.5} />} />
           <FabAction label="Myśli" href="/mysli" icon={<Brain size={14} strokeWidth={1.5} />} />
           <FabAction label="Papieros" onClick={handleSmoke} icon={<Wind size={14} strokeWidth={1.5} />} />
-          <FabAction label="Wpis do skarbca" href="/vault?action=write" icon={<PenLine size={14} strokeWidth={1.5} />} />
-          <FabAction label="Dodaj zdjęcie" href="/photos?action=upload" icon={<Camera size={14} strokeWidth={1.5} />} />
+          <FabAction label="Mostek" href="/mostek" icon={<Feather size={14} strokeWidth={1.5} />} />
         </div>
 
         {/* Main toggle */}
