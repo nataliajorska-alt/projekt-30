@@ -11,6 +11,7 @@ import NegativeChecklist from '@/components/NegativeChecklist'
 import HeartBlockCard from '@/components/HeartBlockCard'
 import MostekCard from '@/components/MostekCard'
 import CBTCard from '@/components/CBTCard'
+import PozwolenieCard from '@/components/PozwolenieCard'
 import DailyXPSummary from '@/components/DailyXPSummary'
 import MagnetismMeter from '@/components/MagnetismMeter'
 import MoodCheckInModal from '@/components/MoodCheckInModal'
@@ -326,6 +327,7 @@ export default function Dashboard() {
           <ErrorBoundary label="Heart Block"><HeartBlockCard /></ErrorBoundary>
           <ErrorBoundary label="Myśli i emocje"><CBTCard /></ErrorBoundary>
           <ErrorBoundary label="Mostek"><MostekCard /></ErrorBoundary>
+          <ErrorBoundary label="Pozwolenie"><PozwolenieCard /></ErrorBoundary>
         </>
       )}
 
