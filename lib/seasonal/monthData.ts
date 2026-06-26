@@ -23,8 +23,8 @@ export const MONTHLY_DATA: Record<string, MonthData> = {
   // Łuk: odzyskanie siebie → rozszerzanie zasięgu → kulminacja na 30. urodzinach
   // (5.04.2027). Zmień swobodnie; wcześniej od lipca leciał generyczny fallback.
   '2026-07': {
-    name: 'Własne pióro',
-    motto: 'Odzyskuję pióro. Moją wartość piszę ja, nie cudze reakcje.',
+    name: 'ODDECH',
+    motto: 'To moje życie. Ja zostaję.',
   },
   '2026-08': {
     name: 'Witalność',
