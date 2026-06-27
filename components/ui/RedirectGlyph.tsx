@@ -39,7 +39,7 @@ const GLYPHS: Record<string, JSX.Element> = {
   ),
   // Idź tam gdzie się dobrze ubierasz — iskra
   rq_04: <path d="M12 3.5 L13.3 10.7 L20.5 12 L13.3 13.3 L12 20.5 L10.7 13.3 L3.5 12 L10.7 10.7 Z" />,
-  // Napisz sobie komplementa — lusterko
+  // Napisz sobie komplement — lusterko
   rq_05: (
     <>
       <circle cx="12" cy="8.5" r="5" />

@@ -32,7 +32,7 @@ export const REDIRECT_QUESTS: RedirectQuest[] = [
   },
   {
     id: 'rq_05',
-    title: 'Napisz sobie komplementa',
+    title: 'Napisz sobie komplement',
     description: 'Trzy rzeczy, które lubisz w sobie dzisiaj. Na papierze, nie w głowie.',
     xp: 25,
   },

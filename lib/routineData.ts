@@ -288,6 +288,14 @@ export function getWeeklyStudyLabel(forDate?: Date): string {
   return topic.label
 }
 
+// ─── ZĘBY ──────────────────────────────────────────────────────
+// Kroki pomocnicze dla „Umycie zębów + nitkowanie" (m8) — odhaczane
+// osobno, bez osobnego XP. Kolejność jak w tekście pozycji.
+export const MORNING_TEETH_STEPS = [
+  'Mycie zębów',
+  'Nitkowanie',
+]
+
 // ─── PIELĘGNACJA CERY ──────────────────────────────────────────
 
 export const MORNING_SKINCARE_STEPS = [

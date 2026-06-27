@@ -8,6 +8,7 @@ import {
   getWeeklyStudyItem, getWeeklyStudyLabel,
   MORNING_SKINCARE_STEPS, EVENING_SKINCARE,
   MORNING_SUPPLEMENTS, EVENING_SUPPLEMENTS,
+  MORNING_TEETH_STEPS,
 } from '@/lib/routineData'
 import { filterItemsForMinimumDay } from '@/lib/minimumDayLogic'
 import { MINIMUM_DAY_REASONS } from '@/types'
@@ -191,6 +192,42 @@ function SkincareGuide({ itemId, dow, checkedSteps, onToggleStep }: GuideProps &
               label={step}
               index={i}
               checked={checkedSteps.includes(`${itemId}-${i}`)}
+              onToggle={onToggleStep}
+            />
+          ))}
+        </ol>
+      )}
+    </div>
+  )
+}
+
+function TeethGuide({ checkedSteps, onToggleStep }: GuideProps) {
+  const [open, setOpen] = useState(false)
+  const steps = MORNING_TEETH_STEPS
+
+  return (
+    <div className="ml-[26px] -mt-1 mb-1">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-[11px] font-serif-body italic text-forest/70 hover:text-gold-deep transition-colors py-0.5"
+      >
+        {!open && <span>pokaż kroki</span>}
+        {open && <span>ukryj</span>}
+        <ChevronDown
+          size={10}
+          strokeWidth={1.5}
+          className={clsx('transition-transform', open && 'rotate-180')}
+        />
+      </button>
+      {open && (
+        <ol className="mt-2 space-y-1 pb-1">
+          {steps.map((step, i) => (
+            <CheckableStep
+              key={i}
+              stepKey={`m8-${i}`}
+              label={step}
+              index={i}
+              checked={checkedSteps.includes(`m8-${i}`)}
               onToggle={onToggleStep}
             />
           ))}
@@ -504,6 +541,12 @@ export default function RoutineChecklist() {
                   <SkincareGuide
                     itemId={item.id as 'm7' | 'e2'}
                     dow={dow}
+                    checkedSteps={checkedSubSteps}
+                    onToggleStep={toggleSubStep}
+                  />
+                )}
+                {item.id === 'm8' && (
+                  <TeethGuide
                     checkedSteps={checkedSubSteps}
                     onToggleStep={toggleSubStep}
                   />
