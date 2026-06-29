@@ -317,7 +317,6 @@ export default function Dashboard() {
           <ErrorBoundary label="Rutyna"><RoutineChecklist /></ErrorBoundary>
           <ErrorBoundary label="Daily questy"><DailyQuests /></ErrorBoundary>
           <ErrorBoundary label="Side quest"><SideQuestPicker /></ErrorBoundary>
-          <ErrorBoundary label="Brief na dziś"><TomorrowBriefing variant="today" /></ErrorBoundary>
 
           {/* IV — THE MARGIN: reflection */}
           <SectionLabel num={4} name="The Margin" sub="na marginesie" />
@@ -325,6 +324,7 @@ export default function Dashboard() {
           <ErrorBoundary label="Negative checklist"><NegativeChecklist /></ErrorBoundary>
           <ErrorBoundary label="Heart Block"><HeartBlockCard /></ErrorBoundary>
           <ErrorBoundary label="Pozwolenie"><PozwolenieCard /></ErrorBoundary>
+          <ErrorBoundary label="Brief na dziś"><TomorrowBriefing variant="today" /></ErrorBoundary>
         </>
       )}
 
