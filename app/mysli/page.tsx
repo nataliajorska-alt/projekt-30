@@ -120,6 +120,8 @@ function ThoughtTab({ cbt }: { cbt: ReturnType<typeof useCBT> }) {
   const [situation, setSituation] = useState('')
   const [thoughtsText, setThoughtsText] = useState('')
   const [emotions, setEmotions] = useState<{ name: string; pct: string }[]>([{ name: '', pct: '' }])
+  const [altText, setAltText] = useState('')
+  const [altPct, setAltPct] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
   const [flash, setFlash] = useState<string | null>(null)
 
@@ -130,11 +132,14 @@ function ThoughtTab({ cbt }: { cbt: ReturnType<typeof useCBT> }) {
 
   const save = async () => {
     const emo: CBTEmotionTag[] = emotions.filter(e => e.name.trim()).map(e => ({ name: e.name.trim(), pct: Number(e.pct) || 0 }))
-    if (!situation.trim() && !thoughtsText.trim() && !emo.length) {
+    if (!situation.trim() && !thoughtsText.trim() && !emo.length && !altText.trim()) {
       setFlash('Najpierw coś zapisz'); setTimeout(() => setFlash(null), 1500); return
     }
-    const created = await cbt.createThought({ situation: situation.trim(), emotions: emo, thoughts: thoughtsText.trim() })
-    setSituation(''); setThoughtsText(''); setEmotions([{ name: '', pct: '' }])
+    const created = await cbt.createThought({
+      situation: situation.trim(), emotions: emo, thoughts: thoughtsText.trim(),
+      alt: altText.trim(), altPct: Math.min(100, Number(altPct) || 0),
+    })
+    setSituation(''); setThoughtsText(''); setEmotions([{ name: '', pct: '' }]); setAltText(''); setAltPct('')
     setFlash(created && created.xpEarned > 0 ? `Zapisano · +${created.xpEarned} XP` : 'Zapisano ✓')
     setTimeout(() => setFlash(null), 1800)
   }
@@ -175,10 +180,24 @@ function ThoughtTab({ cbt }: { cbt: ReturnType<typeof useCBT> }) {
           )}
         </div>
 
-        <div className="mb-6">
+        <div className="mb-5">
           <label className="cbt-lab">Myśli automatyczne<span className="cbt-hint">Co przeleciało Ci przez głowę?</span></label>
           <textarea className="cbt-ta" rows={3} value={thoughtsText} onChange={e => setThoughtsText(e.target.value)}
             placeholder="Jak zwykle zawaliłam. Jestem za głupia. Nic mi się nie udaje." />
+        </div>
+
+        <div className="mb-6">
+          <label className="cbt-lab">Myśl alternatywna<span className="cbt-hint">Łagodniej i prawdziwiej — jak inaczej dałoby się to ująć?</span></label>
+          <textarea className="cbt-ta" rows={3} value={altText} onChange={e => setAltText(e.target.value)}
+            placeholder="Jedno kolokwium nie przesądza o niczym. Wiele rzeczy mi wychodzi." />
+          <div className="grid grid-cols-[1fr_92px] gap-2 items-center mt-2.5">
+            <span className="cbt-lab mb-0 font-normal" style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: '14px' }}>Na ile w nią wierzę?</span>
+            <div className="relative">
+              <input className="cbt-input text-right pr-7" inputMode="numeric" value={altPct}
+                onChange={e => setAltPct(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))} placeholder="40" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[14px] text-[#7c7256] pointer-events-none">%</span>
+            </div>
+          </div>
         </div>
 
         <SaveButton onClick={save} flash={flash}>zapisz wpis</SaveButton>
@@ -235,6 +254,15 @@ function ThoughtRow({ entry, open, onToggle, onSave, onDelete }: {
             <div className="mt-4">
               <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338] mb-1.5">Myśli automatyczne</div>
               <div className="font-serif-body text-[14.5px] text-[#2a2a26] whitespace-pre-wrap">{entry.thoughts}</div>
+            </div>
+          )}
+          {entry.alt && (
+            <div className="mt-4">
+              <div className="flex items-baseline gap-2 mb-1.5">
+                <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338]">Myśl alternatywna</span>
+                {entry.altPct > 0 && <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8f4d63]">wiara {entry.altPct}%</span>}
+              </div>
+              <div className="font-serif-body text-[14.5px] text-[#2a2a26] whitespace-pre-wrap">{entry.alt}</div>
             </div>
           )}
           <ThoughtInterrogation entry={entry} onSave={onSave} />

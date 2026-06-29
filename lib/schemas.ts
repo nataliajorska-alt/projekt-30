@@ -271,6 +271,8 @@ export const CBTThoughtEntrySchema = z.object({
   situation:      z.string().catch(''),
   emotions:       z.array(CBTEmotionTagSchema).catch([]),
   thoughts:       z.string().catch(''),
+  alt:            z.string().catch(''),
+  altPct:         z.number().min(0).max(100).catch(0),
   hot:            z.string().catch(''),
   interro:        z.record(z.string()).catch({}),
   reframe:        z.string().catch(''),

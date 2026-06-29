@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v20-pozwolenie';
+const CACHE_NAME = 'p30-v21-mysl-alternatywna';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {

@@ -30,6 +30,8 @@ export interface CBTThoughtEntry {
   situation: string
   emotions: CBTEmotionTag[]
   thoughts: string // myśli automatyczne (tekst)
+  alt: string // myśl alternatywna (zrównoważona) — kolumna z klasycznej tabeli myśli
+  altPct: number // 0–100 — na ile w nią wierzę
   // Wywiad z gorącą myślą (dopisywane później — dlatego osobna kolekcja, nie tablica dnia):
   hot: string // gorąca myśl
   interro: Record<string, string> // odpowiedzi sokratejskie po id pytania
@@ -81,6 +83,8 @@ export function emptyThought(id: string, dateKey: string): CBTThoughtEntry {
     situation: '',
     emotions: [],
     thoughts: '',
+    alt: '',
+    altPct: 0,
     hot: '',
     interro: {},
     reframe: '',

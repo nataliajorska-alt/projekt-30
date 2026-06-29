@@ -14,7 +14,7 @@ import {
   emptyThought, emptyEmotion, emptyShield, reframeComplete, cbtUid,
 } from '@/lib/cbt-data'
 
-type NewThought = { situation: string; emotions: CBTEmotionTag[]; thoughts: string }
+type NewThought = { situation: string; emotions: CBTEmotionTag[]; thoughts: string; alt: string; altPct: number }
 type NewEmotion = Omit<CBTEmotionEntry, 'id' | 'kind' | 'dateKey' | 'timestamp' | 'xpEarned' | 'updatedAt'>
 type ThoughtPatch = Partial<Pick<CBTThoughtEntry, 'hot' | 'interro' | 'reframe' | 'reframeFeel'>>
 
@@ -55,6 +55,8 @@ export function useCBT() {
       situation: data.situation,
       emotions: data.emotions,
       thoughts: data.thoughts,
+      alt: data.alt,
+      altPct: data.altPct,
       xpEarned: earned,
     }
     setEntries(prev => [entry, ...prev])

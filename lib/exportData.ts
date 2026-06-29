@@ -609,6 +609,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
         const emo = (e.emotions ?? []).map((x: any) => `${x.name}${x.pct ? ` ${x.pct}%` : ''}`).join(' · ')
         if (emo) lines.push(`- Emocje: ${emo}`)
         if (e.thoughts) lines.push(`- Myśli automatyczne: ${e.thoughts}`)
+        if (e.alt) lines.push(`- Myśl alternatywna${e.altPct ? ` (wiara ${e.altPct}%)` : ''}: ${e.alt}`)
         if (e.hot) lines.push(`- Gorąca myśl: ${e.hot}`)
         if (e.reframe) lines.push(`- Przeformułowanie: ${e.reframe}`)
         if (e.reframeFeel) lines.push(`- Jak się z tym czuję: ${e.reframeFeel}`)
