@@ -11,7 +11,7 @@ import { getTodayWeeklyHabits, getWeeklyStudyItem, DAILY_RULES } from '@/lib/rou
 import { getPhaseForDate } from '@/lib/cycle-data'
 import { getPillar } from '@/lib/pillars'
 import { dailyCigaretteCounts, rollingAverage, shiftDateKey } from '@/lib/smokeStats'
-import { tomorrowDate, tomorrowKey, todayKey, getDaysElapsed } from '@/lib/gameLogic'
+import { tomorrowDate, tomorrowKey, todayKey, getDaysElapsed, getEffectiveNow } from '@/lib/gameLogic'
 import { SMOKING_PHASE_META } from '@/types'
 import { buildTomorrowBriefing, type BriefingInput } from '@/lib/tomorrowBriefing'
 import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
@@ -20,7 +20,9 @@ import { Copy, Share2, Check } from 'lucide-react'
 // Ile dni wstecz (łącznie z dziś) liczymy średnią energii/nastroju do briefu.
 const MOOD_LOOKBACK_DAYS = 7
 
-export default function TomorrowBriefing() {
+// 'tomorrow' — domyślny brief na jutro (widok „Jutro").
+// 'today' — brief na resztę dzisiejszego dnia, gdy nie zdążyłam zaplanować wieczorem.
+export default function TomorrowBriefing({ variant = 'tomorrow' }: { variant?: 'today' | 'tomorrow' }) {
   const { stats } = useGameData()
   const { logs } = useTimelineData()
   const { getEffectiveItems } = useRoutineConfig()
@@ -28,35 +30,37 @@ export default function TomorrowBriefing() {
   const { logs: cycleLogs } = useCycleData()
   const { settings: cycleSettings } = useCycleSettings()
   const [copied, setCopied] = useState(false)
+  const isToday = variant === 'today'
 
   const buildBriefing = (): string => {
-    const tomorrow = tomorrowDate()
-    const tomorrowDateKey = tomorrowKey()
-    const dow = tomorrow.getDay()
+    // Dzień docelowy briefu: dziś (od teraz) albo jutro.
+    const targetDate = isToday ? getEffectiveNow() : tomorrowDate()
+    const targetDateKey = isToday ? todayKey() : tomorrowKey()
+    const dow = targetDate.getDay()
     const isWeekday = dow >= 1 && dow <= 5
 
     // Rutyna — ta sama logika co TomorrowChecklist
-    const weeklyTomorrow = getTodayWeeklyHabits(tomorrow)
-    const studyItem = getWeeklyStudyItem(tomorrow)
-    const extraDaily = [...weeklyTomorrow, ...([1, 3, 5].includes(dow) ? [studyItem] : [])]
+    const weeklyTarget = getTodayWeeklyHabits(targetDate)
+    const studyItem = getWeeklyStudyItem(targetDate)
+    const extraDaily = [...weeklyTarget, ...([1, 3, 5].includes(dow) ? [studyItem] : [])]
     const dailyItems = isWeekday
       ? getEffectiveItems('daily', false, extraDaily)
       : [...extraDaily, ...getEffectiveItems('daily', false).filter(i => i.id.startsWith('custom_'))]
 
-    // Questy na jutro — ta sama logika co TomorrowQuests
-    const native = getAprilQuestsForDate(tomorrowDateKey)
-    const postponedToTomorrow = getPostponedQuestsForDate(tomorrowDateKey, questLog.postponed)
+    // Questy — ta sama logika co TomorrowQuests
+    const native = getAprilQuestsForDate(targetDateKey)
+    const postponedToTarget = getPostponedQuestsForDate(targetDateKey, questLog.postponed)
     const postponedAwayIds = questLog.postponed
-      .filter(p => p.targetDate > tomorrowDateKey)
+      .filter(p => p.targetDate > targetDateKey)
       .map(p => p.questId)
     const quests = [
       ...native.filter(q => !postponedAwayIds.includes(q.id)),
-      ...postponedToTomorrow.filter(q => !native.some(n => n.id === q.id)),
+      ...postponedToTarget.filter(q => !native.some(n => n.id === q.id)),
     ].filter(q => !skippedIds.includes(q.id))
 
-    // Cykl — faza na jutrzejszą datę
+    // Cykl — faza na datę docelową
     const cycleInfo = cycleLogs.length > 0
-      ? getPhaseForDate(cycleLogs[0].startDate, tomorrowDateKey, cycleSettings)
+      ? getPhaseForDate(cycleLogs[0].startDate, targetDateKey, cycleSettings)
       : null
 
     // Nastrój/energia z ostatnich dni
@@ -77,8 +81,12 @@ export default function TomorrowBriefing() {
     const avg7 = rollingAverage(dailyCigaretteCounts(logs), today, 7)
 
     const input: BriefingInput = {
-      dateLabel: tomorrow.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-      dayOfProject: Math.max(1, getDaysElapsed() + 2),
+      target: variant,
+      nowLabel: isToday
+        ? getEffectiveNow().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
+        : null,
+      dateLabel: targetDate.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+      dayOfProject: Math.max(1, getDaysElapsed() + (isToday ? 1 : 2)),
       routineSections: [
         { label: 'Rutyna poranna', items: getEffectiveItems('morning', false).map(i => i.text) },
         { label: 'W ciągu dnia', items: dailyItems.map(i => i.text) },
@@ -134,15 +142,27 @@ export default function TomorrowBriefing() {
   return (
     <div className="bg-ivory border border-gold-light/40 mb-4">
       <div className="px-5 pt-5 pb-3 flex items-baseline gap-3">
-        <h2 className="font-heading text-dark text-xl whitespace-nowrap">Brief na jutro</h2>
+        <h2 className="font-heading text-dark text-xl whitespace-nowrap">
+          {isToday ? 'Brief na dziś' : 'Brief na jutro'}
+        </h2>
         <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
           dla asystenta
         </SmallCaps>
       </div>
       <div className="px-5 pb-5">
         <p className="font-serif-body italic text-muted text-[13.5px] leading-relaxed mb-4">
-          rutyna, questy, zasady, faza cyklu i twoja energia z ostatnich dni — jeden gotowy
-          prompt. wklej do Claude'a, dopisz rzeczy z kalendarza i poproś o plan dnia.
+          {isToday ? (
+            <>
+              nie zdążyłaś rozpisać dnia wieczorem? rutyna, questy, zasady, faza cyklu i twoja
+              energia z ostatnich dni — jeden gotowy prompt. wklej do Claude'a, dopisz rzeczy
+              z kalendarza i poproś o plan reszty dnia od teraz.
+            </>
+          ) : (
+            <>
+              rutyna, questy, zasady, faza cyklu i twoja energia z ostatnich dni — jeden gotowy
+              prompt. wklej do Claude'a, dopisz rzeczy z kalendarza i poproś o plan dnia.
+            </>
+          )}
         </p>
         <div className="flex flex-wrap gap-2">
           <button

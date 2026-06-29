@@ -35,6 +35,8 @@ export interface BriefingSmoking {
 }
 
 export interface BriefingInput {
+  target: 'today' | 'tomorrow' // dla którego dnia układamy plan
+  nowLabel: string | null      // aktualna godzina "13:45" — tylko dla 'today', do planu reszty dnia
   dateLabel: string          // np. "czwartek, 11 czerwca 2026"
   dayOfProject: number
   routineSections: BriefingRoutineSection[]
@@ -50,12 +52,22 @@ const fmt1 = (v: number | null) => (v === null ? '—' : v.toFixed(1).replace('.
 
 export function buildTomorrowBriefing(input: BriefingInput): string {
   const lines: string[] = []
+  const isToday = input.target === 'today'
+  const when = isToday ? 'dziś' : 'jutro'
 
-  lines.push(`# Brief na jutro — ${input.dateLabel} (dzień ${input.dayOfProject}/365 mojego rocznego projektu)`)
+  lines.push(`# Brief na ${when} — ${input.dateLabel} (dzień ${input.dayOfProject}/365 mojego rocznego projektu)`)
   lines.push('')
-  lines.push('Ułóż mi konkretny plan jutrzejszego dnia, godzina po godzinie, od pobudki do snu.')
+  if (isToday) {
+    const odKiedy = input.nowLabel ? `od teraz (jest ${input.nowLabel})` : 'od teraz'
+    lines.push(`Ułóż mi konkretny plan na resztę dzisiejszego dnia, godzina po godzinie — ${odKiedy} do snu.`)
+  } else {
+    lines.push('Ułóż mi konkretny plan jutrzejszego dnia, godzina po godzinie, od pobudki do snu.')
+  }
   lines.push('')
   lines.push('## Jak planować — o mnie')
+  if (isToday) {
+    lines.push(`- **Planuję dzień w trakcie${input.nowLabel ? ` — jest ${input.nowLabel}` : ''}.** Zaplanuj realnie **resztę dnia od teraz**, nie cofaj się do pobudki. Część rutyny porannej mogłam już ogarnąć; co zostało z rutyny i posiłków, wpleć od bieżącej godziny.`)
+  }
   lines.push('- Mam ADHD. Plan ma podawać **jedną rzecz naraz**: krótkie bloki (25–45 min), bufory między zadaniami, jasne „od–do”. Żadnych długich równoległych list.')
   lines.push('- Najtrudniejszą rzecz dnia wstaw tam, gdzie energia będzie najwyższa (kontekst ciała niżej).')
   lines.push('- **Przerwy wpisz do planu** jako osobne bloki z godzinami — są częścią planu, nie nagrodą.')
@@ -68,7 +80,7 @@ export function buildTomorrowBriefing(input: BriefingInput): string {
   lines.push('## Kontekst ciała i energii')
   if (input.cycle) {
     const c = input.cycle
-    lines.push(`- Faza cyklu jutro: **${c.phaseName}** (dzień ${c.cycleDay}) — energia: ${c.energy}. ${c.description}`)
+    lines.push(`- Faza cyklu ${when}: **${c.phaseName}** (dzień ${c.cycleDay}) — energia: ${c.energy}. ${c.description}`)
     for (const tip of c.tips) lines.push(`  - ${tip}`)
     if (c.suggestMinimum) {
       lines.push('  - Ta faza sugeruje lżejszy dzień — planuj ambitnie tylko to, co konieczne.')
@@ -100,7 +112,7 @@ export function buildTomorrowBriefing(input: BriefingInput): string {
   }
 
   if (input.quests.length > 0) {
-    lines.push('### Questy dnia (zadania specjalne na jutro)')
+    lines.push(`### Questy dnia (zadania specjalne na ${when})`)
     for (const q of input.quests) {
       lines.push(`- **${q.title}** _(filar: ${q.pillar})_ — ${q.description}`)
     }
