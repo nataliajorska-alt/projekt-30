@@ -278,6 +278,30 @@ export const SIDE_QUESTS: Quest[] = [
   { id: 'sq_trick_18', title: 'Idealny omlet francuski', description: 'Zwinięty, kremowy, bez przypalenia — ktoś zjadł i zapamiętał.', pillar: 'tozsamosc', type: 'side', xp: 150, difficulty: 'medium', tags: ['parlor trick', 'omlet'] },
   { id: 'sq_trick_19', title: 'Beatbox, jeden basic', description: 'Kick-hat-snare w pętli, pokazane na zawołanie.', pillar: 'tozsamosc', type: 'side', xp: 150, difficulty: 'medium', tags: ['parlor trick', 'beatbox'] },
   { id: 'sq_trick_20', title: 'Jedno zdanie w trzecim języku', description: 'Poza polskim i angielskim: hiszpański (masz Duolingo), z akcentem, w rozmowie.', pillar: 'tozsamosc', type: 'side', xp: 150, difficulty: 'medium', tags: ['parlor trick', 'język'] },
+
+  // === G. DOPISANE 29.06 — handstand wolny, lista z Instagrama, sztuczka magiczna ===
+  { id: 'sq_life_38', title: 'Wolny handstand (bez ściany)', description: 'Stoisz na rękach na środku pokoju, bez podpórki, i utrzymujesz 5 sekund w równowadze. Poziom wyżej niż handstand przy ścianie — pełna kontrola ciała.', pillar: 'cialo', type: 'side', xp: 350, difficulty: 'hard', tags: ['handstand', 'siła', 'balans', 'ciało'], steps: [
+    'Rozgrzewka nadgarstków i ramion — codziennie 5 minut',
+    'Zbuduj bazę: handstand przy ścianie, trzymaj 30+ sekund (patrz quest „Handstand przy ścianie")',
+    'Ćwicz kopnięcie do góry na środku pokoju z miękkim wyjściem (przewrót w bok)',
+    'Łap balans: krótkie odejścia od ściany, 1–2 sekundy wolnego stania',
+    'Wolny handstand — utrzymaj 5 sekund i udokumentuj',
+  ] },
+  { id: 'sq_insta_01', title: 'Lista z Instagrama — odhacz po kolei', description: 'Twoja zapisana lista z Instagrama: miejsca, smaki, looki, aktywności. Odhaczasz pojedynczo, w swoim tempie — quest żyje, dopóki nie zrobisz wszystkiego. Etapy poniżej podmień na swoje realne zapisane pozycje (powiedz mi jakie, wpiszę je na sztywno).', pillar: 'tozsamosc', type: 'side', xp: 200, difficulty: 'medium', tags: ['instagram', 'lista', 'doświadczenia', 'wildcard'], steps: [
+    'Kawiarnia / restauracja zapisana z IG — byłaś',
+    'Miejsce / widok zapisany z IG — zobaczyłaś na żywo',
+    'Przepis zapisany z IG — ugotowałaś',
+    'Outfit / look zapisany z IG — odtworzyłaś',
+    'Aktywność / trend zapisany z IG — spróbowałaś',
+    'Szósta pozycja z Twojej listy — odhacz',
+  ] },
+  { id: 'sq_trick_21', title: 'Sztuczka magiczna', description: 'Naucz się jednej prawdziwej sztuczki magicznej — znikająca moneta, wymuszenie karty, mała mentalistyka — i pokaż ją komuś na żywo tak, że padło „jak?!". Iluzja ważniejsza niż technika.', pillar: 'tozsamosc', type: 'side', xp: 250, difficulty: 'hard', tags: ['parlor trick', 'magia', 'iluzja'], steps: [
+    'Wybierz jedną sztuczkę (French drop z monetą, force karty, prosta mentalistyka)',
+    'Obejrzyj 2–3 tutoriale i rozłóż sekret na pojedyncze ruchy',
+    'Ćwicz przed lustrem lub kamerą, aż ruch staje się niewidoczny',
+    'Dopracuj prezentację — gadkę i moment kulminacyjny',
+    'Pokaż na żywo prawdziwej osobie — liczy się jej „jak?!"',
+  ] },
 ]
 
 export const DAILY_QUESTS_POOL: Quest[] = [
