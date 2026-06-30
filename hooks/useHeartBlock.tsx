@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { parseSafe, HeartBlockSchema } from '@/lib/schemas'
-import { todayKey, getISOWeekKey } from '@/lib/gameLogic'
+import { todayKey, getISOWeekKey, getEffectiveNow } from '@/lib/gameLogic'
 
 export interface HeartBlockRituals {
   gratitude: boolean
@@ -47,7 +47,7 @@ export function useHeartBlock() {
   const [block, setBlock] = useState<HeartBlock | null>(null)
   const [history, setHistory] = useState<HeartBlock[]>([])
   const [loading, setLoading] = useState(true)
-  const weekKey = getISOWeekKey(new Date())
+  const weekKey = getISOWeekKey(getEffectiveNow())
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }

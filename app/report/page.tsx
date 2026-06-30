@@ -12,7 +12,7 @@ import { PILLARS } from '@/lib/pillars'
 import { MOOD_STATES } from '@/types'
 import {
   getLevelFromXP, getNextLevel, LEVELS,
-  PROJECT_START, PROJECT_END, getDaysElapsed,
+  PROJECT_START, PROJECT_END, getDaysElapsed, getEffectiveNow,
 } from '@/lib/gameLogic'
 import { aggregateXpByMonth } from '@/lib/analytics'
 import { doc, setDoc } from 'firebase/firestore'
@@ -171,7 +171,7 @@ export default function ReportPage() {
     const monthly = aggregateXpByMonth(logs)
     const xpByKey: Record<string, number> = {}
     for (const m of Object.values(monthly)) xpByKey[m.monthKey] = m.totalXP
-    const nowKey = monthKeyOf(new Date())
+    const nowKey = monthKeyOf(getEffectiveNow())
 
     const arcMonths = Array.from({ length: 12 }, (_, i) => {
       const d = new Date(PROJECT_START)

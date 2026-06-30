@@ -1,5 +1,5 @@
 import type { DailyLog, Pillar, WeeklyReview, MonthlyReview } from '@/types'
-import { getISOWeekKey, getMonthKey, dateKey } from './gameLogic'
+import { getISOWeekKey, getMonthKey, dateKey, getEffectiveNow } from './gameLogic'
 
 export type LogMap = Record<string, DailyLog>
 
@@ -148,8 +148,8 @@ export function computeStreaks(logs: LogMap): StreakSummary {
   const longestStreak = streaks.reduce((m, s) => Math.max(m, s.length), 0)
 
   // Current streak = last streak iff it ends today or yesterday.
-  const today = dateKey(new Date())
-  const yesterdayDate = new Date()
+  const today = dateKey(getEffectiveNow())
+  const yesterdayDate = getEffectiveNow()
   yesterdayDate.setDate(yesterdayDate.getDate() - 1)
   const yesterday = dateKey(yesterdayDate)
   const last = streaks[streaks.length - 1]

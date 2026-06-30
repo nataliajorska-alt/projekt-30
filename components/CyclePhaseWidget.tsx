@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useCycleData } from '@/hooks/useCycleData'
 import { useCycleSettings } from '@/hooks/useCycleSettings'
 import { getPhaseForDate } from '@/lib/cycle-data'
+import { todayKey } from '@/lib/gameLogic'
 import { useMemo } from 'react'
 import { toRoman } from '@/lib/romanNumerals'
 
@@ -25,10 +26,7 @@ export default function CyclePhaseWidget() {
   const { logs, loading } = useCycleData()
   const { settings, loading: settingsLoading } = useCycleSettings()
 
-  const today = useMemo(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  }, [])
+  const today = useMemo(() => todayKey(), [])
 
   if (loading || settingsLoading || logs.length === 0) return null
 

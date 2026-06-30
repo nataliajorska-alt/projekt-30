@@ -1,7 +1,7 @@
 'use client'
 import { useMemo, useState } from 'react'
 import type { DailyLog } from '@/types'
-import { getISOWeekKey, PROJECT_START, PROJECT_END } from '@/lib/gameLogic'
+import { getISOWeekKey, PROJECT_START, PROJECT_END, getEffectiveNow } from '@/lib/gameLogic'
 import { aggregateXpByWeek } from '@/lib/analytics'
 import { SmallCaps } from '@/components/ui'
 
@@ -50,7 +50,7 @@ export default function WeeklyXPChart({ logs }: Props) {
         peakIdx = i
       }
     })
-    return { rows, max, avg, peakIdx, currentWeek: getISOWeekKey(new Date()) }
+    return { rows, max, avg, peakIdx, currentWeek: getISOWeekKey(getEffectiveNow()) }
   }, [logs])
 
   const chartHeight = 180

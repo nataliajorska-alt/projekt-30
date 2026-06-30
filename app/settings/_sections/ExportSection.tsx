@@ -9,11 +9,12 @@ import {
 } from '@/lib/exportData'
 import type { DateRange } from '@/lib/exportData'
 import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
+import { getEffectiveNow } from '@/lib/gameLogic'
 
 type Preset = 'all' | 'year' | 'month' | 'week' | 'custom'
 
 function getPresetRange(preset: Preset): DateRange {
-  const today = new Date()
+  const today = getEffectiveNow()
   const pad = (n: number) => String(n).padStart(2, '0')
   const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 

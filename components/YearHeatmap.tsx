@@ -1,7 +1,7 @@
 'use client'
 import { useMemo, useState } from 'react'
 import type { DailyLog } from '@/types'
-import { dateKey, PROJECT_START, PROJECT_END } from '@/lib/gameLogic'
+import { dateKey, PROJECT_START, PROJECT_END, getEffectiveNow } from '@/lib/gameLogic'
 import { SmallCaps } from '@/components/ui'
 
 interface Props {
@@ -86,7 +86,7 @@ export default function YearHeatmap({ logs }: Props) {
     return { weeks, monthLabels, bestDate, activeDays, projectDays }
   }, [logs])
 
-  const todayStr = dateKey(new Date())
+  const todayStr = dateKey(getEffectiveNow())
   const projectStartStr = dateKey(PROJECT_START)
   const projectEndStr = dateKey(PROJECT_END)
 

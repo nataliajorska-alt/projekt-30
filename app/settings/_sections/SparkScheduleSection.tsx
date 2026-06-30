@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import { Sparkles } from 'lucide-react'
 import { useSparkSchedule } from '@/hooks/useSparkSchedule'
 import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
+import { getEffectiveNow } from '@/lib/gameLogic'
 
 function fmtDateKey(d: Date): string {
   const y = d.getFullYear()
@@ -13,7 +14,7 @@ function fmtDateKey(d: Date): string {
 }
 
 function getWeekDays(offset: number): Date[] {
-  const today = new Date()
+  const today = getEffectiveNow()
   const dow = (today.getDay() + 6) % 7
   const monday = new Date(today)
   monday.setDate(today.getDate() - dow + offset * 7)
@@ -44,7 +45,7 @@ export default function SparkScheduleSection() {
     return `${fmt(s)} – ${fmt(e)}.${e.getFullYear()}`
   }
 
-  const todayStr = fmtDateKey(new Date())
+  const todayStr = fmtDateKey(getEffectiveNow())
 
   const handleChange = (key: string, value: string) => {
     setDrafts(prev => ({ ...prev, [key]: value }))

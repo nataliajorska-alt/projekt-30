@@ -1,5 +1,6 @@
 // Miesięczne motto i nazwa. Klucz w formacie YYYY-MM.
 // Dopisuj kolejne miesiące w miarę rozwoju Projektu 30.
+import { getEffectiveNow } from '../gameLogic'
 
 export interface MonthData {
   name: string
@@ -70,7 +71,7 @@ const FALLBACK: MonthData = {
 }
 
 export function getCurrentMonthData(): MonthData {
-  const now = new Date()
+  const now = getEffectiveNow()
   const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   return MONTHLY_DATA[key] ?? FALLBACK
 }

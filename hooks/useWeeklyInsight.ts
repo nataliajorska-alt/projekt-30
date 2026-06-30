@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { useTimelineData } from './useTimelineData'
-import { getISOWeekKey } from '@/lib/gameLogic'
+import { getISOWeekKey, getEffectiveNow } from '@/lib/gameLogic'
 import { computeWeeklyInsight, logsSignature, type WeeklyInsight } from '@/lib/weeklyInsight'
 import { parseSafe, WeeklyInsightSchema } from '@/lib/schemas'
 import { fireInsightSeen } from './useWeeklyInsightBadge'
@@ -17,7 +17,7 @@ export function useWeeklyInsight() {
   const [loading, setLoading] = useState(true)
   const [hasNewBadge, setHasNewBadge] = useState(false)
 
-  const weekKey = getISOWeekKey(new Date())
+  const weekKey = getISOWeekKey(getEffectiveNow())
 
   const ensureInsight = useCallback(async () => {
     if (!user || logsLoading) return

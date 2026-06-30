@@ -14,6 +14,7 @@ import {
   getISOWeekKey,
   getLevelFromXP,
   getMonthKey,
+  getEffectiveNow,
   MAX_MOOD_CHECKINS_PER_DAY,
 } from '@/lib/gameLogic'
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
@@ -268,7 +269,7 @@ export function useGameData() {
   // Pillar balance bonus: +30 XP once per ISO week when all 7 pillars were touched.
   // Updates currentWeekPillars rolling tracker and pillarBalanceWeeks ledger.
   const applyPillarBalanceIfNeeded = useCallback((baseStats: UserStats, pillarTouched: Pillar): UserStats => {
-    const weekKey = getISOWeekKey(new Date())
+    const weekKey = getISOWeekKey(getEffectiveNow())
     const existing = baseStats.currentWeekPillars
     const samePriorWeek = existing?.weekKey === weekKey
     const priorPillars = samePriorWeek ? existing!.pillars : []
@@ -317,7 +318,9 @@ export function useGameData() {
 
     // Streak freeze: exactly 1 missed day + streak was active + freeze unused this month
     const missedExactlyOneDay = baseStats.lastStreakDate === dbKey && (baseStats.currentStreak ?? 0) > 0
-    const monthKey = getMonthKey(new Date())
+    // Miesiąc z logicznego klucza dnia (today = currentDateKey), żeby nie rozjechał
+    // się z dniem streaka w oknie 00:00–03:00 na przełomie miesiąca.
+    const monthKey = today.slice(0, 7)
     const freezeUsed = (baseStats.streakFreezeUsedMonths ?? []).includes(monthKey)
     const freezeApplied = !continued && missedExactlyOneDay && !freezeUsed
 
@@ -858,7 +861,7 @@ export function useGameData() {
     return xp
   }, [user, stats, statsRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
 
-  const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(getMonthKey(new Date()))
+  const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(currentDateKey.slice(0, 7))
 
   // Full stats reconstruction from Firestore source documents.
   // Reads daily logs, weekly/monthly review docs, Ghost V2 + honest failure logs,

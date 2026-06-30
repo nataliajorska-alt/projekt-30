@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 import clsx from 'clsx'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { PILLARS } from '@/lib/pillars'
-import { getMonthKey } from '@/lib/gameLogic'
+import { getMonthKey, getEffectiveNow } from '@/lib/gameLogic'
 import { getRoutineItemCounts, getCompletedSideQuestDates, getRuleKeptCounts, aggregateXpByMonth } from '@/lib/analytics'
 import { MORNING_ROUTINE, EVENING_ROUTINE, DAILY_RULES, DAILY_HABITS, WEEKLY_HABITS } from '@/lib/routineData'
 import { SIDE_QUESTS } from '@/lib/questData'
@@ -22,7 +22,7 @@ function getDaysInMonth(monthKey: string): number {
 }
 
 function getElapsedDaysInMonth(monthKey: string): number {
-  const today = new Date()
+  const today = getEffectiveNow()
   const [y, m] = monthKey.split('-').map(Number)
   if (today.getFullYear() === y && today.getMonth() + 1 === m) {
     return today.getDate()
@@ -42,7 +42,7 @@ interface SummaryProps {
 }
 
 export default function MonthlySummaryTab({ logs }: SummaryProps) {
-  const currentMonthKey = useMemo(() => getMonthKey(new Date()), [])
+  const currentMonthKey = useMemo(() => getMonthKey(getEffectiveNow()), [])
   const [monthKey, setMonthKey] = useState(currentMonthKey)
 
   const PROJECT_START_MONTH = '2026-04'

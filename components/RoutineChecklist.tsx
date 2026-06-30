@@ -10,6 +10,7 @@ import {
   MORNING_SUPPLEMENTS, EVENING_SUPPLEMENTS,
   MORNING_TEETH_STEPS,
 } from '@/lib/routineData'
+import { getEffectiveNow, DAY_START_HOUR } from '@/lib/gameLogic'
 import { filterItemsForMinimumDay } from '@/lib/minimumDayLogic'
 import { MINIMUM_DAY_REASONS } from '@/types'
 import { BatteryLow, ChevronDown, Check } from 'lucide-react'
@@ -35,7 +36,11 @@ function getNextTab(current: Tab): Tab | null {
 
 function getDefaultTab(): Tab {
   const now = new Date()
-  const totalMinutes = now.getHours() * 60 + now.getMinutes()
+  const h = now.getHours()
+  // Po północy, ale przed startem nowego dnia (DAY_START_HOUR) — to wciąż ogon
+  // poprzedniego dnia, więc otwórz wieczór, nie poranek.
+  if (h < DAY_START_HOUR) return 'evening'
+  const totalMinutes = h * 60 + now.getMinutes()
   if (totalMinutes >= 21 * 60 + 30) return 'evening'
   return 'morning'
 }
@@ -308,7 +313,7 @@ export default function RoutineChecklist() {
   const studyItem = getWeeklyStudyItem()
   const studyLabel = getWeeklyStudyLabel()
   const DAY_NAMES = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota']
-  const dow = new Date().getDay()
+  const dow = getEffectiveNow().getDay()
   const todayName = DAY_NAMES[dow]
   const isWeekday = dow >= 1 && dow <= 5
 

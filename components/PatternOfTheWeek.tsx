@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { useMemo } from 'react'
 import { useTimelineData } from '@/hooks/useTimelineData'
-import { dateKey } from '@/lib/gameLogic'
+import { dateKey, getEffectiveNow } from '@/lib/gameLogic'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -12,7 +12,7 @@ interface Pattern {
 }
 
 function computePattern(logs: Record<string, { totalXP?: number }>): Pattern | null {
-  const today = new Date()
+  const today = getEffectiveNow()
   today.setHours(0, 0, 0, 0)
 
   const activeDays: { date: Date; xp: number; weekday: number }[] = []

@@ -1,5 +1,5 @@
 import type { RoutineItem } from '@/types'
-import { PROJECT_START, getISOWeekKey } from './gameLogic'
+import { PROJECT_START, getISOWeekKey, getEffectiveNow } from './gameLogic'
 
 // ─── WERSJA NORMALNA ───────────────────────────────────────────
 
@@ -94,7 +94,7 @@ export const BIWEEKLY_TUESDAY: RoutineItem = {
 }
 
 export function getTodayWeeklyHabits(forDate?: Date): RoutineItem[] {
-  const now = forDate ?? new Date()
+  const now = forDate ?? getEffectiveNow()
   const dow = now.getDay() // 0=nd ... 6=sb
   const base = WEEKLY_HABITS[dow] ?? []
 
@@ -269,7 +269,7 @@ const WEEKLY_STUDY_TOPICS = [
 ]
 
 export function getWeeklyStudyItem(forDate?: Date): RoutineItem {
-  const now = forDate ?? new Date()
+  const now = forDate ?? getEffectiveNow()
   const weekKey = getISOWeekKey(now)
   const weeksSinceStart = Math.floor((now.getTime() - PROJECT_START.getTime()) / (7 * 24 * 60 * 60 * 1000))
   const topic = WEEKLY_STUDY_TOPICS[((weeksSinceStart % WEEKLY_STUDY_TOPICS.length) + WEEKLY_STUDY_TOPICS.length) % WEEKLY_STUDY_TOPICS.length]
@@ -282,7 +282,7 @@ export function getWeeklyStudyItem(forDate?: Date): RoutineItem {
 }
 
 export function getWeeklyStudyLabel(forDate?: Date): string {
-  const now = forDate ?? new Date()
+  const now = forDate ?? getEffectiveNow()
   const weeksSinceStart = Math.floor((now.getTime() - PROJECT_START.getTime()) / (7 * 24 * 60 * 60 * 1000))
   const topic = WEEKLY_STUDY_TOPICS[((weeksSinceStart % WEEKLY_STUDY_TOPICS.length) + WEEKLY_STUDY_TOPICS.length) % WEEKLY_STUDY_TOPICS.length]
   return topic.label

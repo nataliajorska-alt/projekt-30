@@ -9,7 +9,7 @@ import PillarRating from './PillarRating'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { doc, setDoc } from 'firebase/firestore'
-import { getMonthKey, XP_VALUES } from '@/lib/gameLogic'
+import { getMonthKey, XP_VALUES, getEffectiveNow } from '@/lib/gameLogic'
 import { getMonthAggregate } from '@/lib/analytics'
 import type { MonthlyReview } from '@/types'
 import { formatMonthPL } from './shared'
@@ -25,7 +25,7 @@ interface MonthlyFormProps {
 }
 
 export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyReview, lastReview }: MonthlyFormProps) {
-  const monthKey = useMemo(() => getMonthKey(new Date()), [])
+  const monthKey = useMemo(() => getMonthKey(getEffectiveNow()), [])
   const agg = useMemo(() => getMonthAggregate(logs, monthKey), [logs, monthKey])
 
   const [highlights, setHighlights] = useState('')

@@ -4,7 +4,7 @@ import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
-import { getISOWeekKey } from '@/lib/gameLogic'
+import { getISOWeekKey, getEffectiveNow } from '@/lib/gameLogic'
 
 const INSIGHT_SEEN_EVENT = 'projekt30:insight-seen'
 
@@ -15,7 +15,7 @@ export function useWeeklyInsightBadge(): boolean {
 
   useEffect(() => {
     if (!user) return
-    const weekKey = getISOWeekKey(new Date())
+    const weekKey = getISOWeekKey(getEffectiveNow())
     const seenKey = `insight_seen_${weekKey}`
 
     const refresh = async () => {
