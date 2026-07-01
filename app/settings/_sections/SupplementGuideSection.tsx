@@ -100,7 +100,8 @@ export default function SupplementGuideSection() {
 
       <p className="font-serif-body italic text-muted text-[12px] mt-5 leading-relaxed">
         Cynk i selen z dala od kreatyny (min. 1–2 h). Kreatyna = więcej wody.
-        Witamina C 500 mg doraźnie też w inne dni przy infekcji lub stresie.
+        Witamina C 500 mg doraźnie też w inne dni przy infekcji lub stresie;
+        cynk 50 mg drugi raz w tygodniu tylko przy nadchodzącej infekcji.
         Kontrola witaminy D za 8–12 tygodni.
       </p>
     </section>

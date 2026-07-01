@@ -55,7 +55,7 @@ export const WEEKLY_HABITS: Record<number, RoutineItem[]> = {
     { id: 'w0_1', text: 'Kościół — msza', type: 'daily', xp: 10 },
   ],
   1: [ // Poniedziałek
-    { id: 'w1_supp', text: 'Suplementy: Cynk 50 mg + Selen (przy obiedzie, z dala od kreatyny)', type: 'daily', xp: 10 },
+    { id: 'w1_supp', text: 'Suplementy: Cynk 50 mg + Selen 1 kaps (Naturell) — przy obiedzie, z dala od kreatyny', type: 'daily', xp: 10 },
     { id: 'w1_1', text: 'Ćw. od fizjo', type: 'daily', xp: 10, href: '/cwiczenia.html#fizjo' },
     { id: 'w1_2', text: 'Leg warm-up', type: 'daily', xp: 10 },
     { id: 'w1_3', text: 'Duolingo ×3', type: 'daily', xp: 10 },
@@ -321,22 +321,22 @@ export const EVENING_SKINCARE: Record<number, { theme: string; steps: string[] }
 // Rano: po śniadaniu z tłuszczem (D3/K2/omega potrzebują tłuszczu); kawa dopiero po tabletkach.
 // B-complex (pn/śr/pt/nd) przeplata się z witaminą C (wt/cz/sb). Atenza tylko w dni robocze.
 // note = dawka poza porannym blokiem (np. cynk+selen przy obiedzie, z dala od kreatyny).
-const SUPP_MORNING_BASE = ['D3 4000 IU', 'K2 MK-7 1 kaps', 'Omega-3 2 kaps', 'Kreatyna 3–3,5 g']
+const SUPP_MORNING_BASE = ['D3 4000 IU', 'K2 MK-7 1 kaps', 'Omega-3 1 kaps (Aliness Forte TG)', 'Kreatyna 3–3,5 g']
 
 export const MORNING_SUPPLEMENTS: Record<number, { theme: string; steps: string[]; note?: string }> = {
   1: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'B-complex DOZ 1 tabl'] },
-  2: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'Witamina C 500 mg'] },
+  2: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'Witamina C 500 mg (proszek Skarby Gór)'] },
   3: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'B-complex DOZ 1 tabl'] },
-  4: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'Witamina C 500 mg'] },
+  4: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'Witamina C 500 mg (proszek Skarby Gór)'] },
   5: { theme: 'po śniadaniu z tłuszczem', steps: [...SUPP_MORNING_BASE, 'Atenza', 'B-complex DOZ 1 tabl'] },
-  6: { theme: 'wolne — bez Atenzy',       steps: [...SUPP_MORNING_BASE, 'Witamina C 500 mg'] },
+  6: { theme: 'wolne — bez Atenzy',       steps: [...SUPP_MORNING_BASE, 'Witamina C 500 mg (proszek Skarby Gór)'] },
   0: { theme: 'wolne — bez Atenzy',       steps: [...SUPP_MORNING_BASE, 'B-complex DOZ 1 tabl'] },
 }
 
 // Wieczór: 2–3 h po kolacji, przed snem. Ten sam zestaw codziennie.
 export const EVENING_SUPPLEMENTS: { theme: string; steps: string[] } = {
   theme: '2–3 h po kolacji',
-  steps: ['Duloksetyna', 'Magnez 2 kaps', 'Omega-3 2 kaps'],
+  steps: ['Duloksetyna', 'Magnez 2 kaps', 'Omega-3 1 kaps (Aliness Forte TG)'],
 }
 
 export const DAILY_SPARKS = [
