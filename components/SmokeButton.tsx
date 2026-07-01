@@ -11,13 +11,30 @@ interface SmokeButtonProps {
   onClose: () => void
 }
 
+// „mniej więcej kiedy" — godzina zegarowa + ile temu. Spokojnie, bez pełnej gramatyki godzin.
+function formatLastSmoke(timestamp: number): string {
+  const d = new Date(timestamp)
+  const clock = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+  const diffMin = Math.max(0, Math.round((Date.now() - timestamp) / 60000))
+  let rel: string
+  if (diffMin < 1) rel = 'przed chwilą'
+  else if (diffMin < 60) rel = `${diffMin} min temu`
+  else {
+    const h = Math.floor(diffMin / 60)
+    const m = diffMin % 60
+    rel = m === 0 ? `${h} h temu` : `${h} h ${m} min temu`
+  }
+  return `${rel} · ${clock}`
+}
+
 export default function SmokeButton({ onClose }: SmokeButtonProps) {
   const { todayLog, logCigarette, removeLastCigarette } = useGameData()
   const [showContextPicker, setShowContextPicker] = useState(false)
   const [justLogged, setJustLogged] = useState(false)
 
   const todayCount = todayLog?.cigarettes?.length ?? 0
-  const lastContext = todayLog?.cigarettes?.[todayLog.cigarettes.length - 1]?.context
+  const lastEntry = todayLog?.cigarettes?.[todayLog.cigarettes.length - 1]
+  const lastContext = lastEntry?.context
 
   useEffect(() => {
     if (!justLogged) return
@@ -75,9 +92,12 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
               <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-3 block">
                 dzisiaj
               </SmallCaps>
-              {lastContext && (
+              {lastEntry && (
                 <p className="font-serif-body italic text-muted text-[12.5px] mt-3">
-                  ostatni: {CIGARETTE_CONTEXTS.find(c => c.id === lastContext)?.label.toLowerCase()}
+                  ostatni: {formatLastSmoke(lastEntry.timestamp)}
+                  {lastContext && (
+                    <> · {CIGARETTE_CONTEXTS.find(c => c.id === lastContext)?.label.toLowerCase()}</>
+                  )}
                 </p>
               )}
             </div>
