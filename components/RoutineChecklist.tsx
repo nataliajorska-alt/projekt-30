@@ -98,6 +98,19 @@ function ItemRow({ item, done, isMinimum, isOptional, onToggle, inlineExtra, onP
           {item.text}
         </span>
       </button>
+      {item.href && (
+        <a
+          href={item.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          title="Otwórz prowadzone ćwiczenia"
+          aria-label="Otwórz prowadzone ćwiczenia"
+          className="shrink-0 font-ui uppercase tracking-luxury text-[9px] text-forest hover:text-gold-deep border border-forest/40 hover:border-gold px-1.5 py-1 transition-colors"
+        >
+          ćwicz →
+        </a>
+      )}
       {inlineExtra}
       {onPostpone && !done && (
         <button

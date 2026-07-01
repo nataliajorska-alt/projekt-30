@@ -27,6 +27,8 @@ export interface RoutineItem {
   xp: number
   priority?: RoutineItemPriority
   category?: RoutineItemCategory
+  /** Opcjonalny link (np. do apki ćwiczeń w /public/cwiczenia.html). Otwiera się w nowej karcie. */
+  href?: string
 }
 
 export type MinimumDayReason = 'choroba' | 'okres' | 'zly_nastroj' | 'przemeczenie' | 'inne'

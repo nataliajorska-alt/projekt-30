@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1016">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ćwiczenia">
+<title>Ćwiczenia</title>
+<style>
+  :root{
+    --bg:#0e1016; --bg2:#161a24; --card:#1b2030; --line:#2a3142;
+    --txt:#eef2fb; --mut:#9aa6bd; --mut2:#6b7689;
+    --accent:#a78bfa; --good:#5fd07a; --bad:#ff6b6b; --warn:#f6b14e;
+    --r:18px; --shadow:0 10px 40px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(1200px 700px at 50% -10%, #1a2030 0%, var(--bg) 55%);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.45;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:18px 16px 40px;min-height:100%;display:flex;flex-direction:column;gap:14px}
+  button{font-family:inherit;cursor:pointer;border:none;color:var(--txt)}
+  .hidden{display:none !important}
+
+  /* ---------------- HUB ---------------- */
+  .hubhead{margin:8px 2px 2px}
+  .hubhead h1{font-size:24px;margin:0;font-weight:750;letter-spacing:.2px}
+  .hubhead p{margin:4px 0 0;color:var(--mut);font-size:14px}
+  .rcard{background:linear-gradient(180deg,var(--card),#171b29);border:1px solid var(--line);
+         border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;text-align:left;width:100%;
+         display:flex;align-items:stretch;gap:0;transition:.15s;position:relative}
+  .rcard:active{transform:scale(.99)}
+  .rcard .stripe{width:6px;flex:none;background:var(--accent)}
+  .rcard .rc{padding:16px 16px;flex:1;min-width:0}
+  .rcard h3{margin:0;font-size:18px;font-weight:700}
+  .rcard .rdesc{color:var(--mut);font-size:13.5px;margin-top:4px}
+  .rcard .rmeta{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+  .pill{font-size:12px;color:var(--mut);background:var(--bg2);border:1px solid var(--line);
+        border-radius:999px;padding:4px 10px;display:flex;align-items:center;gap:6px}
+  .rcard .go{align-self:center;padding-right:16px;color:var(--mut2);font-size:22px}
+  .addcard{border:1px dashed var(--line);background:transparent;border-radius:var(--r);padding:16px;
+           text-align:left;color:var(--mut2);font-size:14px;display:flex;align-items:center;gap:12px;width:100%}
+  .addcard .plus{width:34px;height:34px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);
+                 display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+  .footnote{color:var(--mut2);font-size:12px;text-align:center;margin-top:6px;line-height:1.5}
+
+  /* ---------------- PLAYER ---------------- */
+  .topbar{display:flex;align-items:center;gap:10px}
+  .iconbtn{background:var(--bg2);border:1px solid var(--line);border-radius:11px;width:40px;height:40px;
+           display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+  .iconbtn:active{transform:scale(.93)}
+  .topbar h1{font-size:16px;margin:0;font-weight:650;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .clock{font-variant-numeric:tabular-nums;color:var(--mut);font-size:13px;flex:none}
+  .clock b{color:var(--txt)}
+
+  .rules{display:flex;flex-wrap:wrap;gap:6px;font-size:12.5px}
+  .rule{background:var(--bg2);border:1px solid var(--line);color:var(--mut);padding:5px 9px;border-radius:999px;display:flex;align-items:center;gap:6px}
+  .rule.stop{color:#ffd0d0;border-color:#5a2a2a;background:#241318}
+  .rule b{color:var(--txt);font-weight:600}
+
+  .barwrap{height:7px;background:var(--bg2);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+  .bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent));border-radius:999px;transition:width .25s linear}
+
+  .card{background:linear-gradient(180deg,var(--card),#171b29);border:1px solid var(--line);
+        border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;position:relative}
+  .accentbar{height:5px;background:var(--accent);transition:background .4s}
+  .pad{padding:18px 18px 16px}
+
+  .blockrow{display:flex;align-items:center;gap:10px;justify-content:space-between}
+  .blocktag{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:13px;font-weight:600}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
+  .star{color:var(--warn);font-size:12px;background:#2a2316;border:1px solid #4a3a1a;border-radius:999px;padding:2px 8px}
+  .range{color:var(--mut2);font-size:12px;font-variant-numeric:tabular-nums}
+
+  .titlerow{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+  h2.title{font-size:23px;margin:0;font-weight:700;flex:1;min-width:0}
+  .side{font-size:13px;font-weight:800;letter-spacing:.5px;padding:5px 11px;border-radius:10px;flex:none}
+  .side.L{background:#15324a;color:#7fd1ff;border:1px solid #235273}
+  .side.P{background:#3a2a16;color:#ffce8a;border:1px solid #6a4a1f}
+
+  .timer{display:flex;align-items:flex-end;gap:14px;margin:14px 0 6px}
+  .count{font-size:60px;line-height:.95;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+  .count small{font-size:22px;color:var(--mut);font-weight:700}
+  .ofstep{color:var(--mut2);font-size:13px;padding-bottom:8px}
+  .stepbarwrap{height:5px;background:#0e121c;border-radius:999px;overflow:hidden;margin-top:2px}
+  .stepbar{height:100%;width:0;background:var(--accent);opacity:.9;transition:width .25s linear,background .4s}
+
+  /* pacer ring */
+  .pacer{display:none;flex-direction:column;align-items:center;gap:6px;margin:16px 0 2px}
+  .pacer.on{display:flex}
+  .ring{width:116px;height:116px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+        background:radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--accent) 38%, transparent), color-mix(in srgb, var(--accent) 12%, transparent));
+        border:2px solid var(--accent);transform:scale(.55);will-change:transform;
+        transition:transform 1s ease-in-out;font-weight:750;font-size:16px;
+        box-shadow:0 0 34px -8px var(--accent)}
+  .pacehint{color:var(--mut2);font-size:11.5px}
+
+  .cue{margin-top:14px;background:#0f1320;border:1px solid var(--line);border-radius:14px;padding:13px 14px;
+       min-height:54px;display:flex;align-items:center;gap:10px;font-size:16.5px;font-weight:560}
+  .cue .ic{font-size:18px;flex:none;color:var(--accent)}
+
+  .details{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .chip{display:flex;gap:9px;font-size:13.5px;line-height:1.4;align-items:flex-start}
+  .chip .lab{flex:none;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:3px 8px;border-radius:7px;margin-top:1px;white-space:nowrap}
+  .chip .tx{color:var(--mut)}
+  .lab.set{background:#1b2433;color:#9fc0ff} .chip.set .tx{color:#c2ccde}
+  .lab.key{background:#2a2316;color:#ffce8a} .chip.key .tx{color:#ffe6c2;font-weight:560}
+  .lab.feel{background:#15301f;color:#8be0a3} .chip.feel .tx{color:#bfe9cc}
+  .lab.avoid{background:#2a1518;color:#ff9b9b} .chip.avoid .tx{color:#f0c9c9}
+  .lab.note{background:#1c2230;color:#9aa6bd}
+
+  .next{margin-top:13px;color:var(--mut2);font-size:13px;display:flex;gap:7px;align-items:center}
+  .next b{color:var(--mut);font-weight:600}
+
+  .controls{display:flex;gap:10px;align-items:center;justify-content:center}
+  .ctl{background:var(--bg2);border:1px solid var(--line);border-radius:14px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;font-size:18px;transition:.15s;flex:none}
+  .ctl:active{transform:scale(.94)}
+  .play{width:78px;height:78px;border-radius:50%;font-size:30px;background:linear-gradient(180deg,#7c5cff,#6a48f5);box-shadow:0 8px 24px rgba(124,92,255,.45)}
+  .play:active{transform:scale(.95)}
+
+  .toggles{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .tg{background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:7px}
+  .tg.on{color:var(--txt);border-color:#3b4c7a;background:#192038}
+  .tg .led{width:7px;height:7px;border-radius:50%;background:var(--mut2)}
+  .tg.on .led{background:var(--good);box-shadow:0 0 8px var(--good)}
+
+  details.tl{background:var(--bg2);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  details.tl>summary{list-style:none;cursor:pointer;padding:12px 14px;font-size:13.5px;color:var(--mut);display:flex;justify-content:space-between;align-items:center;font-weight:600}
+  details.tl>summary::-webkit-details-marker{display:none}
+  .tlbody{padding:4px 8px 10px}
+  .tlitem{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer;font-size:13.5px}
+  .tlitem:hover{background:#1b2233}
+  .tlitem.cur{background:#1c2440}
+  .tlitem .tdot{width:8px;height:8px;border-radius:50%;flex:none}
+  .tlitem .ttime{color:var(--mut2);font-variant-numeric:tabular-nums;font-size:12px;flex:none;width:42px}
+  .tlitem .ttx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut)}
+  .tlitem.cur .ttx{color:var(--txt)} .tlitem.done .ttx{color:var(--mut2)}
+  .tlitem .tside{font-size:10px;font-weight:800;color:var(--mut2)}
+
+  /* ---------------- OVERLAYS ---------------- */
+  .overlay{position:fixed;inset:0;background:rgba(8,9,14,.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:22px;z-index:50;overflow:auto}
+  .sheet{max-width:460px;width:100%;background:linear-gradient(180deg,var(--card),#15192599);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:22px 22px 22px;margin:auto}
+  .sheet .stripe2{height:5px;border-radius:6px;background:var(--accent);width:46px;margin-bottom:14px}
+  .sheet h2{margin:0 0 4px;font-size:22px;font-weight:750}
+  .sheet .sub{color:var(--mut);font-size:14px;margin-bottom:16px}
+  .seclab{font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--mut2);margin:14px 0 8px}
+  .ruleslist{display:flex;flex-direction:column;gap:9px;margin:0}
+  .ruleslist .r{display:flex;gap:11px;align-items:flex-start;font-size:14px;color:#d8def0}
+  .ruleslist .r .e{font-size:16px;flex:none}
+  .ruleslist .r.stop{color:#ffd9d9}
+  .needs{display:flex;flex-direction:column;gap:7px;margin:0}
+  .need{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:13.5px;color:var(--mut);cursor:pointer}
+  .need .box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--mut2);flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent}
+  .need.checked{color:var(--txt);border-color:#2f5a3a;background:#13241a}
+  .need.checked .box{background:var(--good);border-color:var(--good);color:#08120b}
+  .bigbtn{width:100%;border-radius:15px;padding:15px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(180deg,#7c5cff,#6a48f5);box-shadow:0 10px 30px rgba(124,92,255,.4);margin-top:18px}
+  .bigbtn:active{transform:scale(.99)}
+  .bigbtn.ghost{background:var(--bg2);border:1px solid var(--line);box-shadow:none;color:var(--txt);margin-top:10px;font-weight:600;font-size:15px}
+  .endstats{display:flex;gap:18px;justify-content:center;margin:6px 0 14px;color:var(--mut);font-size:13.5px}
+  .endstats b{display:block;color:var(--txt);font-size:22px;font-weight:750;font-variant-numeric:tabular-nums}
+  .vmiss{font-size:11.5px;color:var(--mut2);margin-top:12px;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- ============ HUB ============ -->
+<section id="hub" class="wrap">
+  <div class="hubhead">
+    <h1>Ćwiczenia</h1>
+    <p>Wybierz trening. Sam odlicza i prowadzi głosem — nie musisz patrzeć na ekran.</p>
+  </div>
+  <div id="rlist" style="display:flex;flex-direction:column;gap:12px"></div>
+  <button class="addcard" id="addCard">
+    <span class="plus">+</span>
+    <span>Dodaj kolejny trening — powiedz Claude, jaki zestaw ćwiczeń dorzucić, a pojawi się tutaj.</span>
+  </button>
+  <div class="footnote">Bez kont, bez liczników, bez presji. Działa offline.<br>Dodaj do ekranu głównego, żeby mieć jak apkę.</div>
+</section>
+
+<!-- ============ PLAYER ============ -->
+<section id="player" class="wrap hidden">
+  <div class="topbar">
+    <button class="iconbtn" id="backBtn" title="Lista treningów">‹</button>
+    <h1 id="pTitle">—</h1>
+    <div class="clock"><b id="gElapsed">0:00</b> / <span id="gTotal">0:00</span> · <span id="gRemain"></span></div>
+  </div>
+
+  <div class="rules" id="rulesBar"></div>
+  <div class="barwrap"><div class="bar" id="gBar"></div></div>
+
+  <div class="card" id="card">
+    <div class="accentbar" id="accent"></div>
+    <div class="pad">
+      <div class="blockrow">
+        <div class="blocktag"><span class="dot" id="bdot"></span><span id="bname">—</span><span class="star hidden" id="star">★ najważniejsze</span></div>
+        <div class="range" id="brange"></div>
+      </div>
+      <div class="titlerow">
+        <h2 class="title" id="title">—</h2>
+        <span class="side hidden" id="side"></span>
+      </div>
+      <div class="timer">
+        <div class="count"><span id="count">0</span><small> s</small></div>
+        <div class="ofstep" id="ofstep"></div>
+      </div>
+      <div class="stepbarwrap"><div class="stepbar" id="sBar"></div></div>
+
+      <div class="pacer" id="pacer">
+        <div class="ring" id="ring"><span id="ringLabel"></span></div>
+        <div class="pacehint" id="pacehint"></div>
+      </div>
+
+      <div class="cue"><span class="ic">▸</span><span id="cue"></span></div>
+      <div class="details" id="details"></div>
+      <div class="next"><span>Następne:</span><b id="next">—</b></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctl" id="prev" title="Poprzedni (←)">⏮</button>
+    <button class="ctl" id="back15" title="−15 s">−15</button>
+    <button class="play" id="play" title="Start / pauza (spacja)">▶</button>
+    <button class="ctl" id="fwd15" title="+15 s">+15</button>
+    <button class="ctl" id="next-btn" title="Następny (→)">⏭</button>
+  </div>
+
+  <div class="toggles">
+    <button class="tg" id="tgVoice"><span class="led"></span>🔊 Lektor</button>
+    <button class="tg" id="tgSound"><span class="led"></span>🔔 Dźwięki</button>
+    <button class="tg" id="tgHaptic"><span class="led"></span>📳 Wibracje</button>
+    <button class="tg" id="tgWake"><span class="led"></span>📱 Ekran</button>
+  </div>
+
+  <details class="tl">
+    <summary><span>Plan treningu — dotknij, aby przeskoczyć</span><span>›</span></summary>
+    <div class="tlbody" id="timeline"></div>
+  </details>
+</section>
+
+<!-- ============ INTRO OVERLAY ============ -->
+<div class="overlay hidden" id="introOverlay">
+  <div class="sheet">
+    <div class="stripe2" id="introStripe"></div>
+    <h2 id="introName">—</h2>
+    <div class="sub" id="introSub"></div>
+    <div class="seclab">Czego potrzebujesz</div>
+    <div class="needs" id="introNeeds"></div>
+    <div class="seclab">Zanim zaczniesz</div>
+    <div class="ruleslist" id="introRules"></div>
+    <details class="tl" id="introHabitsWrap" style="margin-top:14px"><summary><span id="introHabitsLab">Na co dzień</span><span>›</span></summary><div class="tlbody"><div class="ruleslist" id="introHabits" style="padding:8px 6px 4px"></div></div></details>
+    <button class="bigbtn" id="startBtn">▶ Zacznij</button>
+    <button class="bigbtn ghost" id="silentBtn">Zacznij bez lektora</button>
+    <button class="bigbtn ghost" id="introBack" style="margin-top:8px">‹ Wróć do listy</button>
+    <div class="vmiss hidden" id="vmiss">Ta przeglądarka nie ma polskiego głosu — lektor może milczeć lub mówić z obcym akcentem. Dźwięki i napisy działają normalnie.</div>
+  </div>
+</div>
+
+<!-- ============ END OVERLAY ============ -->
+<div class="overlay hidden" id="endOverlay">
+  <div class="sheet" style="text-align:center">
+    <div style="font-size:40px;margin-bottom:6px">✅</div>
+    <h2>Gotowe. Dobra robota.</h2>
+    <div class="sub" id="endSub">Rozejdź się spokojnie, napij się wody.</div>
+    <div class="endstats">
+      <div>czas<b id="endTime">—</b></div>
+      <div>bloków<b id="endBlocks">—</b></div>
+      <div>odcinków<b id="endSteps">—</b></div>
+    </div>
+    <button class="bigbtn" id="againBtn">↺ Jeszcze raz</button>
+    <button class="bigbtn ghost" id="endBack">‹ Lista treningów</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- shared pacer presets ----------
+  const PACE = {
+    breath:{hint:"oddychaj za kółkiem · długi wydech", phases:[{l:"wdech",sc:1,d:4},{l:"wydech",sc:.5,d:6}]},
+    bridge:{hint:"tempo: 2 s / 2 s / 2 s", phases:[{l:"w górę",sc:1,d:2},{l:"trzymaj",sc:1,d:2},{l:"w dół",sc:.5,d:2}]},
+    slide:{hint:"powoli, równo", phases:[{l:"w górę",sc:1,d:3},{l:"w dół",sc:.55,d:3}]},
+    scap:{hint:"ściągnij i trzymaj 10 s", phases:[{l:"ściągnij",sc:1,d:10},{l:"rozluźnij",sc:.6,d:4}]},
+    roll:{hint:"bardzo powoli · ~1 cm/s", phases:[{l:"w dół",sc:1,d:8},{l:"w górę",sc:.55,d:8}]},
+    hold:{hint:"trzymaj · oddychaj spokojnie", phases:[{l:"trzymaj",sc:1,d:5},{l:"oddech",sc:.9,d:5}]}
+  };
+
+  // ============================================================
+  // ROUTINES — add a new object here and it appears on the hub.
+  // Sum of step .d MUST equal mins*60 (or set mins to match).
+  // ============================================================
+  const ROUTINES = {
+    fizjo:{
+      name:"Fizjo · biodra i plecy",
+      short:"Mobilność pod szpagat francuski + otwarcie górnych pleców.",
+      mins:15, accent:"#a78bfa",
+      needs:["Mata lub koc","2 klocki / grube książki / krzesło","Ręcznik lub cienki koc (na wałek)","Kawałek wolnej ściany"],
+      rules:[
+        {e:"🎚️", t:"Intensywność <b>6–7/10</b>. Odczuwalnie, ale nie na maksa."},
+        {e:"🌬️", t:"Oddychaj spokojnie, <b>długi wydech</b>. Żadnego sprężynowania."},
+        {e:"⛔", t:"Ostry ból, kłucie, drętwienie albo ból w stawie — <b>odpuszczasz</b>.", stop:true}
+      ],
+      blocks:{
+        warm:{name:"Rozgrzewka", c:"#f6b14e", range:"0:00–2:00"},
+        hip:{name:"Wykrok na zginacze biodra", c:"#ff7a6b", range:"2:00–4:00",
+          set:"Tylne kolano na podłodze · przednia stopa cała na ziemi · podwiń lekko miednicę (schowaj kość ogonową) · napnij pośladek tylnej nogi · DOPIERO wtedy przesuń biodra do przodu",
+          feel:"Przód biodra, ewentualnie przód uda tylnej nogi"},
+        ham:{name:"Półszpagat — tył uda", c:"#ff9d4d", range:"4:00–6:00",
+          set:"Z wykroku cofnij biodra · wyprostuj przednie kolano · palce stopy do góry · długie plecy · pochyl się z biodra, nie z garba",
+          feel:"Tył uda przedniej nogi, może trochę łydka"},
+        split:{name:"Podparty szpagat francuski", c:"#a78bfa", range:"6:00–8:30", star:true,
+          set:"Ręce na klockach / książkach / siedzisku krzesła · przednia noga do przodu, tylna do tyłu · zejdź tylko tak nisko, ile kontrolujesz",
+          key:"Przednie biodro cofnij, tylne pchnij do przodu — bądź NA WPROST, nie otwarta bokiem",
+          feel:"Przód biodra tylnej nogi + tył uda przedniej",
+          avoid:"Nie skręcaj się bokiem · nie wciskaj na siłę · nie zawieszaj się pasywnie na stawach"},
+        wall:{name:"Wall slides", c:"#34d3c0", range:"8:30–10:30",
+          set:"Plecami do ściany · pośladki, górne plecy i głowa przy ścianie (bez spiny) · żebra schowane · ręce w kształcie „W”, suń w górę",
+          feel:"Górne plecy, okolice łopatek, trochę barki",
+          avoid:"Bez napinania szyi · bez wypychania żeber · bez bólu w barku"},
+        glute:{name:"Glute bridge", c:"#5fd07a", range:"10:30–12:30",
+          set:"Na plecach · kolana ugięte · stopy na szerokość bioder · ręce wzdłuż ciała",
+          key:"Tempo 2-2-2 · linia barki–kolana · nie wyginaj lędźwi"},
+        scap:{name:"Ściąganie łopatek", c:"#6ea8fe", range:"12:30–14:00",
+          set:"Siedząc lub stojąc, usiądź wysoko · delikatnie cofnij i opuść łopatki · mostek „dumny”, bez przeprostu lędźwi",
+          feel:"Środek i dół okolicy łopatek — nie szyja",
+          note:"Subtelnie. To nie jest „pan generał na paradzie”."},
+        roll:{name:"Wałek pod odcinek piersiowy", c:"#8aa2ff", range:"14:00–15:00",
+          set:"Wałek z ręcznika/koca pod GÓRNĄ częścią pleców (nie pod lędźwiami) · ręce na boki lub za głowę",
+          key:"3 spokojne oddechy → zmień minimalnie położenie wałka → jeszcze 3 oddechy",
+          avoid:"Bez bólu w dole pleców"}
+      },
+      steps:[
+        {b:"warm", t:"Marsz w miejscu", d:30, cue:[{at:0, s:"Rozgrzewka. Marsz w miejscu, ręce raz wysoko, raz nisko."}]},
+        {b:"warm", t:"Cat-cow ×8", d:30, cue:[{at:0, s:"8 powolnych cat-cow. Koci grzbiet i delikatne wygięcie."}]},
+        {b:"warm", t:"Hinge biodrowy ×8", d:30, cue:[{at:0, s:"8 hinge'ów biodrowych. Skłon z biodra, plecy proste."}]},
+        {b:"warm", t:"Kroki w wykroku ×20", d:30, cue:[{at:0, s:"20 lekkich kroków w wykroku w miejscu, naprzemiennie."}]},
+
+        {b:"hip", side:"L", d:60, cue:[
+          {at:0, s:"Wykrok na zginacze. Lewa noga z przodu. 30 sekund spokojnego trzymania.", pace:PACE.breath},
+          {at:30, s:"Lekko wróć. 10 sekund.", pace:PACE.breath},
+          {at:40, s:"Wejdź trochę głębiej. 20 sekund.", pace:PACE.breath}]},
+        {b:"hip", side:"P", d:60, cue:[
+          {at:0, s:"Zmiana. Prawa noga z przodu. 30 sekund trzymania.", pace:PACE.breath},
+          {at:30, s:"Lekko wróć. 10 sekund.", pace:PACE.breath},
+          {at:40, s:"Wejdź trochę głębiej. 20 sekund.", pace:PACE.breath}]},
+
+        {b:"ham", side:"L", d:60, cue:[
+          {at:0, s:"Półszpagat. Lewa noga z przodu, kolano proste, palce do góry. Trzymaj 30 sekund.", pace:PACE.breath},
+          {at:30, s:"Teraz 5 docisków pięty po 3 sekundy. Dociśnij piętę i napnij udo."},
+          {at:33, txt:"Docisk 2", beep:"pulse"}, {at:36, txt:"Docisk 3", beep:"pulse"},
+          {at:39, txt:"Docisk 4", beep:"pulse"}, {at:42, txt:"Docisk 5", beep:"pulse"},
+          {at:45, s:"Rozluźnij i spróbuj wejść minimalnie głębiej. 15 sekund.", pace:PACE.breath}]},
+        {b:"ham", side:"P", d:60, cue:[
+          {at:0, s:"Zmiana. Prawa noga z przodu, kolano proste, palce do góry. Trzymaj 30 sekund.", pace:PACE.breath},
+          {at:30, s:"5 docisków pięty po 3 sekundy. Dociśnij i napnij udo."},
+          {at:33, txt:"Docisk 2", beep:"pulse"}, {at:36, txt:"Docisk 3", beep:"pulse"},
+          {at:39, txt:"Docisk 4", beep:"pulse"}, {at:42, txt:"Docisk 5", beep:"pulse"},
+          {at:45, s:"Rozluźnij i wejdź minimalnie głębiej. 15 sekund.", pace:PACE.breath}]},
+
+        {b:"split", side:"L", d:35, cue:[
+          {at:0, s:"Najważniejsza część. Szpagat francuski na podparciu, lewa z przodu. Przednie biodro cofnij, tylne pchnij do przodu.", pace:PACE.breath},
+          {at:18, s:"Oddech. Bardziej na wprost, nie bokiem. Tylko tyle, ile kontrolujesz.", pace:PACE.breath}]},
+        {b:"split", side:"P", d:35, cue:[
+          {at:0, s:"Zmiana. Prawa z przodu. Przednie biodro cofnij, tylne pchnij do przodu.", pace:PACE.breath},
+          {at:18, s:"Oddech. Na wprost, nie bokiem.", pace:PACE.breath}]},
+        {b:"split", side:"L", d:35, cue:[
+          {at:0, s:"Runda druga. Lewa z przodu. Biodra na wprost, kontrola.", pace:PACE.breath},
+          {at:18, s:"Spokojny wydech. Nie zawieszaj się na stawach.", pace:PACE.breath}]},
+        {b:"split", side:"P", d:35, cue:[
+          {at:0, s:"Ostatnia. Prawa z przodu. Na wprost, bez siłowania.", pace:PACE.breath},
+          {at:18, s:"Oddech. Już prawie.", pace:PACE.breath}]},
+        {b:"split", t:"Reset", d:10, cue:[
+          {at:0, s:"Krótki reset. Wstań spokojnie, rozluźnij biodra."}]},
+
+        {b:"wall", d:120, cue:[
+          {at:0, s:"Wall slides. Plecami do ściany, ręce w W. Seria pierwsza, 8 powtórzeń. Powoli w górę i w dół.", pace:PACE.slide},
+          {at:55, s:"Krótka przerwa. Rozluźnij barki."},
+          {at:70, s:"Seria druga, 8 powtórzeń. Spokojnie.", pace:PACE.slide}]},
+
+        {b:"glute", d:120, cue:[
+          {at:0, s:"Glute bridge. Seria pierwsza, 10 mostków. W górę dwa, trzymaj dwa, w dół dwa.", pace:PACE.bridge},
+          {at:60, s:"Krótka przerwa."},
+          {at:72, s:"Seria druga, 10 mostków. To samo tempo.", pace:PACE.bridge}]},
+
+        {b:"scap", d:90, cue:[
+          {at:0, s:"Ściąganie łopatek. Powtórzenie 1 z 6. Cofnij i opuść łopatki, trzymaj 10 sekund.", pace:PACE.scap},
+          {at:15, s:"Powtórzenie 2 z 6.", pace:PACE.scap},
+          {at:30, s:"Powtórzenie 3 z 6.", pace:PACE.scap},
+          {at:45, s:"Powtórzenie 4 z 6.", pace:PACE.scap},
+          {at:60, s:"Powtórzenie 5 z 6.", pace:PACE.scap},
+          {at:75, s:"Powtórzenie 6 z 6. Ostatnie.", pace:PACE.scap}]},
+
+        {b:"roll", d:60, cue:[
+          {at:0, s:"Wałek pod górną częścią pleców. Trzy spokojne, głębokie oddechy. Otwierasz klatkę.", pace:PACE.breath},
+          {at:30, s:"Zmień minimalnie położenie wałka. Jeszcze trzy oddechy.", pace:PACE.breath},
+          {at:52, s:"Powoli zejdź z wałka. Koniec."}]}
+      ]
+    },
+
+    kolana:{
+      name:"Kolana · wzmacnianie, rolowanie, stretching",
+      short:"Wzmocnić, rozluźnić i rozciągnąć to, co odciąża kolano i łąkotkę.",
+      mins:20, accent:"#34d3c0",
+      needs:["Roller (wałek do rolowania)","Guma / taśma oporowa","Mały ręcznik","Mata lub koc","Wolna ściana + coś do trzymania równowagi"],
+      rules:[
+        {e:"🎚️", t:"To ma <b>nie boleć</b> — utrzymujesz równowagę, nie walczysz. Regularność > intensywność."},
+        {e:"🌬️", t:"Powoli, bez szarpania. Spokojny oddech, <b>długi wydech</b>."},
+        {e:"⛔", t:"Ból <b>wewnątrz</b> kolana → przerwij. Odpuść 1–2 dni (ale nie leż cały dzień).", stop:true}
+      ],
+      habitsTitle:"⚠️ Codzienne nawyki dla kolan",
+      habits:[
+        "Nie siadaj z nogami pod sobą.",
+        "Co godzinę wstań i rozprostuj kolana.",
+        "Po treningu: chłodny prysznic lub zimny okład 5–10 min.",
+        "Stabilne buty — nie miękkie trampki.",
+        "Unikaj gwałtownych skrętów kolanem.",
+        "Ból wewnątrz kolana → odpuść 1–2 dni, ale nie leż cały dzień.",
+        "Regularność > intensywność. To nie ma boleć, tylko utrzymywać równowagę."
+      ],
+      blocks:{
+        kglute:{name:"Glute bridge", c:"#5fd07a", range:"1 · Wzmacnianie", keyLab:"Jak",
+          set:"Na plecach · kolana zgięte · stopy szerzej niż biodra · ręce wzdłuż ciała",
+          key:"Unieś biodra, napnij pośladki, przytrzymaj 2 s, opuść powoli · linia barki–kolana",
+          feel:"Pośladki (nie lędźwie)",
+          note:"Trudniej: guma nad kolanami — nie pozwól im się zbliżać"},
+        kwall:{name:"Wall sit", c:"#34d3c0", range:"1 · Wzmacnianie", keyLab:"Jak",
+          set:"Plecy przy ścianie · kolana zgięte do 90° · brzuch napięty",
+          key:"Kolana nie wychodzą poza palce stóp",
+          feel:"Przód ud — izometria, może piec",
+          note:"Mały ręcznik między kolanami, lekko ściskaj → aktywuje wewnętrzne uda (VMO)"},
+        kside:{name:"Side steps z gumą", c:"#46c79a", range:"1 · Wzmacnianie", keyLab:"Jak",
+          set:"Guma nad kolanami lub przy kostkach · półprzysiad · plecy proste, brzuch napięty",
+          key:"Małe kroki, nie prostuj nóg",
+          feel:"Boki pośladków (odwodziciele)"},
+        kbal:{name:"Stanie na jednej nodze", c:"#6ed0b0", range:"1 · Wzmacnianie", keyLab:"Jak",
+          set:"Stań na jednej nodze · kolano lekko ugięte (20–30°)",
+          key:"Brzuch lekko napięty, wzrok w jeden punkt",
+          feel:"Praca stopy, kostki i biodra (stabilizacja)",
+          note:"Trudniej: zamknij oczy lub stań na poduszce"},
+        kitb:{name:"Rolowanie ITB (bok uda)", c:"#6ea8fe", range:"2 · Rolowanie", keyLab:"Jak",
+          set:"Leżysz bokiem · roller pod bokiem uda",
+          key:"Od biodra do 2–3 cm NAD kolanem · bardzo powoli (~1 cm/s)",
+          feel:"Bok uda — bywa tkliwe, oddychaj",
+          avoid:"Nie roluj po samym kolanie ani po kości"},
+        kgrol:{name:"Rolowanie pośladków", c:"#5b8def", range:"2 · Rolowanie", keyLab:"Jak",
+          set:"Siad na rollerze · jedna noga założona na drugą (cyfra „4”)",
+          key:"Roluj od zewnętrznej do środkowej części pośladka",
+          feel:"Pośladek — głęboko"},
+        kqrol:{name:"Rolowanie przodu uda", c:"#7aa2ff", range:"2 · Rolowanie", keyLab:"Jak",
+          set:"Na brzuchu · roller pod udami",
+          key:"Od biodra do 2–3 cm nad kolanem",
+          feel:"Przód uda (czworogłowy)",
+          avoid:"Nie roluj po rzepce / kolanie"},
+        kreset:{name:"Reset krążenia", c:"#8aa2ff", range:"2 · Rolowanie",
+          set:"Wstań · potrząśnij nogami",
+          key:"Kilka delikatnych przysiadów, żeby poprawić krążenie", keyLab:"Jak"},
+        kfig4:{name:"Stretch pośladków („4”)", c:"#a78bfa", range:"3 · Stretching", keyLab:"Jak",
+          set:"Na plecach · jedna noga zgięta, druga założona na nią („4”)",
+          key:"Pociągnij nogę do klatki, aż poczujesz rozciąganie pośladka",
+          feel:"Pośladek — rozciąganie"},
+        kquad:{name:"Stretch przodu uda", c:"#b39cf6", range:"3 · Stretching", keyLab:"Jak",
+          set:"Stojąc · chwyć kostkę, przyciągnij piętę do pośladka",
+          key:"Kolana blisko siebie, miednica lekko podwinięta",
+          feel:"Przód uda",
+          note:"Przytrzymaj się czegoś dla równowagi"},
+        khip:{name:"Stretch bioder (wykrok)", c:"#9b8cf0", range:"3 · Stretching", keyLab:"Jak",
+          set:"Wykrok · tylna noga daleko w tył · biodra lekko w przód",
+          key:"Podwiń lekko miednicę, długi wydech",
+          feel:"Przód biodra tylnej nogi"}
+      },
+      steps:[
+        // --- 1 · WZMACNIANIE ---
+        {b:"kglute", d:90, cue:[{at:0, s:"Część pierwsza, wzmacnianie. Glute bridge, seria pierwsza, piętnaście powtórzeń. Unieś biodra, napnij pośladki, przytrzymaj dwie sekundy, opuść powoli.", pace:PACE.bridge}]},
+        {b:"kglute", d:90, cue:[{at:0, s:"Glute bridge, seria druga, piętnaście powtórzeń. To samo tempo.", pace:PACE.bridge}]},
+        {b:"kwall", d:45, cue:[{at:0, s:"Wall sit. Plecy przy ścianie, kolana zgięte do dziewięćdziesięciu stopni. Trzymaj, oddychaj spokojnie.", pace:PACE.breath}]},
+        {b:"kwall", d:45, cue:[{at:0, s:"Wall sit, seria druga. Trzymaj, brzuch napięty.", pace:PACE.breath}]},
+        {b:"kside", d:40, cue:[{at:0, s:"Side stepy z gumą. W półprzysiadzie, dwadzieścia kroków w prawo."},{at:20, s:"Teraz dwadzieścia kroków w lewo."}]},
+        {b:"kside", d:40, cue:[{at:0, s:"Seria druga. Dwadzieścia kroków w prawo."},{at:20, s:"Dwadzieścia kroków w lewo."}]},
+        {b:"kbal", side:"L", d:30, cue:[{at:0, s:"Balans. Stań na lewej nodze, kolano lekko ugięte. Trzymaj równowagę."}]},
+        {b:"kbal", side:"P", d:30, cue:[{at:0, s:"Zmiana. Stań na prawej nodze, kolano lekko ugięte. Trzymaj."}]},
+        {b:"kbal", side:"L", d:30, cue:[{at:0, s:"Druga seria. Lewa noga. Trzymaj równowagę."}]},
+        {b:"kbal", side:"P", d:30, cue:[{at:0, s:"Prawa noga. Ostatni balans."}]},
+
+        // --- 2 · ROLOWANIE ---
+        {b:"kitb", side:"L", d:60, cue:[{at:0, s:"Część druga, rolowanie. Bok lewego uda. Od biodra do kawałka nad kolanem, bardzo powoli.", pace:PACE.roll}]},
+        {b:"kitb", side:"P", d:60, cue:[{at:0, s:"Zmiana. Bok prawego uda. Powoli, oddychaj.", pace:PACE.roll}]},
+        {b:"kgrol", side:"L", d:60, cue:[{at:0, s:"Rolowanie lewego pośladka. Noga założona jak czwórka, roluj od zewnątrz do środka.", pace:PACE.roll}]},
+        {b:"kgrol", side:"P", d:60, cue:[{at:0, s:"Prawy pośladek. Powoli.", pace:PACE.roll}]},
+        {b:"kqrol", side:"L", d:60, cue:[{at:0, s:"Rolowanie przodu lewego uda. Na brzuchu, od biodra do kawałka nad kolanem.", pace:PACE.roll}]},
+        {b:"kqrol", side:"P", d:60, cue:[{at:0, s:"Przód prawego uda. Powoli, nie po kolanie.", pace:PACE.roll}]},
+        {b:"kreset", d:10, cue:[{at:0, s:"Wstań, potrząśnij nogami, zrób kilka delikatnych przysiadów."}]},
+
+        // --- 3 · STRETCHING ---
+        {b:"kfig4", side:"L", d:30, cue:[{at:0, s:"Część trzecia, stretching. Na plecach, czwórka — lewa noga założona. Pociągnij do klatki, aż poczujesz pośladek.", pace:PACE.breath}]},
+        {b:"kfig4", side:"P", d:30, cue:[{at:0, s:"Druga strona. Prawy pośladek.", pace:PACE.breath}]},
+        {b:"kfig4", side:"L", d:30, cue:[{at:0, s:"Seria druga. Lewa.", pace:PACE.breath}]},
+        {b:"kfig4", side:"P", d:30, cue:[{at:0, s:"Prawa.", pace:PACE.breath}]},
+        {b:"kquad", side:"L", d:30, cue:[{at:0, s:"Stretch przodu uda. Stojąc, przyciągnij lewą piętę do pośladka. Kolana blisko siebie.", pace:PACE.breath}]},
+        {b:"kquad", side:"P", d:30, cue:[{at:0, s:"Prawa pięta do pośladka.", pace:PACE.breath}]},
+        {b:"kquad", side:"L", d:30, cue:[{at:0, s:"Seria druga. Lewa.", pace:PACE.breath}]},
+        {b:"kquad", side:"P", d:30, cue:[{at:0, s:"Prawa.", pace:PACE.breath}]},
+        {b:"khip", side:"L", d:30, cue:[{at:0, s:"Stretch bioder. Wykrok: lewa noga z przodu, prawa daleko w tył. Biodra lekko w przód, długi wydech.", pace:PACE.breath}]},
+        {b:"khip", side:"P", d:30, cue:[{at:0, s:"Zmiana. Prawa z przodu, lewa w tył.", pace:PACE.breath}]},
+        {b:"khip", side:"L", d:30, cue:[{at:0, s:"Seria druga. Lewa z przodu.", pace:PACE.breath}]},
+        {b:"khip", side:"P", d:30, cue:[{at:0, s:"Prawa z przodu. Ostatnie rozciąganie.", pace:PACE.breath}]}
+      ]
+    },
+
+    core:{
+      name:"Core · 7 minut bez sprzętu",
+      short:"6 ćwiczeń, 45 s pracy / 20 s przerwy. Stabilizacja i siła brzucha.",
+      mins:7, accent:"#ff8a3d",
+      needs:["Mata lub koc","Kawałek wolnej podłogi"],
+      rules:[
+        {e:"🌬️", t:"<b>Oddychaj!</b> Nie wstrzymuj oddechu w żadnym ćwiczeniu."},
+        {e:"🐢", t:"Zacznij powoli — <b>technika > szybkość</b>."},
+        {e:"⛔", t:"Ból w dole pleców lub szyi → przerwij i popraw ustawienie.", stop:true}
+      ],
+      blocks:{
+        cintro:{name:"Przygotuj się", c:"#f6b14e", range:"Start", keyLab:"Tip",
+          set:"Mata pod plecy i łokcie · trochę miejsca",
+          key:"Technika > szybkość · zacznij powoli"},
+        cplank:{name:"Plank (deska)", c:"#ff8a3d", range:"Praca · 45 s", keyLab:"Jak",
+          set:"Na dłoniach lub przedramionach · ciało w jednej linii",
+          key:"Napnij pośladki, pępek do kręgosłupa · nie zwieszaj bioder",
+          feel:"Cały brzuch — stabilizacja",
+          note:"Za łatwo? Przedramiona albo unoś jedną nogę"},
+        crest:{name:"Odpoczynek", c:"#5b6675", range:"Przerwa · 20 s", keyLab:"Tip",
+          set:"Rozluźnij, strząśnij ręce",
+          key:"Oddychaj spokojnie — nie wstrzymuj oddechu"},
+        cdead:{name:"Dead bug", c:"#ff9d4d", range:"Praca · 45 s", keyLab:"Jak",
+          set:"Na plecach · ręce i nogi w górze",
+          key:"Na zmianę opuszczaj PRZECIWNĄ rękę i nogę, powoli",
+          feel:"Mięśnie głębokie (aktywacja)",
+          note:"Plecy cały czas przyklejone do podłogi"},
+        cside:{name:"Side plank (deska bokiem)", c:"#ffa033", range:"Praca · 45 s", keyLab:"Jak",
+          set:"Podpórka na przedramieniu · biodra w górze · ciało w linii",
+          key:"Nie opuszczaj bioder · oddychaj",
+          feel:"Boczne mięśnie brzucha (skośne)",
+          note:"Trudniej: unieś górną nogę lub ruch bioder góra–dół"},
+        choll:{name:"Hollow hold", c:"#ff7a3d", range:"Praca · 45 s", keyLab:"Jak",
+          set:"Na plecach · ręce i nogi kilka cm nad ziemią",
+          key:"Brzuch MOCNO napięty · lędźwie wciśnięte w podłogę",
+          feel:"Cały brzuch — głęboko",
+          note:"Za trudno? Ugnij nogi lub trzymaj ręce za głową"},
+        cclimb:{name:"Mountain climbers", c:"#ff5e4d", range:"Praca · 45 s", keyLab:"Jak",
+          set:"Pozycja jak do pompki · dłonie pod barkami",
+          key:"Przyciągaj kolana do klatki na zmianę — szybko, ale z kontrolą",
+          feel:"Core w ruchu + tętno w górę"},
+        ccool:{name:"Rozluźnienie", c:"#6ea8fe", range:"Koniec", keyLab:"Tip",
+          set:"Na plecach · rozluźnij brzuch",
+          key:"Kilka spokojnych, głębokich oddechów"}
+      },
+      steps:[
+        {b:"cintro", d:15, cue:[{at:0, s:"Siedmiominutowy core. Czterdzieści pięć sekund pracy, dwadzieścia odpoczynku. Ustaw się do deski."}]},
+        {b:"cplank", d:45, cue:[{at:0, s:"Plank. Ciało w jednej linii, napnij pośladki, pępek do kręgosłupa. Trzymaj.", pace:PACE.hold}]},
+        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Za chwilę dead bug — połóż się na plecach.", pace:PACE.breath},{at:16, s:"Przygotuj się.", beep:"pre", pace:PACE.breath}]},
+        {b:"cdead", d:45, cue:[{at:0, s:"Dead bug. Ręce i nogi w górze. Opuszczaj na zmianę przeciwną rękę i nogę, plecy płasko na podłodze."}]},
+        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Następnie side plank na prawym boku.", pace:PACE.breath},{at:16, s:"Przygotuj się.", beep:"pre", pace:PACE.breath}]},
+        {b:"cside", side:"P", d:45, cue:[{at:0, s:"Side plank, prawa strona. Podpórka na prawym przedramieniu, biodra w górę. Trzymaj.", pace:PACE.hold}]},
+        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Teraz druga strona — lewy bok.", pace:PACE.breath},{at:16, s:"Przygotuj się.", beep:"pre", pace:PACE.breath}]},
+        {b:"cside", side:"L", d:45, cue:[{at:0, s:"Side plank, lewa strona. Biodra w górę, ciało w linii. Trzymaj.", pace:PACE.hold}]},
+        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Następnie hollow hold.", pace:PACE.breath},{at:16, s:"Przygotuj się.", beep:"pre", pace:PACE.breath}]},
+        {b:"choll", d:45, cue:[{at:0, s:"Hollow hold. Ręce i nogi kilka centymetrów nad ziemią, brzuch mocno napięty, lędźwie w podłogę.", pace:PACE.hold}]},
+        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Ostatnie: mountain climbers, pozycja jak do pompki.", pace:PACE.breath},{at:16, s:"Przygotuj się.", beep:"pre", pace:PACE.breath}]},
+        {b:"cclimb", d:45, cue:[{at:0, s:"Mountain climbers. Przyciągaj kolana do klatki na zmianę — szybko, ale z kontrolą. Oddychaj."}]},
+        {b:"ccool", d:35, cue:[{at:0, s:"Koniec pracy. Połóż się i kilka spokojnych, głębokich oddechów. Dobra robota.", pace:PACE.breath}]}
+      ]
+    }
+  };
+
+  // ---------------- helpers ----------------
+  const $ = id=>document.getElementById(id);
+  const fmt = s=>{ s=Math.max(0,Math.round(s)); const m=Math.floor(s/60); return m+":"+String(s%60).padStart(2,"0"); };
+
+  // persistent settings (no exercise tracking — only prefs)
+  const PREFS = (function(){
+    const def={voice:true,sound:true,haptic:true,wake:false};
+    try{ const r=JSON.parse(localStorage.getItem("cw_prefs")||"{}"); return Object.assign(def,r); }catch(e){ return def; }
+  })();
+  function savePrefs(){ try{ localStorage.setItem("cw_prefs", JSON.stringify(PREFS)); }catch(e){} }
+
+  // ---------------- audio ----------------
+  let ac=null;
+  function ensureAudio(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(ac&&ac.state==="suspended") ac.resume(); }
+  function tone(f,d,when,type,vol){ if(!ac) return; const o=ac.createOscillator(),g=ac.createGain(); o.type=type||"sine"; o.frequency.value=f; const t0=ac.currentTime+(when||0); g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol||.18,t0+.012); g.gain.exponentialRampToValueAtTime(.0001,t0+d); o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0+d+.02); }
+  function beep(kind){
+    if(!PREFS.sound||!ac) return;
+    if(kind==="step"){ tone(660,.14,0,"sine",.2); tone(880,.18,.13,"sine",.2); }
+    else if(kind==="cue"){ tone(620,.12,0,"sine",.14); }
+    else if(kind==="pulse"){ tone(440,.07,0,"triangle",.12); }
+    else if(kind==="soft"){ tone(540,.08,0,"sine",.07); }
+    else if(kind==="pre"){ tone(720,.1,0,"sine",.12); }
+    else if(kind==="end"){ tone(523,.2,0,"sine",.2); tone(659,.2,.18,"sine",.2); tone(784,.4,.36,"sine",.22); }
+  }
+  function buzz(ms){ if(PREFS.haptic && navigator.vibrate){ try{ navigator.vibrate(ms); }catch(e){} } }
+
+  // ---------------- speech ----------------
+  let plVoice=null;
+  function pickVoice(){ if(!("speechSynthesis" in window)) return; const vs=speechSynthesis.getVoices(); if(!vs.length) return; plVoice=vs.find(v=>/^pl(-|_|$)/i.test(v.lang))||vs.find(v=>/polish|polski/i.test(v.name))||null; if(!plVoice){ const m=$("vmiss"); if(m) m.classList.remove("hidden"); } }
+  if("speechSynthesis" in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
+  function say(text){ if(!PREFS.voice||!text||!("speechSynthesis" in window)) return; try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang="pl-PL"; u.rate=1; u.pitch=1; if(plVoice) u.voice=plVoice; speechSynthesis.speak(u); }catch(e){} }
+
+  // ---------------- wake lock ----------------
+  let wakeLock=null;
+  async function reqWake(){ if(!("wakeLock" in navigator)) return false; try{ wakeLock=await navigator.wakeLock.request("screen"); return true; }catch(e){ return false; } }
+  function relWake(){ if(wakeLock){ try{wakeLock.release();}catch(e){} wakeLock=null; } }
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && PREFS.wake && playing) reqWake(); });
+
+  // ---------------- engine state ----------------
+  let R=null, STEPS=[], BLK=null, TOTAL=0, N=0;
+  let elapsed=0, playing=false, lastTs=null;
+  let curStep=-1, curCueKey="";
+  let paceKey="", paceIdx=0, paceStart=0;
+  let preAnn={};
+
+  function loadRoutine(id){
+    R=ROUTINES[id]; if(!R) return false;
+    BLK=R.blocks; STEPS=R.steps; N=STEPS.length; TOTAL=0;
+    STEPS.forEach(st=>{ st.start=TOTAL; TOTAL+=st.d; st.meta=BLK[st.b]; st.cue.sort((a,b)=>a.at-b.at); st.cue.forEach((c,i)=>{ if(!c.beep) c.beep=(i===0)?"step":"cue"; }); });
+    document.documentElement.style.setProperty("--accent", R.accent);
+    elapsed=0; curStep=-1; curCueKey=""; paceKey=""; preAnn={};
+    return true;
+  }
+
+  // ---------------- DOM refs ----------------
+  const els={ accent:$("accent"),bdot:$("bdot"),bname:$("bname"),star:$("star"),brange:$("brange"),
+    title:$("title"),side:$("side"),count:$("count"),ofstep:$("ofstep"),sBar:$("sBar"),gBar:$("gBar"),
+    cue:$("cue"),details:$("details"),next:$("next"),gElapsed:$("gElapsed"),gRemain:$("gRemain"),gTotal:$("gTotal"),
+    play:$("play"),timeline:$("timeline"),pacer:$("pacer"),ring:$("ring"),ringLabel:$("ringLabel"),pacehint:$("pacehint"),
+    pTitle:$("pTitle"),rulesBar:$("rulesBar") };
+
+  function stepIndexAt(e){ for(let i=N-1;i>=0;i--){ if(e+1e-6>=STEPS[i].start) return i; } return 0; }
+  function activeCue(st,se){ let c=st.cue[0],idx=0; for(let i=0;i<st.cue.length;i++){ if(se+1e-6>=st.cue[i].at){ c=st.cue[i]; idx=i; } } return {c,idx}; }
+  function chip(cls,lab,tx){ return tx ? '<div class="chip '+cls+'"><span class="lab '+cls+'">'+lab+'</span><span class="tx">'+tx+'</span></div>' : ""; }
+
+  function renderStep(i){
+    const st=STEPS[i], m=st.meta;
+    document.documentElement.style.setProperty("--accent", m.c);
+    els.accent.style.background=m.c; els.bdot.style.background=m.c;
+    els.bname.textContent=m.name; els.brange.textContent=m.range;
+    els.star.classList.toggle("hidden", !m.star);
+    els.title.textContent=st.t||m.name;
+    if(st.side){ els.side.classList.remove("hidden"); els.side.className="side "+st.side; els.side.textContent=st.side==="L"?"LEWA":"PRAWA"; }
+    else els.side.classList.add("hidden");
+    let h=""; h+=chip("set","Ustawienie",m.set); h+=chip("key",m.keyLab||((st.b==="glute"||st.b==="roll")?"Jak":"Najważniejsze"),m.key);
+    h+=chip("feel","Czujesz",m.feel); h+=chip("avoid","Stop / nie",m.avoid); h+=chip("note","",m.note);
+    els.details.innerHTML=h;
+    els.next.textContent=(i+1<N)?((STEPS[i+1].meta.name)+(STEPS[i+1].side?(" — "+(STEPS[i+1].side==="L"?"lewa":"prawa")):(STEPS[i+1].t?(" — "+STEPS[i+1].t):""))):"Koniec — rozejście";
+    els.sBar.style.background=m.c;
+    document.querySelector(".bar").style.background="linear-gradient(90deg,"+m.c+"66,"+m.c+")";
+    buildTimelineHighlight(i);
+  }
+
+  function applyPhase(p){ els.ring.style.transitionDuration=p.d+"s"; els.ring.style.transform="scale("+p.sc+")"; els.ringLabel.textContent=p.l; }
+
+  function render(){
+    const i=stepIndexAt(elapsed), st=STEPS[i], se=elapsed-st.start, rem=st.d-se;
+    if(i!==curStep){ renderStep(i); curStep=i; }
+    els.count.textContent=Math.max(0,Math.ceil(rem));
+    els.ofstep.textContent="odcinek "+(i+1)+"/"+N+" · "+fmt(st.d)+" min";
+    els.sBar.style.width=(100*se/st.d)+"%";
+    els.gBar.style.width=(100*elapsed/TOTAL)+"%";
+    els.gElapsed.textContent=fmt(elapsed); els.gRemain.textContent="−"+fmt(TOTAL-elapsed);
+
+    const {c,idx}=activeCue(st,se), key=i+":"+idx;
+    if(key!==curCueKey){ els.cue.textContent=c.txt||c.s||""; if(playing){ beep(c.beep); buzz(c.beep==="step"?60:20); if(c.s) say(c.s); } curCueKey=key; }
+
+    // pacer
+    if(c.pace){
+      els.pacer.classList.add("on");
+      if(paceKey!==key){ paceKey=key; paceIdx=0; paceStart=se; els.pacehint.textContent=c.pace.hint||""; applyPhase(c.pace.phases[0]); }
+      else if(playing){ const ph=c.pace.phases[paceIdx]; if(se-paceStart>=ph.d){ paceIdx=(paceIdx+1)%c.pace.phases.length; paceStart+=ph.d; applyPhase(c.pace.phases[paceIdx]); beep("soft"); buzz(12); } }
+    } else { els.pacer.classList.remove("on"); paceKey=""; }
+
+    // pre-announce next step ~4s ahead
+    if(playing && i<N-1 && rem<=4 && rem>0.2 && !preAnn[i]){
+      preAnn[i]=true; const nx=STEPS[i+1];
+      const t = nx.side ? ("Za chwilę "+(nx.side==="L"?"lewa strona":"prawa strona")) : ("Za chwilę "+(nx.t||nx.meta.name));
+      beep("pre"); buzz(25); if(c.beep!=="step") say(t);
+    }
+  }
+
+  // ---------------- timeline ----------------
+  function buildTimeline(){ let h=""; STEPS.forEach((st,i)=>{ const m=st.meta; const label=(st.t||m.name)+(st.side?(' <span class="tside">'+(st.side==="L"?"L":"P")+'</span>'):''); h+='<div class="tlitem" data-i="'+i+'"><span class="tdot" style="background:'+m.c+'"></span><span class="ttime">'+fmt(st.start)+'</span><span class="ttx">'+label+'</span></div>'; }); els.timeline.innerHTML=h; els.timeline.querySelectorAll(".tlitem").forEach(el=>el.addEventListener("click",()=>jumpTo(parseInt(el.dataset.i,10)))); }
+  function buildTimelineHighlight(cur){ els.timeline.querySelectorAll(".tlitem").forEach(el=>{ const i=parseInt(el.dataset.i,10); el.classList.toggle("cur",i===cur); el.classList.toggle("done",i<cur); }); }
+  function jumpTo(i){ elapsed=STEPS[i].start; curStep=-1; curCueKey=""; paceKey=""; render(); if(playing){ const st=STEPS[i],{c}=activeCue(st,0); beep("step"); buzz(40); if(c.s) say(c.s); curCueKey=i+":0"; } }
+
+  // ---------------- loop ----------------
+  function tick(){ const now=performance.now(); if(playing&&lastTs!=null) elapsed+=(now-lastTs)/1000; lastTs=now; if(R && elapsed>=TOTAL){ elapsed=TOTAL; finish(); return; } if(R && !$("player").classList.contains("hidden")) render(); }
+  setInterval(tick,200);
+
+  // ---------------- controls ----------------
+  function setPlay(p){ playing=p; els.play.textContent=p?"⏸":"▶"; if(p){ ensureAudio(); if(PREFS.wake) reqWake(); const i=stepIndexAt(elapsed),st=STEPS[i],se=elapsed-st.start,{idx}=activeCue(st,se); curCueKey=i+":"+idx; } else { try{speechSynthesis.cancel();}catch(e){} } }
+  $("play").addEventListener("click",()=>setPlay(!playing));
+  $("prev").addEventListener("click",()=>{ const i=stepIndexAt(elapsed),st=STEPS[i]; if(elapsed-st.start>2||i===0) jumpTo(i); else jumpTo(i-1); });
+  $("next-btn").addEventListener("click",()=>{ const i=stepIndexAt(elapsed); if(i<N-1) jumpTo(i+1); else { elapsed=TOTAL; finish(); } });
+  $("back15").addEventListener("click",()=>{ elapsed=Math.max(0,elapsed-15); curStep=-1; curCueKey=""; paceKey=""; render(); });
+  $("fwd15").addEventListener("click",()=>{ elapsed=Math.min(TOTAL-0.5,elapsed+15); curStep=-1; curCueKey=""; paceKey=""; render(); });
+
+  function bindToggle(id,key,extra){ const el=$(id); function paint(){ el.classList.toggle("on",!!PREFS[key]); } paint(); el.addEventListener("click",async()=>{ const want=!PREFS[key]; if(extra){ const ok=await extra(want); PREFS[key]=ok; } else { PREFS[key]=want; } paint(); savePrefs(); if(key==="voice"&&!PREFS.voice){ try{speechSynthesis.cancel();}catch(e){} } }); }
+  bindToggle("tgVoice","voice"); bindToggle("tgSound","sound"); bindToggle("tgHaptic","haptic");
+  bindToggle("tgWake","wake",async(want)=>{ if(want){ const ok=await reqWake(); if(!ok){ $("tgWake").textContent="📱 Niedostępne"; } return ok; } else { relWake(); return false; } });
+
+  // keyboard
+  document.addEventListener("keydown",e=>{ if($("player").classList.contains("hidden")) return; if(e.code==="Space"){ e.preventDefault(); setPlay(!playing); } else if(e.code==="ArrowRight") $("next-btn").click(); else if(e.code==="ArrowLeft") $("prev").click(); });
+
+  // swipe on card
+  (function(){ let x0=null,y0=null; const card=$("card"); card.addEventListener("touchstart",e=>{ const t=e.changedTouches[0]; x0=t.clientX; y0=t.clientY; },{passive:true}); card.addEventListener("touchend",e=>{ if(x0==null) return; const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0; if(Math.abs(dx)>55&&Math.abs(dy)<40){ if(dx<0) $("next-btn").click(); else $("prev").click(); } x0=null; },{passive:true}); })();
+
+  // ---------------- screens ----------------
+  function showHub(){ setPlay(false); relWake(); $("player").classList.add("hidden"); $("introOverlay").classList.add("hidden"); $("endOverlay").classList.add("hidden"); $("hub").classList.remove("hidden"); if(location.hash) history.replaceState(null,"",location.pathname); }
+  function buildHub(){ let h=""; Object.keys(ROUTINES).forEach(id=>{ const r=ROUTINES[id]; const nb=Object.keys(r.blocks).length, ns=r.steps.length; h+='<button class="rcard" data-id="'+id+'" style="--accent:'+r.accent+'"><span class="stripe"></span><span class="rc"><h3>'+r.name+'</h3><div class="rdesc">'+r.short+'</div><div class="rmeta"><span class="pill">⏱ '+r.mins+' min</span><span class="pill">🧩 '+nb+' bloków</span><span class="pill">🎯 '+ns+' odcinków</span></div></span><span class="go">›</span></button>'; }); $("rlist").innerHTML=h; $("rlist").querySelectorAll(".rcard").forEach(el=>el.addEventListener("click",()=>openIntro(el.dataset.id))); }
+
+  function openIntro(id){
+    if(!loadRoutine(id)) return;
+    location.hash=id;
+    $("hub").classList.add("hidden"); $("endOverlay").classList.add("hidden");
+    // player chrome prepared but hidden behind overlay
+    els.pTitle.textContent=R.name; els.gTotal.textContent=fmt(TOTAL);
+    els.rulesBar.innerHTML=R.rules.map(r=>'<span class="rule'+(r.stop?' stop':'')+'">'+r.e+' '+r.t+'</span>').join("");
+    buildTimeline(); render();
+    $("player").classList.remove("hidden");
+    // intro overlay content
+    $("introStripe").style.background=R.accent;
+    $("introName").textContent=R.name; $("introSub").textContent=R.short;
+    $("introNeeds").innerHTML=R.needs.map((n,i)=>'<div class="need" data-i="'+i+'"><span class="box">✓</span><span>'+n+'</span></div>').join("");
+    $("introNeeds").querySelectorAll(".need").forEach(el=>el.addEventListener("click",()=>el.classList.toggle("checked")));
+    $("introRules").innerHTML=R.rules.map(r=>'<div class="r'+(r.stop?' stop':'')+'"><span class="e">'+r.e+'</span><span>'+r.t+'</span></div>').join("");
+    if(R.habits&&R.habits.length){ $("introHabitsWrap").classList.remove("hidden"); $("introHabitsWrap").open=false; $("introHabitsLab").textContent=R.habitsTitle||"Na co dzień — dobre nawyki"; $("introHabits").innerHTML=R.habits.map(t=>'<div class="r"><span class="e">‣</span><span>'+t+'</span></div>').join(""); } else { $("introHabitsWrap").classList.add("hidden"); }
+    $("introOverlay").classList.remove("hidden");
+  }
+
+  function begin(withVoice){
+    ensureAudio(); PREFS.voice=withVoice; $("tgVoice").classList.toggle("on",withVoice); savePrefs();
+    $("introOverlay").classList.add("hidden");
+    if(withVoice && "speechSynthesis" in window){ try{ speechSynthesis.cancel(); const w=new SpeechSynthesisUtterance(" "); w.volume=0; speechSynthesis.speak(w); }catch(e){} pickVoice(); }
+    elapsed=0; curStep=-1; curCueKey=""; paceKey=""; preAnn={}; render(); setPlay(true);
+    beep("step"); buzz(60); if(withVoice) say(STEPS[0].cue[0].s); curCueKey="0:0";
+    reqWake().then(ok=>{ PREFS.wake=PREFS.wake||ok; $("tgWake").classList.toggle("on",!!wakeLock); });
+  }
+
+  function finish(){ setPlay(false); relWake(); try{speechSynthesis.cancel();}catch(e){} beep("end"); say("Gotowe. Dobra robota."); $("endTime").textContent=fmt(TOTAL); $("endBlocks").textContent=Object.keys(BLK).length; $("endSteps").textContent=N; $("endOverlay").classList.remove("hidden"); }
+
+  // buttons
+  $("startBtn").addEventListener("click",()=>begin(true));
+  $("silentBtn").addEventListener("click",()=>begin(false));
+  $("introBack").addEventListener("click",showHub);
+  $("backBtn").addEventListener("click",showHub);
+  $("againBtn").addEventListener("click",()=>{ $("endOverlay").classList.add("hidden"); begin(PREFS.voice); });
+  $("endBack").addEventListener("click",showHub);
+  $("addCard").addEventListener("click",()=>{ alert("Powiedz Claude jaki trening dodać (np. „rozciąganie wieczorne 10 min” albo „mobilność barków”) — dopisze go tutaj jako kolejny kafelek."); });
+
+  // ---------------- init ----------------
+  if(!("speechSynthesis" in window)){ const m=$("vmiss"); if(m) m.classList.remove("hidden"); }
+  buildHub();
+  const hashId=(location.hash||"").replace("#","");
+  if(ROUTINES[hashId]) openIntro(hashId); else showHub();
+  window.addEventListener("hashchange",()=>{ const id=(location.hash||"").replace("#",""); if(ROUTINES[id] && $("hub").classList.contains("hidden")===false) openIntro(id); });
+  console.log("Ćwiczenia gotowe. Treningi:", Object.keys(ROUTINES).join(", "));
+})();
+</script>
+</body>
+</html>

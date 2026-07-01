@@ -56,7 +56,7 @@ export const WEEKLY_HABITS: Record<number, RoutineItem[]> = {
   ],
   1: [ // Poniedziałek
     { id: 'w1_supp', text: 'Suplementy: Cynk 50 mg + Selen (przy obiedzie, z dala od kreatyny)', type: 'daily', xp: 10 },
-    { id: 'w1_1', text: 'Ćw. od fizjo', type: 'daily', xp: 10 },
+    { id: 'w1_1', text: 'Ćw. od fizjo', type: 'daily', xp: 10, href: '/cwiczenia.html#fizjo' },
     { id: 'w1_2', text: 'Leg warm-up', type: 'daily', xp: 10 },
     { id: 'w1_3', text: 'Duolingo ×3', type: 'daily', xp: 10 },
     { id: 'w1_4', text: 'Książka — hiszpański', type: 'daily', xp: 10 },
@@ -69,14 +69,14 @@ export const WEEKLY_HABITS: Record<number, RoutineItem[]> = {
     { id: 'w2_3', text: 'Karteczka do losowania', type: 'daily', xp: 10 },
   ],
   3: [ // Środa
-    { id: 'w3_1', text: 'Ćw. od fizjo', type: 'daily', xp: 10 },
+    { id: 'w3_1', text: 'Ćw. od fizjo', type: 'daily', xp: 10, href: '/cwiczenia.html#fizjo' },
     { id: 'w3_2', text: 'Pre-back', type: 'daily', xp: 10 },
     { id: 'w3_3', text: 'Duolingo ×3', type: 'daily', xp: 10 },
     { id: 'w3_4', text: 'ELSA aplikacja', type: 'daily', xp: 10 },
     { id: 'w3_5', text: 'Podlewanie', type: 'daily', xp: 10 },
   ],
   4: [ // Czwartek
-    { id: 'w4_1', text: 'Ćw. core', type: 'daily', xp: 10 },
+    { id: 'w4_1', text: 'Ćw. core', type: 'daily', xp: 10, href: '/cwiczenia.html#core' },
     { id: 'w4_2', text: 'Post-back', type: 'daily', xp: 10 },
     { id: 'w4_3', text: 'Zadaj sobie pytanie', type: 'daily', xp: 10 },
   ],
@@ -90,7 +90,7 @@ export const WEEKLY_HABITS: Record<number, RoutineItem[]> = {
 
 // Co drugi wtorek: ćwiczenia na kolana
 export const BIWEEKLY_TUESDAY: RoutineItem = {
-  id: 'w2_knee', text: 'Ćwiczenia na kolana (co drugi wtorek)', type: 'daily', xp: 10,
+  id: 'w2_knee', text: 'Ćwiczenia na kolana (co drugi wtorek)', type: 'daily', xp: 10, href: '/cwiczenia.html#kolana',
 }
 
 export function getTodayWeeklyHabits(forDate?: Date): RoutineItem[] {
