@@ -155,3 +155,19 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Druk (raport roczny → PDF) ─────────────────────────────────── */
+/* Bez print-color-adjust przeglądarki zdejmują tła na wydruku (domyślnie
+   odznaczony „Background graphics") — ciemna okładka raportu i wszystkie
+   słupki/paski wykresów wyszłyby puste. Zerowanie transitionów: druk robi
+   snapshot bieżących wartości, więc wykres złapany w trakcie animacji
+   wejścia drukowałby się w połowie wysokości. */
+@media print {
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    animation: none !important;
+  }
+}

@@ -108,7 +108,7 @@ function DesktopNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: bo
   }, [pathname])
 
   return (
-    <aside className="hidden md:flex flex-col w-[280px] min-h-screen bg-dark fixed left-0 top-0 z-40 py-9 pb-6">
+    <aside className="hidden md:flex flex-col w-[280px] min-h-screen bg-dark fixed left-0 top-0 z-40 py-9 pb-6 print:hidden">
       {/* Subtle gold right edge thread */}
       <span className="pointer-events-none absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gold/25 to-transparent" />
 
@@ -269,7 +269,7 @@ function MobileNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: boo
   useEffect(() => { setOpenGroup(null) }, [pathname])
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40" ref={sheetRef}>
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 print:hidden" ref={sheetRef}>
       {/* Group popover */}
       {openGroup && (() => {
         const group = NAV.find(i => i.kind === 'group' && i.label === openGroup) as GroupItem

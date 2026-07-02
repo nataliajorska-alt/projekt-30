@@ -30,29 +30,36 @@ export function useVault() {
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
-    const ref = collection(db, ...paths.vaultCol(user.uid))
-    const q = query(ref, orderBy('createdAt', 'desc'))
-    const snap = await getDocs(q)
+    try {
+      const ref = collection(db, ...paths.vaultCol(user.uid))
+      const q = query(ref, orderBy('createdAt', 'desc'))
+      const snap = await getDocs(q)
 
-    // Ładujemy listy + ich replies równolegle (subkolekcja per list).
-    const loaded = await Promise.all(snap.docs.map(async d => {
-      const raw = { id: d.id, ...LEGACY_DEFAULTS, ...d.data() }
-      const parsed = parseSafe<VaultEntry>(VaultEntrySchema, raw, { ...raw } as VaultEntry, `VaultEntry ${d.id}`)
+      // Ładujemy listy + ich replies równolegle (subkolekcja per list).
+      const loaded = await Promise.all(snap.docs.map(async d => {
+        const raw = { id: d.id, ...LEGACY_DEFAULTS, ...d.data() }
+        const parsed = parseSafe<VaultEntry>(VaultEntrySchema, raw, { ...raw } as VaultEntry, `VaultEntry ${d.id}`)
 
-      const repliesSnap = await getDocs(query(
-        collection(db, ...paths.vaultRepliesCol(user.uid, d.id)),
-        orderBy('createdAt', 'asc'),
-      ))
-      const replies: VaultReply[] = repliesSnap.docs.map(r => {
-        const rraw = { id: r.id, ...r.data() }
-        return parseSafe<VaultReply>(VaultReplySchema, rraw, rraw as VaultReply, `VaultReply ${r.id}`)
-      })
+        const repliesSnap = await getDocs(query(
+          collection(db, ...paths.vaultRepliesCol(user.uid, d.id)),
+          orderBy('createdAt', 'asc'),
+        ))
+        const replies: VaultReply[] = repliesSnap.docs.map(r => {
+          const rraw = { id: r.id, ...r.data() }
+          return parseSafe<VaultReply>(VaultReplySchema, rraw, rraw as VaultReply, `VaultReply ${r.id}`)
+        })
 
-      return { ...parsed, replies }
-    }))
+        return { ...parsed, replies }
+      }))
 
-    setEntries(loaded)
-    setLoading(false)
+      setEntries(loaded)
+    } catch (err) {
+      console.error('vault fetch error:', err)
+    } finally {
+      // Bez finally jeden odrzucony getDocs zostawiałby loading=true na zawsze,
+      // a /report bramkuje cały render na vaultLoading — wieczny spinner
+      setLoading(false)
+    }
   }, [user?.uid])
 
   useEffect(() => { load() }, [load])

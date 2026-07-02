@@ -44,7 +44,7 @@ export default function QuickActionsFab() {
     <>
       <div
         ref={fabRef}
-        className="fixed right-5 bottom-24 md:bottom-5 z-30 flex flex-col items-end gap-2"
+        className="fixed right-5 bottom-24 md:bottom-5 z-30 flex flex-col items-end gap-2 print:hidden"
       >
         {/* Action items */}
         <div className={clsx(

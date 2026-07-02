@@ -6,7 +6,6 @@ import { useTimelineData } from '@/hooks/useTimelineData'
 import { useVault } from '@/hooks/useVault'
 import { usePhotos } from '@/hooks/usePhotos'
 import { useGhostV2 } from '@/hooks/useGhostV2'
-import { useReviewHistory } from '@/hooks/useReviewHistory'
 import { useAuth } from '@/hooks/useAuth'
 import { PILLARS } from '@/lib/pillars'
 import { MOOD_STATES } from '@/types'
@@ -15,7 +14,8 @@ import {
   PROJECT_START, PROJECT_END, getDaysElapsed, getEffectiveNow,
 } from '@/lib/gameLogic'
 import { aggregateXpByMonth } from '@/lib/analytics'
-import { doc, setDoc } from 'firebase/firestore'
+import { cloudinaryThumb } from '@/lib/cloudinary'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { Printer, Lock, Star, Camera } from 'lucide-react'
@@ -25,27 +25,43 @@ import {
 } from '@/components/ui'
 import { toRoman } from '@/lib/romanNumerals'
 
-const IS_REPORT_DAY = new Date() >= PROJECT_END
+const IS_REPORT_DAY = getEffectiveNow() >= PROJECT_END
 const REPORT_DATE_STR = '5 kwietnia 2027'
 
 const PL_MONTHS = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
   'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień']
+const PL_MONTHS_GEN = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+  'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia']
 
 const monthKeyOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 const fmtK = (n: number) => (n >= 1000 ? `${+(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : `${n}`)
 
+// Polskie liczebniki: 1 odbitka, 2–4 odbitki, 5+ odbitek (z wyjątkiem 12–14)
+const plural = (n: number, one: string, few: string, many: string) => {
+  if (n === 1) return one
+  const d = n % 10, t = n % 100
+  return d >= 2 && d <= 4 && !(t >= 12 && t <= 14) ? few : many
+}
+
 // ── Section panel (editorial frame with corner brackets) ─────────
 
-function Panel({ num, eyebrow, title, note, children }: {
+function Panel({ num, eyebrow, title, note, allowBreak, children }: {
   num: number
   eyebrow: string
   title: string
   note?: string
+  // Sekcje dłuższe niż strona A4 (momenty, zdjęcia): break-inside-avoid jest
+  // niespełnialne — przeglądarka wypchnęłaby panel na świeżą stronę (pusta
+  // przestrzeń) i i tak złamała w środku. Chronimy wtedy pojedyncze elementy.
+  allowBreak?: boolean
   children: React.ReactNode
 }) {
   return (
-    <section className="relative bg-ivory border border-hairline px-6 py-7 sm:px-10 sm:py-9 mt-8 print:break-inside-avoid">
+    <section className={clsx(
+      'relative bg-ivory border border-hairline px-6 py-7 sm:px-10 sm:py-9 mt-8',
+      !allowBreak && 'print:break-inside-avoid',
+    )}>
       <span className="pointer-events-none absolute top-2 left-2 w-2.5 h-2.5 border-t border-l border-gold-light/85" />
       <span className="pointer-events-none absolute bottom-2 right-2 w-2.5 h-2.5 border-b border-r border-gold-light/85" />
       <div className="flex items-baseline gap-3">
@@ -149,7 +165,31 @@ export default function ReportPage() {
   const { entries: vaultEntries, loading: vaultLoading } = useVault()
   const { photos, loading: photosLoading } = usePhotos()
   const { entries: ghostEntries } = useGhostV2()
-  useReviewHistory()
+
+  // Zapisana refleksja roczna — bez tego formularz po odświeżeniu strony
+  // zawsze startowałby pusty, mimo że dane siedzą w Firestore.
+  // reflectionLoaded odróżnia „jeszcze się ładuje" od „dokumentu nie ma" —
+  // formularz montuje się dopiero po rozstrzygnięciu, żeby nie nadpisać
+  // tekstu wpisywanego w trakcie fetcha
+  const [savedReflection, setSavedReflection] = useState<Record<string, string> | null>(null)
+  const [reflectionLoaded, setReflectionLoaded] = useState(false)
+  useEffect(() => {
+    if (!user) return
+    getDoc(doc(db, ...paths.dataDoc(user.uid, 'annualReflection')))
+      .then(snap => { if (snap.exists()) setSavedReflection(snap.data() as Record<string, string>) })
+      .catch(err => console.error('annualReflection fetch error:', err))
+      .finally(() => setReflectionLoaded(true))
+  }, [user?.uid]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cmd+P omija przycisk „drukuj" — beforeprint przestawia lazy zdjęcia na
+  // eager (bez await, ale przeglądarka doładowuje je do widoku wydruku)
+  useEffect(() => {
+    const eagerAll = () => {
+      Array.from(document.images).forEach(img => { img.loading = 'eager' })
+    }
+    window.addEventListener('beforeprint', eagerAll)
+    return () => window.removeEventListener('beforeprint', eagerAll)
+  }, [])
 
   const loading = gameLoading || logsLoading || vaultLoading || photosLoading
 
@@ -173,15 +213,19 @@ export default function ReportPage() {
     for (const m of Object.values(monthly)) xpByKey[m.monthKey] = m.totalXP
     const nowKey = monthKeyOf(getEffectiveNow())
 
-    const arcMonths = Array.from({ length: 12 }, (_, i) => {
+    // 13 kalendarzowych kubełków: projekt (5.04.2026–5.04.2027) zahacza o dwa
+    // kwietnie — bez kubełka '2027-04' XP z 1–4.04.2027 znikałoby z wykresu,
+    // średniej i najlepszego miesiąca (suma słupków ≠ Łączne XP w dniu raportu)
+    const arcMonths = Array.from({ length: 13 }, (_, i) => {
       const d = new Date(PROJECT_START)
       d.setMonth(d.getMonth() + i)
       const key = monthKeyOf(d)
       const xp = xpByKey[key] ?? 0
+      const base = PL_MONTHS[d.getMonth()].slice(0, 3)
       return {
         key,
         xp,
-        label: PL_MONTHS[d.getMonth()].slice(0, 3),
+        label: d.getMonth() === 3 ? `${base} ’${String(d.getFullYear()).slice(2)}` : base,
         isFuture: key > nowKey,
         isNow: key === nowKey,
       }
@@ -232,10 +276,12 @@ export default function ReportPage() {
       .filter(l => l.keyMoment?.title)
       .sort((a, b) => a.date.localeCompare(b.date))
 
-    // ── photos oldest→newest ──
+    // ── photos: cały rok, najstarsze→najnowsze ──
+    // hook zwraca createdAt desc; reverse przed sortem, żeby zdjęcia
+    // z tego samego dnia zachowały chronologię (sort jest stabilny)
     const reportPhotos = [...photos]
+      .reverse()
       .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
-      .slice(0, 12)
 
     const totalSideQuests = logArray.reduce((s, l) => s + (l.completedSideQuests?.length ?? 0), 0)
 
@@ -258,8 +304,44 @@ export default function ReportPage() {
   const levelsBehind = currentLevel.level - 1
   const levelsAhead = LEVELS.length - currentLevel.level
 
+  // Ghost Protocol: copy panelu mówi „zamiast wysłać wiadomość", więc liczymy
+  // tylko wpisy bez kontaktu — spójnie z ProtocolTab i przeglądem kwartalnym
+  const ghostResisted = ghostEntries.filter(e => !e.hadContact)
+  const vaultLetters = vaultEntries.filter(e => e.letterType !== 'vent' && e.content)
+
+  // Numeracja paneli liczona z faktycznie renderowanych — trzy panele są
+  // warunkowe i zahardkodowane numery zostawiały dziury (np. …VI, IX)
+  const showMood = avgMood !== null || avgEnergy !== null
+  const showGhost = ghostResisted.length >= 5
+  const showVault = IS_REPORT_DAY && vaultLetters.length > 0
+  let panelCount = 3 // I W liczbach · II Łuk · III Filary — zawsze obecne
+  const moodNum = showMood ? ++panelCount : 0
+  const momentsNum = ++panelCount
+  const photosNum = ++panelCount
+  const ghostNum = showGhost ? ++panelCount : 0
+  const vaultNum = showVault ? ++panelCount : 0
+  const reflectionNum = ++panelCount
+
   const PLOT = 210 // px — bar plot height
   const axisLabels = [chartMax, chartMax * 0.75, chartMax * 0.5, chartMax * 0.25, 0]
+
+  // Zdjęcia z loading="lazy" spoza viewportu nie zdążyłyby się załadować
+  // do wydruku — przed print wymuszamy eager i czekamy (max 10 s)
+  const handlePrint = async () => {
+    const imgs = Array.from(document.images)
+    imgs.forEach(img => { img.loading = 'eager' })
+    const pending = imgs.filter(img => !img.complete).map(img =>
+      new Promise<void>(resolve => {
+        img.addEventListener('load', () => resolve(), { once: true })
+        img.addEventListener('error', () => resolve(), { once: true })
+      })
+    )
+    await Promise.race([
+      Promise.all([...pending, document.fonts.ready]),
+      new Promise(r => setTimeout(r, 10000)),
+    ])
+    window.print()
+  }
 
   if (loading) {
     return (
@@ -288,7 +370,7 @@ export default function ReportPage() {
             </p>
           </div>
           <button
-            onClick={() => window.print()}
+            onClick={handlePrint}
             className="flex items-center gap-3 px-5 py-3 bg-dark text-ivory border border-gold-deep hover:bg-forest transition-colors shrink-0"
           >
             <Printer size={14} strokeWidth={1.5} className="text-gold-light" />
@@ -395,7 +477,7 @@ export default function ReportPage() {
           num={2}
           eyebrow="XP miesiąc po miesiącu"
           title="Łuk transformacji"
-          note="dwanaście miesięcy projektu — łuk dopiero się rysuje."
+          note="od kwietnia do kwietnia — łuk dopiero się rysuje."
         >
           <div className="mt-8">
             <div className="grid grid-cols-[40px_minmax(0,1fr)] sm:grid-cols-[52px_minmax(0,1fr)] gap-x-3 sm:gap-x-4 gap-y-2.5">
@@ -410,7 +492,7 @@ export default function ReportPage() {
               {/* Plot */}
               <div
                 className="relative grid border-l border-hairline gap-2 sm:gap-3"
-                style={{ height: PLOT, gridTemplateColumns: 'repeat(12, minmax(0, 1fr))' }}
+                style={{ height: PLOT, gridTemplateColumns: `repeat(${arcMonths.length}, minmax(0, 1fr))` }}
               >
                 {[25, 50, 75, 100].map(p => (
                   <div key={p} className="absolute left-0 right-0 border-t border-border pointer-events-none" style={{ bottom: `${p}%` }} />
@@ -454,7 +536,7 @@ export default function ReportPage() {
                 })}
               </div>
               {/* X axis */}
-              <div className="col-start-2 grid gap-2 sm:gap-3" style={{ gridTemplateColumns: 'repeat(12, minmax(0, 1fr))' }}>
+              <div className="col-start-2 grid gap-2 sm:gap-3" style={{ gridTemplateColumns: `repeat(${arcMonths.length}, minmax(0, 1fr))` }}>
                 {arcMonths.map(m => (
                   <span
                     key={m.key}
@@ -627,11 +709,19 @@ export default function ReportPage() {
         </Panel>
 
         {/* ── IV · NASTRÓJ ROKU ────────────────────────────── */}
-        {(avgMood !== null || avgEnergy !== null) && (
-          <Panel num={4} eyebrow="Check-iny emocjonalne" title="Nastrój roku">
+        {showMood && (
+          <Panel num={moodNum} eyebrow="Check-iny emocjonalne" title="Nastrój roku">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_220px] gap-8 lg:gap-10 mt-9 items-start">
               {[
-                { lbl: 'Śr. nastrój', val: avgMood, cap: 'tuż pod środkiem skali — rok pracy, nie laurki.' },
+                {
+                  lbl: 'Śr. nastrój',
+                  val: avgMood,
+                  cap: avgMood === null ? ''
+                    : avgMood >= 4.2 ? 'wysoko na skali — rok, który dawał więcej, niż zabierał.'
+                      : avgMood >= 3.4 ? 'powyżej środka skali — więcej dobrych dni niż trudnych.'
+                        : avgMood >= 2.6 ? 'okolice środka skali — rok pracy, nie laurki.'
+                          : 'poniżej środka skali — rok, który kosztował; tym bardziej licz to, co zbudowałaś.',
+                },
                 { lbl: 'Śr. energia', val: avgEnergy, cap: 'ciało prowadzi — energia napędza resztę.' },
               ].map(s => s.val !== null && (
                 <div key={s.lbl}>
@@ -680,7 +770,7 @@ export default function ReportPage() {
         )}
 
         {/* ── V · KLUCZOWE MOMENTY ─────────────────────────── */}
-        <Panel num={5} eyebrow="Dni, które warto zapamiętać" title="Kluczowe momenty">
+        <Panel num={momentsNum} eyebrow="Dni, które warto zapamiętać" title="Kluczowe momenty" allowBreak>
           {keyMoments.length === 0 ? (
             <div className="text-center py-10">
               <Star size={20} className="text-muted-light mx-auto mb-3" strokeWidth={1.5} />
@@ -709,7 +799,7 @@ export default function ReportPage() {
                         : `${diff} dni później`
                   }
                   return (
-                    <div key={log.date}>
+                    <div key={log.date} className="print:break-inside-avoid">
                       {bridge && (
                         <div className="grid grid-cols-[50px_1fr] gap-6 items-center my-3.5">
                           <span className="justify-self-center w-0 h-8 border-l border-dashed border-gold-light" />
@@ -733,7 +823,9 @@ export default function ReportPage() {
                 })}
               </div>
               <p className="mt-6 pt-4 border-t border-border font-serif-body italic text-muted text-[13.5px]">
-                {keyMoments.length === 1 ? 'jeden moment zapisany' : `${keyMoments.length} momenty zapisane`} — oznaczaj kolejne z poziomu „Dziś", trafią tu automatycznie.
+                {keyMoments.length === 1
+                  ? 'jeden moment zapisany'
+                  : `${keyMoments.length} ${plural(keyMoments.length, 'moment zapisany', 'momenty zapisane', 'momentów zapisanych')}`} — oznaczaj kolejne z poziomu „Dziś", trafią tu automatycznie.
               </p>
             </>
           )}
@@ -741,10 +833,13 @@ export default function ReportPage() {
 
         {/* ── VI · PHOTO TIMELINE ──────────────────────────── */}
         <Panel
-          num={6}
+          num={photosNum}
           eyebrow="Dokumentacja wizualna"
           title="Photo Timeline"
-          note={reportPhotos.length > 0 ? `${toRoman(reportPhotos.length)} odbitek z archiwum.` : undefined}
+          allowBreak
+          note={reportPhotos.length > 0
+            ? `${toRoman(reportPhotos.length)} ${plural(reportPhotos.length, 'odbitka', 'odbitki', 'odbitek')} z archiwum.`
+            : undefined}
         >
           {reportPhotos.length === 0 ? (
             <div className="text-center py-10">
@@ -756,21 +851,23 @@ export default function ReportPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-[22px] mt-8">
               {reportPhotos.map((photo, i) => {
-                const monthIdx = Number(photo.dateKey.split('-')[1]) - 1
+                const [, m, d] = photo.dateKey.split('-').map(Number)
                 return (
-                  <figure key={photo.id} className="bg-cream-warm border border-hairline p-[9px] pb-[7px]">
+                  <figure key={photo.id} className="bg-cream-warm border border-hairline p-[9px] pb-[7px] print:break-inside-avoid">
                     <div className="relative overflow-hidden">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={photo.url}
+                        src={cloudinaryThumb(photo.url)}
                         alt={photo.caption ?? `Odbitka ${toRoman(i + 1)}`}
+                        loading="lazy"
+                        decoding="async"
                         className="block w-full aspect-square object-cover saturate-[.92] hover:saturate-100 transition-[filter]"
                       />
                     </div>
                     <figcaption className="flex items-baseline gap-2 px-0.5 pt-2">
                       <span className="font-display italic text-gold-deep text-[11px] whitespace-nowrap">№ {toRoman(i + 1)}</span>
                       <span className="flex-1 h-px bg-border self-center" />
-                      <SmallCaps tone="muted" tracking="luxury" size="xs">{PL_MONTHS[monthIdx]}</SmallCaps>
+                      <SmallCaps tone="muted" tracking="luxury" size="xs">{d} {PL_MONTHS_GEN[m - 1]}</SmallCaps>
                     </figcaption>
                   </figure>
                 )
@@ -780,17 +877,17 @@ export default function ReportPage() {
         </Panel>
 
         {/* ── VII · GHOST PROTOCOL ─────────────────────────── */}
-        {ghostEntries.length >= 5 && (
-          <Panel num={7} eyebrow="Dane operacyjne · Prywatne" title="Ghost Protocol">
+        {showGhost && (
+          <Panel num={ghostNum} eyebrow="Dane operacyjne · Prywatne" title="Ghost Protocol">
             <div className="grid grid-cols-1 sm:grid-cols-[176px_1fr] gap-8 sm:gap-10 mt-8 items-center">
               <div className="relative text-center border border-hairline bg-cream-warm px-5 pt-6 pb-5">
                 <span className="pointer-events-none absolute top-[7px] left-[7px] w-2 h-2 border-t border-l border-gold-light" />
-                <div className="font-display text-dark text-[44px] leading-none tracking-tight">{ghostEntries.length}</div>
+                <div className="font-display text-dark text-[44px] leading-none tracking-tight">{ghostResisted.length}</div>
                 <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-3 block">Uruchomień protokołu</SmallCaps>
               </div>
-              <div className="flex flex-wrap items-center gap-x-[18px] gap-y-3.5" aria-label={`${ghostEntries.length} uruchomień protokołu`}>
-                {Array.from({ length: Math.ceil(ghostEntries.length / 5) }, (_, g) => {
-                  const left = Math.min(5, ghostEntries.length - g * 5)
+              <div className="flex flex-wrap items-center gap-x-[18px] gap-y-3.5" aria-label={`${ghostResisted.length} uruchomień protokołu`}>
+                {Array.from({ length: Math.ceil(ghostResisted.length / 5) }, (_, g) => {
+                  const left = Math.min(5, ghostResisted.length - g * 5)
                   const bars = left === 5 ? 4 : left
                   return (
                     <span key={g} className={clsx('relative flex gap-1 px-0.5', left === 5 && 'ghost-five')}>
@@ -805,18 +902,17 @@ export default function ReportPage() {
                 })}
               </div>
               <p className="sm:col-span-2 font-serif-body italic text-muted text-[14.5px] border-t border-border pt-[18px] leading-relaxed">
-                <b className="not-italic font-semibold text-dark">{ghostEntries.length}×</b> uruchomiłaś protokół zamiast wysłać wiadomość. każda kreska to jedna decyzja — to są dane o sile, nie o słabości.
+                <b className="not-italic font-semibold text-dark">{ghostResisted.length}×</b> uruchomiłaś protokół zamiast wysłać wiadomość. każda kreska to jedna decyzja — to są dane o sile, nie o słabości.
               </p>
             </div>
           </Panel>
         )}
 
         {/* ── VIII · ZE SKARBCA (tylko w dniu raportu) ─────── */}
-        {IS_REPORT_DAY && vaultEntries.filter(e => e.letterType !== 'vent' && e.content).length > 0 && (
-          <Panel num={8} eyebrow="Listy od Natalii 30" title="Ze Skarbca">
+        {showVault && (
+          <Panel num={vaultNum} eyebrow="Listy od Natalii 30" title="Ze Skarbca">
             <div className="space-y-3 mt-8">
-              {vaultEntries
-                .filter(e => e.letterType !== 'vent' && e.content)
+              {vaultLetters
                 .slice(0, 5)
                 .map(entry => (
                   <div key={entry.id} className="p-5 bg-cream-warm border border-hairline">
@@ -832,9 +928,11 @@ export default function ReportPage() {
         )}
 
         {/* ── IX · ROCZNA REFLEKSJA ────────────────────────── */}
-        <Panel num={IS_REPORT_DAY ? 9 : 8} eyebrow="Słowa zamknięcia" title="Roczna refleksja">
+        <Panel num={reflectionNum} eyebrow="Słowa zamknięcia" title="Roczna refleksja">
           {user ? (
-            <ReflectionForm uid={user.uid} existing={null} />
+            (!IS_REPORT_DAY || reflectionLoaded) ? (
+              <ReflectionForm uid={user.uid} existing={savedReflection} />
+            ) : null
           ) : (
             <p className="font-serif-body italic text-muted-light text-[13.5px] text-center py-4 mt-4">
               zaloguj się, aby zapisać refleksję.

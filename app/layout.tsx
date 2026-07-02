@@ -42,10 +42,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <LevelUpProvider>
           <ToastProvider>
             <AuthGate>
-              <div className="flex min-h-screen">
+              {/* print: sidebar znika, więc offset i flex też muszą — inaczej
+                  wydruk raportu byłby zwężony o 280px / obcięty do jednej strony */}
+              <div className="flex min-h-screen print:block print:min-h-0">
                 <Navigation />
                 {/* Main content — offset for sidebar on desktop, padding for bottom nav on mobile */}
-                <main className="flex-1 md:ml-[280px] pb-24 md:pb-0 min-h-screen overflow-x-hidden">
+                <main className="flex-1 md:ml-[280px] pb-24 md:pb-0 min-h-screen overflow-x-hidden print:ml-0 print:pb-0 print:min-h-0 print:overflow-visible">
                   {children}
                 </main>
                 <QuickActionsFab />
