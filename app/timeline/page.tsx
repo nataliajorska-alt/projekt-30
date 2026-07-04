@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import clsx from 'clsx'
 import { useTimelineData } from '@/hooks/useTimelineData'
@@ -18,6 +18,40 @@ import { SmallCaps, GoldRule, RomanNumeral, Fleuron, CornerBrackets } from '@/co
 
 // Filary celowo NIE jest zakładką Historii — pełny widok balansu filarów ma osobna strona /pillars.
 type TimelineMode = 'calendar' | 'habits' | 'mood' | 'patterns' | 'protokol' | 'oddech'
+
+// Licznik „nabijający" wartość jak stary hodometr — animuje od poprzedniej
+// wartości (start: 0), więc dociągnięcie danych z Firestore płynnie doliczy.
+// prefers-reduced-motion i ukryta karta (rAF wstrzymany) po prostu skaczą do celu.
+function CountUpNumber({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0)
+  const fromRef = useRef(0)
+
+  useEffect(() => {
+    const from = fromRef.current
+    fromRef.current = value
+    if (
+      typeof window === 'undefined' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      value === from
+    ) {
+      setDisplay(value)
+      return
+    }
+    const duration = 1100
+    const t0 = performance.now()
+    let raf = 0
+    const tick = (t: number) => {
+      const k = Math.min(1, (t - t0) / duration)
+      const eased = 1 - Math.pow(1 - k, 3)
+      setDisplay(Math.round(from + (value - from) * eased))
+      if (k < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [value])
+
+  return <>{display.toLocaleString('pl-PL')}</>
+}
 
 const PL_MONTH_NAMES = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień']
 
@@ -304,8 +338,8 @@ export default function TimelinePage() {
                     i > 0 && 'sm:border-l sm:border-gold-light/20'
                   )}
                 >
-                  <div className="font-display text-gold-pale text-[22px] leading-none tracking-tight">
-                    {s.n.toLocaleString('pl-PL')}
+                  <div className="font-display text-gold-pale text-[22px] leading-none tracking-tight tabular-nums">
+                    <CountUpNumber value={s.n} />
                   </div>
                   <div className="font-ui uppercase text-gold-light text-[7px] tracking-[0.26em] mt-2">
                     {s.k}

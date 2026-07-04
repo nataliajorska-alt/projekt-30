@@ -77,7 +77,7 @@ export default function PillarTrendChart({ reviews, period = 'weekly' }: Props) 
         każdy filar na własnym torze — linia prowadzi przez {period === 'weekly' ? 'tygodnie' : 'miesiące'}, pełny romb = {period === 'weekly' ? 'ostatni tydzień' : 'ostatni miesiąc'}.
       </p>
 
-      {PILLARS.map(pillar => {
+      {PILLARS.map((pillar, pillarIdx) => {
         const pts = sorted
           .map((r, idx) => ({ idx, val: r.pillarsRated?.[pillar.id], label: r.label }))
           .filter((pt): pt is { idx: number; val: number; label: string } => pt.val != null)
@@ -123,6 +123,10 @@ export default function PillarTrendChart({ reviews, period = 'weekly' }: Props) 
                       strokeLinecap="round"
                       opacity={0.45}
                       vectorEffect="non-scaling-stroke"
+                      pathLength={1}
+                      strokeDasharray="1"
+                      className="animate-draw"
+                      style={{ animationDelay: `${pillarIdx * 90}ms`, animationFillMode: 'backwards' }}
                     />
                   </svg>
                 )}

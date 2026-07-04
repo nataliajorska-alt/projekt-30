@@ -342,11 +342,28 @@ function TrendChart({
         ))}
 
         <polygon points={areaPts} fill="#b29355" opacity={0.07} />
-        <polyline points={energyPts} fill="none" stroke="#4a665d" strokeWidth={1.6} strokeDasharray="4 4" strokeLinejoin="round" strokeLinecap="round" />
-        <polyline points={moodPts} fill="none" stroke="#8e7338" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        {/* Energia jest kreskowana (4 4), więc trick draw z dasharray by ją zniszczył —
+            zamiast tego opóźniony fade-in; nastrój (linia ciągła) kreśli się stalówką. */}
+        <polyline
+          points={energyPts}
+          fill="none" stroke="#4a665d" strokeWidth={1.6} strokeDasharray="4 4"
+          strokeLinejoin="round" strokeLinecap="round"
+          className="animate-fade-in"
+          style={{ animationDelay: '0.7s', animationFillMode: 'backwards' }}
+        />
+        <polyline
+          points={moodPts}
+          fill="none" stroke="#8e7338" strokeWidth={2}
+          strokeLinejoin="round" strokeLinecap="round"
+          pathLength={1} strokeDasharray="1" className="animate-draw"
+        />
 
         {data.map((d, i) => (
-          <g key={i}>
+          <g
+            key={i}
+            className="animate-fade-in"
+            style={{ animationDelay: '0.85s', animationFillMode: 'backwards' }}
+          >
             <circle
               cx={X(i)} cy={Y(d.avgEnergy)} r={3} fill="#4a665d" className="cursor-pointer"
               onMouseEnter={e => move(e, `${d.label} · energia`, `${d.avgEnergy.toFixed(1)} / 5`)}
@@ -362,14 +379,16 @@ function TrendChart({
           </g>
         ))}
 
-        <text x={X(hi)} y={Y(data[hi].avgMood) - 13} textAnchor="middle" fontFamily="'Bodoni Moda', serif" fontStyle="italic" fontSize={13} fill="#8e7338">
-          {data[hi].avgMood.toFixed(1)}
-        </text>
-        {lo !== hi && (
-          <text x={X(lo) - 6} y={Y(data[lo].avgMood) + 6} textAnchor="end" fontFamily="'Bodoni Moda', serif" fontStyle="italic" fontSize={13} fill="#8a3a2c">
-            {data[lo].avgMood.toFixed(1)}
+        <g className="animate-fade-in" style={{ animationDelay: '1s', animationFillMode: 'backwards' }}>
+          <text x={X(hi)} y={Y(data[hi].avgMood) - 13} textAnchor="middle" fontFamily="'Bodoni Moda', serif" fontStyle="italic" fontSize={13} fill="#8e7338">
+            {data[hi].avgMood.toFixed(1)}
           </text>
-        )}
+          {lo !== hi && (
+            <text x={X(lo) - 6} y={Y(data[lo].avgMood) + 6} textAnchor="end" fontFamily="'Bodoni Moda', serif" fontStyle="italic" fontSize={13} fill="#8a3a2c">
+              {data[lo].avgMood.toFixed(1)}
+            </text>
+          )}
+        </g>
       </svg>
     </div>
   )

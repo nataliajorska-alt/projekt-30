@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v21-mysl-alternatywna';
+const CACHE_NAME = 'p30-v22-rozeta-dataviz';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {

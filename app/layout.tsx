@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#1A2420',
+  themeColor: '#1D231F',
   width: 'device-width',
   initialScale: 1,
   // maximumScale celowo usunięte — blokowało pinch-zoom (WCAG 1.4.4) w apce

@@ -75,12 +75,25 @@ function ConsistencyTrendChart({ weeks }: { weeks: { weekKey: string; avgComplet
         ))}
         {/* obszar + linia */}
         {n > 1 && <polygon points={areaPts} fill="#B29355" opacity={0.07} />}
-        {n > 1 && <polyline points={linePts} fill="none" stroke="#8E7338" strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" />}
-        {/* punkty + wartości */}
+        {/* Linia kreślona stalówką przy wejściu (pathLength=1 + animate-draw);
+            prefers-reduced-motion spłaszcza to globalnie w globals.css. */}
+        {n > 1 && (
+          <polyline
+            points={linePts}
+            fill="none" stroke="#8E7338" strokeWidth={2.2}
+            strokeLinejoin="round" strokeLinecap="round"
+            pathLength={1} strokeDasharray="1" className="animate-draw"
+          />
+        )}
+        {/* punkty + wartości — wjeżdżają po dokreśleniu linii */}
         {weeks.map((w, i) => {
           const cur = i === n - 1
           return (
-            <g key={w.weekKey}>
+            <g
+              key={w.weekKey}
+              className="animate-fade-in"
+              style={{ animationDelay: '0.85s', animationFillMode: 'backwards' }}
+            >
               <circle cx={X(i)} cy={Y(w.avgCompletionRate)} r={cur ? 5.5 : 4} fill={tierColor(w.avgCompletionRate)} stroke="#8E7338" strokeWidth={2}>
                 <title>{`${formatWeekLabel(w.weekKey)}: ${w.avgCompletionRate}%`}</title>
               </circle>

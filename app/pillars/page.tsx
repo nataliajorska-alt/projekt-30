@@ -4,6 +4,7 @@ import { PILLARS } from '@/lib/pillars'
 import { SkeletonPillarList, SkeletonCard } from '@/components/SkeletonCard'
 import { Pillar } from '@/types'
 import RedirectEnergyWidget from '@/components/RedirectEnergyWidget'
+import PillarRoseChart from '@/components/PillarRoseChart'
 import { SmallCaps, RomanNumeral } from '@/components/ui'
 
 // Paleta wykresowa (z mocka Filary) — jaśniejsza i bardziej zróżnicowana niż
@@ -54,18 +55,6 @@ export default function PillarsPage() {
   const totalXP = pillarData.reduce((acc, p) => acc + p.xp, 0)
   const sortedByXP = [...pillarData].sort((a, b) => b.xp - a.xp)
 
-  // Conic-gradient pierścienia — segmenty w kolejności malejącej, każdy w kolorze filaru
-  let acc = 0
-  const stops = sortedByXP
-    .filter(p => p.xp > 0)
-    .map(p => {
-      const start = acc
-      acc += (p.xp / totalXP) * 100
-      return `${p.color} ${start}% ${acc}%`
-    })
-    .join(', ')
-  const donutBg = totalXP > 0 ? `conic-gradient(${stops})` : undefined
-
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
       {/* ── Header ─────────────────────────────────────────────── */}
@@ -91,21 +80,30 @@ export default function PillarsPage() {
       <section className="relative bg-ivory border border-hairline p-7 md:px-10 md:py-8 mb-10">
         <Corners />
         <div className="flex items-center gap-2.5 font-ui uppercase tracking-editorial text-[10px] text-gold-deep mb-6">
-          <span className="text-gold text-[8px]">◆</span> Rozkład XP według filaru
+          <span className="text-gold text-[8px]">◆</span> Równowaga filarów
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-8 md:gap-14 items-center">
-          {/* Donut */}
-          <div
-            className={`relative w-[248px] h-[248px] max-w-full rounded-full mx-auto${donutBg ? '' : ' bg-hairline/40'}`}
-            style={donutBg ? { background: donutBg } : undefined}
-          >
-            <div className="absolute inset-[46px] rounded-full bg-ivory border border-border" />
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center">
-              <div className="font-display font-medium text-[30px] text-dark tracking-[-1px] leading-none">
+          {/* Rozeta Równowagi — kształt zamiast rozkładu (rozkład niesie legenda) */}
+          <div className="w-[280px] max-w-full mx-auto">
+            <PillarRoseChart
+              data={pillarData.map(p => ({
+                id: p.id,
+                shortName: p.shortName,
+                color: p.color,
+                xp: p.xp,
+              }))}
+            />
+            <div className="text-center mt-3">
+              <div className="font-display font-medium text-[26px] text-dark tracking-[-1px] leading-none">
                 {totalXP.toLocaleString('pl-PL')}
               </div>
-              <div className="font-ui uppercase tracking-editorial text-[9px] text-muted mt-1">XP łącznie</div>
+              <div className="font-ui uppercase tracking-editorial text-[9px] text-muted mt-1.5">XP łącznie</div>
+              {totalXP > 0 && (
+                <p className="font-serif-body italic text-muted-light text-[11.5px] mt-2.5">
+                  przerywana linia = idealnie równy podział
+                </p>
+              )}
             </div>
           </div>
 
