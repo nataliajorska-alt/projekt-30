@@ -16,6 +16,9 @@ import DayReadout from '@/components/DayReadout'
 
 interface Props {
   logs: Record<string, DailyLog>
+  // interactive=false: wariant do druku (raport roczny) — bez tapania,
+  // nakładki wyboru i kursora; zamiast wiersza księgi statyczna legenda.
+  interactive?: boolean
 }
 
 const VB = 320          // viewBox (kwadrat)
@@ -41,7 +44,7 @@ function rayLen(ray: DayRay, todayIdx: number): number {
   return ray.idx > todayIdx ? FUTURE_LEN : LEN_BASE + ray.lvl * LEN_STEP
 }
 
-export default function YearRosette({ logs }: Props) {
+export default function YearRosette({ logs, interactive = true }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   // Trzymamy indeks, nie snapshot obiektu — żywa aktualizacja logs
   // (Firestore) ma być widoczna też w odczycie wybranego dnia.
@@ -203,15 +206,19 @@ export default function YearRosette({ logs }: Props) {
         <svg
           ref={svgRef}
           viewBox={`0 0 ${VB} ${VB}`}
-          className="w-full h-auto cursor-pointer touch-manipulation"
+          className={interactive ? 'w-full h-auto cursor-pointer touch-manipulation' : 'w-full h-auto'}
           role="img"
-          aria-label={`Rozeta roku: 365 promieni, po jednym na każdy dzień projektu — długość i kolor oddają zebrane XP. Dotknij tarczy, by odczytać dzień; pełny kalendarz dzień po dniu znajduje się poniżej. Dni zapisanych: ${activeDays}.`}
-          onClick={pickDay}
+          aria-label={
+            interactive
+              ? `Rozeta roku: 365 promieni, po jednym na każdy dzień projektu — długość i kolor oddają zebrane XP. Dotknij tarczy, by odczytać dzień; pełny kalendarz dzień po dniu znajduje się poniżej. Dni zapisanych: ${activeDays}.`
+              : `Rozeta roku: 365 promieni, po jednym na każdy dzień projektu — długość i kolor oddają zebrane XP. Dni zapisanych: ${activeDays}.`
+          }
+          onClick={interactive ? pickDay : undefined}
         >
           {ring}
 
           {/* Wybrany dzień — nadrysowany promień z kropką */}
-          {selected && (() => {
+          {interactive && selected && (() => {
             const a = dayAngle(selected.idx)
             const cos = Math.cos(a)
             const sin = Math.sin(a)
@@ -245,11 +252,30 @@ export default function YearRosette({ logs }: Props) {
         </div>
       </div>
 
-      {/* Wiersz księgi — wspólny odczyt dnia (DayReadout) */}
-      <DayReadout
-        day={selected ? { date: selected.key, xp: selected.xp, moment: selected.moment, future: selected.idx > todayIdx } : null}
-        placeholder="dotknij tarczy, by odczytać dzień"
-      />
+      {interactive ? (
+        /* Wiersz księgi — wspólny odczyt dnia (DayReadout) */
+        <DayReadout
+          day={selected ? { date: selected.key, xp: selected.xp, moment: selected.moment, future: selected.idx > todayIdx } : null}
+          placeholder="dotknij tarczy, by odczytać dzień"
+        />
+      ) : (
+        /* Wariant do druku — statyczna legenda skali (jak pod heatmapą) */
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mt-4 pt-3 border-t border-border/60">
+          <SmallCaps tone="muted" tracking="luxury" size="xs">krótszy dzień</SmallCaps>
+          {HEAT.map((c, i) => (
+            <span key={i} className="w-3.5 h-3.5" style={{ backgroundColor: c }} />
+          ))}
+          <SmallCaps tone="muted" tracking="luxury" size="xs">pełniejszy</SmallCaps>
+          <span className="inline-flex items-center gap-1.5 ml-2">
+            <span
+              aria-hidden
+              className="w-[6px] h-[6px] rotate-45"
+              style={{ backgroundColor: PAPER_SOFT, outline: '1px solid #826933' }}
+            />
+            <SmallCaps tone="muted" tracking="luxury" size="xs">kluczowy moment</SmallCaps>
+          </span>
+        </div>
+      )}
     </div>
   )
 }

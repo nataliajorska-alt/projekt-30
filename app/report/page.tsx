@@ -23,6 +23,7 @@ import type { Pillar } from '@/types'
 import {
   SmallCaps, Fleuron, Diamond,
 } from '@/components/ui'
+import YearRosette from '@/components/YearRosette'
 import { toRoman } from '@/lib/romanNumerals'
 
 const IS_REPORT_DAY = getEffectiveNow() >= PROJECT_END
@@ -314,7 +315,7 @@ export default function ReportPage() {
   const showMood = avgMood !== null || avgEnergy !== null
   const showGhost = ghostResisted.length >= 5
   const showVault = IS_REPORT_DAY && vaultLetters.length > 0
-  let panelCount = 3 // I W liczbach · II Łuk · III Filary — zawsze obecne
+  let panelCount = 4 // I W liczbach · II Rok w okręgu · III Łuk · IV Filary — zawsze obecne
   const moodNum = showMood ? ++panelCount : 0
   const momentsNum = ++panelCount
   const photosNum = ++panelCount
@@ -472,9 +473,21 @@ export default function ReportPage() {
           </div>
         </Panel>
 
-        {/* ── II · ŁUK TRANSFORMACJI ───────────────────────── */}
+        {/* ── II · ROK W JEDNYM OKRĘGU ─────────────────────── */}
         <Panel
           num={2}
+          eyebrow="365 dni jednym spojrzeniem"
+          title="Rok w jednym okręgu"
+          note="każdy promień to jeden dzień — im dłuższy i ciemniejszy, tym pełniejszy zapis."
+        >
+          <div className="mt-8 print:break-inside-avoid">
+            <YearRosette logs={logs} interactive={false} />
+          </div>
+        </Panel>
+
+        {/* ── III · ŁUK TRANSFORMACJI ──────────────────────── */}
+        <Panel
+          num={3}
           eyebrow="XP miesiąc po miesiącu"
           title="Łuk transformacji"
           note="od kwietnia do kwietnia — łuk dopiero się rysuje."
@@ -627,8 +640,8 @@ export default function ReportPage() {
           </div>
         </Panel>
 
-        {/* ── III · SIEDEM FILARÓW ─────────────────────────── */}
-        <Panel num={3} eyebrow="Gdzie kierowałaś energię" title="Siedem filarów">
+        {/* ── IV · SIEDEM FILARÓW ──────────────────────────── */}
+        <Panel num={4} eyebrow="Gdzie kierowałaś energię" title="Siedem filarów">
           {/* Spectrum bar */}
           <div className="flex h-[46px] mt-8 border border-hairline overflow-hidden">
             {pillarData.map((p, i) => (
