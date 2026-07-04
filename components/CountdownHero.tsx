@@ -1,4 +1,5 @@
 'use client'
+import { useMemo } from 'react'
 import {
   getDaysRemaining,
   getDaysElapsed,
@@ -17,8 +18,15 @@ import { toRoman } from '@/lib/romanNumerals'
 
 const PROJECT_TOTAL = 365
 
-// Roman numerals I..XII for the year bar (project months 1..12 = April..March)
+// Roman numerals I..XII for the year ring (project months 1..12 = April..March)
 const MONTH_ROMANS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
+
+// Skumulowane początki miesięcy projektu w dniach (kwi 2026 → mar 2027):
+// 30+31+30+31+31+30+31+30+31+31+28+31 = 365.
+const MONTH_STARTS = [0, 30, 61, 91, 122, 153, 183, 214, 244, 275, 306, 334]
+
+// Geometria pierścienia roku (viewBox 240×240, środek 120).
+const RING_C = 120
 
 function pad3(n: number): string {
   return n < 1000 ? n.toString().padStart(3, '0') : n.toString()
@@ -53,6 +61,36 @@ export default function CountdownHero() {
   const fullSegs = Math.floor(totalSegProgress)
   const partialFrac = Math.min(1, Math.max(0, totalSegProgress - fullSegs))
 
+  // Pierścień roku: 365 kresek jak grawer zegarka kieszonkowego — dni minione
+  // w pełnym złocie, przyszłe wygaszone, granice miesięcy dłuższymi tikami.
+  // Statyczny SVG (zero animacji), aria-hidden — treść niesie tekst w środku.
+  const ring = useMemo(() => {
+    const dayIdx = Math.min(PROJECT_TOTAL, Math.max(0, daysElapsed))
+    const ticks: { x1: number; y1: number; x2: number; y2: number; w: number; o: number }[] = []
+    const starts = new Set(MONTH_STARTS)
+    for (let i = 0; i < PROJECT_TOTAL; i++) {
+      const a = (i / PROJECT_TOTAL) * Math.PI * 2 - Math.PI / 2
+      const isBoundary = starts.has(i)
+      const done = i < dayIdx
+      const r1 = isBoundary ? 90 : done ? 95 : 98
+      const r2 = 103
+      ticks.push({
+        x1: RING_C + Math.cos(a) * r1,
+        y1: RING_C + Math.sin(a) * r1,
+        x2: RING_C + Math.cos(a) * r2,
+        y2: RING_C + Math.sin(a) * r2,
+        w: isBoundary ? 1.1 : 1,
+        o: done ? 0.95 : isBoundary ? 0.5 : 0.22,
+      })
+    }
+    const ma = ((Math.max(0.5, dayIdx - 0.5)) / PROJECT_TOTAL) * Math.PI * 2 - Math.PI / 2
+    return {
+      ticks,
+      dayIdx,
+      marker: { x: RING_C + Math.cos(ma) * 99, y: RING_C + Math.sin(ma) * 99 },
+    }
+  }, [daysElapsed])
+
   return (
     <div className="relative bg-dark text-ivory mb-6 border border-gold-light/30 grain-linen">
       {/* Corner brackets — only top-left + bottom-right */}
@@ -60,70 +98,79 @@ export default function CountdownHero() {
       <span className="pointer-events-none absolute bottom-2 right-2 w-2 h-2 border-b border-r border-gold" />
 
       <div className="relative px-6 py-5 sm:px-8 sm:py-6">
-        {/* Centered title block */}
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2.5">
-            <span className="h-px w-4 bg-gold/50" />
-            <span className="font-ui uppercase text-gold text-[10px] tracking-[0.42em]">
-              Day {toRoman(daysElapsed)}
-            </span>
-            <span className="h-px w-4 bg-gold/50" />
-          </div>
-          <div className="font-display text-[42px] sm:text-[48px] leading-[0.9] text-gold-pale mt-1.5 tracking-tight">
-            {pad3(daysElapsed)}
-          </div>
-          <div className="mt-1 inline-flex items-center gap-2 font-serif-body italic text-gold-light text-[11px]">
-            <span className="h-px w-3 bg-gold/40" />
-            of {toRoman(PROJECT_TOTAL)}
-            <span className="h-px w-3 bg-gold/40" />
-          </div>
-          <div className="font-ui uppercase tracking-[0.3em] text-[8px] text-parchment/80 mt-1.5">
-            project progress{' '}
-            <strong className="font-display italic text-gold text-[12px] tracking-normal normal-case">
-              {projectProgress}%
-            </strong>{' '}
-            ·{' '}
-            <strong className="font-display italic text-gold text-[12px] tracking-normal normal-case">
-              {daysLeft}
-            </strong>{' '}
-            days remaining
+        {/* Year ring — 365 kresek wokół liczby dnia (tarcza zegarka kieszonkowego) */}
+        <div className="relative w-[212px] h-[212px] sm:w-[232px] sm:h-[232px] mx-auto">
+          <svg viewBox="0 0 240 240" className="absolute inset-0 w-full h-full" aria-hidden>
+            {ring.ticks.map((t, i) => (
+              <line
+                key={i}
+                x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+                stroke="#B29355" strokeWidth={t.w} opacity={t.o}
+              />
+            ))}
+            {/* Rzymskie numery miesięcy przy granicach */}
+            {MONTH_ROMANS.map((roman, m) => {
+              const start = MONTH_STARTS[m]
+              const end = m < 11 ? MONTH_STARTS[m + 1] : PROJECT_TOTAL
+              const a = (((start + end) / 2) / PROJECT_TOTAL) * Math.PI * 2 - Math.PI / 2
+              return (
+                <text
+                  key={roman}
+                  x={RING_C + Math.cos(a) * 112.5}
+                  y={RING_C + Math.sin(a) * 112.5}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="7.5"
+                  letterSpacing="0.08em"
+                  className="font-ui"
+                  fill={m === projectMonth ? '#B29355' : '#E7DFD0'}
+                  opacity={m === projectMonth ? 1 : 0.5}
+                >
+                  {roman}
+                </text>
+              )
+            })}
+            {/* Marker dnia — złoty romb z ciemnym rantem, jak dawny marker paska */}
+            {ring.dayIdx > 0 && (
+              <rect
+                x={-3.2} y={-3.2} width={6.4} height={6.4}
+                transform={`translate(${ring.marker.x} ${ring.marker.y}) rotate(45)`}
+                fill="#B29355" stroke="#1D231F" strokeWidth={1.2}
+              />
+            )}
+          </svg>
+
+          {/* Centrum tarczy */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <div className="inline-flex items-center gap-2.5">
+              <span className="h-px w-4 bg-gold/50" />
+              <span className="font-ui uppercase text-gold text-[10px] tracking-[0.42em]">
+                Day {toRoman(daysElapsed)}
+              </span>
+              <span className="h-px w-4 bg-gold/50" />
+            </div>
+            <div className="font-display text-[42px] sm:text-[48px] leading-[0.9] text-gold-pale mt-1.5 tracking-tight">
+              {pad3(daysElapsed)}
+            </div>
+            <div className="mt-1 inline-flex items-center gap-2 font-serif-body italic text-gold-light text-[11px]">
+              <span className="h-px w-3 bg-gold/40" />
+              of {toRoman(PROJECT_TOTAL)}
+              <span className="h-px w-3 bg-gold/40" />
+            </div>
           </div>
         </div>
 
-        {/* Year bar with month ticks */}
-        <div className="relative mt-3 pt-2.5 pb-3">
-          {/* Track */}
-          <div className="relative h-px bg-gold/30">
-            <div
-              className="absolute left-0 -top-px h-[3px] bg-gold transition-all duration-700"
-              style={{ width: `${projectProgress}%` }}
-            />
-            {/* Marker — gold diamond */}
-            <span
-              className="absolute top-1/2 w-[6px] h-[6px] bg-gold rotate-45 ring-2 ring-dark"
-              style={{ left: `${projectProgress}%`, transform: 'translate(-50%, -50%) rotate(45deg)' }}
-            />
-            {/* 12 month dividers (vertical short ticks) */}
-            <div className="absolute inset-x-0 -top-1 grid grid-cols-12">
-              {MONTH_ROMANS.map((_, i) => (
-                <span
-                  key={i}
-                  className={`h-1 ${i === 0 ? '' : 'border-l border-gold/25'}`}
-                />
-              ))}
-            </div>
-          </div>
-          {/* Month labels */}
-          <div className="grid grid-cols-12 mt-1 font-ui uppercase tracking-[0.18em] text-[7px]">
-            {MONTH_ROMANS.map((roman, i) => (
-              <span
-                key={i}
-                className={`pl-0.5 text-left ${i === projectMonth ? 'text-gold' : 'text-parchment/60'}`}
-              >
-                {i === projectMonth ? `M ${roman}` : roman}
-              </span>
-            ))}
-          </div>
+        {/* Progress line — pod pierścieniem (w środku by się nie zmieściła) */}
+        <div className="text-center font-ui uppercase tracking-[0.3em] text-[8px] text-parchment/80 mt-2">
+          project progress{' '}
+          <strong className="font-display italic text-gold text-[12px] tracking-normal normal-case">
+            {projectProgress}%
+          </strong>{' '}
+          ·{' '}
+          <strong className="font-display italic text-gold text-[12px] tracking-normal normal-case">
+            {daysLeft}
+          </strong>{' '}
+          days remaining
         </div>
 
         {/* Level row */}

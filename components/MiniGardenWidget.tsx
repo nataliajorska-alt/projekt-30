@@ -6,8 +6,8 @@ import {
   getGardenStage,
   getStageProgress,
 } from '@/lib/gameLogic'
-import { Diamond, SmallCaps } from '@/components/ui'
 import { toRoman } from '@/lib/romanNumerals'
+import GardenArt from '@/components/GardenArt'
 
 export default function MiniGardenWidget() {
   const { stats, loading } = useGameData()
@@ -22,6 +22,7 @@ export default function MiniGardenWidget() {
   const lvl = getLevelFromXP(totalXP)
   const stage = getGardenStage(lvl.level)
   const pct = getStageProgress(totalXP)
+  const levelStage = Math.floor((lvl.level - 1) / 3)
 
   return (
     <Link
@@ -29,10 +30,8 @@ export default function MiniGardenWidget() {
       className="flex items-center gap-2.5 border border-border/70 hover:border-gold px-3 py-2 transition-colors"
       aria-label={`Poziom ${lvl.level}, ${stage.stageName}. Otwórz drzewko.`}
     >
-      <span
-        className="flex-shrink-0 w-[26px] h-[26px] bg-cream-warm flex items-center justify-center text-[14px] leading-none text-rose"
-      >
-        ✿
+      <span className="flex-shrink-0 w-[30px] h-[30px] bg-cream-warm flex items-end justify-center overflow-hidden">
+        <GardenArt levelStage={levelStage} viewBox="25 5 110 140" className="w-full h-full" />
       </span>
       <span className="flex-1 min-w-0 leading-tight">
         <span

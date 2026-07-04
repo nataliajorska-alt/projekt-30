@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { getRandomSideQuest, countSideQuests, type QuestScale } from '@/lib/questData'
@@ -152,17 +152,21 @@ export default function SideQuestPicker() {
   const { markDone, unmarkDone } = useEverCompletedSideQuests()
   const [activeQuest, setActiveQuest] = useState<Quest | null>(null)
   const [completed, setCompleted] = useState(false)
+  const [drawing, setDrawing] = useState(false)
+  const drawTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [filterPillar, setFilterPillar] = useState<Pillar | null>(null)
   const [filterScale, setFilterScale] = useState<QuestScale>('all')
 
+  useEffect(() => () => { if (drawTimer.current) clearTimeout(drawTimer.current) }, [])
+
   const noFilter = filterPillar === null && filterScale === 'all'
 
-  const roll = () => {
+  const pickQuest = (): Quest | null => {
     // Poczekaj aż wczytają się ukryte questy — inaczej w pierwszych ~chwilach po
     // wejściu hiddenSideQuests jest jeszcze [] i mogłoby wpaść ukryte do losowania.
-    if (hiddenLoading) return
+    if (hiddenLoading) return null
     const alreadyDone = todayLog?.completedSideQuests ?? []
 
     // Własne questy z biblioteki dorzucamy tylko gdy nie ma aktywnego filtra
@@ -180,17 +184,33 @@ export default function SideQuestPicker() {
       }))
       const available = customAsQuests.filter(q => !alreadyDone.includes(q.id))
       if (available.length > 0 && Math.random() < 0.3) {
-        setActiveQuest(available[Math.floor(Math.random() * available.length)])
-        setCompleted(false)
-        return
+        return available[Math.floor(Math.random() * available.length)]
       }
     }
 
-    const quest = getRandomSideQuest(alreadyDone, { pillar: filterPillar, scale: filterScale, hiddenIds: hiddenSideQuests })
-    if (quest) {
+    return getRandomSideQuest(alreadyDone, { pillar: filterPillar, scale: filterScale, hiddenIds: hiddenSideQuests })
+  }
+
+  const roll = () => {
+    const quest = pickQuest()
+    if (!quest) return
+    // Ceremonia dobrania karty (~0,9 s). Globalny prefers-reduced-motion spłaszcza
+    // same animacje, ale timer trzeba pominąć ręcznie — quest ma się pojawić od razu.
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduced) {
       setActiveQuest(quest)
       setCompleted(false)
+      return
     }
+    setDrawing(true)
+    if (drawTimer.current) clearTimeout(drawTimer.current)
+    drawTimer.current = setTimeout(() => {
+      setActiveQuest(quest)
+      setCompleted(false)
+      setDrawing(false)
+    }, 900)
   }
 
   const handleComplete = async () => {
@@ -259,7 +279,29 @@ export default function SideQuestPicker() {
         )}
 
         {/* Roll trigger */}
-        {!activeQuest ? (
+        {drawing ? (
+          /* Ceremonia: wachlarz trzech rewersów tasuje się, po ~0,9 s środkowa karta
+             odsłania quest (flip-in na karcie poniżej). */
+          <div className="border border-dashed border-hairline px-6 py-8 text-center" aria-live="polite">
+            <div className="flex items-end justify-center gap-2 mb-4" aria-hidden>
+              {[-1, 0, 1].map(pos => (
+                <div
+                  key={pos}
+                  className="w-14 h-20 bg-ivory border border-gold-light/60 flex items-center justify-center animate-shuffle"
+                  style={{
+                    transform: `rotate(${pos * 7}deg) translateY(${Math.abs(pos) * 4}px)`,
+                    animationDelay: `${(pos + 1) * 110}ms`,
+                  }}
+                >
+                  <span className="border border-hairline/70 w-10 h-16 flex items-center justify-center">
+                    <Fleuron size={11} className="text-gold" />
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="font-serif-body italic text-muted text-[13px]">los wybiera…</p>
+          </div>
+        ) : !activeQuest ? (
           <div className="border border-dashed border-hairline px-6 py-8 text-center">
             <Fleuron size={12} className="text-gold-deep mx-auto mb-3 inline-block" />
             <p className="font-serif-body italic text-muted text-[14px] mb-2">
@@ -356,7 +398,7 @@ export default function SideQuestPicker() {
         ) : (
           <div
             className={clsx(
-              'border p-5 transition-all',
+              'border p-5 transition-all animate-flip-in',
               completed ? 'border-gold bg-gold-pale/40' : 'border-hairline bg-cream/30'
             )}
           >

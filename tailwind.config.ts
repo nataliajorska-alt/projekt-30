@@ -52,6 +52,10 @@ const config: Config = {
         'sparkle-float': 'sparkleFloat 1.8s ease-out forwards',
         'achievement-enter': 'achievementEnter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
         'icon-float': 'iconFloat 2.5s ease-in-out infinite',
+        bloom: 'bloom 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        draw: 'draw 1.2s ease-out forwards',
+        'flip-in': 'flipIn 0.45s ease-out both',
+        shuffle: 'shuffle 0.45s ease-in-out 2',
       },
       keyframes: {
         fadeIn: {
@@ -74,6 +78,27 @@ const config: Config = {
         iconFloat: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%':      { transform: 'translateY(-7px)' },
+        },
+        // Rombowy checkbox „rozkwita" przy odhaczeniu — rotate(45deg) trzeba
+        // powtórzyć w każdej klatce, bo animacja nadpisuje transform z klasy rotate-45.
+        bloom: {
+          '0%':   { transform: 'rotate(45deg) scale(0.4)' },
+          '60%':  { transform: 'rotate(45deg) scale(1.25)' },
+          '100%': { transform: 'rotate(45deg) scale(1)' },
+        },
+        // Kreślenie ścieżki SVG „stalówką" — wymaga pathLength={1} i strokeDasharray 1.
+        draw: {
+          '0%':   { strokeDashoffset: '1' },
+          '100%': { strokeDashoffset: '0' },
+        },
+        flipIn: {
+          '0%':   { transform: 'perspective(700px) rotateY(88deg)', opacity: '0' },
+          '100%': { transform: 'perspective(700px) rotateY(0deg)', opacity: '1' },
+        },
+        shuffle: {
+          '0%, 100%': { transform: 'translateX(0) rotate(0deg)' },
+          '30%':      { transform: 'translateX(-7px) rotate(-2.5deg)' },
+          '70%':      { transform: 'translateX(7px) rotate(2.5deg)' },
         },
       },
     },

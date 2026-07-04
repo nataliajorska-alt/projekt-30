@@ -1,5 +1,6 @@
 'use client'
 import { useMemo, useState } from 'react'
+import clsx from 'clsx'
 import type { DailyLog } from '@/types'
 import { getISOWeekKey, PROJECT_START, PROJECT_END, getEffectiveNow } from '@/lib/gameLogic'
 import { aggregateXpByWeek } from '@/lib/analytics'
@@ -27,7 +28,8 @@ function getAllWeekKeysInRange(start: Date, end: Date): string[] {
 }
 
 export default function WeeklyXPChart({ logs }: Props) {
-  const [tip, setTip] = useState<{ x: number; y: number; idx: number } | null>(null)
+  // Tap-to-read zamiast hover-tooltipa (hover nie istnieje na telefonie).
+  const [selected, setSelected] = useState<number | null>(null)
 
   const data = useMemo(() => {
     const agg = aggregateXpByWeek(logs)
@@ -78,13 +80,17 @@ export default function WeeklyXPChart({ logs }: Props) {
           const isCurrent = row.weekKey === data.currentWeek
           const isFuture = row.totalXP === 0
           const isPeak = idx === data.peakIdx
+          const isSelected = selected === idx
           return (
             <div
               key={row.weekKey}
-              onMouseEnter={e => !isFuture && setTip({ x: e.clientX, y: e.clientY, idx })}
-              onMouseMove={e => setTip(t => (t ? { ...t, x: e.clientX, y: e.clientY } : t))}
-              onMouseLeave={() => setTip(null)}
-              className="relative flex-1 min-w-[5px] h-full flex flex-col justify-end items-center cursor-default"
+              onClick={() => !isFuture && setSelected(s => (s === idx ? null : idx))}
+              role={isFuture ? undefined : 'button'}
+              aria-label={isFuture ? undefined : `Tydzień ${row.weekKey.split('-W')[1]}: ${row.totalXP} XP, ${row.activeDays} dni`}
+              className={clsx(
+                'relative flex-1 min-w-[5px] h-full flex flex-col justify-end items-center',
+                isFuture ? 'cursor-default' : 'cursor-pointer'
+              )}
             >
               {isPeak && row.totalXP > 0 && (
                 <span className="absolute -top-[18px] left-1/2 -translate-x-1/2 font-display italic text-[12px] text-gold-deep whitespace-nowrap">
@@ -95,9 +101,9 @@ export default function WeeklyXPChart({ logs }: Props) {
                 className="w-full transition-all"
                 style={{
                   height: `${h}px`,
-                  backgroundColor: isCurrent ? '#b29355' : isFuture ? 'transparent' : '#b7a787',
+                  backgroundColor: isSelected ? '#8e7338' : isCurrent ? '#b29355' : isFuture ? 'transparent' : '#b7a787',
                   borderTop: isFuture ? '1px dashed #d9cda8' : 'none',
-                  opacity: isFuture ? 1 : isCurrent ? 1 : 0.55,
+                  opacity: isFuture ? 1 : isCurrent || isSelected ? 1 : 0.55,
                 }}
               />
             </div>
@@ -111,20 +117,24 @@ export default function WeeklyXPChart({ logs }: Props) {
         ))}
       </div>
 
-      {/* Floating tooltip */}
-      {tip && (
-        <div
-          className="fixed z-50 pointer-events-none bg-dark border border-gold px-3 py-2"
-          style={{ left: tip.x, top: tip.y, transform: 'translate(-50%, calc(-100% - 12px))' }}
-        >
-          <div className="font-serif-body italic text-[13px] text-gold-pale whitespace-nowrap">
-            Tydzień {data.rows[tip.idx].weekKey.split('-W')[1]} · {data.rows[tip.idx].activeDays} dni
+      {/* Wiersz księgi — odczyt wybranego tygodnia */}
+      <div className="min-h-[36px] mt-3 pt-2.5 border-t border-border/60 flex items-center">
+        {selected !== null && data.rows[selected] ? (
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <span className="font-serif-body italic text-dark text-[13.5px]">
+              Tydzień {data.rows[selected].weekKey.split('-W')[1]} · {data.rows[selected].activeDays}{' '}
+              {data.rows[selected].activeDays === 1 ? 'dzień' : 'dni'} z logiem
+            </span>
+            <span className="font-display text-gold-deep text-[15px]">
+              {data.rows[selected].totalXP.toLocaleString('pl-PL')} XP
+            </span>
           </div>
-          <div className="font-display text-[14px] text-gold-light mt-0.5">
-            {data.rows[tip.idx].totalXP.toLocaleString('pl-PL')} XP
-          </div>
-        </div>
-      )}
+        ) : (
+          <p className="font-serif-body italic text-muted-light text-[12.5px]">
+            dotknij słupka, by odczytać tydzień
+          </p>
+        )}
+      </div>
     </div>
   )
 }

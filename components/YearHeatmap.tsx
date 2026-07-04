@@ -40,9 +40,11 @@ function sundayOnOrAfter(d: Date): Date {
 }
 
 export default function YearHeatmap({ logs }: Props) {
-  const [tip, setTip] = useState<{ x: number; y: number; date: string; xp: number } | null>(null)
+  // Tap-to-read zamiast hover-tooltipa: na telefonie hover nie istnieje,
+  // więc wybrany dzień pokazujemy w stałym „wierszu księgi" pod siatką.
+  const [selected, setSelected] = useState<{ date: string; xp: number; moment?: string } | null>(null)
 
-  const { weeks, monthLabels, bestDate, activeDays, projectDays } = useMemo(() => {
+  const { weeks, monthLabels, bestDate, activeDays, projectDays, keyMoments } = useMemo(() => {
     const gridStart = mondayOnOrBefore(PROJECT_START)
     const gridEnd = sundayOnOrAfter(PROJECT_END)
     const weeks: Array<Array<Date>> = []
@@ -71,6 +73,7 @@ export default function YearHeatmap({ logs }: Props) {
     let bestDate: string | null = null
     let bestXp = 0
     let activeDays = 0
+    const keyMoments: Record<string, string> = {}
     for (const [k, log] of Object.entries(logs)) {
       const xp = log.totalXP ?? 0
       if (xp > 0) activeDays += 1
@@ -78,12 +81,13 @@ export default function YearHeatmap({ logs }: Props) {
         bestXp = xp
         bestDate = k
       }
+      if (log.keyMoment?.title) keyMoments[k] = log.keyMoment.title
     }
 
     // Full project length in days (inclusive).
     const projectDays = Math.round((PROJECT_END.getTime() - PROJECT_START.getTime()) / 86400000) + 1
 
-    return { weeks, monthLabels, bestDate, activeDays, projectDays }
+    return { weeks, monthLabels, bestDate, activeDays, projectDays, keyMoments }
   }, [logs])
 
   const todayStr = dateKey(getEffectiveNow())
@@ -159,18 +163,20 @@ export default function YearHeatmap({ logs }: Props) {
                   )
                 }
 
-                // Ring (box-shadow) priority: today (rust) > best (gold).
+                const moment = keyMoments[key]
+                const isSelected = selected?.date === key
+
+                // Ring (box-shadow) priority: today (rust) > best (gold) > selected (gold-deep).
                 // Normal cells leave boxShadow unset so the Tailwind hover ring can apply.
                 let boxShadow: string | undefined
                 if (isToday) boxShadow = `0 0 0 1px ${PAPER_SOFT}, 0 0 0 2px #8a3a2c`
                 else if (isBest) boxShadow = `0 0 0 1px ${PAPER_SOFT}, 0 0 0 2px #b29355`
+                else if (isSelected) boxShadow = `0 0 0 1px ${PAPER_SOFT}, 0 0 0 2px #8e7338`
 
                 return (
                   <div
                     key={dIdx}
-                    onMouseEnter={e => setTip({ x: e.clientX, y: e.clientY, date: key, xp })}
-                    onMouseMove={e => setTip(t => (t ? { ...t, x: e.clientX, y: e.clientY } : t))}
-                    onMouseLeave={() => setTip(null)}
+                    onClick={() => setSelected(s => (s?.date === key ? null : { date: key, xp, moment }))}
                     className="relative w-[13px] h-[13px] sm:w-[14px] sm:h-[14px] cursor-pointer transition-shadow hover:z-10 hover:shadow-[0_0_0_1px_#f8f3e6,0_0_0_2px_#8e7338]"
                     style={{
                       backgroundColor: isFuture ? 'transparent' : HEAT[levelForXp(xp)],
@@ -178,8 +184,17 @@ export default function YearHeatmap({ logs }: Props) {
                       boxShadow,
                       boxSizing: 'border-box',
                     }}
-                    aria-label={`${key}: ${xp} XP`}
-                  />
+                    role="button"
+                    aria-label={`${key}: ${xp} XP${moment ? ` · ${moment}` : ''}`}
+                  >
+                    {moment && (
+                      <span
+                        aria-hidden
+                        className="absolute inset-0 m-auto w-[5px] h-[5px] rotate-45 pointer-events-none"
+                        style={{ backgroundColor: PAPER_SOFT, outline: '1px solid #826933' }}
+                      />
+                    )}
+                  </div>
                 )
               })}
             </div>
@@ -187,14 +202,48 @@ export default function YearHeatmap({ logs }: Props) {
         </div>
       </div>
 
+      {/* Wiersz księgi — odczyt wybranego dnia (min-h rezerwuje miejsce, brak skoku layoutu) */}
+      <div className="min-h-[44px] mt-4 pt-3 border-t border-border/60 flex items-center">
+        {selected ? (
+          <div className="flex items-baseline gap-3 flex-wrap w-full">
+            <span className="font-serif-body italic text-dark text-[13.5px]">
+              {formatTipDate(selected.date)}
+            </span>
+            <span className="font-display text-gold-deep text-[15px]">
+              {selected.xp.toLocaleString('pl-PL')} XP
+            </span>
+            {selected.moment && (
+              <span className="inline-flex items-baseline gap-1.5 min-w-0">
+                <span aria-hidden className="self-center w-[5px] h-[5px] rotate-45 shrink-0 bg-gold-deep" />
+                <span className="font-serif-body italic text-gold-deep text-[13.5px]">
+                  {selected.moment}
+                </span>
+              </span>
+            )}
+          </div>
+        ) : (
+          <p className="font-serif-body italic text-muted-light text-[12.5px]">
+            dotknij dnia, by go odczytać
+          </p>
+        )}
+      </div>
+
       {/* Footer: legend + tally */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mt-6 pt-5 border-t border-border">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 mt-2 pt-5 border-t border-border">
+        <div className="flex flex-wrap items-center gap-2">
           <SmallCaps tone="muted" tracking="luxury" size="xs">Mniej</SmallCaps>
           {HEAT.map((c, i) => (
             <div key={i} className="w-[13px] h-[13px]" style={{ backgroundColor: c }} />
           ))}
           <SmallCaps tone="muted" tracking="luxury" size="xs">Więcej</SmallCaps>
+          <span className="inline-flex items-center gap-1.5 ml-3">
+            <span
+              aria-hidden
+              className="w-[5px] h-[5px] rotate-45"
+              style={{ backgroundColor: PAPER_SOFT, outline: '1px solid #826933' }}
+            />
+            <SmallCaps tone="muted" tracking="luxury" size="xs">kluczowy moment</SmallCaps>
+          </span>
         </div>
         <p className="font-serif-body italic text-muted text-[13px] whitespace-nowrap">
           <b className="font-display not-italic text-gold-deep text-[15px] px-0.5">{activeDays}</b>{' '}
@@ -202,21 +251,6 @@ export default function YearHeatmap({ logs }: Props) {
           <b className="font-display not-italic text-gold-deep text-[15px] px-0.5">{projectDays}</b>
         </p>
       </div>
-
-      {/* Floating tooltip */}
-      {tip && (
-        <div
-          className="fixed z-50 pointer-events-none bg-dark border border-gold px-3 py-2"
-          style={{ left: tip.x, top: tip.y, transform: 'translate(-50%, calc(-100% - 12px))' }}
-        >
-          <div className="font-serif-body italic text-[13px] text-gold-pale whitespace-nowrap">
-            {formatTipDate(tip.date)}
-          </div>
-          <div className="font-display text-[14px] text-gold-light mt-0.5">
-            {tip.xp.toLocaleString('pl-PL')} XP
-          </div>
-        </div>
-      )}
     </div>
   )
 }

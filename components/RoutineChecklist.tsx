@@ -16,7 +16,7 @@ import { MINIMUM_DAY_REASONS } from '@/types'
 import { BatteryLow, ChevronDown, Check } from 'lucide-react'
 import MinimumDayModal from '@/components/MinimumDayModal'
 import DeskTimer from '@/components/DeskTimer'
-import { SmallCaps, Fleuron, RomanNumeral } from '@/components/ui'
+import { SmallCaps, RomanNumeral } from '@/components/ui'
 import { toRoman } from '@/lib/romanNumerals'
 import type { MinimumDayReason, RoutineItem } from '@/types'
 
@@ -46,14 +46,27 @@ function getDefaultTab(): Tab {
 }
 
 /* ── Rotated-square check (matches design .check) ──────────────────── */
-function CheckSquare({ done, accent }: { done: boolean; accent: 'gold' | 'forest' }) {
+function CheckSquare({
+  done,
+  accent,
+  bloom,
+  onBloomEnd,
+}: {
+  done: boolean
+  accent: 'gold' | 'forest'
+  /** Jednorazowy „rozkwit" tuż po odhaczeniu (keyframe bloom zachowuje rotate-45). */
+  bloom?: boolean
+  onBloomEnd?: () => void
+}) {
   return (
     <span
+      onAnimationEnd={bloom ? onBloomEnd : undefined}
       className={clsx(
         'inline-block w-[14px] h-[14px] rotate-45 border shrink-0 transition-colors',
         accent === 'gold'
           ? done ? 'bg-gold border-gold' : 'border-gold/70'
           : done ? 'bg-forest border-forest' : 'border-forest/70',
+        bloom && done && 'animate-bloom',
       )}
     />
   )
@@ -74,6 +87,7 @@ interface ItemRowProps {
 function ItemRow({ item, done, isMinimum, isOptional, onToggle, inlineExtra, onPostpone }: ItemRowProps) {
   const accent = isMinimum ? 'forest' : 'gold'
   const xp = isMinimum ? item.xp * 2 : item.xp
+  const [bloom, setBloom] = useState(false)
   return (
     <div
       className={clsx(
@@ -83,12 +97,15 @@ function ItemRow({ item, done, isMinimum, isOptional, onToggle, inlineExtra, onP
       )}
     >
       <button
-        onClick={onToggle}
+        onClick={() => {
+          if (!done) setBloom(true)
+          onToggle()
+        }}
         role="checkbox"
         aria-checked={done}
         className="flex items-center gap-3.5 flex-1 min-w-0 text-left group hover:opacity-95"
       >
-        <CheckSquare done={done} accent={accent} />
+        <CheckSquare done={done} accent={accent} bloom={bloom} onBloomEnd={() => setBloom(false)} />
         <span
           className={clsx(
             'font-serif-body text-[15px] leading-snug flex-1',
@@ -317,6 +334,7 @@ export default function RoutineChecklist() {
     morning: false, daily: false, evening: false,
   })
   const prevProgressByTab = useRef<Partial<Record<Tab, number>>>({})
+  const [sparks, setSparks] = useState(false)
 
   const isMinimum = (todayLog?.dayMode ?? 'normal') === 'minimum'
   const minimumReason = todayLog?.minimumReason
@@ -368,11 +386,16 @@ export default function RoutineChecklist() {
   useEffect(() => {
     const prev = prevProgressByTab.current[tab] ?? 0
     if (prev < 100 && progress === 100) {
+      // Złote iskry na końcu paska — sparkle-float jest 'forwards', więc znikają same;
+      // po 2 s zdejmujemy je z DOM (reduced-motion spłaszcza animację do 1 klatki).
+      setSparks(true)
+      const s = setTimeout(() => setSparks(false), 2000)
       const next = getNextTab(tab)
       if (next) {
         const t = setTimeout(() => setTab(next), 1500)
-        return () => clearTimeout(t)
+        return () => { clearTimeout(t); clearTimeout(s) }
       }
+      return () => clearTimeout(s)
     }
     prevProgressByTab.current[tab] = progress
   }, [progress, tab])
@@ -460,6 +483,17 @@ export default function RoutineChecklist() {
               )}
               style={{ left: `${progress}%`, transform: 'translate(-50%, -50%) rotate(45deg)' }}
             />
+          )}
+          {sparks && (
+            <span aria-hidden className="absolute right-0 top-0 pointer-events-none">
+              {[0, 1, 2].map(i => (
+                <span
+                  key={i}
+                  className={clsx('absolute w-[5px] h-[5px] rotate-45 animate-sparkle-float', accentLine)}
+                  style={{ right: `${i * 14}px`, top: '-2px', animationDelay: `${i * 160}ms` }}
+                />
+              ))}
+            </span>
           )}
         </div>
 
@@ -632,14 +666,28 @@ export default function RoutineChecklist() {
 
         {/* Celebration */}
         {progress === 100 && (
-          <div className="mt-4 border border-gold-light/30 px-5 py-3 text-center">
-            <Fleuron
-              size={10}
-              className={clsx('inline-block mb-1', accentText)}
-            />
+          <div className="mt-4 border border-gold-light/30 px-5 py-3 text-center animate-slide-up">
+            <svg
+              viewBox="0 0 120 22"
+              className={clsx('inline-block w-[110px] h-[20px]', accentText)}
+              aria-hidden
+            >
+              {/* Dwie gałązki laurowe spotykające się na rombie — pathLength=1 + animate-draw */}
+              <path
+                d="M6,16 Q24,15 42,11 M13,15.5 Q11,11 7,9.5 M13,15.5 Q17,17.5 21,16.5 M23,14 Q21,9.5 17,8 M23,14 Q27,16 31,15 M33,12.5 Q31,8 27,6.5 M33,12.5 Q37,14.5 41,13.5"
+                fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"
+                pathLength={1} strokeDasharray="1" className="animate-draw"
+              />
+              <path
+                d="M114,16 Q96,15 78,11 M107,15.5 Q109,11 113,9.5 M107,15.5 Q103,17.5 99,16.5 M97,14 Q99,9.5 103,8 M97,14 Q93,16 89,15 M87,12.5 Q89,8 93,6.5 M87,12.5 Q83,14.5 79,13.5"
+                fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"
+                pathLength={1} strokeDasharray="1" className="animate-draw"
+              />
+              <rect x="57" y="8" width="6" height="6" transform="rotate(45 60 11)" fill="currentColor" />
+            </svg>
             <p
               className={clsx(
-                'font-serif-body italic text-[14px] leading-snug',
+                'font-serif-body italic text-[14px] leading-snug mt-1',
                 isMinimum ? 'text-forest' : 'text-gold-deep'
               )}
             >
