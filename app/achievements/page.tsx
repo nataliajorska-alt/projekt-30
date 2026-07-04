@@ -28,25 +28,52 @@ function tierOf(xp: number): string {
 }
 const plNum = (n: number) => n.toLocaleString('pl-PL')
 
-// ── Pieczęć (złoty medalion z glifem) ────────────────────────────
-function Seal({ glyph, size = 58, locked = false }: { glyph: string; size?: number; locked?: boolean }) {
-  const dim = { width: size, height: size }
-  const fs = Math.round(size * 0.4)
-  if (locked) {
-    return (
-      <div className="relative shrink-0 rounded-full border border-dashed border-hairline flex items-center justify-center" style={dim}>
-        <span className="text-muted-light leading-none" style={{ fontSize: fs }}>{glyph}</span>
-      </div>
-    )
+// ── Pieczęć (karbowane insygnium SVG, metal tieru na obrzeżu) ────
+// Krawędź jak lak/moneta: 14 płatków po obwodzie. Tier wyrażony kolorem
+// rantu (dekoracja, nie tekst — kontrasty tokenów nietknięte); Legenda
+// dostaje złoty rant na podkładzie wine. Locked = „ślepy tłok": ta sama
+// forma wytłoczona bez koloru.
+const TIER_RIM: Record<string, string> = {
+  'Brąz':    '#8B6914',
+  'Srebro':  '#796B4B',
+  'Złoto':   '#B29355',
+  'Legenda': '#B29355',
+}
+
+const SEAL_EDGE = (() => {
+  const petals = 14, C = 24, R = 23, r = 20.6
+  const pt = (a: number, rad: number) => `${(C + Math.cos(a) * rad).toFixed(2)} ${(C + Math.sin(a) * rad).toFixed(2)}`
+  let d = ''
+  for (let i = 0; i < petals; i++) {
+    const a0 = (i / petals) * Math.PI * 2
+    const a1 = ((i + 0.5) / petals) * Math.PI * 2
+    const a2 = ((i + 1) / petals) * Math.PI * 2
+    if (i === 0) d = `M ${pt(a0, r)}`
+    d += ` Q ${pt(a1, R + 1.6)}, ${pt(a2, r)}`
   }
+  return d + ' Z'
+})()
+
+function Seal({ glyph, size = 58, locked = false, tier = 'Złoto' }: {
+  glyph: string; size?: number; locked?: boolean; tier?: string
+}) {
+  const legend = tier === 'Legenda' && !locked
+  const rim = locked ? '#D9CDA8' : TIER_RIM[tier] ?? '#B29355'
+  const fill = locked ? 'none' : legend ? '#8A3A2C' : '#F6F0DF'
+  const glyphColor = locked ? '#B7A787' : legend ? '#F3E9C8' : rim
   return (
-    <div
-      className="relative shrink-0 rounded-full border border-gold-light flex items-center justify-center"
-      style={{ ...dim, background: 'radial-gradient(circle at 50% 36%, #fbf7ec, #ece3cd)' }}
-    >
-      <span aria-hidden className="absolute rounded-full border border-gold/30" style={{ inset: Math.round(size * 0.086) }} />
-      <span className="text-gold-deep leading-none not-italic" style={{ fontSize: fs }}>{glyph}</span>
-    </div>
+    <svg viewBox="0 0 48 48" width={size} height={size} className="shrink-0" aria-hidden>
+      <path d={SEAL_EDGE} fill={fill} stroke={rim} strokeWidth={locked ? 1 : 1.2} />
+      <circle cx="24" cy="24" r="16.5" fill="none" stroke={legend ? '#B29355' : rim} strokeWidth={0.8} opacity={locked ? 0.55 : 0.75} />
+      <circle cx="24" cy="24" r="14" fill="none" stroke={legend ? '#B29355' : rim} strokeWidth={0.7} strokeDasharray="1.2 2.2" opacity={locked ? 0.45 : 0.65} />
+      <text
+        x="24" y="24.6"
+        textAnchor="middle" dominantBaseline="central"
+        fontSize="15" fill={glyphColor}
+      >
+        {glyph}
+      </text>
+    </svg>
   )
 }
 
@@ -76,7 +103,7 @@ function AchCard({ a, hidden }: { a: Achievement; hidden: boolean }) {
   return (
     <article className="relative bg-ivory border border-hairline p-6 flex gap-5 items-start hover:border-gold-light transition-colors">
       <Corners />
-      <Seal glyph={cat.glyph} />
+      <Seal glyph={cat.glyph} tier={tierOf(a.xpReward)} />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-3.5">
           <span className="inline-flex items-center gap-2 font-ui uppercase tracking-editorial text-[9px] text-gold-deep">
@@ -103,7 +130,7 @@ function ProgressCard({ a, stats }: { a: Achievement; stats: UserStats }) {
     <article className="relative md:col-span-2 bg-ivory border border-hairline p-6 flex flex-col">
       <Corners />
       <div className="flex gap-5 items-start w-full">
-        <Seal glyph={cat.glyph} locked />
+        <Seal glyph={cat.glyph} locked tier={tierOf(a.xpReward)} />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-3.5">
             <span className="inline-flex items-center gap-2 font-ui uppercase tracking-editorial text-[9px] text-muted">

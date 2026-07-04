@@ -13,6 +13,7 @@ import {
 } from '@/lib/vaultUnlock'
 import { getRandomPrompt } from '@/lib/vaultPrompts'
 import { SmallCaps, GoldRule, Fleuron, Diamond, CornerBrackets } from '@/components/ui'
+import WaxSeal from '@/components/WaxSeal'
 import { toRoman } from '@/lib/romanNumerals'
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -597,11 +598,31 @@ function LetterCard({ entry, allEntries, onOpen }: {
   const canOpen = status.unlocked || isVent
   const replyCount = entry.replies?.length ?? 0
   const mat = !status.unlocked && !isVent ? maturation(entry, status.nextUnlockDate) : null
+  const [cracking, setCracking] = useState(false)
+
+  // Rytuał łamania pieczęci: tylko przy PIERWSZYM otwarciu listu (localStorage),
+  // przy reduced-motion i kolejnych wejściach list otwiera się od razu.
+  const handleOpen = () => {
+    if (!canOpen || cracking) return
+    const storageKey = `vault_opened_${entry.id}`
+    let first = false
+    try {
+      first = !localStorage.getItem(storageKey)
+      if (first) localStorage.setItem(storageKey, '1')
+    } catch { /* prywatny tryb — po prostu bez rytuału */ }
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (first && !reduced) {
+      setCracking(true)
+      setTimeout(() => { onOpen(); setCracking(false) }, 620)
+    } else {
+      onOpen()
+    }
+  }
 
   return (
     <button
       type="button"
-      onClick={() => canOpen && onOpen()}
+      onClick={handleOpen}
       className={clsx(
         'relative w-full text-left bg-ivory border border-hairline pl-[27px] pr-8 py-6 block',
         canOpen ? 'cursor-pointer hover:border-gold-light transition-colors' : 'cursor-default'
@@ -612,13 +633,7 @@ function LetterCard({ entry, allEntries, onOpen }: {
 
       {/* Head: seal · id · day-badge */}
       <div className="flex items-center gap-4">
-        <span
-          className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center relative"
-          style={{ border: `1px solid ${cat.color}`, color: cat.color, background: 'radial-gradient(circle at 50% 42%, rgba(255,255,255,.55), transparent 70%)' }}
-        >
-          <span className="absolute inset-1 rounded-full border border-dotted opacity-55" style={{ borderColor: cat.color }} />
-          <span className="font-display italic font-medium text-[19px] leading-none">{cat.mono}</span>
-        </span>
+        <WaxSeal color={cat.color} monogram={cat.mono} size={46} breaking={cracking} />
         <div className="flex-1 min-w-0">
           <h3 className="font-display font-medium text-[20px] text-dark tracking-tight truncate">
             {isVent ? 'Vent' : entry.title || <span className="text-muted italic font-normal">List bez tytułu</span>}

@@ -7,6 +7,7 @@ import { useGameData } from '@/hooks/useGameData'
 import { Play, Pause, RotateCcw, ChevronLeft } from 'lucide-react'
 import { XP_VALUES } from '@/lib/gameLogic'
 import { RitualSurface, SmallCaps, GoldRule, Fleuron, Diamond } from '@/components/ui'
+import WaxSeal from '@/components/WaxSeal'
 import { toRoman } from '@/lib/romanNumerals'
 
 const ROSE = '#8f4d63'
@@ -182,10 +183,12 @@ export default function HeartBlockPage() {
         </header>
 
         {isComplete && (
-          <div className="mt-10 flex items-center justify-center gap-3 border border-gold-light/30 bg-forest/40 px-6 py-4">
-            <Diamond size={6} className="text-gold-light" />
+          <div className="mt-10 flex items-center justify-center gap-4 border border-gold-light/30 bg-forest/40 px-6 py-4">
+            {/* Pieczęć stempluje się przy pojawieniu banera (animate-stamp, jednorazowo);
+                ból dostaje ramę i zostaje zamknięty na tydzień. */}
+            <WaxSeal color={ROSE} monogram="N" size={38} className="animate-stamp" />
             <p className="font-serif-body italic text-parchment text-[14px] text-center">
-              ten tydzień jest zamknięty. możesz wracać i czytać, ale nie musisz.
+              ten tydzień jest zapieczętowany. możesz wracać i czytać, ale nie musisz.
             </p>
             <Diamond size={6} className="text-gold-light" />
           </div>
@@ -323,7 +326,7 @@ export default function HeartBlockPage() {
                   <div key={h.weekKey} className="border px-5 py-4" style={{ background: 'rgba(244,239,227,0.05)', borderColor: 'rgba(178,147,85,0.18)' }}>
                     <div className="flex items-center justify-between mb-2">
                       <SmallCaps tone="gold-light" tracking="luxury" size="xs">{h.weekKey}</SmallCaps>
-                      {h.completedAt && <Diamond size={6} className="text-gold" />}
+                      {h.completedAt && <WaxSeal color={ROSE} size={16} />}
                     </div>
                     {h.pain && (
                       <p className="font-serif-body italic text-[13px] leading-[1.75] line-clamp-3" style={{ color: '#b6ad8e' }}>{h.pain}</p>

@@ -56,6 +56,9 @@ const config: Config = {
         draw: 'draw 1.2s ease-out forwards',
         'flip-in': 'flipIn 0.45s ease-out both',
         shuffle: 'shuffle 0.45s ease-in-out 2',
+        'crack-left': 'crackLeft 0.55s ease-in forwards',
+        'crack-right': 'crackRight 0.55s ease-in forwards',
+        stamp: 'stamp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both',
       },
       keyframes: {
         fadeIn: {
@@ -99,6 +102,21 @@ const config: Config = {
           '0%, 100%': { transform: 'translateX(0) rotate(0deg)' },
           '30%':      { transform: 'translateX(-7px) rotate(-2.5deg)' },
           '70%':      { transform: 'translateX(7px) rotate(2.5deg)' },
+        },
+        // Pęknięcie pieczęci lakowej — połówki rozjeżdżają się i opadają.
+        crackLeft: {
+          '0%':   { transform: 'none', opacity: '1' },
+          '100%': { transform: 'translate(-7px, 10px) rotate(-14deg)', opacity: '0' },
+        },
+        crackRight: {
+          '0%':   { transform: 'none', opacity: '1' },
+          '100%': { transform: 'translate(7px, 11px) rotate(13deg)', opacity: '0' },
+        },
+        // Przystawienie pieczęci — opada i osiada z lekkim dociskiem.
+        stamp: {
+          '0%':   { transform: 'scale(1.45)', opacity: '0' },
+          '55%':  { transform: 'scale(0.94)', opacity: '1' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
         },
       },
     },
