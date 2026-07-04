@@ -27,20 +27,30 @@ function ScaleSelector({
         {label}
       </SmallCaps>
       <div className="flex gap-2">
+        {/* Skala jako wypełniane romby: 1..n pełne, wybrana wartość na ciemnym tle */}
         {[1, 2, 3, 4, 5].map((n) => {
           const sel = value === n
+          const filled = value !== null && n <= value
           return (
             <button
               key={n}
               onClick={() => onChange(n)}
-              className={`flex-1 h-11 border transition-all duration-150 flex items-center justify-center gap-1.5 ${
+              aria-label={`${label}: ${n} z 5`}
+              aria-pressed={sel}
+              className={`flex-1 h-11 border transition-all duration-150 flex flex-col items-center justify-center gap-1 ${
                 sel
-                  ? 'bg-dark-deep text-ivory border-gold'
-                  : 'border-hairline bg-cream/30 text-muted hover:border-gold-light hover:text-dark'
+                  ? 'bg-dark-deep border-gold'
+                  : 'border-hairline bg-cream/30 hover:border-gold-light'
               }`}
             >
-              {sel && <Diamond size={4} className="text-gold" />}
-              <span className="font-display text-base leading-none">{n}</span>
+              <span
+                className={`w-3 h-3 rotate-45 border transition-colors ${
+                  filled ? 'bg-gold border-gold' : sel ? 'border-gold-light' : 'border-gold/50'
+                }`}
+              />
+              <span className={`font-ui text-[9px] tracking-[0.14em] leading-none ${sel ? 'text-gold-pale' : 'text-muted'}`}>
+                {n}
+              </span>
             </button>
           )
         })}

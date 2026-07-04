@@ -508,6 +508,45 @@ function DeltaLine({ before, after }: { before: number; after: number }) {
 // ════════════════════════════════════════════════════════════════════
 //  ZAKŁADKA: TARCZA
 // ════════════════════════════════════════════════════════════════════
+
+// Herbowa tarcza (escutcheon) rytowana cienką kreską: rama z trzech części
+// (barki / proste boki / ostrze), żeby rosła z liczbą zdań. SVG skalują się
+// z szerokością kontenera, więc linie środkowej sekcji muszą być pozycjonowane
+// PROCENTOWO na tych samych odciętych co ścieżki (x/320) — stały px by się
+// rozjechał na szwach przy każdej szerokości ≠ 320.
+const SHIELD_STROKE = '#b29355'
+function ShieldTop() {
+  return (
+    <svg viewBox="0 0 320 30" className="w-full block" aria-hidden>
+      <path d="M 0.5 30 L 0.5 12 Q 0.5 3.5 10 3.5 L 310 3.5 Q 319.5 3.5 319.5 12 L 319.5 30" fill="none" stroke={SHIELD_STROKE} strokeWidth="1" opacity="0.8" />
+      <path d="M 5.5 30 L 5.5 14 Q 5.5 8 12 8 L 308 8 Q 314.5 8 314.5 14 L 314.5 30" fill="none" stroke={SHIELD_STROKE} strokeWidth="0.8" opacity="0.45" />
+    </svg>
+  )
+}
+function ShieldBottom() {
+  return (
+    <svg viewBox="0 0 320 96" className="w-full block" aria-hidden>
+      <path d="M 0.5 0 L 0.5 14 C 0.5 46 40 68 160 88 C 280 68 319.5 46 319.5 14 L 319.5 0" fill="none" stroke={SHIELD_STROKE} strokeWidth="1" opacity="0.8" />
+      <path d="M 5.5 0 L 5.5 13 C 5.5 42 44 62 160 80 C 276 62 314.5 42 314.5 13 L 314.5 0" fill="none" stroke={SHIELD_STROKE} strokeWidth="0.8" opacity="0.45" />
+      <rect x="156.75" y="40.75" width="6.5" height="6.5" transform="rotate(45 160 44)" fill={SHIELD_STROKE} opacity="0.85" />
+    </svg>
+  )
+}
+function ShieldMid({ children }: { children: React.ReactNode }) {
+  // Odcięte linii jak w ścieżkach SVG: zewnętrzna x=0.5/320, wewnętrzna x=5.5/320.
+  const OUTER = `${(0.5 / 320) * 100}%`
+  const INNER = `${(5.5 / 320) * 100}%`
+  return (
+    <div className="relative">
+      <span aria-hidden className="absolute top-0 bottom-0 w-px -translate-x-1/2" style={{ left: OUTER, background: 'rgba(178,147,85,0.8)' }} />
+      <span aria-hidden className="absolute top-0 bottom-0 w-px -translate-x-1/2" style={{ left: INNER, background: 'rgba(178,147,85,0.45)' }} />
+      <span aria-hidden className="absolute top-0 bottom-0 w-px translate-x-1/2" style={{ right: OUTER, background: 'rgba(178,147,85,0.8)' }} />
+      <span aria-hidden className="absolute top-0 bottom-0 w-px translate-x-1/2" style={{ right: INNER, background: 'rgba(178,147,85,0.45)' }} />
+      <div className="px-7 md:px-9">{children}</div>
+    </div>
+  )
+}
+
 function ShieldTab({ shield, onSave }: { shield: CBTShield; onSave: (s: CBTShield) => Promise<void> }) {
   const [input, setInput] = useState('')
   const all = [...BOOK_SHIELD, ...shield.custom]
@@ -533,17 +572,28 @@ function ShieldTab({ shield, onSave }: { shield: CBTShield; onSave: (s: CBTShiel
         Dopisz własne. W gorszych chwilach przywołuj je do siebie.
       </p>
 
-      {/* Aktywna tarcza */}
+      {/* Aktywna tarcza — zdania wyryte w herbowym obrysie */}
       <div className="cbt-card px-6 md:px-8 py-6">
-        <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8A3A2C] mb-3">Twoja tarcza</div>
+        <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8A3A2C] mb-4 text-center">Twoja tarcza</div>
         {selected.length === 0 ? (
-          <p className="font-serif-body italic text-[14px] text-[#7c7256]">Zaznacz poniżej zdania, które Cię wspierają — pojawią się tutaj.</p>
+          <p className="font-serif-body italic text-[14px] text-[#7c7256] text-center">Zaznacz poniżej zdania, które Cię wspierają — pojawią się tutaj.</p>
         ) : (
-          <ul className="space-y-0">
-            {selected.map(s => (
-              <li key={s} className="font-display text-[17px] text-[#2a2a26] leading-[1.4] py-2.5 border-b border-[#c9b27f]/40 last:border-0">{s}</li>
-            ))}
-          </ul>
+          <div className="max-w-[380px] mx-auto">
+            <ShieldTop />
+            <ShieldMid>
+              <ul className="space-y-0 py-1">
+                {selected.map(s => (
+                  <li
+                    key={s}
+                    className="font-display text-[16px] text-[#2a2a26] leading-[1.4] py-2.5 border-b border-[#c9b27f]/40 last:border-0 text-center animate-slide-up"
+                  >
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            </ShieldMid>
+            <ShieldBottom />
+          </div>
         )}
       </div>
 

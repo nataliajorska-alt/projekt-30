@@ -52,46 +52,103 @@ function Panel({ label, children }: { label: string; children: React.ReactNode }
 }
 
 // ── Pierścień cyklu ──────────────────────────────────────────────
+// Ręczny SVG zamiast conic-gradientu: cztery łuki faz z przerwami
+// i zaokrąglonymi końcami, tiki dni na zewnętrznej krawędzi, a przebieg
+// widać z nasycenia — łuk od dnia I do „dziś" pełny, przyszłość wygaszona.
 function CycleRing({ cycleDay, settings, phase }: { cycleDay: number; settings: CycleSettings; phase: CyclePhase }) {
   const ranges = computePhaseRanges(settings)
   const C = settings.cycleLength
-  let deg = 0
-  const segs = ORDER.map(id => {
-    const [from, to] = ranges[id]
-    const span = Math.max(0, (to - from + 1)) / C * 360
-    const s = `${ACCENT[id].c} ${deg}deg ${deg + span}deg`
-    deg += span
-    return s
-  }).join(', ')
+  const cx = 116, cy = 116, R = 100
+  const STROKE = 24
+  const GAP = 2.6 // wizualna przerwa między fazami (na każdą stronę łuku)
+  // Zaokrąglona końcówka (linecap=round) dokleja półkole o promieniu STROKE/2
+  // ZA końcem ścieżki — trzeba je wliczyć do odstępu, inaczej capy zalewają
+  // przerwy i sąsiednie fazy nachodzą na siebie.
+  const CAP_DEG = ((STROKE / 2) / R) * (180 / Math.PI)
+  const INSET = GAP + CAP_DEG
+  const day = Math.min(Math.max(cycleDay, 1), C)
 
-  // znacznik dnia: ułamek cyklu → kąt od góry, zgodnie z ruchem wskazówek
-  const frac = Math.min(cycleDay, C) / C
-  const angle = frac * 2 * Math.PI
-  const r = 100, cx = 116, cy = 116
-  const mx = cx + r * Math.sin(angle)
-  const my = cy - r * Math.cos(angle)
+  const angleAt = (d: number) => (d / C) * 360 - 90 // d = dni od początku cyklu (0..C)
+  const pt = (aDeg: number, r: number) => {
+    const a = (aDeg * Math.PI) / 180
+    return `${(cx + Math.cos(a) * r).toFixed(2)} ${(cy + Math.sin(a) * r).toFixed(2)}`
+  }
+  const arc = (a0: number, a1: number) => {
+    const large = a1 - a0 > 180 ? 1 : 0
+    return `M ${pt(a0, R)} A ${R} ${R} 0 ${large} 1 ${pt(a1, R)}`
+  }
+
+  // Każda faza: wygaszony łuk całej fazy pod spodem + pełny łuk „przeżyty" na
+  // wierzchu (kryjący, więc styk dnia to czysta zaokrąglona końcówka).
+  // Fazy krótsze niż 2×INSET (możliwe przy skrajnych ustawieniach suwaków)
+  // klampujemy do „kropki" w środku fazy zamiast po cichu chować.
+  const segments = ORDER.flatMap(id => {
+    const [from, to] = ranges[id]
+    if (to < from) return []
+    let a0 = angleAt(from - 1) + INSET
+    let a1 = angleAt(to) - INSET
+    if (a1 <= a0) {
+      const mid = (angleAt(from - 1) + angleAt(to)) / 2
+      a0 = mid - 0.01
+      a1 = mid + 0.01
+    }
+    const aDay = angleAt(day)
+    const out: { d: string; color: string; dim: boolean }[] = []
+    if (aDay >= a1) {
+      out.push({ d: arc(a0, a1), color: ACCENT[id].c, dim: false })
+    } else if (aDay <= a0) {
+      out.push({ d: arc(a0, a1), color: ACCENT[id].c, dim: true })
+    } else {
+      out.push({ d: arc(a0, a1), color: ACCENT[id].c, dim: true })
+      out.push({ d: arc(a0, aDay), color: ACCENT[id].c, dim: false })
+    }
+    return out
+  })
+
+  // Znacznik „dziś" — środek bieżącego dnia
+  const mAngle = ((angleAt(day - 0.5)) * Math.PI) / 180
+  const mx = cx + Math.cos(mAngle) * R
+  const my = cy + Math.sin(mAngle) * R
   const acc = ACCENT[phase.id]
 
   return (
     <div className="relative w-[232px] h-[232px] max-w-full mx-auto shrink-0">
-      <div
-        className="w-[232px] h-[232px] rounded-full"
-        style={{
-          background: `conic-gradient(${segs})`,
-          WebkitMask: 'radial-gradient(circle, transparent 0 83px, #000 84px)',
-          mask: 'radial-gradient(circle, transparent 0 83px, #000 84px)',
-        }}
-      />
+      <svg viewBox="0 0 232 232" className="absolute inset-0 w-full h-full overflow-visible" aria-hidden>
+        {/* tiki dni na zewnętrznej krawędzi */}
+        {Array.from({ length: C }, (_, i) => {
+          const a = ((angleAt(i)) * Math.PI) / 180
+          return (
+            <line
+              key={i}
+              x1={cx + Math.cos(a) * 114} y1={cy + Math.sin(a) * 114}
+              x2={cx + Math.cos(a) * 117.5} y2={cy + Math.sin(a) * 117.5}
+              stroke="#B7A787" strokeWidth={0.9} opacity={0.55}
+            />
+          )
+        })}
+        {segments.map((s, i) => (
+          <path
+            key={i}
+            d={s.d}
+            fill="none"
+            stroke={s.color}
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            opacity={s.dim ? 0.32 : 1}
+          />
+        ))}
+      </svg>
       <div className="absolute inset-[32px] rounded-full bg-ivory border border-border flex flex-col items-center justify-center text-center">
         <div className="font-ui uppercase tracking-editorial text-[9px]" style={{ color: acc.cd }}>{phase.name}</div>
         <div className="font-display font-medium text-[40px] leading-[0.84] text-dark tracking-[-1.2px] mt-1.5">{cycleDay}</div>
         <div className="font-serif-body italic text-[13px] text-muted-light mt-0.5">z {C} dni</div>
       </div>
+      {/* znacznik dnia — powolny puls (spłaszczany przez prefers-reduced-motion) */}
       <div
         className="absolute w-4 h-4 rounded-full bg-ivory shadow-[0_2px_7px_rgba(0,0,0,0.22)]"
         style={{ left: mx - 8, top: my - 8, border: `2px solid ${acc.cd}` }}
       >
-        <span className="absolute inset-[3.5px] rounded-full" style={{ background: acc.c }} />
+        <span className="absolute inset-[3.5px] rounded-full animate-pulse" style={{ background: acc.c, animationDuration: '3.6s' }} />
       </div>
     </div>
   )

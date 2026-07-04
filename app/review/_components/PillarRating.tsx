@@ -1,6 +1,7 @@
 'use client'
 import { PILLARS } from '@/lib/pillars'
 import type { Pillar } from '@/types'
+import PillarRoseChart from '@/components/PillarRoseChart'
 
 // Klejnotowe tony filarów (z mocka Przegląd) — czytelne na pergaminie,
 // inne niż surowe pillar.color (część jest za jasna/za ciemna na papierze).
@@ -24,6 +25,18 @@ export default function PillarRating({
 }) {
   return (
     <div className="mt-5">
+      {/* Żywa mini-rozeta: kształt zmienia się w trakcie oceniania.
+          Start (same 3) = regularny siedmiokąt pokrywający się z ideałem. */}
+      <div className="max-w-[230px] mx-auto mb-5">
+        <PillarRoseChart
+          data={PILLARS.map(p => ({
+            id: p.id,
+            shortName: p.shortName,
+            color: JEWEL[p.id] ?? p.color,
+            xp: ratings[p.id as Pillar] ?? 0,
+          }))}
+        />
+      </div>
       {PILLARS.map(p => {
         const c = JEWEL[p.id] ?? p.color
         const score = ratings[p.id as Pillar]

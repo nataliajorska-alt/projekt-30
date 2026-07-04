@@ -112,7 +112,9 @@ function QuestRow({
         <h3
           className={clsx(
             'font-display text-[18px] sm:text-[20px] leading-tight tracking-tight',
-            done ? 'text-muted-light italic' : 'text-dark',
+            // Natywne line-through: dekoracja rysuje się per linia tekstu, więc
+            // działa też na tytułach zawijanych na 2+ wiersze (absolutna kreska nie).
+            done ? 'text-muted-light italic line-through decoration-dark/40 decoration-1' : 'text-dark',
           )}
         >
           {quest.title}
