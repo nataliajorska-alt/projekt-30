@@ -1,9 +1,10 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react'
-import { LEVELS } from '@/lib/gameLogic'
+import { LEVELS, getGardenStage } from '@/lib/gameLogic'
 import { toRoman } from '@/lib/romanNumerals'
 import { SmallCaps, GoldRule, Fleuron, Diamond, CornerBrackets } from '@/components/ui'
+import StageExLibris from '@/components/StageExLibris'
 
 interface LevelUpContextType {
   showLevelUp: (levelNumber: number) => void
@@ -68,11 +69,17 @@ export function LevelUpProvider({ children }: { children: ReactNode }) {
   const currentLevel = queue[0]
   const levelData = LEVELS.find(l => l.level === currentLevel)
 
+  // Etap Ogrodu dla medalionu-ekslibrisu; poziom otwierający nowy etap
+  // dostaje uroczystszy wariant (poziom 1 to start gry, nie przejście).
+  const stage = currentLevel ? getGardenStage(currentLevel) : null
+  const isNewStage =
+    currentLevel > 1 && stage !== null && getGardenStage(currentLevel - 1).id !== stage.id
+
   return (
     <LevelUpContext.Provider value={{ showLevelUp }}>
       {children}
 
-      {visible && levelData && (
+      {visible && levelData && stage && (
         <div
           className="fixed inset-0 z-[110] flex items-center justify-center"
           onClick={dismiss}
@@ -111,12 +118,12 @@ export function LevelUpProvider({ children }: { children: ReactNode }) {
             </div>
 
             <div className="relative px-8 pt-10 pb-9 text-center">
-              {/* Eyebrow */}
+              {/* Eyebrow — poziom otwierający etap dostaje własną zapowiedź */}
               <SmallCaps tone="gold-light" tracking="editorial" size="xs" as="div">
-                Nowy stopień · ascensja
+                {isNewStage ? 'Nowy etap Ogrodu' : 'Nowy stopień · ascensja'}
               </SmallCaps>
 
-              {/* MEDALLION — denser, with Roman numeral in center */}
+              {/* MEDALION — botaniczny ekslibris etapu odbity jak pieczęć */}
               <div className="relative mx-auto mt-7 w-36 h-36" key={`medal-${animKey}`}>
                 {/* outer diamonds */}
                 <div className="absolute inset-0">
@@ -142,11 +149,9 @@ export function LevelUpProvider({ children }: { children: ReactNode }) {
                 <div className="absolute inset-2 rounded-full border border-gold" />
                 <div className="absolute inset-4 rounded-full border border-gold-light/40" />
                 <div className="absolute inset-6 rounded-full border border-gold-light/20" />
-                {/* Roman numeral */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="font-display text-4xl text-ivory leading-none">
-                    {toRoman(currentLevel)}
-                  </span>
+                {/* Ekslibris etapu — stamp opada i osiada jak pieczęć */}
+                <div className="absolute inset-0 flex items-center justify-center text-gold-light animate-stamp">
+                  <StageExLibris id={stage.id} size={88} frame={false} />
                 </div>
               </div>
 
@@ -155,18 +160,24 @@ export function LevelUpProvider({ children }: { children: ReactNode }) {
                 {levelData.name}
               </h2>
 
-              {/* Level number subtitle in Arabic */}
+              {/* Stopień + etap */}
               <p className="font-serif-body italic text-gold-light text-sm mt-2">
-                stopień {currentLevel}
+                stopień {toRoman(currentLevel)} · {stage.stageName}
               </p>
 
               <GoldRule variant="fleuron" tone="gold" className="mt-6 max-w-[200px] mx-auto" />
 
-              {/* Description */}
+              {/* Description — nowy etap mówi własną dewizą */}
               <p className="font-serif-body italic text-parchment text-sm leading-relaxed mt-5 px-2">
-                osiągasz nowy stopień w Projekcie 30 —
-                <br />
-                każdy krok przybliża cię do siebie.
+                {isNewStage ? (
+                  stage.desc
+                ) : (
+                  <>
+                    osiągasz nowy stopień w Projekcie 30 —
+                    <br />
+                    każdy krok przybliża cię do siebie.
+                  </>
+                )}
               </p>
 
               {/* Dismiss */}
