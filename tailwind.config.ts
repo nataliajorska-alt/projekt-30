@@ -59,6 +59,7 @@ const config: Config = {
         'crack-left': 'crackLeft 0.55s ease-in forwards',
         'crack-right': 'crackRight 0.55s ease-in forwards',
         stamp: 'stamp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        sheen: 'sheen 5.5s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -117,6 +118,14 @@ const config: Config = {
           '0%':   { transform: 'scale(1.45)', opacity: '0' },
           '55%':  { transform: 'scale(0.94)', opacity: '1' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        // Połysk przechodzący po insygnium: szybki przebłysk (16% cyklu),
+        // potem długa pauza. Element w spoczynku MUSI mieć bazowy transform
+        // translateX(-46px) (poza clipem) — po reduced-motion animacja gaśnie
+        // i wraca do bazy, więc smuga znika zamiast zastygać w kadrze.
+        sheen: {
+          '0%':        { transform: 'translateX(-46px)' },
+          '16%, 100%': { transform: 'translateX(46px)' },
         },
       },
     },

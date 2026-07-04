@@ -1,4 +1,5 @@
 'use client'
+import { useId } from 'react'
 import { Lock } from 'lucide-react'
 import { useGameData } from '@/hooks/useGameData'
 import { ACHIEVEMENTS } from '@/lib/achievements'
@@ -57,6 +58,7 @@ const SEAL_EDGE = (() => {
 function Seal({ glyph, size = 58, locked = false, tier = 'Złoto' }: {
   glyph: string; size?: number; locked?: boolean; tier?: string
 }) {
+  const uid = useId().replace(/:/g, '')
   const legend = tier === 'Legenda' && !locked
   const rim = locked ? '#D9CDA8' : TIER_RIM[tier] ?? '#B29355'
   const fill = locked ? 'none' : legend ? '#8A3A2C' : '#F6F0DF'
@@ -73,6 +75,36 @@ function Seal({ glyph, size = 58, locked = false, tier = 'Złoto' }: {
       >
         {glyph}
       </text>
+      {/* Połysk metalu — tylko zdobyte insygnia łapią światło. Belka żyje
+          poza karbem (bazowy translateX w stylu), animacja przesuwa ją
+          wzdłuż pochylonej osi; clip trzyma błysk w kształcie pieczęci.
+          animationDelay z uid rozsuwa błyski w czasie — bez tego wszystkie
+          pieczęcie na stronie repaintowałyby się co 5.5s równocześnie. */}
+      {!locked && (
+        <g clipPath={`url(#seal-clip-${uid})`}>
+          <defs>
+            <clipPath id={`seal-clip-${uid}`}>
+              <path d={SEAL_EDGE} />
+            </clipPath>
+            <linearGradient id={`seal-shine-${uid}`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor="#FFF8E8" stopOpacity="0" />
+              <stop offset="0.5" stopColor="#FFF8E8" stopOpacity={legend ? 0.5 : 0.7} />
+              <stop offset="1" stopColor="#FFF8E8" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <g transform="rotate(18 24 24)">
+            <rect
+              x="17" y="-8" width="11" height="64"
+              fill={`url(#seal-shine-${uid})`}
+              className="animate-sheen"
+              style={{
+                transform: 'translateX(-46px)',
+                animationDelay: `${(Array.from(uid).reduce((a, c) => a + c.charCodeAt(0), 0) * 397) % 5500}ms`,
+              }}
+            />
+          </g>
+        </g>
+      )}
     </svg>
   )
 }

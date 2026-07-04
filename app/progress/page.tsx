@@ -1,8 +1,10 @@
 'use client'
 import clsx from 'clsx'
+import { useEffect, useRef, useState } from 'react'
 import { useGameData } from '@/hooks/useGameData'
 import {
   LEVELS,
+  GARDEN_STAGES,
   getLevelFromXP,
   getGardenStage,
   getNextGardenStage,
@@ -12,6 +14,20 @@ import { Check } from 'lucide-react'
 import { SmallCaps, Diamond, Fleuron, GoldRule } from '@/components/ui'
 import { toRoman } from '@/lib/romanNumerals'
 import GardenArt from '@/components/GardenArt'
+import StageExLibris from '@/components/StageExLibris'
+import LevelVine from '@/components/LevelVine'
+
+// Lista poziomów pogrupowana etapami Ogrodu — stała struktura, liczona raz.
+const STAGE_GROUPS = GARDEN_STAGES.map((gs, i) => {
+  const firstLevel = i === 0 ? 1 : GARDEN_STAGES[i - 1].maxLevel + 1
+  return {
+    stage: gs,
+    index: i,
+    firstLevel,
+    levels: LEVELS.filter(l => l.level >= firstLevel && l.level <= gs.maxLevel),
+  }
+})
+const TOTAL_ROWS = GARDEN_STAGES.length + LEVELS.length
 
 const TOTAL_XP = 200_000
 
@@ -31,6 +47,37 @@ export default function ProgressPage() {
     : 0
 
   const pace = getPace(totalXP)
+
+  // Winorośl dojrzewa dokładnie do wiersza obecnego poziomu: pozycję
+  // mierzymy z realnego layoutu (marginesy nagłówków i border bieżącego
+  // wiersza psuły model „równych jednostek"). Start = przybliżenie
+  // closed-form, pomiar koryguje po mount i przy każdej zmianie rozmiaru.
+  const listRef = useRef<HTMLDivElement>(null)
+  const currentRowRef = useRef<HTMLDivElement>(null)
+  const stageIdx = GARDEN_STAGES.findIndex(gs => currentLvl.level <= gs.maxLevel)
+  const vineApprox = (stageIdx + 1 + currentLvl.level - 0.5) / TOTAL_ROWS
+  const [vineMeasured, setVineMeasured] = useState<number | null>(null)
+  const vineFill = vineMeasured ?? vineApprox
+
+  useEffect(() => {
+    const measure = () => {
+      const list = listRef.current
+      const row = currentRowRef.current
+      if (!list || !row) return
+      const lr = list.getBoundingClientRect()
+      const rr = row.getBoundingClientRect()
+      // SVG winorośli siedzi na top-4 z height calc(100% - 2rem)
+      const vineH = lr.height - 32
+      if (vineH <= 0) return
+      const ratio = (rr.top + rr.height / 2 - (lr.top + 16)) / vineH
+      setVineMeasured(Math.max(0, Math.min(1, ratio)))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    if (listRef.current) ro.observe(listRef.current)
+    return () => ro.disconnect()
+  }, [currentLvl.level, loading])
+
   const paceCopy = pace.status === 'ahead'
     ? {
         label: 'Przed planem',
@@ -77,9 +124,11 @@ export default function ProgressPage() {
       <div className="bg-ivory border border-gold-light/40 overflow-hidden mb-6">
         {/* Botanical scene */}
         <div className={clsx('relative bg-gradient-to-b px-6 pt-8 pb-6', stage.bg)}>
-          {/* Decorative corner fleurons */}
+          {/* Znak rozdziału: fleuron + ekslibris bieżącego etapu */}
           <Fleuron size={10} className="absolute top-3 left-4 text-gold-deep/40" />
-          <Fleuron size={10} className="absolute top-3 right-4 text-gold-deep/40" />
+          <div className="absolute top-3 right-3 opacity-70" style={{ color: stage.accentColor }}>
+            <StageExLibris id={stage.id} size={34} />
+          </div>
 
           <div className="flex items-center gap-6">
             <div className="flex-shrink-0 w-32 h-32">
@@ -101,10 +150,13 @@ export default function ProgressPage() {
             </div>
           </div>
 
-          {/* Next stage */}
+          {/* Next stage — ekslibris zamiast rozmytego emoji: przyszłość
+              widać wyraźnie, tylko jeszcze nie w pełnym kolorze */}
           {nextStage && (
             <div className="mt-5 pt-4 border-t border-gold-deep/20 flex items-center gap-3">
-              <div className="text-3xl opacity-25 blur-[1.5px] shrink-0">{nextStage.emoji}</div>
+              <div className="shrink-0 opacity-70" style={{ color: nextStage.accentColor }}>
+                <StageExLibris id={nextStage.id} size={44} />
+              </div>
               <div className="flex-1 min-w-0">
                 <SmallCaps tone="muted" tracking="luxury" size="xs">
                   Następnie
@@ -252,82 +304,119 @@ export default function ProgressPage() {
           </SmallCaps>
         </div>
 
-        <div className="relative">
-          {/* Vertical connector */}
-          <div className="absolute left-[19px] top-5 bottom-5 w-px bg-gold-deep/20" />
+        <div ref={listRef} className="relative">
+          {/* Winorośl poziomów — dojrzewa dokładnie dotąd, dokąd doszłaś */}
+          <LevelVine fillRatio={vineFill} />
 
           <div className="space-y-1">
-            {LEVELS.map((lvl) => {
-              const done = totalXP >= lvl.xpRequired
-              const isCurrent = lvl.level === currentLvl.level
+            {STAGE_GROUPS.map(({ stage: gs, index: gsIdx, firstLevel, levels: stageLevels }) => {
+              const stagePast = currentLvl.level > gs.maxLevel
+              const stageCurrent = currentLvl.level >= firstLevel && currentLvl.level <= gs.maxLevel
+              const stageColor = stagePast ? '#2C3B35' : stageCurrent ? gs.accentColor : '#B7A787'
 
               return (
-                <div
-                  key={lvl.level}
-                  className={clsx(
-                    'relative flex items-center gap-3 pl-0 pr-3 py-2 transition-all',
-                    isCurrent ? 'bg-gold-pale/40 border border-gold-light/30' : ''
-                  )}
-                >
-                  {/* Status node */}
-                  <div className="relative z-10 flex-shrink-0">
+                <div key={gs.id} className="space-y-1">
+                  {/* Nagłówek etapu — botaniczny ekslibris na osi winorośli */}
+                  <div className={clsx('relative flex items-center gap-3 pr-3 py-2', gsIdx > 0 && 'mt-2')}>
                     <div
-                      className={clsx(
-                        'w-10 h-10 flex items-center justify-center transition-all border',
-                        isCurrent
-                          ? 'bg-gold border-gold'
-                          : done
-                            ? 'bg-cream border-forest/40'
-                            : 'bg-ivory border-hairline'
-                      )}
+                      className="relative z-10 flex-shrink-0 w-10 h-10 flex items-center justify-center bg-ivory"
+                      style={{ color: stageColor }}
                     >
-                      {isCurrent && (
-                        <Diamond size={9} className="text-ivory" filled />
-                      )}
-                      {done && !isCurrent && (
-                        <Check size={13} className="text-forest" strokeWidth={2} />
-                      )}
-                      {!done && !isCurrent && (
-                        <span className="font-display text-muted-light text-[13px] leading-none">
-                          {lvl.level}
+                      <StageExLibris
+                        id={gs.id}
+                        size={40}
+                        className={clsx(!stagePast && !stageCurrent && 'opacity-60')}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0 flex items-baseline justify-between gap-2">
+                      <SmallCaps tracking="luxury" size="xs" as="div">
+                        <span style={{ color: stageColor }}>
+                          Etap {toRoman(gsIdx + 1)} · {gs.stageName}
                         </span>
-                      )}
+                      </SmallCaps>
+                      <SmallCaps tone="muted" tracking="luxury" size="xs" className="shrink-0 opacity-70">
+                        {stageLevels.length === 1
+                          ? `poziom ${toRoman(firstLevel)}`
+                          : `poziomy ${toRoman(firstLevel)}–${toRoman(gs.maxLevel)}`}
+                      </SmallCaps>
                     </div>
                   </div>
 
-                  {/* Level name + XP */}
-                  <div className="flex-1 min-w-0 flex items-baseline justify-between gap-2">
-                    <div className="flex items-baseline gap-2 min-w-0">
-                      <span
+                  {stageLevels.map(lvl => {
+                    const done = totalXP >= lvl.xpRequired
+                    const isCurrent = lvl.level === currentLvl.level
+
+                    return (
+                      <div
+                        key={lvl.level}
+                        ref={isCurrent ? currentRowRef : undefined}
                         className={clsx(
-                          'truncate',
-                          isCurrent
-                            ? 'font-heading text-dark text-base'
-                            : done
-                              ? 'font-serif-body text-muted text-[14px]'
-                              : 'font-serif-body italic text-muted-light text-[14px]'
+                          'relative flex items-center gap-3 pl-0 pr-3 py-2 transition-all',
+                          isCurrent ? 'bg-gold-pale/40 border border-gold-light/30' : ''
                         )}
                       >
-                        {lvl.name}
-                      </span>
-                      {isCurrent && (
-                        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="shrink-0">
-                          teraz
-                        </SmallCaps>
-                      )}
-                    </div>
+                        {/* Status node */}
+                        <div className="relative z-10 flex-shrink-0">
+                          <div
+                            className={clsx(
+                              'w-10 h-10 flex items-center justify-center transition-all border',
+                              isCurrent
+                                ? 'bg-gold border-gold'
+                                : done
+                                  ? 'bg-cream border-forest/40'
+                                  : 'bg-ivory border-hairline'
+                            )}
+                          >
+                            {isCurrent && (
+                              <Diamond size={9} className="text-ivory" filled />
+                            )}
+                            {done && !isCurrent && (
+                              <Check size={13} className="text-forest" strokeWidth={2} />
+                            )}
+                            {!done && !isCurrent && (
+                              <span className="font-display text-muted-light text-[13px] leading-none">
+                                {lvl.level}
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                    <SmallCaps
-                      tone={done ? 'muted' : 'muted'}
-                      tracking="luxury"
-                      size="xs"
-                      className={clsx('shrink-0 tabular-nums', !done && 'opacity-60')}
-                    >
-                      {lvl.xpRequired === 0
-                        ? 'Start'
-                        : `${lvl.xpRequired.toLocaleString('pl-PL')} XP`}
-                    </SmallCaps>
-                  </div>
+                        {/* Level name + XP */}
+                        <div className="flex-1 min-w-0 flex items-baseline justify-between gap-2">
+                          <div className="flex items-baseline gap-2 min-w-0">
+                            <span
+                              className={clsx(
+                                'truncate',
+                                isCurrent
+                                  ? 'font-heading text-dark text-base'
+                                  : done
+                                    ? 'font-serif-body text-muted text-[14px]'
+                                    : 'font-serif-body italic text-muted-light text-[14px]'
+                              )}
+                            >
+                              {lvl.name}
+                            </span>
+                            {isCurrent && (
+                              <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="shrink-0">
+                                teraz
+                              </SmallCaps>
+                            )}
+                          </div>
+
+                          <SmallCaps
+                            tone="muted"
+                            tracking="luxury"
+                            size="xs"
+                            className={clsx('shrink-0 tabular-nums', !done && 'opacity-60')}
+                          >
+                            {lvl.xpRequired === 0
+                              ? 'Start'
+                              : `${lvl.xpRequired.toLocaleString('pl-PL')} XP`}
+                          </SmallCaps>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               )
             })}

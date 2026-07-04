@@ -9,6 +9,9 @@ import {
   getLevelProgress,
   todayKey,
   PROJECT_START,
+  MONTH_STARTS,
+  MONTH_ROMANS,
+  dayAngle,
 } from '@/lib/gameLogic'
 import { useGameData } from '@/hooks/useGameData'
 import { getDailySpark } from '@/lib/questData'
@@ -17,13 +20,6 @@ import { useSparkSchedule } from '@/hooks/useSparkSchedule'
 import { toRoman } from '@/lib/romanNumerals'
 
 const PROJECT_TOTAL = 365
-
-// Roman numerals I..XII for the year ring (project months 1..12 = April..March)
-const MONTH_ROMANS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
-
-// Skumulowane początki miesięcy projektu w dniach (kwi 2026 → mar 2027):
-// 30+31+30+31+31+30+31+30+31+31+28+31 = 365.
-const MONTH_STARTS = [0, 30, 61, 91, 122, 153, 183, 214, 244, 275, 306, 334]
 
 // Geometria pierścienia roku (viewBox 240×240, środek 120).
 const RING_C = 120
@@ -69,7 +65,7 @@ export default function CountdownHero() {
     const ticks: { x1: number; y1: number; x2: number; y2: number; w: number; o: number }[] = []
     const starts = new Set(MONTH_STARTS)
     for (let i = 0; i < PROJECT_TOTAL; i++) {
-      const a = (i / PROJECT_TOTAL) * Math.PI * 2 - Math.PI / 2
+      const a = dayAngle(i, PROJECT_TOTAL)
       const isBoundary = starts.has(i)
       const done = i < dayIdx
       const r1 = isBoundary ? 90 : done ? 95 : 98
@@ -83,7 +79,7 @@ export default function CountdownHero() {
         o: done ? 0.95 : isBoundary ? 0.5 : 0.22,
       })
     }
-    const ma = ((Math.max(0.5, dayIdx - 0.5)) / PROJECT_TOTAL) * Math.PI * 2 - Math.PI / 2
+    const ma = dayAngle(Math.max(0.5, dayIdx - 0.5), PROJECT_TOTAL)
     return {
       ticks,
       dayIdx,
@@ -112,7 +108,7 @@ export default function CountdownHero() {
             {MONTH_ROMANS.map((roman, m) => {
               const start = MONTH_STARTS[m]
               const end = m < 11 ? MONTH_STARTS[m + 1] : PROJECT_TOTAL
-              const a = (((start + end) / 2) / PROJECT_TOTAL) * Math.PI * 2 - Math.PI / 2
+              const a = dayAngle((start + end) / 2, PROJECT_TOTAL)
               return (
                 <text
                   key={roman}

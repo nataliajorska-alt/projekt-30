@@ -3,16 +3,19 @@ import { useMemo, useState } from 'react'
 import type { DailyLog } from '@/types'
 import { dateKey, PROJECT_START, PROJECT_END, getEffectiveNow } from '@/lib/gameLogic'
 import { SmallCaps } from '@/components/ui'
+import DayReadout from '@/components/DayReadout'
 
 interface Props {
   logs: Record<string, DailyLog>
 }
 
 // Heatmap intensity scale (MNIEJ → WIĘCEJ) — 1:1 with the design tokens --h0…--h4.
-const HEAT = ['#e9e0c8', '#d6bd84', '#bd9c56', '#94793b', '#5a4b22']
-const PAPER_SOFT = '#f8f3e6' // ring inner gap, matches design --paper-soft
+// Eksportowane: YearRosette (rozeta roku) używa tej samej skali i tonu papieru,
+// żeby obie formy kalendarza mówiły jednym językiem.
+export const HEAT = ['#e9e0c8', '#d6bd84', '#bd9c56', '#94793b', '#5a4b22']
+export const PAPER_SOFT = '#f8f3e6' // ring inner gap, matches design --paper-soft
 
-function levelForXp(xp: number): number {
+export function levelForXp(xp: number): number {
   if (xp <= 0) return 0
   if (xp <= 50) return 1
   if (xp <= 150) return 2
@@ -93,18 +96,6 @@ export default function YearHeatmap({ logs }: Props) {
   const todayStr = dateKey(getEffectiveNow())
   const projectStartStr = dateKey(PROJECT_START)
   const projectEndStr = dateKey(PROJECT_END)
-
-  const formatTipDate = (key: string) => {
-    const [y, m, d] = key.split('-').map(Number)
-    const date = new Date(y, m - 1, d)
-    const s = date.toLocaleDateString('pl-PL', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-    return s.charAt(0).toUpperCase() + s.slice(1)
-  }
 
   return (
     <div className="w-full">
@@ -202,31 +193,8 @@ export default function YearHeatmap({ logs }: Props) {
         </div>
       </div>
 
-      {/* Wiersz księgi — odczyt wybranego dnia (min-h rezerwuje miejsce, brak skoku layoutu) */}
-      <div className="min-h-[44px] mt-4 pt-3 border-t border-border/60 flex items-center">
-        {selected ? (
-          <div className="flex items-baseline gap-3 flex-wrap w-full">
-            <span className="font-serif-body italic text-dark text-[13.5px]">
-              {formatTipDate(selected.date)}
-            </span>
-            <span className="font-display text-gold-deep text-[15px]">
-              {selected.xp.toLocaleString('pl-PL')} XP
-            </span>
-            {selected.moment && (
-              <span className="inline-flex items-baseline gap-1.5 min-w-0">
-                <span aria-hidden className="self-center w-[5px] h-[5px] rotate-45 shrink-0 bg-gold-deep" />
-                <span className="font-serif-body italic text-gold-deep text-[13.5px]">
-                  {selected.moment}
-                </span>
-              </span>
-            )}
-          </div>
-        ) : (
-          <p className="font-serif-body italic text-muted-light text-[12.5px]">
-            dotknij dnia, by go odczytać
-          </p>
-        )}
-      </div>
+      {/* Wiersz księgi — wspólny odczyt dnia (DayReadout) */}
+      <DayReadout day={selected} placeholder="dotknij dnia, by go odczytać" />
 
       {/* Footer: legend + tally */}
       <div className="flex flex-wrap items-center justify-between gap-3 mt-2 pt-5 border-t border-border">

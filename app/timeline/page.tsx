@@ -7,6 +7,7 @@ import { useGameData } from '@/hooks/useGameData'
 import { useHabitAnalytics } from '@/hooks/useHabitAnalytics'
 import { useGhostV2 } from '@/hooks/useGhostV2'
 import YearHeatmap from '@/components/YearHeatmap'
+import YearRosette from '@/components/YearRosette'
 import WeeklyXPChart from '@/components/WeeklyXPChart'
 import { computeStreaks, findBestDay, findWorstActiveDay, aggregateXpByMonth } from '@/lib/analytics'
 import HabitsTab from './_tabs/HabitsTab'
@@ -181,6 +182,19 @@ export default function TimelinePage() {
         </div>
       ) : mode === 'calendar' ? (
         <div className="space-y-5">
+          {/* Rozeta roku — 365 promieni, rok w jednym okręgu */}
+          <section className="relative bg-ivory border border-gold-light/40 p-5 sm:p-7">
+            <CornerBrackets size={10} tone="gold-light" />
+            <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+              Rozeta roku · CCCLXV promieni
+            </SmallCaps>
+            <h2 className="font-heading text-dark text-lg mt-1">Rok w jednym okręgu</h2>
+            <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-4">
+              każdy promień to jeden dzień — im dłuższy i ciemniejszy, tym pełniejszy zapis.
+            </p>
+            <YearRosette logs={logs} />
+          </section>
+
           {/* Heatmap */}
           <section className="relative bg-ivory border border-gold-light/40 p-5 sm:p-7">
             <CornerBrackets size={10} tone="gold-light" />

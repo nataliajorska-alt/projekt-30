@@ -1,5 +1,11 @@
 export const PROJECT_START = new Date('2026-04-05T00:00:00')
 export const PROJECT_END = new Date('2027-04-05T00:00:00')
+
+// Miesiące projektu (kwi 2026 → mar 2027) dla tarcz radialnych:
+// skumulowane początki w dniach (30+31+30+31+31+30+31+30+31+31+28+31 = 365)
+// i rzymskie numery I..XII. Używane przez CountdownHero i YearRosette.
+export const MONTH_STARTS = [0, 30, 61, 91, 122, 153, 183, 214, 244, 275, 306, 334]
+export const MONTH_ROMANS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
 export const TOTAL_DAYS = 365
 
 // Nowy dzień zaczyna się o tej godzinie (np. 3 = 3:00 w nocy).
@@ -119,6 +125,24 @@ export function formatDate(date: Date): string {
   })
 }
 
+// Długi zapis dnia z klucza "YYYY-MM-DD" („Niedziela, 10 maja 2026") —
+// wspólny dla heatmapy i rozety roku (wiersz księgi).
+export function formatDayLong(key: string): string {
+  const [y, m, d] = key.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const s = date.toLocaleDateString('pl-PL', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+// Kąt dnia i (0..total-1) na tarczach radialnych — start projektu na
+// godzinie 12, dalej zgodnie z ruchem wskazówek. Jedno źródło orientacji
+// dla pierścienia roku (CountdownHero) i rozety roku (YearRosette).
+export function dayAngle(i: number, total: number = TOTAL_DAYS): number {
+  return (i / total) * Math.PI * 2 - Math.PI / 2
+}
+
 export function todayKey(): string {
   const d = getEffectiveNow()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -155,8 +179,13 @@ export function getMonthKey(date: Date): string {
 }
 
 // ── Garden stages — botaniczne sceny dopasowane do poziomu ────────
+// id wskazuje botaniczny ekslibris etapu (components/StageExLibris.tsx).
+export type GardenStageId =
+  | 'seed' | 'sprout' | 'stem' | 'plant' | 'bud' | 'first-bloom'
+  | 'full-bloom' | 'rose' | 'bouquet' | 'tree' | 'eden' | 'natalia-30'
+
 export interface GardenStage {
-  emoji: string
+  id: GardenStageId
   stageName: string
   desc: string
   bg: string
@@ -164,19 +193,19 @@ export interface GardenStage {
   maxLevel: number   // ostatni level w tym stage'u
 }
 
-const GARDEN_STAGES: GardenStage[] = [
-  { maxLevel: 2,  emoji: '🌰',   stageName: 'Seed',         desc: 'Everything great begins from a small seed.',                          bg: 'from-stone-50 to-parchment',      accentColor: '#8B6914' },
-  { maxLevel: 4,  emoji: '🌱',   stageName: 'Sprout',       desc: 'First shoots break through the soil.',                                bg: 'from-green-50/60 to-ivory',       accentColor: '#3d6b2b' },
-  { maxLevel: 6,  emoji: '🌿',   stageName: 'Stem',         desc: 'Roots are settling, leaves have caught the sun.',                     bg: 'from-emerald-50/50 to-ivory',     accentColor: '#2d5a20' },
-  { maxLevel: 9,  emoji: '🪴',   stageName: 'Plant',        desc: 'You are strong, rooted and distinct.',                                bg: 'from-green-50/40 to-parchment',   accentColor: '#3d6b2b' },
-  { maxLevel: 12, emoji: '🌷',   stageName: 'Bud',          desc: 'Something very beautiful is approaching.',                            bg: 'from-pink-50/40 to-ivory',        accentColor: '#c06080' },
-  { maxLevel: 15, emoji: '🌸',   stageName: 'First Bloom',  desc: 'You bloom — and it was worth waiting for.',                           bg: 'from-pink-50/50 to-parchment',    accentColor: '#d4698c' },
-  { maxLevel: 18, emoji: '🌺',   stageName: 'Full Bloom',   desc: 'Beauty in full, unstoppable expression.',                             bg: 'from-rose-50/50 to-ivory',        accentColor: '#c0392b' },
-  { maxLevel: 21, emoji: '🌹',   stageName: 'Rose',         desc: 'Classic elegance, strong and irresistible.',                          bg: 'from-rose-50/60 to-parchment',    accentColor: '#9b2335' },
-  { maxLevel: 24, emoji: '💐',   stageName: 'Bouquet',      desc: 'You surround yourself with beauty you yourself created.',             bg: 'from-purple-50/30 to-ivory',      accentColor: '#7c5cbf' },
-  { maxLevel: 27, emoji: '🌳',   stageName: 'Tree',         desc: 'Deeply rooted strength, visible from afar.',                          bg: 'from-emerald-50/40 to-parchment', accentColor: '#1a5c2a' },
-  { maxLevel: 29, emoji: '🌿✨', stageName: 'Eden Garden',  desc: 'At the very edge of the finale. One step from everything.',           bg: 'from-gold-pale to-ivory',         accentColor: '#B8963E' },
-  { maxLevel: 30, emoji: '✨',   stageName: 'Natalia 30',   desc: 'You have reached everything you planned. This is you.',               bg: 'from-gold-pale to-parchment',     accentColor: '#B8963E' },
+export const GARDEN_STAGES: GardenStage[] = [
+  { maxLevel: 2,  id: 'seed',        stageName: 'Seed',         desc: 'Everything great begins from a small seed.',                          bg: 'from-stone-50 to-parchment',      accentColor: '#8B6914' },
+  { maxLevel: 4,  id: 'sprout',      stageName: 'Sprout',       desc: 'First shoots break through the soil.',                                bg: 'from-green-50/60 to-ivory',       accentColor: '#3d6b2b' },
+  { maxLevel: 6,  id: 'stem',        stageName: 'Stem',         desc: 'Roots are settling, leaves have caught the sun.',                     bg: 'from-emerald-50/50 to-ivory',     accentColor: '#2d5a20' },
+  { maxLevel: 9,  id: 'plant',       stageName: 'Plant',        desc: 'You are strong, rooted and distinct.',                                bg: 'from-green-50/40 to-parchment',   accentColor: '#3d6b2b' },
+  { maxLevel: 12, id: 'bud',         stageName: 'Bud',          desc: 'Something very beautiful is approaching.',                            bg: 'from-pink-50/40 to-ivory',        accentColor: '#c06080' },
+  { maxLevel: 15, id: 'first-bloom', stageName: 'First Bloom',  desc: 'You bloom — and it was worth waiting for.',                           bg: 'from-pink-50/50 to-parchment',    accentColor: '#d4698c' },
+  { maxLevel: 18, id: 'full-bloom',  stageName: 'Full Bloom',   desc: 'Beauty in full, unstoppable expression.',                             bg: 'from-rose-50/50 to-ivory',        accentColor: '#c0392b' },
+  { maxLevel: 21, id: 'rose',        stageName: 'Rose',         desc: 'Classic elegance, strong and irresistible.',                          bg: 'from-rose-50/60 to-parchment',    accentColor: '#9b2335' },
+  { maxLevel: 24, id: 'bouquet',     stageName: 'Bouquet',      desc: 'You surround yourself with beauty you yourself created.',             bg: 'from-purple-50/30 to-ivory',      accentColor: '#7c5cbf' },
+  { maxLevel: 27, id: 'tree',        stageName: 'Tree',         desc: 'Deeply rooted strength, visible from afar.',                          bg: 'from-emerald-50/40 to-parchment', accentColor: '#1a5c2a' },
+  { maxLevel: 29, id: 'eden',        stageName: 'Eden Garden',  desc: 'At the very edge of the finale. One step from everything.',           bg: 'from-gold-pale to-ivory',         accentColor: '#B8963E' },
+  { maxLevel: 30, id: 'natalia-30',  stageName: 'Natalia 30',   desc: 'You have reached everything you planned. This is you.',               bg: 'from-gold-pale to-parchment',     accentColor: '#B8963E' },
 ]
 
 export function getGardenStage(level: number): GardenStage {
