@@ -6,6 +6,19 @@ function SkeletonLine({ className }: SkeletonProps) {
   return <div className={clsx('bg-hairline/60 animate-pulse', className)} />
 }
 
+// ── Nagłówek edytorski (eyebrow · tytuł · podtytuł) ──────────────
+// Odwzorowuje wspólny nagłówek stron (SmallCaps + font-display h1 +
+// kursywa), żeby loading nie zaczynał się od gołego spinnera na pustce.
+export function SkeletonHeader({ className }: SkeletonProps) {
+  return (
+    <div className={clsx('mb-8 animate-pulse', className)}>
+      <SkeletonLine className="h-3 w-28 mb-3.5" />
+      <SkeletonLine className="h-8 w-56 mb-3" />
+      <SkeletonLine className="h-3 w-44 !bg-hairline/50" />
+    </div>
+  )
+}
+
 // ── Karty ogólne ─────────────────────────────────────────────────
 
 export function SkeletonCard({ className }: SkeletonProps) {

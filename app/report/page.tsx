@@ -21,9 +21,10 @@ import * as paths from '@/lib/paths'
 import { Printer, Lock, Star, Camera } from 'lucide-react'
 import type { Pillar } from '@/types'
 import {
-  SmallCaps, Fleuron, Diamond,
+  SmallCaps, Diamond,
 } from '@/components/ui'
 import YearRosette from '@/components/YearRosette'
+import { SkeletonHeader, SkeletonCard } from '@/components/SkeletonCard'
 import { toRoman } from '@/lib/romanNumerals'
 
 const IS_REPORT_DAY = getEffectiveNow() >= PROJECT_END
@@ -346,8 +347,13 @@ export default function ReportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream grain-parchment flex items-center justify-center">
-        <Fleuron size={20} className="text-gold animate-pulse" />
+      <div className="bg-cream grain-parchment min-h-screen">
+        <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-24">
+          <SkeletonHeader />
+          <SkeletonCard className="mb-8 h-64" />
+          <SkeletonCard className="mb-6 h-72" />
+          <SkeletonCard className="h-80" />
+        </div>
       </div>
     )
   }

@@ -8,6 +8,7 @@ import {
   type CyclePhase, type CycleSettings,
 } from '@/lib/cycle-data'
 import { Fleuron } from '@/components/ui'
+import { SkeletonHeader, SkeletonCard } from '@/components/SkeletonCard'
 import { toRoman } from '@/lib/romanNumerals'
 import { todayKey, XP_VALUES } from '@/lib/gameLogic'
 
@@ -672,8 +673,10 @@ export default function CyclePage() {
   const handleLog = async (date: string) => { await logCycleStart(date); setShowLogForm(false) }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Fleuron size={20} className="text-gold animate-pulse" />
+    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-16">
+      <SkeletonHeader />
+      <SkeletonCard className="mb-6 h-80" />
+      <SkeletonCard className="h-40" />
     </div>
   )
 

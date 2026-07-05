@@ -1,7 +1,7 @@
 'use client'
 import { useGameData } from '@/hooks/useGameData'
 import { PILLARS } from '@/lib/pillars'
-import { SkeletonPillarList, SkeletonCard } from '@/components/SkeletonCard'
+import { SkeletonPillarList, SkeletonCard, SkeletonHeader } from '@/components/SkeletonCard'
 import { Pillar } from '@/types'
 import RedirectEnergyWidget from '@/components/RedirectEnergyWidget'
 import PillarRoseChart from '@/components/PillarRoseChart'
@@ -35,11 +35,7 @@ export default function PillarsPage() {
 
   if (loading) return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12">
-      <div className="mb-6">
-        <div className="bg-cream h-3 w-16 mb-2 animate-pulse" />
-        <div className="bg-cream h-7 w-40 mb-2 animate-pulse" />
-        <div className="bg-cream h-3 w-48 animate-pulse" />
-      </div>
+      <SkeletonHeader className="mb-6" />
       <SkeletonCard className="mb-6 h-64" />
       <SkeletonPillarList count={7} />
     </div>

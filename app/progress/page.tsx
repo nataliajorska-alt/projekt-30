@@ -16,6 +16,7 @@ import { toRoman } from '@/lib/romanNumerals'
 import GardenArt from '@/components/GardenArt'
 import StageExLibris from '@/components/StageExLibris'
 import LevelVine from '@/components/LevelVine'
+import { SkeletonHeader, SkeletonCard } from '@/components/SkeletonCard'
 
 // Lista poziomów pogrupowana etapami Ogrodu — stała struktura, liczona raz.
 const STAGE_GROUPS = GARDEN_STAGES.map((gs, i) => {
@@ -97,8 +98,10 @@ export default function ProgressPage() {
         }
 
   if (loading) return (
-    <div className="min-h-screen bg-ivory grain-parchment flex items-center justify-center">
-      <Fleuron size={20} className="text-gold animate-pulse" />
+    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12">
+      <SkeletonHeader />
+      <SkeletonCard className="mb-6 h-72" />
+      <SkeletonCard className="h-96" />
     </div>
   )
 
