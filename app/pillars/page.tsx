@@ -2,6 +2,7 @@
 import { useGameData } from '@/hooks/useGameData'
 import { PILLARS } from '@/lib/pillars'
 import { SkeletonPillarList, SkeletonCard, SkeletonHeader } from '@/components/SkeletonCard'
+import PageHeader from '@/components/PageHeader'
 import { Pillar } from '@/types'
 import RedirectEnergyWidget from '@/components/RedirectEnergyWidget'
 import PillarRoseChart from '@/components/PillarRoseChart'
@@ -54,17 +55,13 @@ export default function PillarsPage() {
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
       {/* ── Header ─────────────────────────────────────────────── */}
-      <header>
-        <div className="flex items-center gap-3 font-ui uppercase tracking-editorial text-[10px] text-muted mb-3.5">
-          Balans <span className="text-gold">∴</span> Vol. I
-        </div>
-        <h1 className="font-display font-medium text-dark leading-tight tracking-[-0.5px] text-[clamp(1.75rem,5vw,2.5rem)]">
-          Siedem <em className="italic font-normal text-gold-deep">Filarów</em>
-        </h1>
-        <p className="mt-2 font-serif-body italic text-[14px] text-muted">
-          gdzie kierujesz energię? dbaj o równowagę.
-        </p>
-      </header>
+      <PageHeader
+        className="mb-0"
+        chapter="IV"
+        eyebrow="Balans"
+        title={<>Siedem <em className="italic font-normal text-gold-deep">Filarów</em></>}
+        subtitle="gdzie kierujesz energię? dbaj o równowagę."
+      />
 
       <div className="flex items-center gap-3.5 my-7">
         <span className="flex-1 h-px bg-hairline" />

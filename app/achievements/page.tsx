@@ -6,6 +6,7 @@ import { ACHIEVEMENTS } from '@/lib/achievements'
 import type { Achievement, UserStats } from '@/types'
 import { toRoman } from '@/lib/romanNumerals'
 import { SkeletonCard } from '@/components/SkeletonCard'
+import PageHeader from '@/components/PageHeader'
 
 // ── Taksonomia (glify kategorii + tier z xpReward) ───────────────
 // W danych nie ma category/tier — wyprowadzamy je tu, zgodnie z mockiem.
@@ -242,17 +243,13 @@ export default function AchievementsPage() {
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
       {/* Header */}
-      <header>
-        <div className="flex items-center gap-3 font-ui uppercase tracking-editorial text-[10px] text-muted mb-3.5">
-          Kolekcja <span className="text-gold">∴</span> Vol. I
-        </div>
-        <h1 className="font-display font-medium leading-tight tracking-[-0.5px] text-[clamp(1.75rem,5vw,2.5rem)]">
-          <em className="italic font-normal text-gold-deep">Osiągnięcia</em>
-        </h1>
-        <p className="mt-2 font-serif-body italic text-[14px] text-muted">
-          {toRoman(unlockedCount)} z {toRoman(total)} zdobytych{mystery.length > 0 ? ' · kilka ukrytych wciąż czeka.' : '.'}
-        </p>
-      </header>
+      <PageHeader
+        className="mb-0"
+        chapter="V"
+        eyebrow="Kolekcja"
+        title={<em className="italic font-normal text-gold-deep">Osiągnięcia</em>}
+        subtitle={<>{toRoman(unlockedCount)} z {toRoman(total)} zdobytych{mystery.length > 0 ? ' · kilka ukrytych wciąż czeka.' : '.'}</>}
+      />
 
       <div className="flex items-center gap-3.5 my-7">
         <span className="flex-1 h-px bg-hairline" />

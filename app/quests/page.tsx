@@ -10,6 +10,7 @@ import { useEverCompletedSideQuests } from '@/hooks/useEverCompletedSideQuests'
 import { Pillar, Quest } from '@/types'
 import QuestSteps from '@/components/QuestSteps'
 import { SmallCaps, Fleuron } from '@/components/ui'
+import PageHeader from '@/components/PageHeader'
 import { toRoman } from '@/lib/romanNumerals'
 
 const DIFFICULTY_LABELS = { easy: 'Łatwy', medium: 'Średni', hard: 'Wymagający' }
@@ -263,19 +264,19 @@ export default function QuestsPage() {
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
       {/* ── Header ─────────────────────────────────────────────── */}
-      <header>
-        <div className="flex items-center gap-3 font-ui uppercase tracking-editorial text-[10px] text-muted mb-3.5">
-          Biblioteka <span className="text-gold">∴</span> Vol. I
-        </div>
-        <h1 className="font-display font-medium text-dark leading-tight tracking-[-0.5px] text-[clamp(1.75rem,5vw,2.5rem)]">
-          Side <em className="italic font-normal text-gold-deep">Questy</em>
-        </h1>
-        <p className="mt-2 font-serif-body italic text-[14px] text-muted">
-          <strong className="font-display not-italic font-medium text-gold-deep">{toRoman(visibleQuests.length)}</strong> questów w bibliotece
-          <span className="text-gold mx-2">·</span>
-          <strong className="font-display not-italic font-medium text-gold-deep">{toRoman(totalCompleted)}</strong> {totalCompleted === 1 ? 'ukończony' : 'ukończone'} dziś
-        </p>
-      </header>
+      <PageHeader
+        className="mb-0"
+        chapter="I"
+        eyebrow="Biblioteka"
+        title={<>Side <em className="italic font-normal text-gold-deep">Questy</em></>}
+        subtitle={
+          <>
+            <strong className="font-display not-italic font-medium text-gold-deep">{toRoman(visibleQuests.length)}</strong> questów w bibliotece
+            <span className="text-gold mx-2">·</span>
+            <strong className="font-display not-italic font-medium text-gold-deep">{toRoman(totalCompleted)}</strong> {totalCompleted === 1 ? 'ukończony' : 'ukończone'} dziś
+          </>
+        }
+      />
 
       {/* Ornament */}
       <div className="flex items-center gap-3.5 my-7">

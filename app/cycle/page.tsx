@@ -9,6 +9,7 @@ import {
 } from '@/lib/cycle-data'
 import { Fleuron } from '@/components/ui'
 import { SkeletonHeader, SkeletonCard } from '@/components/SkeletonCard'
+import PageHeader from '@/components/PageHeader'
 import { toRoman } from '@/lib/romanNumerals'
 import { todayKey, XP_VALUES } from '@/lib/gameLogic'
 
@@ -688,27 +689,21 @@ export default function CyclePage() {
       `}</style>
 
       {/* Header */}
-      <header className="flex items-start justify-between gap-7">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3 font-ui uppercase tracking-editorial text-[10px] text-muted mb-3.5">
-            Rytm <span style={{ color: MAUVE }}>∴</span> Vol. I
-          </div>
-          <h1 className="font-display font-medium text-dark leading-tight tracking-[-0.5px] text-[clamp(1.75rem,5vw,2.5rem)]">
-            <em className="italic font-normal" style={{ color: MAUVE_D }}>Rytm kobiecy</em>
-          </h1>
-          {currentData && (
-            <p className="mt-2 font-serif-body italic text-[14px] text-muted">
-              dzień {currentData.cycleDay} · faza {currentData.phase.name.toLowerCase()} · energia {currentData.phase.energy}
-            </p>
-          )}
-        </div>
-        <button onClick={() => setShowLogForm(v => !v)}
-          className="shrink-0 mt-1.5 inline-flex items-center gap-3 bg-dark border px-5 py-3.5 relative" style={{ borderColor: '#b29355' }}>
-          <span style={{ color: MAUVE }} className="text-[9px]">◆</span>
-          <span className="font-ui uppercase tracking-editorial text-[11px] text-gold-pale">Dzień</span>
-          <span className="font-display font-medium text-[14px] text-gold-light">{currentData ? toRoman(currentData.cycleDay) : 'I'}</span>
-        </button>
-      </header>
+      <PageHeader
+        chapter="VI"
+        eyebrow="Rytm"
+        accent={MAUVE}
+        title={<em className="italic font-normal" style={{ color: MAUVE_D }}>Rytm kobiecy</em>}
+        subtitle={currentData ? <>dzień {currentData.cycleDay} · faza {currentData.phase.name.toLowerCase()} · energia {currentData.phase.energy}</> : undefined}
+        action={
+          <button onClick={() => setShowLogForm(v => !v)}
+            className="shrink-0 mt-1.5 inline-flex items-center gap-3 bg-dark border px-5 py-3.5 relative" style={{ borderColor: '#b29355' }}>
+            <span style={{ color: MAUVE }} className="text-[9px]">◆</span>
+            <span className="font-ui uppercase tracking-editorial text-[11px] text-gold-pale">Dzień</span>
+            <span className="font-display font-medium text-[14px] text-gold-light">{currentData ? toRoman(currentData.cycleDay) : 'I'}</span>
+          </button>
+        }
+      />
 
       <div className="flex items-center gap-3.5 my-7">
         <span className="flex-1 h-px bg-hairline" />

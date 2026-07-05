@@ -16,6 +16,7 @@ import ProtocolTab from './_tabs/ProtocolTab'
 import PatternsTab from './_tabs/PatternsTab'
 import OddechTab from './_tabs/OddechTab'
 import { SmallCaps, GoldRule, RomanNumeral, Fleuron, CornerBrackets } from '@/components/ui'
+import PageHeader from '@/components/PageHeader'
 
 // Filary celowo NIE jest zakładką Historii — pełny widok balansu filarów ma osobna strona /pillars.
 type TimelineMode = 'calendar' | 'habits' | 'mood' | 'patterns' | 'protokol' | 'oddech'
@@ -118,18 +119,13 @@ export default function TimelinePage() {
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
       {/* Editorial header */}
-      <header className="mb-8">
-        <SmallCaps tone="muted" tracking="editorial" size="xs">
-          Twój rok · Vol. I
-        </SmallCaps>
-        <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.75rem)] leading-tight mt-2">
-          Historia
-        </h1>
-        <p className="font-serif-body italic text-muted text-[14px] mt-2">
-          {SUB_COPY[mode]}
-        </p>
-        <GoldRule variant="diamond" tone="gold-deep" className="mt-5 opacity-50" />
-      </header>
+      <PageHeader
+        chapter="III"
+        eyebrow="Twój rok"
+        title="Historia"
+        subtitle={SUB_COPY[mode]}
+        rule
+      />
 
       {/* Tabs — editorial */}
       <nav className="mb-8">

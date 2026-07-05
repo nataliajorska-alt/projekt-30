@@ -7,6 +7,7 @@ import { usePhotos } from '@/hooks/usePhotos'
 import { Camera, Trash2, X, Upload } from 'lucide-react'
 import type { PhotoEntry } from '@/types'
 import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
+import PageHeader from '@/components/PageHeader'
 import { toRoman } from '@/lib/romanNumerals'
 
 const PL_MONTHS = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru']
@@ -352,22 +353,22 @@ export default function PhotosPage() {
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
       {/* Editorial header */}
-      <header className="grid grid-cols-[1fr_auto] items-end gap-4">
-        <div className="min-w-0">
-          <SmallCaps tone="muted" tracking="editorial" size="xs">Dokumentacja · Vol. I</SmallCaps>
-          <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.75rem)] leading-tight mt-2">Photo Timeline</h1>
-          <p className="font-serif-body italic text-muted text-[14px] mt-2">
-            {total > 0 ? <>{toRoman(total)} {odbitkiWord(total)} w archiwum · trafią do annual report.</> : 'archiwum czeka na pierwszą odbitkę.'}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowUpload(true)}
-          className="flex items-center gap-2.5 px-5 py-3 bg-dark text-ivory border border-gold hover:bg-forest transition-colors shrink-0"
-        >
-          <Camera size={14} strokeWidth={1.5} className="text-gold-light" />
-          <SmallCaps tone="ivory" tracking="luxury" size="xs">Dodaj</SmallCaps>
-        </button>
-      </header>
+      <PageHeader
+        className="mb-0"
+        chapter="VII"
+        eyebrow="Dokumentacja"
+        title="Photo Timeline"
+        subtitle={total > 0 ? <>{toRoman(total)} {odbitkiWord(total)} w archiwum · trafią do annual report.</> : 'archiwum czeka na pierwszą odbitkę.'}
+        action={
+          <button
+            onClick={() => setShowUpload(true)}
+            className="flex items-center gap-2.5 px-5 py-3 bg-dark text-ivory border border-gold hover:bg-forest transition-colors shrink-0"
+          >
+            <Camera size={14} strokeWidth={1.5} className="text-gold-light" />
+            <SmallCaps tone="ivory" tracking="luxury" size="xs">Dodaj</SmallCaps>
+          </button>
+        }
+      />
 
       <div className="flex items-center gap-3.5 mt-7 mb-2.5">
         <span className="flex-1 h-px bg-hairline" />

@@ -16,6 +16,7 @@ import { toRoman } from '@/lib/romanNumerals'
 import GardenArt from '@/components/GardenArt'
 import StageExLibris from '@/components/StageExLibris'
 import LevelVine from '@/components/LevelVine'
+import PageHeader from '@/components/PageHeader'
 import { SkeletonHeader, SkeletonCard } from '@/components/SkeletonCard'
 
 // Lista poziomów pogrupowana etapami Ogrodu — stała struktura, liczona raz.
@@ -110,18 +111,13 @@ export default function ProgressPage() {
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
       {/* Editorial header */}
-      <header className="mb-8">
-        <SmallCaps tone="muted" tracking="editorial" size="xs">
-          Twoja droga · Vol. I
-        </SmallCaps>
-        <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.75rem)] leading-tight mt-2">
-          Ogród Transformacji
-        </h1>
-        <p className="font-serif-body italic text-muted text-[14px] mt-2">
-          trzydzieści poziomów · jeden rok · jedna Ty
-        </p>
-        <GoldRule variant="diamond" tone="gold-deep" className="mt-5 opacity-50" />
-      </header>
+      <PageHeader
+        chapter="II"
+        eyebrow="Twoja droga"
+        title="Ogród Transformacji"
+        subtitle="trzydzieści poziomów · jeden rok · jedna Ty"
+        rule
+      />
 
       {/* ── HERO ── */}
       <div className="bg-ivory border border-gold-light/40 overflow-hidden mb-6">
