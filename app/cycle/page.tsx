@@ -682,12 +682,13 @@ export default function CyclePage() {
   )
 
   return (
-    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-16 animate-fade-in">
-      <style>{`
-        .cycle-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;background:#1d231f;border:1px solid ${MAUVE};transform:rotate(45deg);cursor:pointer}
-        .cycle-slider::-moz-range-thumb{width:15px;height:15px;background:#1d231f;border:1px solid ${MAUVE};border-radius:0;transform:rotate(45deg);cursor:pointer}
-      `}</style>
-
+    <>
+    {/* Poza .reveal-stagger — <style> nie jest sekcją, nie może zjadać slotu kaskady */}
+    <style>{`
+      .cycle-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;background:#1d231f;border:1px solid ${MAUVE};transform:rotate(45deg);cursor:pointer}
+      .cycle-slider::-moz-range-thumb{width:15px;height:15px;background:#1d231f;border:1px solid ${MAUVE};border-radius:0;transform:rotate(45deg);cursor:pointer}
+    `}</style>
+    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-16 reveal-stagger">
       {/* Header */}
       <PageHeader
         chapter="VI"
@@ -775,5 +776,6 @@ export default function CyclePage() {
         <CycleSettingsForm settings={settings} saving={settingsSaving} onSave={saveSettings} />
       )}
     </div>
+    </>
   )
 }

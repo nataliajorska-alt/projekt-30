@@ -219,7 +219,7 @@ export default function Dashboard() {
   const day = dayOfProject()
 
   return (
-    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 md:pt-10 pb-12 md:pb-20 animate-fade-in">
+    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 md:pt-10 pb-12 md:pb-20 reveal-stagger">
       {/* Editorial date header */}
       <header className="mb-8">
         <div className="flex items-start justify-between gap-3">

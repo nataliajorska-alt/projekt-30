@@ -241,7 +241,7 @@ export default function AchievementsPage() {
   const caseGlyphs = [...earned, ...hiddenEarned].slice(0, 10).map(a => categoryOf(a.id).glyph)
 
   return (
-    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
+    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 reveal-stagger">
       {/* Header */}
       <PageHeader
         className="mb-0"

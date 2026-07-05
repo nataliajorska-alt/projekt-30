@@ -109,7 +109,7 @@ export default function ProgressPage() {
   const expectedPct = Math.min(100, Math.round((pace.expectedXP / TOTAL_XP) * 100))
 
   return (
-    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 animate-fade-in">
+    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 reveal-stagger">
       {/* Editorial header */}
       <PageHeader
         chapter="II"
