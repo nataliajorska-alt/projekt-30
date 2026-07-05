@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import clsx from 'clsx'
@@ -171,30 +171,74 @@ function Lightbox({ items, index, onNav, onClose, onDelete }: {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const cur = items[index]
 
+  // Jedno źródło nawigacji (klawiatura, strzałki, swipe) — zawijana o modulo.
+  const goPrev = useCallback(() => onNav((index - 1 + items.length) % items.length), [index, items.length, onNav])
+  const goNext = useCallback(() => onNav((index + 1) % items.length), [index, items.length, onNav])
+
   useEffect(() => { setConfirmDelete(false) }, [index])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowLeft') onNav((index - 1 + items.length) % items.length)
-      if (e.key === 'ArrowRight') onNav((index + 1) % items.length)
+      if (e.key === 'ArrowLeft') goPrev()
+      if (e.key === 'ArrowRight') goNext()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [index, items.length, onNav, onClose])
+  }, [goPrev, goNext, onClose])
+
+  // Blokada scrolla tła na czas podglądu — bez tego pionowy/ukośny gest
+  // (albo overscroll) przewija galerię POD overlayem. touch-action:none
+  // na overlayu dopełnia to od strony gestów.
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
+  // Swipe dotykowy (telefon = główna platforma). Próg 45 px i dominacja
+  // poziomu nad pionem, żeby drobne dotknięcia i pionowe ruchy nie
+  // przełączały kadru. Po swipie tłumimy tap-to-close OKNEM CZASOWYM, nie
+  // trwałą flagą: inaczej klik myszą (bez poprzedzającego touchstartu) na
+  // urządzeniu hybrydowym zjadałby pierwsze zamknięcie.
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const swipeEndAt = useRef(0)
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (items.length <= 1 || e.touches.length !== 1) { touchStart.current = null; return }
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const s = touchStart.current
+    touchStart.current = null
+    if (!s) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - s.x
+    const dy = t.clientY - s.y
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      swipeEndAt.current = performance.now()
+      if (dx < 0) goNext(); else goPrev()
+    }
+  }
+  // Klik/tap na tło zamyka — chyba że pada tuż po swipie (compat-click,
+  // który przeglądarka potrafi dorzucić po geście). Okno 400 ms wygasa samo.
+  const handleBackdrop = () => {
+    if (performance.now() - swipeEndAt.current < 400) return
+    onClose()
+  }
 
   if (!cur) return null
   const { photo, no, monthName, year } = cur
 
   return (
-    <div className="fixed inset-0 z-[130] flex items-center justify-center animate-fade-in" style={{ background: 'rgba(16,20,17,.95)' }} onClick={onClose}>
+    <div className="fixed inset-0 z-[130] flex items-center justify-center animate-fade-in" style={{ background: 'rgba(16,20,17,.95)', touchAction: 'none' }}
+      onClick={handleBackdrop} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <button onClick={onClose} aria-label="Zamknij"
         className="absolute top-7 right-8 w-11 h-11 flex items-center justify-center border border-gold-light/45 text-gold-light font-serif-body text-xl hover:bg-gold/[0.12] transition-colors">✕</button>
 
       {items.length > 1 && (
         <>
-          <button onClick={e => { e.stopPropagation(); onNav((index - 1 + items.length) % items.length) }} aria-label="Poprzednie"
+          <button onClick={e => { e.stopPropagation(); goPrev() }} aria-label="Poprzednie"
             className="absolute left-4 sm:left-12 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center border border-gold-light/45 text-gold-light font-serif-body text-2xl hover:bg-gold/[0.12] hover:border-gold transition-colors">‹</button>
-          <button onClick={e => { e.stopPropagation(); onNav((index + 1) % items.length) }} aria-label="Następne"
+          <button onClick={e => { e.stopPropagation(); goNext() }} aria-label="Następne"
             className="absolute right-4 sm:right-12 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center border border-gold-light/45 text-gold-light font-serif-body text-2xl hover:bg-gold/[0.12] hover:border-gold transition-colors">›</button>
         </>
       )}
