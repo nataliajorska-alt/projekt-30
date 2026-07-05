@@ -1,9 +1,13 @@
 // Moduł „Myśli i emocje" (/mysli) — narzędzia z terapii poznawczo-behawioralnej.
-// Trzy ćwiczenia z rozdziałów o emocjach i myślach automatycznych:
-//  • Myśli  — tabela myśli automatycznych (ćw. 4) + wywiad sokratejski (ćw. 5)
-//  • Emocje — instrukcja obsługi emocji (ćw. 1): nazwij, zlokalizuj, nadaj kształt,
-//             oceń natężenie przed/po. Spadek natężenia to cały sens.
-//  • Tarcza — wspierające zdania (ćw. 6): wybór z listy + własne. BEZ XP.
+// Cztery narzędzia z rozdziałów o emocjach, myślach automatycznych i przekonaniach:
+//  • Myśli      — tabela myśli automatycznych (ćw. 4) + wywiad sokratejski (ćw. 5)
+//  • Emocje     — instrukcja obsługi emocji (ćw. 1): nazwij, zlokalizuj, nadaj kształt,
+//                 oceń natężenie przed/po. Spadek natężenia to cały sens.
+//  • Przekonania — strzałka w dół (rozdz. „Pułapka przekonań"): myśl → przekonanie
+//                 kluczowe (schemat) → restrukturyzacja w nowe, zdrowe przekonanie.
+//                 XP TYLKO za domknięcie (przekonanie kluczowe → nowe), nie za sam
+//                 zapis bólu. „Nowe przekonanie" można świadomie wysłać na Tarczę.
+//  • Tarcza     — wspierające zdania (ćw. 6): wybór z listy + własne. BEZ XP.
 //
 // Persystencja: kolekcja users/{uid}/cbtJournal (osobne dokumenty, jak vault),
 // każdy wpis nosi własne `xpEarned` — żeby recoverStats odbudowało XP sumując
@@ -63,7 +67,51 @@ export interface CBTEmotionEntry {
   updatedAt: string
 }
 
-export type CBTEntry = CBTThoughtEntry | CBTEmotionEntry
+/** Jedna codzienna sytuacja potwierdzająca nowe przekonanie (pielęgnacja w czasie). */
+export interface CBTBeliefConfirmation {
+  dateKey: string
+  text: string
+}
+
+/** Punkt na krzywej % wiary — jeden na tydzień ISO. */
+export interface CBTBeliefPctPoint {
+  weekKey: string // np. „2026-W28"
+  pct: number // 0–100
+}
+
+/** Wpis „strzałki w dół" — identyfikacja przekonania kluczowego (ćw. 1)
+ *  + restrukturyzacja w nowe, zdrowe przekonanie (ćw. 2). Obiekt DŁUGOŻYJĄCY:
+ *  wracasz do niego, przesuwasz % wiary, dopisujesz dowody. */
+export interface CBTBeliefEntry {
+  id: string
+  kind: 'belief'
+  dateKey: string
+  timestamp: number
+  // Ćw. 1 — strzałka w dół (zejście do przekonania kluczowego):
+  trigger: string // sytuacja/myśl startowa z silnymi emocjami
+  ladder: string[] // kolejne odpowiedzi na „jeśli to prawda, co to o mnie mówi?"
+  coreBelief: string // przekonanie kluczowe — dno drabiny
+  // Pogłębienie (rozdz. „Pułapka przekonań"):
+  behaveWhenActive: string // jak się zachowuję / czuję, gdy to przekonanie działa
+  ifOpposite: string // jak zachowałabym się, gdyby było ODWROTNE
+  source: string // skąd się wzięło (dzieciństwo, słowa, interpretacje zachowań)
+  axisSelf: string // Ja jestem…
+  axisOthers: string // Inni ludzie są…
+  axisWorld: string // Świat jest…
+  // Ćw. 2 — restrukturyzacja:
+  newBelief: string // nowe, zdrowe przekonanie
+  newBeliefPct: number // 0–100, na ile wierzę w NOWE (przesuwane w czasie)
+  evidence: string[] // dowody potwierdzające nowe przekonanie (książka: 5)
+  // Codzienna pielęgnacja (rozdz. „codzienna pielęgnacja") — BEZ XP:
+  confirmations: CBTBeliefConfirmation[] // codzienne sytuacje potwierdzające nowe przekonanie
+  pctHistory: CBTBeliefPctPoint[] // % wiary tydzień-po-tygodniu (krzywa postępu)
+  // XP / księgowość (jak CBTThoughtEntry — bonus stemplowany na xpEarned):
+  xpEarned: number
+  restructureAwarded: boolean // czy bonus za domknięcie już przyznany
+  updatedAt: string
+}
+
+export type CBTEntry = CBTThoughtEntry | CBTEmotionEntry | CBTBeliefEntry
 
 /** Tarcza wspierających myśli — stała kolekcja zdań. Bez XP. */
 export interface CBTShield {
@@ -116,6 +164,41 @@ export function emptyEmotion(id: string, dateKey: string): CBTEmotionEntry {
   }
 }
 
+export function emptyBelief(id: string, dateKey: string): CBTBeliefEntry {
+  return {
+    id,
+    kind: 'belief',
+    dateKey,
+    timestamp: Date.now(),
+    trigger: '',
+    ladder: [],
+    coreBelief: '',
+    behaveWhenActive: '',
+    ifOpposite: '',
+    source: '',
+    axisSelf: '',
+    axisOthers: '',
+    axisWorld: '',
+    newBelief: '',
+    newBeliefPct: 0,
+    evidence: [],
+    confirmations: [],
+    pctHistory: [],
+    xpEarned: 0,
+    restructureAwarded: false,
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+/** Wpisuje/aktualizuje % wiary dla danego tygodnia ISO (jeden punkt na tydzień). */
+export function upsertPctWeek(history: CBTBeliefPctPoint[], weekKey: string, pct: number): CBTBeliefPctPoint[] {
+  const idx = history.findIndex(p => p.weekKey === weekKey)
+  if (idx === -1) return [...history, { weekKey, pct }]
+  const next = history.slice()
+  next[idx] = { weekKey, pct }
+  return next
+}
+
 export const emptyShield = (): CBTShield => ({ selected: [], custom: [], updatedAt: new Date().toISOString() })
 
 // ── Pytania sokratejskie (ćw. 5) ───────────────────────────────────────────
@@ -153,6 +236,12 @@ export const BOOK_SHIELD: string[] = [
 /** Czy wywiad z gorącą myślą jest „domknięty" — kwalifikuje się do bonusu XP. */
 export function reframeComplete(t: Pick<CBTThoughtEntry, 'hot' | 'reframe'>): boolean {
   return t.hot.trim().length > 0 && t.reframe.trim().length > 0
+}
+
+/** Czy praca z przekonaniem jest „domknięta" — dno drabiny + nowe zdrowe
+ *  przekonanie. Dopiero to (nie sam zapis bólu) kwalifikuje do bonusu XP. */
+export function restructureComplete(b: Pick<CBTBeliefEntry, 'coreBelief' | 'newBelief'>): boolean {
+  return b.coreBelief.trim().length > 0 && b.newBelief.trim().length > 0
 }
 
 export function cbtUid(): string {

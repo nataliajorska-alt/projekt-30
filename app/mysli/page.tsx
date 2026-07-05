@@ -5,10 +5,10 @@ import clsx from 'clsx'
 import { ChevronLeft, ChevronDown, Plus, X } from 'lucide-react'
 import { useCBT } from '@/hooks/useCBT'
 import { RitualSurface, SmallCaps, GoldRule, Diamond, Fleuron } from '@/components/ui'
-import { XP_VALUES } from '@/lib/gameLogic'
+import { XP_VALUES, todayKey, getISOWeekKey, getEffectiveNow } from '@/lib/gameLogic'
 import {
-  SOCRATIC, BOOK_SHIELD,
-  type CBTThoughtEntry, type CBTEmotionEntry, type CBTEmotionTag, type CBTShield,
+  SOCRATIC, BOOK_SHIELD, restructureComplete, upsertPctWeek,
+  type CBTThoughtEntry, type CBTEmotionEntry, type CBTBeliefEntry, type CBTBeliefPctPoint, type CBTEmotionTag, type CBTShield,
 } from '@/lib/cbt-data'
 
 const ROSE = '#8f4d63'
@@ -26,7 +26,7 @@ function fmtDate(ts: number): string {
 // ════════════════════════════════════════════════════════════════════
 //  STRONA
 // ════════════════════════════════════════════════════════════════════
-type Tab = 'mysli' | 'emocje' | 'tarcza'
+type Tab = 'mysli' | 'emocje' | 'przekonania' | 'tarcza'
 
 export default function CBTPage() {
   const cbt = useCBT()
@@ -70,8 +70,8 @@ export default function CBTPage() {
         </header>
 
         {/* Zakładki */}
-        <div className="mt-9 grid grid-cols-3 gap-1.5 border border-gold-light/25 p-1.5">
-          {([['mysli','Myśli'],['emocje','Emocje'],['tarcza','Tarcza']] as [Tab, string][]).map(([key, label]) => (
+        <div className="mt-9 grid grid-cols-2 gap-1.5 border border-gold-light/25 p-1.5">
+          {([['mysli','Myśli'],['emocje','Emocje'],['przekonania','Przekonania'],['tarcza','Tarcza']] as [Tab, string][]).map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
@@ -92,6 +92,8 @@ export default function CBTPage() {
             <ThoughtTab cbt={cbt} />
           ) : tab === 'emocje' ? (
             <EmotionTab cbt={cbt} />
+          ) : tab === 'przekonania' ? (
+            <BeliefTab cbt={cbt} />
           ) : (
             <ShieldTab shield={cbt.shield} onSave={cbt.saveShield} />
           )}
@@ -503,6 +505,352 @@ function DeltaLine({ before, after }: { before: number; after: number }) {
   if (d > 0) return <p className="text-center font-serif-body text-[14px] text-[#3f7d5c] mt-1">Natężenie spadło o <b className="font-display">{d}</b>. To działa.</p>
   if (d < 0) return <p className="text-center font-serif-body text-[14px] text-[#8A3A2C] mt-1">Natężenie wzrosło o <b className="font-display">{-d}</b> — też ważna informacja. Bądź dla siebie łagodna.</p>
   return <p className="text-center font-serif-body text-[14px] text-[#7c7256] mt-1">Natężenie bez zmian. Czasem samo nazwanie to już dużo.</p>
+}
+
+// Krzywa % wiary tydzień-po-tygodniu. Wzrost = zdrowienie (zielony).
+function PctTrend({ history }: { history: CBTBeliefPctPoint[] }) {
+  const pts = [...history].sort((a, b) => a.weekKey.localeCompare(b.weekKey))
+  if (pts.length < 2) return null
+  const w = 300, h = 70, padX = 12, padY = 12, n = pts.length
+  const x = (i: number) => padX + (i / (n - 1)) * (w - 2 * padX)
+  const y = (v: number) => padY + (1 - v / 100) * (h - 2 * padY)
+  const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)} ${y(p.pct).toFixed(1)}`).join(' ')
+  const color = pts[n - 1].pct >= pts[0].pct ? DOWN : UP
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full max-w-[320px] h-[70px]" aria-hidden>
+      <line x1={padX} y1={y(0)} x2={w - padX} y2={y(0)} stroke="#c3b994" strokeWidth={0.75} />
+      <line x1={padX} y1={y(100)} x2={w - padX} y2={y(100)} stroke="#c3b994" strokeWidth={0.75} strokeDasharray="2 3" />
+      <path d={d} fill="none" stroke={color} strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
+      {pts.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.pct)} r={i === n - 1 ? 4 : 3} fill={i === n - 1 ? color : ROSE} />)}
+      <text x={x(n - 1)} y={y(pts[n - 1].pct) - 8} textAnchor="end" fontSize={13} fontWeight={600} fill={color} fontFamily="'Bodoni Moda',serif">{pts[n - 1].pct}%</text>
+    </svg>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  ZAKŁADKA: PRZEKONANIA (strzałka w dół)
+// ════════════════════════════════════════════════════════════════════
+function BeliefTab({ cbt }: { cbt: ReturnType<typeof useCBT> }) {
+  const [trigger, setTrigger] = useState('')
+  const [ladder, setLadder] = useState<string[]>([''])
+  const [core, setCore] = useState('')
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [flash, setFlash] = useState<string | null>(null)
+
+  const setRung = (i: number, v: string) => setLadder(ladder.map((r, j) => (j === i ? v : r)))
+  const addRung = () => ladder.length < 6 && setLadder([...ladder, ''])
+  const rmRung = (i: number) => ladder.length > 1 && setLadder(ladder.filter((_, j) => j !== i))
+
+  const save = async () => {
+    const rungs = ladder.map(r => r.trim()).filter(Boolean)
+    if (!trigger.trim() && !core.trim() && !rungs.length) {
+      setFlash('Najpierw coś zapisz'); setTimeout(() => setFlash(null), 1500); return
+    }
+    const created = await cbt.createBelief({ trigger: trigger.trim(), ladder: rungs, coreBelief: core.trim() })
+    setTrigger(''); setLadder(['']); setCore('')
+    setFlash(created && created.xpEarned > 0 ? `Zapisano · +${created.xpEarned} XP` : 'Zapisano ✓')
+    setTimeout(() => setFlash(null), 1800)
+  }
+
+  return (
+    <div>
+      <p className="font-serif-body italic text-parchment text-[14px] leading-[1.8] text-center mb-7 max-w-lg mx-auto">
+        Weź myśl, która wróciła w silnej emocji, i schodź w dół — po każdej odpowiedzi pytaj
+        „jeśli to prawda, co to o mnie mówi?" — aż dojdziesz do prostego zdania. To Twoje przekonanie kluczowe.
+        Potem, spokojnie, ułóż w jego miejsce nowe, zdrowe.
+      </p>
+
+      {/* Formularz — ćw. 1: zejście do przekonania kluczowego */}
+      <div className="cbt-card px-6 md:px-8 py-7">
+        <div className="mb-5">
+          <label className="cbt-lab">Myśl na start<span className="cbt-hint">Sytuacja i myśl, która wywołała silne emocje.</span></label>
+          <textarea className="cbt-ta" rows={2} value={trigger} onChange={e => setTrigger(e.target.value)}
+            placeholder="Nie odpisała mi cały dzień. Pewnie ma mnie dość." />
+        </div>
+
+        <div className="mb-5">
+          <label className="cbt-lab">Strzałka w dół<span className="cbt-hint">Po każdej odpowiedzi: „a jeśli to prawda — co to o mnie mówi?"</span></label>
+          {ladder.map((r, i) => (
+            <div key={i} className="mb-2">
+              <div className="flex items-center gap-1.5 mb-1 text-[#8e7338]">
+                <ChevronDown size={14} /><span className="font-ui uppercase tracking-luxury text-[9px]">krok {i + 1}</span>
+              </div>
+              <div className="grid grid-cols-[1fr_28px] gap-2 items-start">
+                <textarea className="cbt-ta" rows={2} value={r} onChange={e => setRung(i, e.target.value)}
+                  placeholder={i === 0 ? '…to znaczy, że jestem nieważna' : '…a to znaczy, że…'} />
+                {ladder.length > 1
+                  ? <button onClick={() => rmRung(i)} aria-label="usuń krok" className="text-[#7c7256] hover:text-[#8A3A2C] transition-colors flex justify-center pt-2"><X size={16} /></button>
+                  : <span />}
+              </div>
+            </div>
+          ))}
+          {ladder.length < 6 && (
+            <button onClick={addRung} className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 border border-dashed border-[#c9b27f] text-[#6f6448] hover:border-[#b56a82] transition-colors">
+              <Plus size={13} /><span className="font-ui uppercase tracking-luxury text-[10px]">głębiej</span>
+            </button>
+          )}
+        </div>
+
+        <div className="mb-6 border border-[#c9b27f] bg-[#d3ccaf] p-3.5">
+          <label className="cbt-lab">Przekonanie kluczowe<span className="cbt-hint">Dno drabiny — proste zdanie o sobie, innych albo świecie.</span></label>
+          <textarea className="cbt-ta" rows={2} value={core} onChange={e => setCore(e.target.value)}
+            placeholder="Jestem nie do pokochania." />
+        </div>
+
+        <SaveButton onClick={save} flash={flash}>zapisz przekonanie</SaveButton>
+      </div>
+
+      {/* Lista */}
+      <div className="mt-9 mb-4 flex items-center gap-2">
+        <Diamond size={6} className="text-gold" />
+        <SmallCaps tone="gold-light" tracking="luxury" size="xs">Twoje przekonania · {cbt.beliefs.length}</SmallCaps>
+      </div>
+
+      {cbt.beliefs.length === 0 ? (
+        <EmptyNote>Tu wylądują przekonania, które uda Ci się nazwać — i te nowe, zdrowe, które w ich miejsce budujesz.</EmptyNote>
+      ) : (
+        <div className="space-y-3">
+          {cbt.beliefs.map(b => (
+            <BeliefRow key={b.id} entry={b} cbt={cbt} open={openId === b.id}
+              onToggle={() => setOpenId(openId === b.id ? null : b.id)}
+              onDelete={() => { cbt.deleteEntry(b.id); setOpenId(null) }} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BeliefRow({ entry, cbt, open, onToggle, onDelete }: {
+  entry: CBTBeliefEntry; cbt: ReturnType<typeof useCBT>; open: boolean; onToggle: () => void; onDelete: () => void
+}) {
+  return (
+    <div className="cbt-card">
+      <button onClick={onToggle} className="w-full text-left px-5 py-4 flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338]">{fmtDate(entry.timestamp)}</div>
+          <div className="font-display text-[16px] text-[#2a2a26] mt-1 leading-[1.35] line-clamp-2">{entry.coreBelief || entry.trigger || '(bez nazwy)'}</div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {entry.newBelief && <span className="text-[11px] text-[#3f7d5c] border border-[#3f7d5c]/40 px-2 py-0.5 rounded-full">nowe · wiara {entry.newBeliefPct}%</span>}
+            {entry.restructureAwarded && <span className="text-[11px] text-[#8e7338] border border-[#c9b27f] px-2 py-0.5 rounded-full">◆ zrestrukturyzowane</span>}
+          </div>
+        </div>
+        <ChevronDown size={15} className={clsx('text-[#8e7338] shrink-0 mt-1 transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 border-t border-[#c9b27f]/40">
+          {entry.trigger && (
+            <div className="mt-4">
+              <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338] mb-1.5">Myśl na start</div>
+              <div className="font-serif-body text-[14.5px] text-[#2a2a26] whitespace-pre-wrap">{entry.trigger}</div>
+            </div>
+          )}
+          {entry.ladder.length > 0 && (
+            <div className="mt-4">
+              <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338] mb-1.5">Strzałka w dół</div>
+              <ul className="space-y-1.5">
+                {entry.ladder.map((r, i) => (
+                  <li key={i} className="flex items-start gap-2 font-serif-body text-[14px] text-[#2a2a26]">
+                    <ChevronDown size={13} className="text-[#8e7338] shrink-0 mt-1" /><span className="whitespace-pre-wrap">{r}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <BeliefWork entry={entry} cbt={cbt} />
+          <div className="mt-5 flex items-center">
+            <button onClick={onDelete} className="ml-auto font-ui text-[11px] text-[#7c7256] underline underline-offset-2 hover:text-[#8A3A2C] transition-colors">usuń przekonanie</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Pogłębienie + restrukturyzacja — lokalny stan + autozapis (debounce 700ms).
+// Bonus +25 przyznawany raz, gdy przekonanie kluczowe + nowe zdrowe wypełnione.
+function BeliefWork({ entry, cbt }: { entry: CBTBeliefEntry; cbt: ReturnType<typeof useCBT> }) {
+  const [behave, setBehave] = useState(entry.behaveWhenActive)
+  const [opposite, setOpposite] = useState(entry.ifOpposite)
+  const [source, setSource] = useState(entry.source)
+  const [aSelf, setASelf] = useState(entry.axisSelf)
+  const [aOthers, setAOthers] = useState(entry.axisOthers)
+  const [aWorld, setAWorld] = useState(entry.axisWorld)
+  const [newBelief, setNewBelief] = useState(entry.newBelief)
+  const [pct, setPct] = useState(entry.newBeliefPct)
+  const [evidence, setEvidence] = useState<string[]>(entry.evidence.length ? entry.evidence : [''])
+  const [confirmations, setConfirmations] = useState(entry.confirmations)
+  const [confInput, setConfInput] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [onShield, setOnShield] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const first = useRef(true)
+
+  // Krzywa % — jeden punkt na tydzień ISO, tylko gdy jest już nowe przekonanie.
+  const thisWeek = getISOWeekKey(getEffectiveNow())
+  const liveHistory: CBTBeliefPctPoint[] = newBelief.trim()
+    ? upsertPctWeek(entry.pctHistory, thisWeek, pct)
+    : entry.pctHistory
+
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(async () => {
+      await cbt.updateBelief(entry.id, {
+        behaveWhenActive: behave, ifOpposite: opposite, source,
+        axisSelf: aSelf, axisOthers: aOthers, axisWorld: aWorld,
+        newBelief, newBeliefPct: pct, evidence: evidence.map(x => x.trim()).filter(Boolean),
+        confirmations,
+        pctHistory: newBelief.trim() ? upsertPctWeek(entry.pctHistory, thisWeek, pct) : entry.pctHistory,
+      })
+      setSaved(true); setTimeout(() => setSaved(false), 1400)
+    }, 700)
+    return () => { if (timer.current) clearTimeout(timer.current) }
+  }, [behave, opposite, source, aSelf, aOthers, aWorld, newBelief, pct, evidence, confirmations])
+
+  const setEv = (i: number, v: string) => setEvidence(evidence.map((e, j) => (j === i ? v : e)))
+  const addEv = () => evidence.length < 5 && setEvidence([...evidence, ''])
+  const rmEv = (i: number) => evidence.length > 1 && setEvidence(evidence.filter((_, j) => j !== i))
+
+  const today = todayKey()
+  const todayConfs = confirmations.filter(c => c.dateKey === today)
+  const olderConfs = confirmations.filter(c => c.dateKey !== today)
+  const addConf = () => {
+    const v = confInput.trim()
+    if (!v) return
+    setConfirmations([...confirmations, { dateKey: today, text: v }])
+    setConfInput('')
+  }
+  const rmConf = (target: { dateKey: string; text: string }) =>
+    setConfirmations(confirmations.filter(c => c !== target))
+
+  const done = restructureComplete({ coreBelief: entry.coreBelief, newBelief })
+  const nb = newBelief.trim()
+  const alreadyOnShield = nb.length > 0 && (BOOK_SHIELD.includes(nb) || cbt.shield.custom.includes(nb))
+  const addToShield = () => {
+    if (!nb) return
+    if (!BOOK_SHIELD.includes(nb) && !cbt.shield.custom.includes(nb)) {
+      cbt.saveShield({ ...cbt.shield, custom: [...cbt.shield.custom, nb], selected: [...cbt.shield.selected, nb] })
+    }
+    setOnShield(true)
+  }
+
+  const cormorant = { fontFamily: "'Cormorant Garamond',serif", fontSize: '14px' } as const
+
+  return (
+    <div className="mt-5 pt-4 border-t border-dashed border-[#c9b27f]/60">
+      <h4 className="font-display font-medium text-[16px] text-[#2a2a26]">Zrozum to przekonanie</h4>
+      <p className="font-serif-body italic text-[12.5px] text-[#7c7256] mt-0.5 mb-4">
+        Popatrz na nie z dystansu — to nabyta koncepcja, nie prawda o świecie.
+      </p>
+
+      <div className="mb-3">
+        <label className="cbt-lab font-normal" style={cormorant}>Jak się zachowuję i czuję, gdy to przekonanie działa?</label>
+        <textarea className="cbt-ta" rows={2} value={behave} onChange={e => setBehave(e.target.value)} />
+      </div>
+      <div className="mb-3">
+        <label className="cbt-lab font-normal" style={cormorant}>Jak zachowałabym się, gdyby było ODWROTNE?</label>
+        <textarea className="cbt-ta" rows={2} value={opposite} onChange={e => setOpposite(e.target.value)} />
+      </div>
+      <div className="mb-3">
+        <label className="cbt-lab font-normal" style={cormorant}>Skąd się wzięło?<span className="cbt-hint">Czyjeś słowa z dzieciństwa? Interpretacja zachowań bliskich?</span></label>
+        <textarea className="cbt-ta" rows={2} value={source} onChange={e => setSource(e.target.value)} />
+      </div>
+
+      <div className="grid gap-2 mt-4">
+        {([['Ja jestem…', aSelf, setASelf], ['Inni ludzie są…', aOthers, setAOthers], ['Świat jest…', aWorld, setAWorld]] as [string, string, (v: string) => void][]).map(([lab, val, set]) => (
+          <div key={lab} className="grid grid-cols-[112px_1fr] gap-2 items-center">
+            <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8f4d63]">{lab}</span>
+            <input className="cbt-input" value={val} onChange={e => set(e.target.value)} />
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 border border-[#c9b27f] bg-[#d3ccaf] p-3.5">
+        <div className="font-ui uppercase tracking-luxury text-[9px] text-[#3f7d5c] mb-1.5">Nowe, zdrowe przekonanie</div>
+        <textarea className="cbt-ta" rows={2} value={newBelief} onChange={e => setNewBelief(e.target.value)}
+          placeholder="jak brzmi zdanie, które by Cię wspierało?" />
+
+        <div className="flex items-baseline justify-between mt-3 mb-1.5">
+          <span className="cbt-lab mb-0 font-normal" style={cormorant}>Na ile wierzę w nowe?</span>
+          <span className="font-display font-semibold text-[20px]" style={{ color: ROSE }}>{pct}%</span>
+        </div>
+        <input type="range" min={0} max={100} step={5} value={pct} onChange={e => setPct(Number(e.target.value))} className="cbt-range" />
+
+        {liveHistory.length >= 2 && (
+          <div className="mt-4">
+            <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338] mb-1">Wiara w czasie · {liveHistory.length} tyg.</div>
+            <PctTrend history={liveHistory} />
+          </div>
+        )}
+
+        <div className="mt-4">
+          <label className="cbt-lab font-normal" style={cormorant}>Dowody, że nowe jest prawdziwe<span className="cbt-hint">Realne sytuacje, które je potwierdzają.</span></label>
+          {evidence.map((ev, i) => (
+            <div key={i} className="grid grid-cols-[20px_1fr_24px] gap-2 items-center mb-2">
+              <span className="font-display text-[14px] text-[#8e7338] text-right">{i + 1}.</span>
+              <input className="cbt-input" value={ev} onChange={e => setEv(i, e.target.value)} />
+              {evidence.length > 1
+                ? <button onClick={() => rmEv(i)} aria-label="usuń dowód" className="text-[#7c7256] hover:text-[#8A3A2C] transition-colors flex justify-center"><X size={15} /></button>
+                : <span />}
+            </div>
+          ))}
+          {evidence.length < 5 && (
+            <button onClick={addEv} className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 border border-dashed border-[#c9b27f] text-[#6f6448] hover:border-[#b56a82] transition-colors">
+              <Plus size={13} /><span className="font-ui uppercase tracking-luxury text-[10px]">dodaj dowód</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {newBelief.trim() && (
+        <div className="mt-5 pt-4 border-t border-dashed border-[#c9b27f]/60">
+          <h4 className="font-display font-medium text-[16px] text-[#2a2a26]">Codzienna pielęgnacja</h4>
+          <p className="font-serif-body italic text-[12.5px] text-[#7c7256] mt-0.5 mb-3">
+            Zapisuj sytuacje, które potwierdziły nowe przekonanie — bez punktów, to spokojne podlewanie. Dziś: {todayConfs.length}/3.
+          </p>
+          <div className="flex gap-2">
+            <input className="cbt-input flex-1" value={confInput} onChange={e => setConfInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addConf() }} placeholder="co dziś to potwierdziło?" />
+            <button onClick={addConf} className="px-4 bg-dark-deep border border-gold text-ivory hover:bg-forest transition-colors">
+              <SmallCaps tone="ivory" tracking="luxury" size="xs">dopisz</SmallCaps>
+            </button>
+          </div>
+          {todayConfs.length > 0 && (
+            <ul className="mt-3 space-y-1.5">
+              {todayConfs.map((c, i) => (
+                <li key={i} className="flex items-start gap-2 font-serif-body text-[14px] text-[#2a2a26]">
+                  <span className="text-[#3f7d5c] shrink-0 mt-0.5">✓</span>
+                  <span className="flex-1 whitespace-pre-wrap">{c.text}</span>
+                  <button onClick={() => rmConf(c)} aria-label="usuń" className="text-[#7c7256] hover:text-[#8A3A2C] transition-colors shrink-0"><X size={14} /></button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {olderConfs.length > 0 && (
+            <div className="mt-2 font-ui uppercase tracking-luxury text-[9px] text-[#8e7338]">wcześniej · {olderConfs.length} zapisanych</div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-3 flex items-center gap-3 min-h-[18px]">
+        {entry.restructureAwarded
+          ? <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338]">◆ restrukturyzacja zaliczona · +{XP_VALUES.cbtRestructure} XP</span>
+          : <span className="font-ui uppercase tracking-luxury text-[9px] text-[#7c7256] opacity-70">domknij: przekonanie kluczowe + nowe zdrowe → +{XP_VALUES.cbtRestructure} XP</span>}
+        {saved && <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8f4d63] ml-auto">zapisano ✓</span>}
+      </div>
+
+      {done && (
+        <button onClick={addToShield} disabled={onShield || alreadyOnShield}
+          className="mt-3 w-full py-2.5 bg-dark-deep border border-gold text-ivory hover:bg-forest transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+          <Diamond size={6} className="text-gold" />
+          <SmallCaps tone="ivory" tracking="luxury" size="xs">{onShield || alreadyOnShield ? '✓ jest w Tarczy' : 'dodaj nowe przekonanie do Tarczy'}</SmallCaps>
+          <Diamond size={6} className="text-gold" />
+        </button>
+      )}
+    </div>
+  )
 }
 
 // ════════════════════════════════════════════════════════════════════

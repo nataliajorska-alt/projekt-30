@@ -861,6 +861,27 @@ export function useGameData() {
     return xp
   }, [user, stats, statsRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
 
+  // CBT — bonus +25 za restrukturyzację przekonania (strzałka w dół domknięta
+  // nowym, zdrowym przekonaniem). Bez dziennego limitu — ograniczony liczbą realnie
+  // domkniętych przekonań. Tylko do stats; odbudowa przez recoverStats (fromCBT
+  // sumuje xpEarned po całej kolekcji cbtJournal, niezależnie od kind).
+  const awardCBTBelief = useCallback(async (): Promise<number> => {
+    if (!user || !statsRef || !statsLoadedRef.current) return 0
+    const xp = XP_VALUES.cbtRestructure
+    const withStreak = await applyStreakIfNeeded(stats)
+    let newStats: UserStats = {
+      ...withStreak,
+      totalXP: withStreak.totalXP + xp,
+      pillarXP: { ...withStreak.pillarXP, pozycja: (withStreak.pillarXP.pozycja ?? 0) + xp },
+    }
+    newStats = applyPillarBalanceIfNeeded(newStats, 'pozycja')
+    const achUpdates = await checkAchievements(newStats)
+    const finalStats = { ...newStats, ...achUpdates }
+    checkLevelUp(stats.totalXP, finalStats.totalXP)
+    await setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true })
+    return xp
+  }, [user, stats, statsRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
+
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(currentDateKey.slice(0, 7))
 
   // Full stats reconstruction from Firestore source documents.
@@ -1239,7 +1260,7 @@ export function useGameData() {
     logCigarette, removeLastCigarette, startSmokingPhase,
     completeHeartBlock,
     recordGhostImpulseV2, recordHonestFailure, logCustomSideQuest,
-    awardCBTCapture, awardCBTReframe,
+    awardCBTCapture, awardCBTReframe, awardCBTBelief,
     recoverStats, applyRecoveredStats,
   }
 }

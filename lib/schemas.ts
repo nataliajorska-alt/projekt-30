@@ -301,10 +301,35 @@ export const CBTEmotionEntrySchema = z.object({
   updatedAt: z.string().catch(() => new Date().toISOString()),
 })
 
-// Wpis dziennika to myśl ALBO emocja — rozróżniane po polu `kind`.
+export const CBTBeliefEntrySchema = z.object({
+  id:                 z.string().catch(''),
+  kind:               z.literal('belief'),
+  dateKey:            z.string().catch(''),
+  timestamp:          z.number().nonnegative().catch(() => Date.now()),
+  trigger:            z.string().catch(''),
+  ladder:             z.array(z.string()).catch([]),
+  coreBelief:         z.string().catch(''),
+  behaveWhenActive:   z.string().catch(''),
+  ifOpposite:         z.string().catch(''),
+  source:             z.string().catch(''),
+  axisSelf:           z.string().catch(''),
+  axisOthers:         z.string().catch(''),
+  axisWorld:          z.string().catch(''),
+  newBelief:          z.string().catch(''),
+  newBeliefPct:       z.number().min(0).max(100).catch(0),
+  evidence:           z.array(z.string()).catch([]),
+  confirmations:      z.array(z.object({ dateKey: z.string().catch(''), text: z.string().catch('') })).catch([]),
+  pctHistory:         z.array(z.object({ weekKey: z.string().catch(''), pct: z.number().min(0).max(100).catch(0) })).catch([]),
+  xpEarned:           z.number().nonnegative().catch(0),
+  restructureAwarded: z.boolean().catch(false),
+  updatedAt:          z.string().catch(() => new Date().toISOString()),
+})
+
+// Wpis dziennika to myśl, emocja ALBO praca z przekonaniem — rozróżniane po `kind`.
 export const CBTEntrySchema = z.discriminatedUnion('kind', [
   CBTThoughtEntrySchema,
   CBTEmotionEntrySchema,
+  CBTBeliefEntrySchema,
 ])
 
 export const CBTShieldSchema = z.object({

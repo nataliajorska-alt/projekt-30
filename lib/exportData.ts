@@ -592,8 +592,9 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
     .filter(e => inRange(e.dateKey, range.from, range.to))
   const cbtThoughts = cbtEntries.filter(e => e.kind === 'thought')
   const cbtEmotions = cbtEntries.filter(e => e.kind === 'emotion')
+  const cbtBeliefs = cbtEntries.filter(e => e.kind === 'belief')
 
-  if (cbtThoughts.length > 0 || cbtEmotions.length > 0) {
+  if (cbtThoughts.length > 0 || cbtEmotions.length > 0 || cbtBeliefs.length > 0) {
     lines.push(`## Myśli i emocje — dziennik CBT`)
     lines.push(``)
     lines.push(`_Praca poznawczo-behawioralna: łapanie myśli automatycznych, wywiad sokratejski i rozkładanie emocji na czynniki._`)
@@ -626,6 +627,32 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
         lines.push(`**${e.dateKey} ${time}** · ${e.name} · natężenie ${e.before} ${arrow} ${e.after}`)
         const parts: [string, string][] = [['w ciele', e.body], ['kolor', e.color], ['kształt', e.shape], ['faktura', e.texture], ['zapach', e.smell], ['dźwięk', e.sound], ['metafora', e.metaphor]]
         for (const [k, v] of parts) if (v) lines.push(`- ${k}: ${v}`)
+        lines.push(``)
+      }
+    }
+
+    if (cbtBeliefs.length > 0) {
+      lines.push(`### Przekonania — strzałka w dół (${cbtBeliefs.length})`)
+      lines.push(``)
+      for (const e of cbtBeliefs) {
+        const time = new Date(e.timestamp).toTimeString().slice(0, 5)
+        lines.push(`**${e.dateKey} ${time}**`)
+        if (e.trigger) lines.push(`- Myśl na start: ${e.trigger}`)
+        if ((e.ladder ?? []).length) lines.push(`- Strzałka w dół: ${(e.ladder as string[]).join(' → ')}`)
+        if (e.coreBelief) lines.push(`- Przekonanie kluczowe: ${e.coreBelief}`)
+        if (e.behaveWhenActive) lines.push(`- Gdy działa: ${e.behaveWhenActive}`)
+        if (e.ifOpposite) lines.push(`- Gdyby było odwrotne: ${e.ifOpposite}`)
+        if (e.source) lines.push(`- Źródło: ${e.source}`)
+        const axes = ([['Ja jestem', e.axisSelf], ['Inni ludzie są', e.axisOthers], ['Świat jest', e.axisWorld]] as [string, string][])
+          .filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(' · ')
+        if (axes) lines.push(`- Osie: ${axes}`)
+        if (e.newBelief) lines.push(`- Nowe zdrowe przekonanie${e.newBeliefPct ? ` (wiara ${e.newBeliefPct}%)` : ''}: ${e.newBelief}`)
+        const ev = (e.evidence ?? []).filter(Boolean)
+        if (ev.length) { lines.push(`- Dowody nowego przekonania:`); ev.forEach((x: string, i: number) => lines.push(`  ${i + 1}. ${x}`)) }
+        const confs = (e.confirmations ?? []) as { dateKey: string; text: string }[]
+        if (confs.length) lines.push(`- Codzienne potwierdzenia: ${confs.length}`)
+        const hist = (e.pctHistory ?? []) as { weekKey: string; pct: number }[]
+        if (hist.length) lines.push(`- Wiara w czasie: ${hist.map(p => `${p.weekKey} ${p.pct}%`).join(' · ')}`)
         lines.push(``)
       }
     }
