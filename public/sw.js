@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v23-przekonania';
+const CACHE_NAME = 'p30-v24-style-radzenia';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {

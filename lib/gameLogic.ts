@@ -40,10 +40,13 @@ export const XP_VALUES = {
   // CBT (moduł /mysli): +10 za dzienny „capture" (pierwszy wpis dnia — pokazanie
   // się), +20 za domknięcie wywiadu sokratejskiego z przeformułowaniem (praca
   // poznawcza), +25 za restrukturyzację przekonania (strzałka w dół → nowe zdrowe
-  // przekonanie — cięższa praca niż reframe). XP nagradza pracę, nie zalogowanie bólu.
+  // przekonanie — cięższa praca niż reframe), +20 za przepytanie stylu radzenia
+  // sobie (unikanie/kompensacja/poddanie: konfrontacja + zdrowa alternatywa).
+  // XP nagradza pracę, nie zalogowanie bólu.
   cbtCapture: 10,
   cbtReframe: 20,
   cbtRestructure: 25,
+  cbtCoping: 20,
 }
 
 export const MAX_MOOD_CHECKINS_PER_DAY = 3

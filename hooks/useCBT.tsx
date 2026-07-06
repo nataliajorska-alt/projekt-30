@@ -10,21 +10,23 @@ import { useGameData } from './useGameData'
 import { parseSafe, CBTEntrySchema, CBTShieldSchema } from '@/lib/schemas'
 import { todayKey } from '@/lib/gameLogic'
 import {
-  type CBTEntry, type CBTThoughtEntry, type CBTEmotionEntry, type CBTBeliefEntry, type CBTShield, type CBTEmotionTag,
-  emptyThought, emptyEmotion, emptyBelief, emptyShield, reframeComplete, restructureComplete, cbtUid,
+  type CBTEntry, type CBTThoughtEntry, type CBTEmotionEntry, type CBTBeliefEntry, type CBTCopingEntry, type CBTCopingStyle, type CBTShield, type CBTEmotionTag,
+  emptyThought, emptyEmotion, emptyBelief, emptyCoping, emptyShield, reframeComplete, restructureComplete, copingComplete, cbtUid,
 } from '@/lib/cbt-data'
 
 type NewThought = { situation: string; emotions: CBTEmotionTag[]; thoughts: string; alt: string; altPct: number }
 type NewEmotion = Omit<CBTEmotionEntry, 'id' | 'kind' | 'dateKey' | 'timestamp' | 'xpEarned' | 'updatedAt'>
 type ThoughtPatch = Partial<Pick<CBTThoughtEntry, 'hot' | 'interro' | 'reframe' | 'reframeFeel'>>
 type NewBelief = { trigger: string; ladder: string[]; coreBelief: string }
+type NewCoping = { style: CBTCopingStyle; what: string; ways: string }
+type CopingPatch = Partial<Pick<CBTCopingEntry, 'confront' | 'source' | 'healthy'>>
 type BeliefPatch = Partial<Pick<CBTBeliefEntry,
   'behaveWhenActive' | 'ifOpposite' | 'source' | 'axisSelf' | 'axisOthers' | 'axisWorld'
   | 'newBelief' | 'newBeliefPct' | 'evidence' | 'confirmations' | 'pctHistory'>>
 
 export function useCBT() {
   const { user } = useAuth()
-  const { awardCBTCapture, awardCBTReframe, awardCBTBelief } = useGameData()
+  const { awardCBTCapture, awardCBTReframe, awardCBTBelief, awardCBTCoping } = useGameData()
   const [entries, setEntries] = useState<CBTEntry[]>([])
   const [shield, setShield] = useState<CBTShield>(emptyShield())
   const [loading, setLoading] = useState(true)
@@ -33,6 +35,8 @@ export function useCBT() {
   const reframingRef = useRef<Set<string>>(new Set())
   // To samo dla bonusu za restrukturyzację przekonania.
   const restructuringRef = useRef<Set<string>>(new Set())
+  // I dla bonusu za przepytanie stylu radzenia sobie.
+  const copingRef = useRef<Set<string>>(new Set())
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
@@ -153,6 +157,48 @@ export function useCBT() {
       { ...merged, _serverUpdatedAt: serverTimestamp() }, { merge: true })
   }, [user?.uid, entries, awardCBTBelief])
 
+  // ── Style radzenia sobie (rozdz. „Radzisz sobie. Tylko jak?") ───────────────
+
+  const createCoping = useCallback(async (data: NewCoping): Promise<CBTCopingEntry | null> => {
+    if (!user) return null
+    const earned = await awardCBTCapture() // dzielona dzienna flaga capture +10
+    const entry: CBTCopingEntry = {
+      ...emptyCoping(cbtUid(), todayKey()),
+      style: data.style,
+      what: data.what,
+      ways: data.ways,
+      xpEarned: earned,
+    }
+    setEntries(prev => [entry, ...prev])
+    await setDoc(doc(db, ...paths.cbtJournalDoc(user.uid, entry.id)),
+      { ...entry, _serverUpdatedAt: serverTimestamp() }, { merge: true })
+    return entry
+  }, [user?.uid, awardCBTCapture])
+
+  // Autozapis pytań z ćwiczenia. Gdy konfrontacja + zdrowa alternatywa wypełnione
+  // PIERWSZY raz — bonus +20 i stempel xpEarned (spójnie z recoverStats).
+  const updateCoping = useCallback(async (id: string, patch: CopingPatch) => {
+    if (!user) return
+    const cur = entries.find(e => e.id === id && e.kind === 'coping') as CBTCopingEntry | undefined
+    if (!cur) return
+    const merged: CBTCopingEntry = { ...cur, ...patch, updatedAt: new Date().toISOString() }
+
+    if (!merged.copingAwarded && copingComplete(merged) && !copingRef.current.has(id)) {
+      copingRef.current.add(id)
+      const bonus = await awardCBTCoping() // +20
+      if (bonus > 0) {
+        merged.copingAwarded = true
+        merged.xpEarned = cur.xpEarned + bonus
+      } else {
+        copingRef.current.delete(id) // przyznanie nie weszło — pozwól spróbować ponownie
+      }
+    }
+
+    setEntries(prev => prev.map(e => (e.id === id ? merged : e)))
+    await setDoc(doc(db, ...paths.cbtJournalDoc(user.uid, id)),
+      { ...merged, _serverUpdatedAt: serverTimestamp() }, { merge: true })
+  }, [user?.uid, entries, awardCBTCoping])
+
   // ── Wspólne ─────────────────────────────────────────────────────────────────
 
   const deleteEntry = useCallback(async (id: string) => {
@@ -173,10 +219,11 @@ export function useCBT() {
   const thoughts = entries.filter((e): e is CBTThoughtEntry => e.kind === 'thought')
   const emotionEntries = entries.filter((e): e is CBTEmotionEntry => e.kind === 'emotion')
   const beliefs = entries.filter((e): e is CBTBeliefEntry => e.kind === 'belief')
+  const copings = entries.filter((e): e is CBTCopingEntry => e.kind === 'coping')
   const todayCount = entries.filter(e => e.dateKey === todayKey()).length
 
   return {
-    loading, entries, thoughts, emotionEntries, beliefs, shield, todayCount,
-    createThought, updateThought, createEmotion, createBelief, updateBelief, deleteEntry, saveShield,
+    loading, entries, thoughts, emotionEntries, beliefs, copings, shield, todayCount,
+    createThought, updateThought, createEmotion, createBelief, updateBelief, createCoping, updateCoping, deleteEntry, saveShield,
   }
 }

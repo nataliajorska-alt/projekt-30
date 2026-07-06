@@ -7,6 +7,12 @@
 //                 kluczowe (schemat) → restrukturyzacja w nowe, zdrowe przekonanie.
 //                 XP TYLKO za domknięcie (przekonanie kluczowe → nowe), nie za sam
 //                 zapis bólu. „Nowe przekonanie" można świadomie wysłać na Tarczę.
+//  • Style      — style radzenia sobie ze schematem (rozdz. „Radzisz sobie. Tylko
+//                 jak?"): unikanie / nadmierna kompensacja / poddanie się. Złap
+//                 automat (capture) i przepytaj go pytaniami z ćwiczenia — książka
+//                 każe je „zapisać w telefonie" i zadawać sobie, gdy zauważysz,
+//                 że używasz nieadaptacyjnego stylu. XP za domknięcie pytań
+//                 (praca), nie za samo przyłapanie się.
 //  • Tarcza     — wspierające zdania (ćw. 6): wybór z listy + własne. BEZ XP.
 //
 // Persystencja: kolekcja users/{uid}/cbtJournal (osobne dokumenty, jak vault),
@@ -111,7 +117,31 @@ export interface CBTBeliefEntry {
   updatedAt: string
 }
 
-export type CBTEntry = CBTThoughtEntry | CBTEmotionEntry | CBTBeliefEntry
+/** Trzy style radzenia sobie ze schematem (rozdz. „Radzisz sobie. Tylko jak?"). */
+export type CBTCopingStyle = 'avoid' | 'overcomp' | 'surrender'
+
+/** Wpis „przyłapania się" na nieadaptacyjnym stylu radzenia sobie (ćw. 1–2).
+ *  Capture = styl + co robię + jak (to widzisz w momencie). Głębsze pytania
+ *  (konfrontacja, źródło, zdrowa alternatywa) dopisywane później w rozwinięciu. */
+export interface CBTCopingEntry {
+  id: string
+  kind: 'coping'
+  dateKey: string
+  timestamp: number
+  style: CBTCopingStyle
+  what: string // czego unikam / w czym przesadzam / czemu się poddaję
+  ways: string // moje sposoby — jak to wygląda w praktyce
+  // Pytania z ćwiczenia (dopisywane później, autozapis):
+  confront: string // co by się stało, gdybym się tak nie zachowywała? z czym bym się zmierzyła? jakich emocji unikam?
+  source: string // źródło zachowania — czy przypomina sytuację z dzieciństwa?
+  healthy: string // jak bym się zachowała, gdyby nie dysfunkcyjne przekonania?
+  // XP / księgowość (bonus stemplowany na xpEarned, jak reframe/restrukturyzacja):
+  xpEarned: number
+  copingAwarded: boolean // czy bonus za przepytanie automatu już przyznany
+  updatedAt: string
+}
+
+export type CBTEntry = CBTThoughtEntry | CBTEmotionEntry | CBTBeliefEntry | CBTCopingEntry
 
 /** Tarcza wspierających myśli — stała kolekcja zdań. Bez XP. */
 export interface CBTShield {
@@ -190,6 +220,24 @@ export function emptyBelief(id: string, dateKey: string): CBTBeliefEntry {
   }
 }
 
+export function emptyCoping(id: string, dateKey: string): CBTCopingEntry {
+  return {
+    id,
+    kind: 'coping',
+    dateKey,
+    timestamp: Date.now(),
+    style: 'avoid',
+    what: '',
+    ways: '',
+    confront: '',
+    source: '',
+    healthy: '',
+    xpEarned: 0,
+    copingAwarded: false,
+    updatedAt: new Date().toISOString(),
+  }
+}
+
 /** Wpisuje/aktualizuje % wiary dla danego tygodnia ISO (jeden punkt na tydzień). */
 export function upsertPctWeek(history: CBTBeliefPctPoint[], weekKey: string, pct: number): CBTBeliefPctPoint[] {
   const idx = history.findIndex(p => p.weekKey === weekKey)
@@ -231,6 +279,55 @@ export const BOOK_SHIELD: string[] = [
   'Żeby dać coś światu, najpierw sama muszę mieć. Potrzebuję priorytetowo dbać o siebie.',
 ]
 
+// ── Style radzenia sobie ze schematem (rozdz. „Radzisz sobie. Tylko jak?") ──
+// Definicje wzięte z książki 1:1. Pytania capture (whatQ/waysQ) lekko dopasowane
+// do stylu — głębsze pytania ćwiczenia są wspólne i mieszkają w CopingWork.
+export const COPING_STYLES: {
+  key: CBTCopingStyle
+  label: string
+  def: string
+  whatQ: string
+  whatHint: string
+  whatPh: string
+  waysQ: string
+  waysPh: string
+}[] = [
+  {
+    key: 'avoid',
+    label: 'Unikanie',
+    def: 'Unikanie schematu to mechanizm, który ma nie dopuścić do konfrontacji z treścią przekonania.',
+    whatQ: 'Czego unikam?',
+    whatHint: 'Coś, co odkładasz lub omijasz, choć Ci to przeszkadza.',
+    whatPh: 'Napisania pracy magisterskiej, rozmów na jej temat z promotorem.',
+    waysQ: 'Jakie są moje sposoby na unikanie?',
+    waysPh: 'Oglądam seriale, ignoruję maile od promotora.',
+  },
+  {
+    key: 'overcomp',
+    label: 'Kompensacja',
+    def: 'Nadmierna kompensacja to zachowywanie się wbrew treści przekonania i zastępowanie deficytu — niezaspokojonej potrzeby emocjonalnej — nadmiarem.',
+    whatQ: 'W czym przesadzam w drugą stronę?',
+    whatHint: 'Nadmiar, który ma zakryć deficyt — zachowanie wbrew przekonaniu.',
+    whatPh: 'Muszę być we wszystkim najlepsza. Ostro krytykuję innych, nim ktoś skrytykuje mnie.',
+    waysQ: 'Jak to wygląda w praktyce?',
+    waysPh: 'Poprawiam każdy szczegół, biorę wszystko na siebie, nie odpuszczam.',
+  },
+  {
+    key: 'surrender',
+    label: 'Poddanie się',
+    def: 'Poddanie się schematowi sprawia, że zachowujemy się zgodnie z treścią przekonania, a więc potwierdzamy je.',
+    whatQ: 'Czemu się poddaję?',
+    whatHint: 'Zachowanie zgodne z przekonaniem — takie, które je potwierdza.',
+    whatPh: 'Z góry zakładam, że się nie nadaję, więc nawet nie próbuję.',
+    waysQ: 'Jak to wygląda w praktyce?',
+    waysPh: 'Odpuszczam starania, oddaję decyzje innym, nie zgłaszam się.',
+  },
+]
+
+export function copingStyle(key: CBTCopingStyle) {
+  return COPING_STYLES.find(s => s.key === key) ?? COPING_STYLES[0]
+}
+
 // ── Drobne helpery ─────────────────────────────────────────────────────────
 
 /** Czy wywiad z gorącą myślą jest „domknięty" — kwalifikuje się do bonusu XP. */
@@ -242,6 +339,13 @@ export function reframeComplete(t: Pick<CBTThoughtEntry, 'hot' | 'reframe'>): bo
  *  przekonanie. Dopiero to (nie sam zapis bólu) kwalifikuje do bonusu XP. */
 export function restructureComplete(b: Pick<CBTBeliefEntry, 'coreBelief' | 'newBelief'>): boolean {
   return b.coreBelief.trim().length > 0 && b.newBelief.trim().length > 0
+}
+
+/** Czy praca ze stylem radzenia sobie jest „domknięta" — nazwane, z czym bym się
+ *  zmierzyła (emocje, których unikam) ORAZ jak zachowałabym się bez dysfunkcyjnych
+ *  przekonań. Dopiero to (nie samo przyłapanie się) kwalifikuje do bonusu XP. */
+export function copingComplete(c: Pick<CBTCopingEntry, 'confront' | 'healthy'>): boolean {
+  return c.confront.trim().length > 0 && c.healthy.trim().length > 0
 }
 
 export function cbtUid(): string {

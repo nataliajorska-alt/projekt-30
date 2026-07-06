@@ -325,11 +325,30 @@ export const CBTBeliefEntrySchema = z.object({
   updatedAt:          z.string().catch(() => new Date().toISOString()),
 })
 
-// Wpis dziennika to myśl, emocja ALBO praca z przekonaniem — rozróżniane po `kind`.
+export const CBTCopingEntrySchema = z.object({
+  id:            z.string().catch(''),
+  kind:          z.literal('coping'),
+  dateKey:       z.string().catch(''),
+  timestamp:     z.number().nonnegative().catch(() => Date.now()),
+  style:         z.enum(['avoid', 'overcomp', 'surrender']).catch('avoid'),
+  what:          z.string().catch(''),
+  ways:          z.string().catch(''),
+  confront:      z.string().catch(''),
+  source:        z.string().catch(''),
+  healthy:       z.string().catch(''),
+  xpEarned:      z.number().nonnegative().catch(0),
+  copingAwarded: z.boolean().catch(false),
+  updatedAt:     z.string().catch(() => new Date().toISOString()),
+})
+
+// Wpis dziennika to myśl, emocja, praca z przekonaniem ALBO przyłapany styl
+// radzenia sobie — rozróżniane po `kind`. KAŻDY nowy kind MUSI mieć tu gałąź,
+// inaczej parseSafe w useCBT po cichu podmieni wpisy na fallback.
 export const CBTEntrySchema = z.discriminatedUnion('kind', [
   CBTThoughtEntrySchema,
   CBTEmotionEntrySchema,
   CBTBeliefEntrySchema,
+  CBTCopingEntrySchema,
 ])
 
 export const CBTShieldSchema = z.object({

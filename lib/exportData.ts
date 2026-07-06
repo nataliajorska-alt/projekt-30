@@ -7,6 +7,7 @@ import { DAILY_RULES } from '@/lib/routineData'
 import { APRIL_QUESTS } from '@/lib/seasonal/aprilData'
 import { MONTHLY_DATA } from '@/lib/seasonal/monthData'
 import { CIGARETTE_CONTEXTS } from '@/lib/smoke-data'
+import { copingStyle } from '@/lib/cbt-data'
 import { dateKey } from '@/lib/gameLogic'
 
 const PILLAR_KEYS = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc'] as const
@@ -593,11 +594,12 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
   const cbtThoughts = cbtEntries.filter(e => e.kind === 'thought')
   const cbtEmotions = cbtEntries.filter(e => e.kind === 'emotion')
   const cbtBeliefs = cbtEntries.filter(e => e.kind === 'belief')
+  const cbtCopings = cbtEntries.filter(e => e.kind === 'coping')
 
-  if (cbtThoughts.length > 0 || cbtEmotions.length > 0 || cbtBeliefs.length > 0) {
+  if (cbtThoughts.length > 0 || cbtEmotions.length > 0 || cbtBeliefs.length > 0 || cbtCopings.length > 0) {
     lines.push(`## Myśli i emocje — dziennik CBT`)
     lines.push(``)
-    lines.push(`_Praca poznawczo-behawioralna: łapanie myśli automatycznych, wywiad sokratejski i rozkładanie emocji na czynniki._`)
+    lines.push(`_Praca poznawczo-behawioralna: łapanie myśli automatycznych, wywiad sokratejski, rozkładanie emocji na czynniki, strzałka w dół i style radzenia sobie ze schematem._`)
     lines.push(``)
 
     if (cbtThoughts.length > 0) {
@@ -653,6 +655,22 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
         if (confs.length) lines.push(`- Codzienne potwierdzenia: ${confs.length}`)
         const hist = (e.pctHistory ?? []) as { weekKey: string; pct: number }[]
         if (hist.length) lines.push(`- Wiara w czasie: ${hist.map(p => `${p.weekKey} ${p.pct}%`).join(' · ')}`)
+        lines.push(``)
+      }
+    }
+
+    if (cbtCopings.length > 0) {
+      lines.push(`### Style radzenia sobie ze schematem (${cbtCopings.length})`)
+      lines.push(``)
+      for (const e of cbtCopings) {
+        const time = new Date(e.timestamp).toTimeString().slice(0, 5)
+        const meta = copingStyle(e.style)
+        lines.push(`**${e.dateKey} ${time}** · ${meta.label}`)
+        if (e.what) lines.push(`- ${meta.whatQ} ${e.what}`)
+        if (e.ways) lines.push(`- Sposoby: ${e.ways}`)
+        if (e.confront) lines.push(`- Z czym bym się zmierzyła / jakich emocji unikam: ${e.confront}`)
+        if (e.source) lines.push(`- Źródło (dzieciństwo?): ${e.source}`)
+        if (e.healthy) lines.push(`- Gdyby nie dysfunkcyjne przekonania: ${e.healthy}`)
         lines.push(``)
       }
     }

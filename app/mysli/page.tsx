@@ -7,8 +7,8 @@ import { useCBT } from '@/hooks/useCBT'
 import { RitualSurface, SmallCaps, GoldRule, Diamond, Fleuron } from '@/components/ui'
 import { XP_VALUES, todayKey, getISOWeekKey, getEffectiveNow } from '@/lib/gameLogic'
 import {
-  SOCRATIC, BOOK_SHIELD, restructureComplete, upsertPctWeek,
-  type CBTThoughtEntry, type CBTEmotionEntry, type CBTBeliefEntry, type CBTBeliefPctPoint, type CBTEmotionTag, type CBTShield,
+  SOCRATIC, BOOK_SHIELD, COPING_STYLES, copingStyle, restructureComplete, upsertPctWeek,
+  type CBTThoughtEntry, type CBTEmotionEntry, type CBTBeliefEntry, type CBTBeliefPctPoint, type CBTCopingEntry, type CBTCopingStyle, type CBTEmotionTag, type CBTShield,
 } from '@/lib/cbt-data'
 
 const ROSE = '#8f4d63'
@@ -26,7 +26,7 @@ function fmtDate(ts: number): string {
 // ════════════════════════════════════════════════════════════════════
 //  STRONA
 // ════════════════════════════════════════════════════════════════════
-type Tab = 'mysli' | 'emocje' | 'przekonania' | 'tarcza'
+type Tab = 'mysli' | 'emocje' | 'przekonania' | 'style' | 'tarcza'
 
 export default function CBTPage() {
   const cbt = useCBT()
@@ -69,14 +69,15 @@ export default function CBTPage() {
           <GoldRule variant="fleuron" tone="gold" className="mt-6 max-w-xs mx-auto" />
         </header>
 
-        {/* Zakładki */}
-        <div className="mt-9 grid grid-cols-2 gap-1.5 border border-gold-light/25 p-1.5">
-          {([['mysli','Myśli'],['emocje','Emocje'],['przekonania','Przekonania'],['tarcza','Tarcza']] as [Tab, string][]).map(([key, label]) => (
+        {/* Zakładki — 5 sztuk: rząd 3 (po 2/6) + rząd 2 (po 3/6) */}
+        <div className="mt-9 grid grid-cols-6 gap-1.5 border border-gold-light/25 p-1.5">
+          {([['mysli','Myśli'],['emocje','Emocje'],['przekonania','Przekonania'],['style','Style'],['tarcza','Tarcza']] as [Tab, string][]).map(([key, label], i) => (
             <button
               key={key}
               onClick={() => setTab(key)}
               className={clsx(
                 'py-2.5 transition-colors text-center',
+                i < 3 ? 'col-span-2' : 'col-span-3',
                 tab === key ? 'bg-forest/60 border border-gold-light/30' : 'hover:bg-forest/30 border border-transparent',
               )}
             >
@@ -94,6 +95,8 @@ export default function CBTPage() {
             <EmotionTab cbt={cbt} />
           ) : tab === 'przekonania' ? (
             <BeliefTab cbt={cbt} />
+          ) : tab === 'style' ? (
+            <CopingTab cbt={cbt} />
           ) : (
             <ShieldTab shield={cbt.shield} onSave={cbt.saveShield} />
           )}
@@ -849,6 +852,177 @@ function BeliefWork({ entry, cbt }: { entry: CBTBeliefEntry; cbt: ReturnType<typ
           <Diamond size={6} className="text-gold" />
         </button>
       )}
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  ZAKŁADKA: STYLE (radzenia sobie ze schematem)
+// ════════════════════════════════════════════════════════════════════
+function CopingTab({ cbt }: { cbt: ReturnType<typeof useCBT> }) {
+  const [styleKey, setStyleKey] = useState<CBTCopingStyle>('avoid')
+  const [what, setWhat] = useState('')
+  const [ways, setWays] = useState('')
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [flash, setFlash] = useState<string | null>(null)
+  const meta = copingStyle(styleKey)
+
+  const save = async () => {
+    if (!what.trim() && !ways.trim()) {
+      setFlash('Najpierw coś zapisz'); setTimeout(() => setFlash(null), 1500); return
+    }
+    const created = await cbt.createCoping({ style: styleKey, what: what.trim(), ways: ways.trim() })
+    setWhat(''); setWays('')
+    setFlash(created && created.xpEarned > 0 ? `Zapisano · +${created.xpEarned} XP` : 'Zapisano ✓')
+    setTimeout(() => setFlash(null), 1800)
+  }
+
+  return (
+    <div>
+      <p className="font-serif-body italic text-parchment text-[14px] leading-[1.8] text-center mb-7 max-w-lg mx-auto">
+        Schemat podtrzymuje się na trzy sposoby: poddajesz mu się, unikasz go albo kompensujesz nadmiarem.
+        Gdy uświadomisz sobie, którego stylu używasz, dostrzeganie go staje się łatwiejsze —
+        a tylko wtedy przechodzisz od życia na automacie do mądrego wyboru strategii.
+      </p>
+
+      {/* Formularz — przyłapanie się na automacie */}
+      <div className="cbt-card px-6 md:px-8 py-7">
+        <div className="mb-5">
+          <label className="cbt-lab">Który automat się włączył?</label>
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {COPING_STYLES.map(s => (
+              <button key={s.key} onClick={() => setStyleKey(s.key)}
+                className={clsx('px-3 py-1.5 border transition-colors font-ui uppercase tracking-luxury text-[10px]',
+                  styleKey === s.key ? 'border-[#b56a82] bg-[#d3ccaf] text-[#2a2a26]' : 'border-[#c9b27f] text-[#6f6448] hover:border-[#b56a82]')}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <p className="font-serif-body italic text-[13px] text-[#7c7256] mt-2.5">{meta.def}</p>
+        </div>
+
+        <div className="mb-5">
+          <label className="cbt-lab">{meta.whatQ}<span className="cbt-hint">{meta.whatHint}</span></label>
+          <textarea className="cbt-ta" rows={2} value={what} onChange={e => setWhat(e.target.value)} placeholder={meta.whatPh} />
+        </div>
+
+        <div className="mb-6">
+          <label className="cbt-lab">{meta.waysQ}</label>
+          <textarea className="cbt-ta" rows={2} value={ways} onChange={e => setWays(e.target.value)} placeholder={meta.waysPh} />
+        </div>
+
+        <SaveButton onClick={save} flash={flash}>zapisz obserwację</SaveButton>
+      </div>
+
+      {/* Lista */}
+      <div className="mt-9 mb-4 flex items-center gap-2">
+        <Diamond size={6} className="text-gold" />
+        <SmallCaps tone="gold-light" tracking="luxury" size="xs">Złapane automaty · {cbt.copings.length}</SmallCaps>
+      </div>
+
+      {cbt.copings.length === 0 ? (
+        <EmptyNote>Tu pojawią się zachowania, na których uda Ci się przyłapać. Pierwszy krok to zauważyć — bez oceniania.</EmptyNote>
+      ) : (
+        <div className="space-y-3">
+          {cbt.copings.map(c => (
+            <CopingRow key={c.id} entry={c} cbt={cbt} open={openId === c.id}
+              onToggle={() => setOpenId(openId === c.id ? null : c.id)}
+              onDelete={() => { cbt.deleteEntry(c.id); setOpenId(null) }} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CopingRow({ entry, cbt, open, onToggle, onDelete }: {
+  entry: CBTCopingEntry; cbt: ReturnType<typeof useCBT>; open: boolean; onToggle: () => void; onDelete: () => void
+}) {
+  const meta = copingStyle(entry.style)
+  return (
+    <div className="cbt-card">
+      <button onClick={onToggle} className="w-full text-left px-5 py-4 flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338]">{fmtDate(entry.timestamp)}</div>
+          <div className="font-serif-body text-[15px] text-[#2a2a26] mt-1 line-clamp-2">{entry.what || entry.ways || '(bez opisu)'}</div>
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            <span className="text-[11px] text-[#8f4d63] border border-[#8f4d63]/40 px-2 py-0.5 rounded-full">{meta.label}</span>
+            {entry.copingAwarded && <span className="text-[11px] text-[#8e7338] border border-[#c9b27f] px-2 py-0.5 rounded-full">◆ przepytany</span>}
+          </div>
+        </div>
+        <ChevronDown size={15} className={clsx('text-[#8e7338] shrink-0 mt-1 transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 border-t border-[#c9b27f]/40">
+          {entry.ways && (
+            <div className="mt-4">
+              <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338] mb-1.5">{meta.waysQ}</div>
+              <div className="font-serif-body text-[14.5px] text-[#2a2a26] whitespace-pre-wrap">{entry.ways}</div>
+            </div>
+          )}
+          <CopingWork entry={entry} cbt={cbt} />
+          <div className="mt-5 flex items-center">
+            <button onClick={onDelete} className="ml-auto font-ui text-[11px] text-[#7c7256] underline underline-offset-2 hover:text-[#8A3A2C] transition-colors">usuń wpis</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Pytania z ćwiczenia — lokalny stan + autozapis (debounce 700ms).
+// Bonus +20 przyznawany raz, gdy konfrontacja + zdrowa alternatywa wypełnione.
+function CopingWork({ entry, cbt }: { entry: CBTCopingEntry; cbt: ReturnType<typeof useCBT> }) {
+  const [confront, setConfront] = useState(entry.confront)
+  const [source, setSource] = useState(entry.source)
+  const [healthy, setHealthy] = useState(entry.healthy)
+  const [saved, setSaved] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const first = useRef(true)
+
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(async () => {
+      await cbt.updateCoping(entry.id, { confront, source, healthy })
+      setSaved(true); setTimeout(() => setSaved(false), 1400)
+    }, 700)
+    return () => { if (timer.current) clearTimeout(timer.current) }
+  }, [confront, source, healthy])
+
+  const cormorant = { fontFamily: "'Cormorant Garamond',serif", fontSize: '14px' } as const
+
+  return (
+    <div className="mt-5 pt-4 border-t border-dashed border-[#c9b27f]/60">
+      <h4 className="font-display font-medium text-[16px] text-[#2a2a26]">Przepytaj ten automat</h4>
+      <p className="font-serif-body italic text-[12.5px] text-[#7c7256] mt-0.5 mb-4">
+        Te pytania książka radzi mieć zawsze przy sobie — wracaj do nich, gdy złapiesz się na tym zachowaniu.
+      </p>
+
+      <div className="mb-3">
+        <label className="cbt-lab font-normal" style={cormorant}>Co by się stało, gdybym się tak nie zachowywała? Z czym musiałabym się zmierzyć? Jakich emocji unikam?</label>
+        <textarea className="cbt-ta" rows={3} value={confront} onChange={e => setConfront(e.target.value)}
+          placeholder="Mogłabym zrobić coś źle i kogoś zawieść. Zmierzyłabym się z przekonaniem, że jestem niewystarczająca. Unikam lęku." />
+      </div>
+      <div className="mb-3">
+        <label className="cbt-lab font-normal" style={cormorant}>Jakie jest źródło tego zachowania? Czy przypomina sytuację z dzieciństwa?</label>
+        <textarea className="cbt-ta" rows={3} value={source} onChange={e => setSource(e.target.value)}
+          placeholder="Gdy byłam mała, liczyły się przede wszystkim dobre oceny — czułam, że nie mogę zawieść." />
+      </div>
+
+      <div className="mt-4 border border-[#c9b27f] bg-[#d3ccaf] p-3.5">
+        <div className="font-ui uppercase tracking-luxury text-[9px] text-[#3f7d5c] mb-1.5">Jak bym się zachowała, gdyby nie dysfunkcyjne przekonania?</div>
+        <textarea className="cbt-ta" rows={3} value={healthy} onChange={e => setHealthy(e.target.value)}
+          placeholder="Robiłabym to bez presji. Gdyby coś wyszło źle — po prostu bym to poprawiła, bez poczucia, że zawiodłam." />
+      </div>
+
+      <div className="mt-3 flex items-center gap-3 min-h-[18px]">
+        {entry.copingAwarded
+          ? <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338]">◆ automat przepytany · +{XP_VALUES.cbtCoping} XP</span>
+          : <span className="font-ui uppercase tracking-luxury text-[9px] text-[#7c7256] opacity-70">domknij: z czym się mierzę + jak bym się zachowała → +{XP_VALUES.cbtCoping} XP</span>}
+        {saved && <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8f4d63] ml-auto">zapisano ✓</span>}
+      </div>
     </div>
   )
 }
