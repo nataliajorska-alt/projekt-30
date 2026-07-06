@@ -11,7 +11,7 @@
 <style>
   :root{
     --bg:#0e1016; --bg2:#161a24; --card:#1b2030; --line:#2a3142;
-    --txt:#eef2fb; --mut:#9aa6bd; --mut2:#6b7689;
+    --txt:#eef2fb; --mut:#9aa6bd; --mut2:#7f8aa0;
     --accent:#a78bfa; --good:#5fd07a; --bad:#ff6b6b; --warn:#f6b14e;
     --r:18px; --shadow:0 10px 40px rgba(0,0,0,.45);
   }
@@ -59,8 +59,9 @@
   .clock{font-variant-numeric:tabular-nums;color:var(--mut);font-size:13px;flex:none}
   .clock b{color:var(--txt)}
 
-  .rules{display:flex;flex-wrap:wrap;gap:6px;font-size:12.5px}
-  .rule{background:var(--bg2);border:1px solid var(--line);color:var(--mut);padding:5px 9px;border-radius:999px;display:flex;align-items:center;gap:6px}
+  .rules{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;font-size:12.5px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .rules::-webkit-scrollbar{display:none}
+  .rule{background:var(--bg2);border:1px solid var(--line);color:var(--mut);padding:5px 9px;border-radius:999px;display:flex;align-items:center;gap:6px;flex:none;white-space:nowrap}
   .rule.stop{color:#ffd0d0;border-color:#5a2a2a;background:#241318}
   .rule b{color:var(--txt);font-weight:600}
 
@@ -87,22 +88,26 @@
   .timer{display:flex;align-items:flex-end;gap:14px;margin:14px 0 6px}
   .count{font-size:60px;line-height:.95;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1px}
   .count small{font-size:22px;color:var(--mut);font-weight:700}
-  .ofstep{color:var(--mut2);font-size:13px;padding-bottom:8px}
+  .ofstep{color:var(--mut);font-size:13px;padding-bottom:8px}
   .stepbarwrap{height:5px;background:#0e121c;border-radius:999px;overflow:hidden;margin-top:2px}
   .stepbar{height:100%;width:0;background:var(--accent);opacity:.9;transition:width .25s linear,background .4s}
 
   /* pacer ring */
-  .pacer{display:none;flex-direction:column;align-items:center;gap:6px;margin:16px 0 2px}
+  .pacer{display:none;flex-direction:column;align-items:center;gap:6px;margin:16px 0 2px;transition:opacity .4s}
   .pacer.on{display:flex}
-  .ring{width:116px;height:116px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  .ringwrap{position:relative;width:116px;height:116px;display:flex;align-items:center;justify-content:center}
+  .ring{position:absolute;inset:0;border-radius:50%;
         background:radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--accent) 38%, transparent), color-mix(in srgb, var(--accent) 12%, transparent));
         border:2px solid var(--accent);transform:scale(.55);will-change:transform;
-        transition:transform 1s ease-in-out;font-weight:750;font-size:16px;
+        transition:transform 1s ease-in-out;
         box-shadow:0 0 34px -8px var(--accent)}
-  .pacehint{color:var(--mut2);font-size:11.5px}
+  .ringlabel{position:relative;z-index:1;font-weight:750;font-size:15px;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,.55)}
+  .pacehint{color:var(--mut);font-size:11.5px}
+  @media (prefers-reduced-motion: reduce){ .ring{transition:none !important;transform:none !important} }
+  .tg:disabled{opacity:.5;cursor:default}
 
   .cue{margin-top:14px;background:#0f1320;border:1px solid var(--line);border-radius:14px;padding:13px 14px;
-       min-height:54px;display:flex;align-items:center;gap:10px;font-size:16.5px;font-weight:560}
+       min-height:76px;display:flex;align-items:center;gap:10px;font-size:16.5px;font-weight:560}
   .cue .ic{font-size:18px;flex:none;color:var(--accent)}
 
   .details{display:flex;flex-direction:column;gap:8px;margin-top:14px}
@@ -115,8 +120,8 @@
   .lab.avoid{background:#2a1518;color:#ff9b9b} .chip.avoid .tx{color:#f0c9c9}
   .lab.note{background:#1c2230;color:#9aa6bd}
 
-  .next{margin-top:13px;color:var(--mut2);font-size:13px;display:flex;gap:7px;align-items:center}
-  .next b{color:var(--mut);font-weight:600}
+  .next{margin-top:13px;color:var(--mut);font-size:13px;display:flex;gap:7px;align-items:center}
+  .next b{color:var(--txt);font-weight:600}
 
   .controls{display:flex;gap:10px;align-items:center;justify-content:center}
   .ctl{background:var(--bg2);border:1px solid var(--line);border-radius:14px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;font-size:18px;transition:.15s;flex:none}
@@ -134,7 +139,7 @@
   details.tl>summary{list-style:none;cursor:pointer;padding:12px 14px;font-size:13.5px;color:var(--mut);display:flex;justify-content:space-between;align-items:center;font-weight:600}
   details.tl>summary::-webkit-details-marker{display:none}
   .tlbody{padding:4px 8px 10px}
-  .tlitem{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer;font-size:13.5px}
+  .tlitem{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer;font-size:13.5px;width:100%;text-align:left;background:none}
   .tlitem:hover{background:#1b2233}
   .tlitem.cur{background:#1c2440}
   .tlitem .tdot{width:8px;height:8px;border-radius:50%;flex:none}
@@ -144,7 +149,7 @@
   .tlitem .tside{font-size:10px;font-weight:800;color:var(--mut2)}
 
   /* ---------------- OVERLAYS ---------------- */
-  .overlay{position:fixed;inset:0;background:rgba(8,9,14,.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:22px;z-index:50;overflow:auto}
+  .overlay{position:fixed;inset:0;background:rgba(8,9,14,.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:calc(22px + env(safe-area-inset-top)) 22px calc(22px + env(safe-area-inset-bottom));z-index:50;overflow:auto}
   .sheet{max-width:460px;width:100%;background:linear-gradient(180deg,var(--card),#15192599);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:22px 22px 22px;margin:auto}
   .sheet .stripe2{height:5px;border-radius:6px;background:var(--accent);width:46px;margin-bottom:14px}
   .sheet h2{margin:0 0 4px;font-size:22px;font-weight:750}
@@ -155,16 +160,14 @@
   .ruleslist .r .e{font-size:16px;flex:none}
   .ruleslist .r.stop{color:#ffd9d9}
   .needs{display:flex;flex-direction:column;gap:7px;margin:0}
-  .need{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:13.5px;color:var(--mut);cursor:pointer}
+  .need{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:13.5px;color:var(--mut);cursor:pointer;width:100%;text-align:left}
   .need .box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--mut2);flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent}
   .need.checked{color:var(--txt);border-color:#2f5a3a;background:#13241a}
   .need.checked .box{background:var(--good);border-color:var(--good);color:#08120b}
   .bigbtn{width:100%;border-radius:15px;padding:15px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(180deg,#7c5cff,#6a48f5);box-shadow:0 10px 30px rgba(124,92,255,.4);margin-top:18px}
   .bigbtn:active{transform:scale(.99)}
   .bigbtn.ghost{background:var(--bg2);border:1px solid var(--line);box-shadow:none;color:var(--txt);margin-top:10px;font-weight:600;font-size:15px}
-  .endstats{display:flex;gap:18px;justify-content:center;margin:6px 0 14px;color:var(--mut);font-size:13.5px}
-  .endstats b{display:block;color:var(--txt);font-size:22px;font-weight:750;font-variant-numeric:tabular-nums}
-  .vmiss{font-size:11.5px;color:var(--mut2);margin-top:12px;text-align:center}
+  .vmiss{font-size:11.5px;color:var(--mut);margin-top:12px;text-align:center}
 </style>
 </head>
 <body>
@@ -186,7 +189,7 @@
 <!-- ============ PLAYER ============ -->
 <section id="player" class="wrap hidden">
   <div class="topbar">
-    <button class="iconbtn" id="backBtn" title="Lista treningów">‹</button>
+    <button class="iconbtn" id="backBtn" title="Lista treningów" aria-label="Lista treningów">‹</button>
     <h1 id="pTitle">—</h1>
     <div class="clock"><b id="gElapsed">0:00</b> / <span id="gTotal">0:00</span> · <span id="gRemain"></span></div>
   </div>
@@ -206,13 +209,13 @@
         <span class="side hidden" id="side"></span>
       </div>
       <div class="timer">
-        <div class="count"><span id="count">0</span><small> s</small></div>
+        <div class="count"><span id="count">0</span><small id="countUnit"> s</small></div>
         <div class="ofstep" id="ofstep"></div>
       </div>
       <div class="stepbarwrap"><div class="stepbar" id="sBar"></div></div>
 
       <div class="pacer" id="pacer">
-        <div class="ring" id="ring"><span id="ringLabel"></span></div>
+        <div class="ringwrap"><div class="ring" id="ring"></div><span class="ringlabel" id="ringLabel"></span></div>
         <div class="pacehint" id="pacehint"></div>
       </div>
 
@@ -223,11 +226,11 @@
   </div>
 
   <div class="controls">
-    <button class="ctl" id="prev" title="Poprzedni (←)">⏮</button>
-    <button class="ctl" id="back15" title="−15 s">−15</button>
-    <button class="play" id="play" title="Start / pauza (spacja)">▶</button>
-    <button class="ctl" id="fwd15" title="+15 s">+15</button>
-    <button class="ctl" id="next-btn" title="Następny (→)">⏭</button>
+    <button class="ctl" id="prev" title="Poprzedni (←)" aria-label="Poprzedni odcinek">⏮</button>
+    <button class="ctl" id="back15" title="−15 s" aria-label="Cofnij 15 sekund">−15</button>
+    <button class="play" id="play" title="Start / pauza (spacja)" aria-label="Start">▶</button>
+    <button class="ctl" id="fwd15" title="+15 s" aria-label="Do przodu 15 sekund">+15</button>
+    <button class="ctl" id="next-btn" title="Następny (→)" aria-label="Następny odcinek">⏭</button>
   </div>
 
   <div class="toggles">
@@ -245,7 +248,7 @@
 
 <!-- ============ INTRO OVERLAY ============ -->
 <div class="overlay hidden" id="introOverlay">
-  <div class="sheet">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="introName">
     <div class="stripe2" id="introStripe"></div>
     <h2 id="introName">—</h2>
     <div class="sub" id="introSub"></div>
@@ -263,15 +266,11 @@
 
 <!-- ============ END OVERLAY ============ -->
 <div class="overlay hidden" id="endOverlay">
-  <div class="sheet" style="text-align:center">
+  <div class="sheet" style="text-align:center" role="dialog" aria-modal="true" aria-labelledby="endTitle">
     <div style="font-size:40px;margin-bottom:6px">✅</div>
-    <h2>Gotowe. Dobra robota.</h2>
+    <h2 id="endTitle">Gotowe. Dobra robota.</h2>
     <div class="sub" id="endSub">Rozejdź się spokojnie, napij się wody.</div>
-    <div class="endstats">
-      <div>czas<b id="endTime">—</b></div>
-      <div>bloków<b id="endBlocks">—</b></div>
-      <div>odcinków<b id="endSteps">—</b></div>
-    </div>
+    <div class="sub" id="endMeta" style="margin-top:-8px"></div>
     <button class="bigbtn" id="againBtn">↺ Jeszcze raz</button>
     <button class="bigbtn ghost" id="endBack">‹ Lista treningów</button>
   </div>
@@ -299,7 +298,7 @@
     fizjo:{
       name:"Fizjo · biodra i plecy",
       short:"Mobilność pod szpagat francuski + otwarcie górnych pleców.",
-      mins:15, accent:"#a78bfa",
+      mins:15, accent:"#a78bfa", label:"7 ćwiczeń + rozgrzewka",
       needs:["Mata lub koc","2 klocki / grube książki / krzesło","Ręcznik lub cienki koc (na wałek)","Kawałek wolnej ściany"],
       rules:[
         {e:"🎚️", t:"Intensywność <b>6–7/10</b>. Odczuwalnie, ale nie na maksa."},
@@ -406,7 +405,7 @@
     kolana:{
       name:"Kolana · wzmacnianie, rolowanie, stretching",
       short:"Wzmocnić, rozluźnić i rozciągnąć to, co odciąża kolano i łąkotkę.",
-      mins:20, accent:"#34d3c0",
+      mins:20, accent:"#34d3c0", label:"10 ćwiczeń · 3 części",
       needs:["Roller (wałek do rolowania)","Guma / taśma oporowa","Mały ręcznik","Mata lub koc","Wolna ściana + coś do trzymania równowagi"],
       rules:[
         {e:"🎚️", t:"To ma <b>nie boleć</b> — utrzymujesz równowagę, nie walczysz. Regularność > intensywność."},
@@ -515,7 +514,7 @@
     core:{
       name:"Core · 7 minut bez sprzętu",
       short:"6 ćwiczeń, 45 s pracy / 20 s przerwy. Stabilizacja i siła brzucha.",
-      mins:7, accent:"#ff8a3d",
+      mins:7, accent:"#ff8a3d", label:"6 ćwiczeń · 45/20 s",
       needs:["Mata lub koc","Kawałek wolnej podłogi"],
       rules:[
         {e:"🌬️", t:"<b>Oddychaj!</b> Nie wstrzymuj oddechu w żadnym ćwiczeniu."},
@@ -560,15 +559,15 @@
       steps:[
         {b:"cintro", d:15, cue:[{at:0, s:"Siedmiominutowy core. Czterdzieści pięć sekund pracy, dwadzieścia odpoczynku. Ustaw się do deski."}]},
         {b:"cplank", d:45, cue:[{at:0, s:"Plank. Ciało w jednej linii, napnij pośladki, pępek do kręgosłupa. Trzymaj.", pace:PACE.hold}]},
-        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Za chwilę dead bug — połóż się na plecach.", pace:PACE.breath},{at:16, s:"Przygotuj się.", beep:"pre", pace:PACE.breath}]},
+        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Za chwilę dead bug — połóż się na plecach.", pace:PACE.breath}]},
         {b:"cdead", d:45, cue:[{at:0, s:"Dead bug. Ręce i nogi w górze. Opuszczaj na zmianę przeciwną rękę i nogę, plecy płasko na podłodze."}]},
-        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Następnie side plank na prawym boku.", pace:PACE.breath},{at:16, s:"Przygotuj się.", beep:"pre", pace:PACE.breath}]},
+        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Następnie side plank na prawym boku.", pace:PACE.breath}]},
         {b:"cside", side:"P", d:45, cue:[{at:0, s:"Side plank, prawa strona. Podpórka na prawym przedramieniu, biodra w górę. Trzymaj.", pace:PACE.hold}]},
-        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Teraz druga strona — lewy bok.", pace:PACE.breath},{at:16, s:"Przygotuj się.", beep:"pre", pace:PACE.breath}]},
+        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Teraz druga strona — lewy bok.", pace:PACE.breath}]},
         {b:"cside", side:"L", d:45, cue:[{at:0, s:"Side plank, lewa strona. Biodra w górę, ciało w linii. Trzymaj.", pace:PACE.hold}]},
-        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Następnie hollow hold.", pace:PACE.breath},{at:16, s:"Przygotuj się.", beep:"pre", pace:PACE.breath}]},
+        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Następnie hollow hold.", pace:PACE.breath}]},
         {b:"choll", d:45, cue:[{at:0, s:"Hollow hold. Ręce i nogi kilka centymetrów nad ziemią, brzuch mocno napięty, lędźwie w podłogę.", pace:PACE.hold}]},
-        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Ostatnie: mountain climbers, pozycja jak do pompki.", pace:PACE.breath},{at:16, s:"Przygotuj się.", beep:"pre", pace:PACE.breath}]},
+        {b:"crest", d:20, cue:[{at:0, s:"Odpoczynek. Ostatnie: mountain climbers, pozycja jak do pompki.", pace:PACE.breath}]},
         {b:"cclimb", d:45, cue:[{at:0, s:"Mountain climbers. Przyciągaj kolana do klatki na zmianę — szybko, ale z kontrolą. Oddychaj."}]},
         {b:"ccool", d:35, cue:[{at:0, s:"Koniec pracy. Połóż się i kilka spokojnych, głębokich oddechów. Dobra robota.", pace:PACE.breath}]}
       ]
@@ -608,10 +607,14 @@
   function say(text){ if(!PREFS.voice||!text||!("speechSynthesis" in window)) return; try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang="pl-PL"; u.rate=1; u.pitch=1; if(plVoice) u.voice=plVoice; speechSynthesis.speak(u); }catch(e){} }
 
   // ---------------- wake lock ----------------
-  let wakeLock=null;
+  let wakeLock=null, wakeWanted=false;
   async function reqWake(){ if(!("wakeLock" in navigator)) return false; try{ wakeLock=await navigator.wakeLock.request("screen"); return true; }catch(e){ return false; } }
   function relWake(){ if(wakeLock){ try{wakeLock.release();}catch(e){} wakeLock=null; } }
-  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && PREFS.wake && playing) reqWake(); });
+  document.addEventListener("visibilitychange",()=>{
+    if(document.visibilityState!=="visible") return;
+    if(ac && ac.state==="suspended"){ try{ac.resume();}catch(e){} }
+    if(wakeWanted && playing) reqWake();
+  });
 
   // ---------------- engine state ----------------
   let R=null, STEPS=[], BLK=null, TOTAL=0, N=0;
@@ -631,14 +634,14 @@
 
   // ---------------- DOM refs ----------------
   const els={ accent:$("accent"),bdot:$("bdot"),bname:$("bname"),star:$("star"),brange:$("brange"),
-    title:$("title"),side:$("side"),count:$("count"),ofstep:$("ofstep"),sBar:$("sBar"),gBar:$("gBar"),
+    title:$("title"),side:$("side"),count:$("count"),countUnit:$("countUnit"),ofstep:$("ofstep"),sBar:$("sBar"),gBar:$("gBar"),
     cue:$("cue"),details:$("details"),next:$("next"),gElapsed:$("gElapsed"),gRemain:$("gRemain"),gTotal:$("gTotal"),
     play:$("play"),timeline:$("timeline"),pacer:$("pacer"),ring:$("ring"),ringLabel:$("ringLabel"),pacehint:$("pacehint"),
     pTitle:$("pTitle"),rulesBar:$("rulesBar") };
 
   function stepIndexAt(e){ for(let i=N-1;i>=0;i--){ if(e+1e-6>=STEPS[i].start) return i; } return 0; }
   function activeCue(st,se){ let c=st.cue[0],idx=0; for(let i=0;i<st.cue.length;i++){ if(se+1e-6>=st.cue[i].at){ c=st.cue[i]; idx=i; } } return {c,idx}; }
-  function chip(cls,lab,tx){ return tx ? '<div class="chip '+cls+'"><span class="lab '+cls+'">'+lab+'</span><span class="tx">'+tx+'</span></div>' : ""; }
+  function chip(cls,lab,tx){ if(!tx) return ""; const l=lab?'<span class="lab '+cls+'">'+lab+'</span>':''; return '<div class="chip '+cls+'">'+l+'<span class="tx">'+tx+'</span></div>'; }
 
   function renderStep(i){
     const st=STEPS[i], m=st.meta;
@@ -650,11 +653,14 @@
     if(st.side){ els.side.classList.remove("hidden"); els.side.className="side "+st.side; els.side.textContent=st.side==="L"?"LEWA":"PRAWA"; }
     else els.side.classList.add("hidden");
     let h=""; h+=chip("set","Ustawienie",m.set); h+=chip("key",m.keyLab||((st.b==="glute"||st.b==="roll")?"Jak":"Najważniejsze"),m.key);
-    h+=chip("feel","Czujesz",m.feel); h+=chip("avoid","Stop / nie",m.avoid); h+=chip("note","",m.note);
+    h+=chip("feel","Czujesz",m.feel); h+=chip("avoid","Stop / nie",m.avoid); h+=chip("note","Tip",m.note);
     els.details.innerHTML=h;
     els.next.textContent=(i+1<N)?((STEPS[i+1].meta.name)+(STEPS[i+1].side?(" — "+(STEPS[i+1].side==="L"?"lewa":"prawa")):(STEPS[i+1].t?(" — "+STEPS[i+1].t):""))):"Koniec — rozejście";
     els.sBar.style.background=m.c;
     document.querySelector(".bar").style.background="linear-gradient(90deg,"+m.c+"66,"+m.c+")";
+    // pacer: widoczność decydowana per-odcinek, żeby layout nie skakał w trakcie
+    els.pacer.classList.toggle("on", st.cue.some(cc=>!!cc.pace));
+    els.pacer.style.opacity="1";
     buildTimelineHighlight(i);
   }
 
@@ -663,8 +669,10 @@
   function render(){
     const i=stepIndexAt(elapsed), st=STEPS[i], se=elapsed-st.start, rem=st.d-se;
     if(i!==curStep){ renderStep(i); curStep=i; }
-    els.count.textContent=Math.max(0,Math.ceil(rem));
-    els.ofstep.textContent="odcinek "+(i+1)+"/"+N+" · "+fmt(st.d)+" min";
+    const remS=Math.max(0,Math.ceil(rem));
+    if(remS>=60){ els.count.textContent=fmt(remS); els.countUnit.textContent=""; }
+    else { els.count.textContent=remS; els.countUnit.textContent=" s"; }
+    els.ofstep.textContent="odcinek "+(i+1)+"/"+N+" · "+(st.d<60 ? st.d+" s" : fmt(st.d));
     els.sBar.style.width=(100*se/st.d)+"%";
     els.gBar.style.width=(100*elapsed/TOTAL)+"%";
     els.gElapsed.textContent=fmt(elapsed); els.gRemain.textContent="−"+fmt(TOTAL-elapsed);
@@ -672,51 +680,61 @@
     const {c,idx}=activeCue(st,se), key=i+":"+idx;
     if(key!==curCueKey){ els.cue.textContent=c.txt||c.s||""; if(playing){ beep(c.beep); buzz(c.beep==="step"?60:20); if(c.s) say(c.s); } curCueKey=key; }
 
-    // pacer
+    // pacer — widoczność ustawia renderStep (per-odcinek); tu tylko fazy i przygaszenie między paced-cue
     if(c.pace){
-      els.pacer.classList.add("on");
+      els.pacer.style.opacity="1";
       if(paceKey!==key){ paceKey=key; paceIdx=0; paceStart=se; els.pacehint.textContent=c.pace.hint||""; applyPhase(c.pace.phases[0]); }
       else if(playing){ const ph=c.pace.phases[paceIdx]; if(se-paceStart>=ph.d){ paceIdx=(paceIdx+1)%c.pace.phases.length; paceStart+=ph.d; applyPhase(c.pace.phases[paceIdx]); beep("soft"); buzz(12); } }
-    } else { els.pacer.classList.remove("on"); paceKey=""; }
+    } else { els.pacer.style.opacity=".15"; paceKey=""; }
 
     // pre-announce next step ~4s ahead
     if(playing && i<N-1 && rem<=4 && rem>0.2 && !preAnn[i]){
       preAnn[i]=true; const nx=STEPS[i+1];
       const t = nx.side ? ("Za chwilę "+(nx.side==="L"?"lewa strona":"prawa strona")) : ("Za chwilę "+(nx.t||nx.meta.name));
-      beep("pre"); buzz(25); if(c.beep!=="step") say(t);
+      beep("pre"); buzz(25); if(se - c.at > 3) say(t);
     }
   }
 
   // ---------------- timeline ----------------
-  function buildTimeline(){ let h=""; STEPS.forEach((st,i)=>{ const m=st.meta; const label=(st.t||m.name)+(st.side?(' <span class="tside">'+(st.side==="L"?"L":"P")+'</span>'):''); h+='<div class="tlitem" data-i="'+i+'"><span class="tdot" style="background:'+m.c+'"></span><span class="ttime">'+fmt(st.start)+'</span><span class="ttx">'+label+'</span></div>'; }); els.timeline.innerHTML=h; els.timeline.querySelectorAll(".tlitem").forEach(el=>el.addEventListener("click",()=>jumpTo(parseInt(el.dataset.i,10)))); }
-  function buildTimelineHighlight(cur){ els.timeline.querySelectorAll(".tlitem").forEach(el=>{ const i=parseInt(el.dataset.i,10); el.classList.toggle("cur",i===cur); el.classList.toggle("done",i<cur); }); }
-  function jumpTo(i){ elapsed=STEPS[i].start; curStep=-1; curCueKey=""; paceKey=""; render(); if(playing){ const st=STEPS[i],{c}=activeCue(st,0); beep("step"); buzz(40); if(c.s) say(c.s); curCueKey=i+":0"; } }
+  function buildTimeline(){ let h=""; STEPS.forEach((st,i)=>{ const m=st.meta; const label=(st.t||m.name)+(st.side?(' <span class="tside">'+(st.side==="L"?"L":"P")+'</span>'):''); h+='<button type="button" class="tlitem" data-i="'+i+'"><span class="tdot" style="background:'+m.c+'"></span><span class="ttime">'+fmt(st.start)+'</span><span class="ttx">'+label+'</span></button>'; }); els.timeline.innerHTML=h; els.timeline.querySelectorAll(".tlitem").forEach(el=>el.addEventListener("click",()=>jumpTo(parseInt(el.dataset.i,10)))); }
+  function buildTimelineHighlight(cur){ els.timeline.querySelectorAll(".tlitem").forEach(el=>{ const i=parseInt(el.dataset.i,10); el.classList.toggle("cur",i===cur); el.classList.toggle("done",i<cur); el.setAttribute("aria-current", i===cur ? "true" : "false"); }); }
+  function jumpTo(i){ elapsed=STEPS[i].start; curStep=-1; curCueKey=""; paceKey=""; preAnn={}; render(); if(playing){ const st=STEPS[i],{c}=activeCue(st,0); beep("step"); buzz(40); if(c.s) say(c.s); curCueKey=i+":0"; } }
 
   // ---------------- loop ----------------
-  function tick(){ const now=performance.now(); if(playing&&lastTs!=null) elapsed+=(now-lastTs)/1000; lastTs=now; if(R && elapsed>=TOTAL){ elapsed=TOTAL; finish(); return; } if(R && !$("player").classList.contains("hidden")) render(); }
+  function tick(){ const now=performance.now(); if(playing&&lastTs!=null) elapsed+=(now-lastTs)/1000; lastTs=now; if(R && playing && elapsed>=TOTAL){ elapsed=TOTAL; finish(); return; } if(R && !$("player").classList.contains("hidden")) render(); }
   setInterval(tick,200);
 
   // ---------------- controls ----------------
-  function setPlay(p){ playing=p; els.play.textContent=p?"⏸":"▶"; if(p){ ensureAudio(); if(PREFS.wake) reqWake(); const i=stepIndexAt(elapsed),st=STEPS[i],se=elapsed-st.start,{idx}=activeCue(st,se); curCueKey=i+":"+idx; } else { try{speechSynthesis.cancel();}catch(e){} } }
+  function setPlay(p){ playing=p; els.play.textContent=p?"⏸":"▶"; els.play.setAttribute("aria-label",p?"Pauza":"Start"); if(p){ ensureAudio(); if(wakeWanted) reqWake(); const i=stepIndexAt(elapsed),st=STEPS[i],se=elapsed-st.start,{idx}=activeCue(st,se); curCueKey=i+":"+idx; } else { try{speechSynthesis.cancel();}catch(e){} } }
   $("play").addEventListener("click",()=>setPlay(!playing));
   $("prev").addEventListener("click",()=>{ const i=stepIndexAt(elapsed),st=STEPS[i]; if(elapsed-st.start>2||i===0) jumpTo(i); else jumpTo(i-1); });
   $("next-btn").addEventListener("click",()=>{ const i=stepIndexAt(elapsed); if(i<N-1) jumpTo(i+1); else { elapsed=TOTAL; finish(); } });
-  $("back15").addEventListener("click",()=>{ elapsed=Math.max(0,elapsed-15); curStep=-1; curCueKey=""; paceKey=""; render(); });
-  $("fwd15").addEventListener("click",()=>{ elapsed=Math.min(TOTAL-0.5,elapsed+15); curStep=-1; curCueKey=""; paceKey=""; render(); });
+  $("back15").addEventListener("click",()=>{ elapsed=Math.max(0,elapsed-15); curStep=-1; curCueKey=""; paceKey=""; preAnn={}; render(); });
+  $("fwd15").addEventListener("click",()=>{ elapsed=Math.min(TOTAL-0.5,elapsed+15); curStep=-1; curCueKey=""; paceKey=""; preAnn={}; render(); });
 
-  function bindToggle(id,key,extra){ const el=$(id); function paint(){ el.classList.toggle("on",!!PREFS[key]); } paint(); el.addEventListener("click",async()=>{ const want=!PREFS[key]; if(extra){ const ok=await extra(want); PREFS[key]=ok; } else { PREFS[key]=want; } paint(); savePrefs(); if(key==="voice"&&!PREFS.voice){ try{speechSynthesis.cancel();}catch(e){} } }); }
+  function bindToggle(id,key,extra){ const el=$(id); function paint(){ el.classList.toggle("on",!!PREFS[key]); el.setAttribute("aria-pressed",String(!!PREFS[key])); } paint(); el.addEventListener("click",async()=>{ const want=!PREFS[key]; if(extra){ const ok=await extra(want); PREFS[key]=ok; } else { PREFS[key]=want; } paint(); savePrefs(); if(key==="voice"&&!PREFS.voice){ try{speechSynthesis.cancel();}catch(e){} } }); }
   bindToggle("tgVoice","voice"); bindToggle("tgSound","sound"); bindToggle("tgHaptic","haptic");
-  bindToggle("tgWake","wake",async(want)=>{ if(want){ const ok=await reqWake(); if(!ok){ $("tgWake").textContent="📱 Niedostępne"; } return ok; } else { relWake(); return false; } });
+  bindToggle("tgWake","wake",async(want)=>{ if(want){ const ok=await reqWake(); wakeWanted=ok; if(!ok){ $("tgWake").innerHTML='<span class="led"></span>📱 Niedostępne'; } return ok; } else { relWake(); wakeWanted=false; return false; } });
+  if(!navigator.vibrate){ const t=$("tgHaptic"); t.disabled=true; t.innerHTML='<span class="led"></span>📳 Niedostępne'; t.classList.remove("on"); t.setAttribute("aria-pressed","false"); }
 
   // keyboard
-  document.addEventListener("keydown",e=>{ if($("player").classList.contains("hidden")) return; if(e.code==="Space"){ e.preventDefault(); setPlay(!playing); } else if(e.code==="ArrowRight") $("next-btn").click(); else if(e.code==="ArrowLeft") $("prev").click(); });
+  document.addEventListener("keydown",e=>{
+    if($("player").classList.contains("hidden")) return;
+    if(!$("introOverlay").classList.contains("hidden") || !$("endOverlay").classList.contains("hidden")) return;
+    if(e.code==="Space"){
+      if(e.target && e.target.closest && e.target.closest("button, summary, a, input")) return;
+      e.preventDefault(); setPlay(!playing);
+    }
+    else if(e.code==="ArrowRight") $("next-btn").click();
+    else if(e.code==="ArrowLeft") $("prev").click();
+  });
 
   // swipe on card
   (function(){ let x0=null,y0=null; const card=$("card"); card.addEventListener("touchstart",e=>{ const t=e.changedTouches[0]; x0=t.clientX; y0=t.clientY; },{passive:true}); card.addEventListener("touchend",e=>{ if(x0==null) return; const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0; if(Math.abs(dx)>55&&Math.abs(dy)<40){ if(dx<0) $("next-btn").click(); else $("prev").click(); } x0=null; },{passive:true}); })();
 
   // ---------------- screens ----------------
   function showHub(){ setPlay(false); relWake(); $("player").classList.add("hidden"); $("introOverlay").classList.add("hidden"); $("endOverlay").classList.add("hidden"); $("hub").classList.remove("hidden"); if(location.hash) history.replaceState(null,"",location.pathname); }
-  function buildHub(){ let h=""; Object.keys(ROUTINES).forEach(id=>{ const r=ROUTINES[id]; const nb=Object.keys(r.blocks).length, ns=r.steps.length; h+='<button class="rcard" data-id="'+id+'" style="--accent:'+r.accent+'"><span class="stripe"></span><span class="rc"><h3>'+r.name+'</h3><div class="rdesc">'+r.short+'</div><div class="rmeta"><span class="pill">⏱ '+r.mins+' min</span><span class="pill">🧩 '+nb+' bloków</span><span class="pill">🎯 '+ns+' odcinków</span></div></span><span class="go">›</span></button>'; }); $("rlist").innerHTML=h; $("rlist").querySelectorAll(".rcard").forEach(el=>el.addEventListener("click",()=>openIntro(el.dataset.id))); }
+  function buildHub(){ let h=""; Object.keys(ROUTINES).forEach(id=>{ const r=ROUTINES[id]; h+='<button class="rcard" data-id="'+id+'" style="--accent:'+r.accent+'"><span class="stripe"></span><span class="rc"><h3>'+r.name+'</h3><div class="rdesc">'+r.short+'</div><div class="rmeta"><span class="pill">⏱ '+r.mins+' min</span><span class="pill">🧩 '+(r.label||'')+'</span></div></span><span class="go">›</span></button>'; }); $("rlist").innerHTML=h; $("rlist").querySelectorAll(".rcard").forEach(el=>el.addEventListener("click",()=>openIntro(el.dataset.id))); }
 
   function openIntro(id){
     if(!loadRoutine(id)) return;
@@ -730,23 +748,24 @@
     // intro overlay content
     $("introStripe").style.background=R.accent;
     $("introName").textContent=R.name; $("introSub").textContent=R.short;
-    $("introNeeds").innerHTML=R.needs.map((n,i)=>'<div class="need" data-i="'+i+'"><span class="box">✓</span><span>'+n+'</span></div>').join("");
-    $("introNeeds").querySelectorAll(".need").forEach(el=>el.addEventListener("click",()=>el.classList.toggle("checked")));
+    $("introNeeds").innerHTML=R.needs.map((n,i)=>'<button type="button" class="need" role="checkbox" aria-checked="false" data-i="'+i+'"><span class="box" aria-hidden="true">✓</span><span>'+n+'</span></button>').join("");
+    $("introNeeds").querySelectorAll(".need").forEach(el=>el.addEventListener("click",()=>{ el.classList.toggle("checked"); el.setAttribute("aria-checked",String(el.classList.contains("checked"))); }));
     $("introRules").innerHTML=R.rules.map(r=>'<div class="r'+(r.stop?' stop':'')+'"><span class="e">'+r.e+'</span><span>'+r.t+'</span></div>').join("");
     if(R.habits&&R.habits.length){ $("introHabitsWrap").classList.remove("hidden"); $("introHabitsWrap").open=false; $("introHabitsLab").textContent=R.habitsTitle||"Na co dzień — dobre nawyki"; $("introHabits").innerHTML=R.habits.map(t=>'<div class="r"><span class="e">‣</span><span>'+t+'</span></div>').join(""); } else { $("introHabitsWrap").classList.add("hidden"); }
     $("introOverlay").classList.remove("hidden");
+    try{$("startBtn").focus();}catch(e){}
   }
 
   function begin(withVoice){
-    ensureAudio(); PREFS.voice=withVoice; $("tgVoice").classList.toggle("on",withVoice); savePrefs();
+    ensureAudio(); PREFS.voice=withVoice; $("tgVoice").classList.toggle("on",withVoice); $("tgVoice").setAttribute("aria-pressed",String(withVoice)); savePrefs();
     $("introOverlay").classList.add("hidden");
     if(withVoice && "speechSynthesis" in window){ try{ speechSynthesis.cancel(); const w=new SpeechSynthesisUtterance(" "); w.volume=0; speechSynthesis.speak(w); }catch(e){} pickVoice(); }
     elapsed=0; curStep=-1; curCueKey=""; paceKey=""; preAnn={}; render(); setPlay(true);
     beep("step"); buzz(60); if(withVoice) say(STEPS[0].cue[0].s); curCueKey="0:0";
-    reqWake().then(ok=>{ PREFS.wake=PREFS.wake||ok; $("tgWake").classList.toggle("on",!!wakeLock); });
+    reqWake().then(()=>{ wakeWanted=!!wakeLock; $("tgWake").classList.toggle("on",!!wakeLock); $("tgWake").setAttribute("aria-pressed",String(!!wakeLock)); });
   }
 
-  function finish(){ setPlay(false); relWake(); try{speechSynthesis.cancel();}catch(e){} beep("end"); say("Gotowe. Dobra robota."); $("endTime").textContent=fmt(TOTAL); $("endBlocks").textContent=Object.keys(BLK).length; $("endSteps").textContent=N; $("endOverlay").classList.remove("hidden"); }
+  function finish(){ setPlay(false); relWake(); wakeWanted=false; try{speechSynthesis.cancel();}catch(e){} beep("end"); say("Gotowe. Dobra robota."); $("endMeta").textContent=R.name; $("endOverlay").classList.remove("hidden"); try{$("againBtn").focus();}catch(e){} }
 
   // buttons
   $("startBtn").addEventListener("click",()=>begin(true));
@@ -762,7 +781,11 @@
   buildHub();
   const hashId=(location.hash||"").replace("#","");
   if(ROUTINES[hashId]) openIntro(hashId); else showHub();
-  window.addEventListener("hashchange",()=>{ const id=(location.hash||"").replace("#",""); if(ROUTINES[id] && $("hub").classList.contains("hidden")===false) openIntro(id); });
+  window.addEventListener("hashchange",()=>{
+    const id=(location.hash||"").replace("#","");
+    if(ROUTINES[id]){ if(!$("hub").classList.contains("hidden")) openIntro(id); }
+    else if($("hub").classList.contains("hidden")) showHub(); // back w przeglądarce/Androidzie wraca na listę
+  });
   console.log("Ćwiczenia gotowe. Treningi:", Object.keys(ROUTINES).join(", "));
 })();
 </script>
