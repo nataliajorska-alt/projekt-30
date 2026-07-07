@@ -229,3 +229,71 @@ export function contextShareByWeek(
     }))
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
 }
+
+// ── Tempo dnia — spokojne lustro w momencie logowania papierosa ───────────
+// Nie blokada: pokazuje ile zostało do sufitu i ile aktywnego dnia przed Tobą,
+// żebyś sama zobaczyła tempo (dużo dnia + sufit blisko = może rozłóż resztę).
+// Okno aktywnego dnia zależy od dnia tygodnia (rytm Natalii). Godziny „po
+// północy" (0–2:59) należą jeszcze do logicznego dnia (reset o 3:00) — liczone
+// jako 24–26, więc piątkowa/sobotnia impreza nie „domyka" dnia przedwcześnie.
+
+const LOGICAL_DAY_START = 3
+
+export interface ActiveWindow {
+  startHour: number  // pobudka
+  endHour: number    // wyciszenie; może być > 24 (impreza po północy)
+}
+
+/**
+ * Okno aktywnego dnia per dzień tygodnia (0=Pon … 6=Nd).
+ * Pon–Czw 6–22; Pt 6 do późna (impreza); Sob późna pobudka + do późna;
+ * Nd późna pobudka, normalne wyciszenie.
+ */
+export function activeWindowFor(weekday: number): ActiveWindow {
+  switch (weekday) {
+    case 4:  return { startHour: 6, endHour: 26 }  // Piątek — impreza możliwa
+    case 5:  return { startHour: 9, endHour: 26 }  // Sobota — późna pobudka + impreza
+    case 6:  return { startHour: 9, endHour: 22 }  // Niedziela — późna pobudka
+    default: return { startHour: 6, endHour: 22 }  // Pon–Czw
+  }
+}
+
+export interface SmokePacing {
+  ceiling: number
+  remaining: number           // do sufitu; ujemne = nad sufitem
+  over: boolean               // nad sufitem
+  atCeiling: boolean          // dokładnie na suficie (remaining === 0)
+  minutesLeftActive: number   // do końca aktywnego dnia (0 gdy po/ogon)
+  pace: 'under' | 'on' | 'ahead' | 'over'  // względem równego tempa
+  intervalMin: number | null  // proponowany odstęp, by rozłożyć resztę; null gdy brak zapasu
+}
+
+/** Tempo dnia względem sufitu. `hour`/`minute` z getEffectiveNow (zegar ścienny). */
+export function smokePacing(
+  hour: number,
+  minute: number,
+  todayCount: number,
+  ceiling: number,
+  window: ActiveWindow,
+): SmokePacing {
+  const remaining = ceiling - todayCount
+  const over = remaining < 0
+  const atCeiling = remaining === 0
+  const startMin = window.startHour * 60
+  const endMin = window.endHour * 60
+  // 0:00–2:59 = ogon logicznego dnia → godziny logiczne 24–26.
+  const logicalHour = hour < LOGICAL_DAY_START ? hour + 24 : hour
+  const nowMin = logicalHour * 60 + minute
+  const clamped = Math.min(Math.max(nowMin, startMin), endMin)
+  const elapsedFrac = endMin > startMin ? (clamped - startMin) / (endMin - startMin) : 1
+  const minutesLeftActive = Math.max(0, endMin - nowMin)
+  const expectedByNow = ceiling * elapsedFrac
+  let pace: SmokePacing['pace']
+  if (over) pace = 'over'
+  else if (todayCount > expectedByNow + 1) pace = 'ahead'
+  else if (todayCount < expectedByNow - 1) pace = 'under'
+  else pace = 'on'
+  const intervalMin =
+    remaining > 0 && minutesLeftActive > 0 ? Math.round(minutesLeftActive / remaining) : null
+  return { ceiling, remaining, over, atCeiling, minutesLeftActive, pace, intervalMin }
+}

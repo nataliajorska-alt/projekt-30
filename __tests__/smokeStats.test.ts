@@ -14,6 +14,8 @@ import {
   daysUntilQuit,
   ceilingStatus,
   contextShareByWeek,
+  smokePacing,
+  activeWindowFor,
 } from '@/lib/smokeStats'
 import type { DailyLog, CigaretteContext, CigaretteEntry } from '@/types'
 
@@ -249,5 +251,71 @@ describe('contextShareByWeek — pułapka nagrody', () => {
     )
     const trend = contextShareByWeek(logs, 'quest')
     expect(trend.map(w => w.share)).toEqual([20, 60])
+  })
+})
+
+describe('activeWindowFor — okno aktywnego dnia', () => {
+  it('Pon–Czw 6–22', () => {
+    for (const wd of [0, 1, 2, 3]) expect(activeWindowFor(wd)).toEqual({ startHour: 6, endHour: 22 })
+  })
+  it('Pt 6 do późna (impreza)', () => {
+    expect(activeWindowFor(4)).toEqual({ startHour: 6, endHour: 26 })
+  })
+  it('Sob późna pobudka + do późna', () => {
+    expect(activeWindowFor(5)).toEqual({ startHour: 9, endHour: 26 })
+  })
+  it('Nd późna pobudka, normalne wyciszenie', () => {
+    expect(activeWindowFor(6)).toEqual({ startHour: 9, endHour: 22 })
+  })
+})
+
+describe('smokePacing — tempo dnia', () => {
+  const WEEKDAY = { startHour: 6, endHour: 22 }
+  it('wolniej niż równe tempo = zapas + odstęp na resztę', () => {
+    // 12:00, sufit 14, 2 zapalone. okno 6–22: elapsed=(720-360)/960=0.375 → expected 5.25.
+    const p = smokePacing(12, 0, 2, 14, WEEKDAY)
+    expect(p.remaining).toBe(12)
+    expect(p.over).toBe(false)
+    expect(p.pace).toBe('under')
+    expect(p.minutesLeftActive).toBe(600)      // do 22:00
+    expect(p.intervalMin).toBe(50)             // 600 / 12 = co 50 min
+  })
+
+  it('szybciej niż równe tempo = sygnał „ahead"', () => {
+    // 12:00, sufit 14, 8 zapalonych. expected 5.25, 8 > 6.25 → ahead.
+    const p = smokePacing(12, 0, 8, 14, WEEKDAY)
+    expect(p.pace).toBe('ahead')
+    expect(p.remaining).toBe(6)
+  })
+
+  it('nad sufitem: remaining ujemne, brak odstępu, spokojnie', () => {
+    const p = smokePacing(18, 0, 15, 14, WEEKDAY)
+    expect(p.over).toBe(true)
+    expect(p.remaining).toBe(-1)
+    expect(p.pace).toBe('over')
+    expect(p.intervalMin).toBeNull()
+  })
+
+  it('dokładnie na suficie', () => {
+    const p = smokePacing(20, 0, 14, 14, WEEKDAY)
+    expect(p.atCeiling).toBe(true)
+    expect(p.over).toBe(false)
+    expect(p.remaining).toBe(0)
+    expect(p.intervalMin).toBeNull()
+  })
+
+  it('dzień powszedni po 22:00 = domknięty, zero odstępu', () => {
+    const p = smokePacing(1, 0, 12, 14, WEEKDAY)  // 1:00 (logicznie 25:00) > 22:00
+    expect(p.minutesLeftActive).toBe(0)
+    expect(p.intervalMin).toBeNull()
+    expect(p.pace).toBe('under')
+  })
+
+  it('piątkowa impreza po północy wciąż liczy się jako aktywny dzień', () => {
+    // Pt 1:00 (logicznie 25:00), okno 6–26 → 60 min do wyciszenia.
+    const p = smokePacing(1, 0, 12, 14, { startHour: 6, endHour: 26 })
+    expect(p.minutesLeftActive).toBe(60)
+    expect(p.remaining).toBe(2)
+    expect(p.intervalMin).toBe(30)  // 60 / 2 = co 30 min
   })
 })
