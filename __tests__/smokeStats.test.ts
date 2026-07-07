@@ -7,8 +7,15 @@ import {
   weeklyAverages,
   shiftDateKey,
   SMOKE_TRACKING_START,
+  SMOKING_QUIT_DATE,
+  MONTHLY_CEILINGS,
+  ceilingFor,
+  nextCeilingAfter,
+  daysUntilQuit,
+  ceilingStatus,
+  contextShareByWeek,
 } from '@/lib/smokeStats'
-import type { DailyLog, CigaretteEntry } from '@/types'
+import type { DailyLog, CigaretteContext, CigaretteEntry } from '@/types'
 
 function makeLog(date: string, cigCount?: number): DailyLog {
   const cigarettes: CigaretteEntry[] | undefined =
@@ -28,6 +35,26 @@ function makeLog(date: string, cigCount?: number): DailyLog {
     totalXP: 0,
     dayMode: 'normal',
     ...(cigarettes ? { cigarettes } : {}),
+  }
+}
+
+// Log z papierosami o zadanych kontekstach (do testów pułapki nagrody).
+function makeCtxLog(date: string, contexts: CigaretteContext[]): DailyLog {
+  const cigarettes: CigaretteEntry[] = contexts.map((context, i) => ({
+    timestamp: Date.parse(`${date}T12:00:00`) + i,
+    hour: 12,
+    weekday: 0,
+    context,
+  }))
+  return {
+    date,
+    completedRoutine: [],
+    completedDailyQuests: [],
+    completedSideQuests: [],
+    keptRules: [],
+    totalXP: 0,
+    dayMode: 'normal',
+    cigarettes,
   }
 }
 
@@ -136,5 +163,91 @@ describe('weeklyAverages', () => {
 describe('SMOKE_TRACKING_START', () => {
   it('zgadza się z PLAN_PALENIE.md (start fazy 1: 18.05.2026)', () => {
     expect(SMOKE_TRACKING_START).toBe('2026-05-18')
+  })
+})
+
+describe('harmonogram sufitów miesięcznych', () => {
+  it('twarda linia to 30. urodziny', () => {
+    expect(SMOKING_QUIT_DATE).toBe('2027-04-05')
+  })
+
+  it('sufit maleje monotonicznie 14 → 1 przez 10 miesięcy', () => {
+    expect(MONTHLY_CEILINGS).toHaveLength(10)
+    expect(MONTHLY_CEILINGS[0]).toMatchObject({ month: '2026-07', ceiling: 14 })
+    expect(MONTHLY_CEILINGS[MONTHLY_CEILINGS.length - 1]).toMatchObject({ month: '2027-04', ceiling: 1 })
+    for (let i = 1; i < MONTHLY_CEILINGS.length; i++) {
+      expect(MONTHLY_CEILINGS[i].ceiling).toBeLessThan(MONTHLY_CEILINGS[i - 1].ceiling)
+    }
+  })
+
+  it('ceilingFor bierze sufit z miesiąca daty', () => {
+    expect(ceilingFor('2026-07-07')?.ceiling).toBe(14)
+    expect(ceilingFor('2026-07-31')?.ceiling).toBe(14)
+    expect(ceilingFor('2026-12-24')?.ceiling).toBe(6)
+    expect(ceilingFor('2027-04-01')?.ceiling).toBe(1)
+  })
+
+  it('ceilingFor jest null przed lipcem i po kwietniu', () => {
+    expect(ceilingFor('2026-06-30')).toBeNull()
+    expect(ceilingFor('2027-05-01')).toBeNull()
+  })
+
+  it('nextCeilingAfter wskazuje kolejny miesiąc, null na końcu', () => {
+    expect(nextCeilingAfter('2026-07-15')?.ceiling).toBe(12)
+    expect(nextCeilingAfter('2027-04-02')).toBeNull()
+  })
+
+  it('daysUntilQuit liczy dni do linii (dodatnie przed, 0 w dniu, ujemne po)', () => {
+    expect(daysUntilQuit('2027-04-05')).toBe(0)
+    expect(daysUntilQuit('2027-04-04')).toBe(1)
+    expect(daysUntilQuit('2027-03-06')).toBe(30)
+    expect(daysUntilQuit('2027-04-06')).toBe(-1)
+    // stabilne przez granicę roku
+    expect(daysUntilQuit('2026-07-07')).toBe(272)
+  })
+})
+
+describe('ceilingStatus — spokojne lustro', () => {
+  it('under gdy średnia wyraźnie pod sufitem', () => {
+    expect(ceilingStatus(11, 14)).toBe('under')
+  })
+  it('at gdy średnia przy suficie (górny papieros)', () => {
+    expect(ceilingStatus(13.5, 14)).toBe('at')
+    expect(ceilingStatus(14, 14)).toBe('at')
+  })
+  it('over gdy średnia nad sufitem', () => {
+    expect(ceilingStatus(14.5, 14)).toBe('over')
+  })
+  it('unknown bez danych', () => {
+    expect(ceilingStatus(null, 14)).toBe('unknown')
+    expect(ceilingStatus(11, null)).toBe('unknown')
+  })
+})
+
+describe('contextShareByWeek — pułapka nagrody', () => {
+  it('liczy udział kontekstu wśród otagowanych, tydzień po tygodniu', () => {
+    // tydzień 2026-06-08 (pon): 6 otagowanych, 4× quest → 67%
+    const logs = logsFrom(
+      makeCtxLog('2026-06-08', ['quest', 'quest', 'stres']),
+      makeCtxLog('2026-06-09', ['quest', 'quest', 'kawa']),
+    )
+    const trend = contextShareByWeek(logs, 'quest')
+    expect(trend).toEqual([
+      { weekStart: '2026-06-08', count: 4, withContext: 6, share: 67 },
+    ])
+  })
+
+  it('pomija tygodnie poniżej progu minTagged', () => {
+    const logs = logsFrom(makeCtxLog('2026-06-08', ['quest', 'stres']))
+    expect(contextShareByWeek(logs, 'quest', { minTagged: 5 })).toEqual([])
+  })
+
+  it('rośnie tydzień po tygodniu (sygnał pułapki)', () => {
+    const logs = logsFrom(
+      makeCtxLog('2026-06-08', ['quest', 'stres', 'kawa', 'nuda', 'stres']),      // 1/5 = 20%
+      makeCtxLog('2026-06-15', ['quest', 'quest', 'quest', 'stres', 'kawa']),     // 3/5 = 60%
+    )
+    const trend = contextShareByWeek(logs, 'quest')
+    expect(trend.map(w => w.share)).toEqual([20, 60])
   })
 })

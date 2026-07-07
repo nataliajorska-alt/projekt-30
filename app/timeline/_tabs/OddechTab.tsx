@@ -6,12 +6,18 @@ import { useState } from 'react'
 import clsx from 'clsx'
 import type { DailyLog, SmokingPhase, CigaretteContext } from '@/types'
 import { SMOKING_PHASE_META } from '@/types'
-import { CIGARETTE_CONTEXTS, PHASE_GENTLE_HINT } from '@/lib/smoke-data'
+import {
+  CIGARETTE_CONTEXTS, PHASE_GENTLE_HINT,
+  ENVIRONMENTAL_RULES, REWARD_REPLACEMENTS, STRESS_TOOLS,
+} from '@/lib/smoke-data'
 import {
   dailyCigaretteCounts, collectEntries, computeBaseline,
   phase2TargetRange, rollingAverage, weeklyAverages,
   shiftDateKey, MIN_DAYS_FOR_BASELINE,
+  ceilingFor, nextCeilingAfter, daysUntilQuit, ceilingStatus,
+  contextShareByWeek, MONTHLY_CEILINGS,
 } from '@/lib/smokeStats'
+import type { ContextWeekShare } from '@/lib/smokeStats'
 import { todayKey } from '@/lib/gameLogic'
 import { useGameData } from '@/hooks/useGameData'
 import { useToast } from '@/components/ToastProvider'
@@ -20,6 +26,18 @@ import { toRoman } from '@/lib/romanNumerals'
 
 const PL_DAYS_SHORT = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd']
 const PL_DAYS_FULL = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
+
+const PL_MONTH_SHORT: Record<string, string> = {
+  '01': 'Sty', '02': 'Lut', '03': 'Mar', '04': 'Kwi', '05': 'Maj', '06': 'Cze',
+  '07': 'Lip', '08': 'Sie', '09': 'Wrz', '10': 'Paź', '11': 'Lis', '12': 'Gru',
+}
+
+const STATUS_WORD: Record<string, string> = {
+  under: 'pod sufitem',
+  at: 'przy suficie',
+  over: 'nad sufitem — spójrz na kontekst',
+  unknown: 'średnia 7 dni',
+}
 
 const TIME_SLOTS = [
   { label: 'Noc',      range: '0–6',   hours: [0,1,2,3,4,5] },
@@ -104,21 +122,27 @@ function MetricCell({ idx, hero, heroSuffix, heroText, eyebrow, note, feature }:
 
 // ── Wykres trendu tygodniowego (SVG) ─────────────────────────────
 
-function OddechTrendChart({ weeks, baseline, target }: {
+function OddechTrendChart({ weeks, baseline }: {
   weeks: { weekStart: string; avg: number }[]
   baseline: number | null
-  target: { lo: number; hi: number } | null
 }) {
   const W = 940, H = 330, padL = 50, padR = 30, padT = 30, padB = 46
   const plotW = W - padL - padR, plotH = H - padT - padB, n = weeks.length
 
+  // Sufit obowiązujący dla każdego tygodnia — malejąca linia odniesienia.
+  const ceilPoints = weeks
+    .map((w, i) => ({ c: ceilingFor(w.weekStart)?.ceiling ?? null, i }))
+    .filter((o): o is { c: number; i: number } => o.c != null)
+  const lastCeil = ceilPoints.length ? ceilPoints[ceilPoints.length - 1] : null
+
   const vals = [
     ...weeks.map(w => w.avg),
     ...(baseline != null ? [baseline] : []),
-    ...(target ? [target.lo, target.hi] : []),
+    ...ceilPoints.map(o => o.c),
   ]
   let dmin = Math.floor(Math.min(...vals) - 0.5)
   let dmax = Math.ceil(Math.max(...vals) + 0.5)
+  if (dmin < 0) dmin = 0
   if (dmax - dmin < 2) dmax = dmin + 2
   const step = Math.max(1, Math.ceil((dmax - dmin) / 5))
   const ticks: number[] = []
@@ -129,17 +153,20 @@ function OddechTrendChart({ weeks, baseline, target }: {
 
   const linePts = weeks.map((w, i) => `${X(i)},${Y(w.avg)}`).join(' ')
   const areaPts = `${linePts} ${X(n - 1)},${Y(dmin)} ${X(0)},${Y(dmin)}`
+  const ceilPts = ceilPoints.map(o => `${X(o.i)},${Y(o.c)}`).join(' ')
 
   return (
     <div className="mt-6 w-full overflow-x-auto">
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="w-full block" style={{ minWidth: 300 }}>
-        {/* strefa celu */}
-        {target && (
+        {/* linia sufitów miesięcznych — malejący plan */}
+        {ceilPts && (
           <>
-            <rect x={padL} y={Y(target.hi)} width={plotW} height={Y(target.lo) - Y(target.hi)} fill="#6B7D59" opacity={0.1} />
-            <text x={padL + 6} y={Y(target.lo) - 8} fontSize={10} letterSpacing="0.16em" fill="#4F5F42" fontFamily="Inter, sans-serif">
-              CEL FAZY II · {target.lo}–{target.hi}
-            </text>
+            <polyline points={ceilPts} fill="none" stroke="#6B7D59" strokeWidth={1.8} strokeDasharray="2 3.5" strokeLinejoin="round" opacity={0.9} />
+            {lastCeil && (
+              <text x={X(lastCeil.i)} y={Y(lastCeil.c) + 18} textAnchor="end" fontSize={10} letterSpacing="0.14em" fill="#4F5F42" fontFamily="Inter, sans-serif">
+                SUFIT · {lastCeil.c}
+              </text>
+            )}
           </>
         )}
         {/* siatka + oś Y */}
@@ -183,6 +210,150 @@ function OddechTrendChart({ weeks, baseline, target }: {
         })}
       </svg>
     </div>
+  )
+}
+
+// ── Schody sufitów miesięcznych ──────────────────────────────────
+
+function CeilingStaircase({ currentMonth }: { currentMonth: string | null }) {
+  const maxC = Math.max(...MONTHLY_CEILINGS.map(c => c.ceiling))
+  return (
+    <div className="mt-6 overflow-x-auto">
+      <div className="min-w-[440px]">
+        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${MONTHLY_CEILINGS.length}, 1fr)` }}>
+          {MONTHLY_CEILINGS.map(c => {
+            const cur = c.month === currentMonth
+            const past = currentMonth != null && c.month < currentMonth
+            const h = Math.round((c.ceiling / maxC) * 82) + 8
+            return (
+              <div key={c.month} className="flex flex-col items-center gap-1.5">
+                <span className={clsx('font-display font-medium text-[14px] tabular-nums leading-none', cur ? 'text-gold-deep' : past ? 'text-muted-light' : 'text-dark')}>{c.ceiling}</span>
+                <div className="w-full flex items-end justify-center" style={{ height: 94 }}>
+                  <div
+                    className="w-[64%]"
+                    style={{
+                      height: h,
+                      background: cur ? '#8E7338' : past ? '#E6DCC2' : '#CDB683',
+                      boxShadow: cur ? '0 0 0 2px #FAF8F4, 0 0 0 3px rgba(178,147,85,.55)' : undefined,
+                    }}
+                  />
+                </div>
+                <span className={clsx('font-ui uppercase text-[8px] tracking-[0.1em]', cur ? 'text-gold-deep' : 'text-muted-light')}>
+                  {PL_MONTH_SHORT[c.month.slice(5, 7)]}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+        <div className="flex justify-between mt-2.5 pt-2 border-t border-border">
+          <SmallCaps tone="muted" tracking="luxury" size="xs">lipiec ’26 · 14</SmallCaps>
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">5 kwietnia · 0</SmallCaps>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Pułapka nagrody — udział kontekstu „nagroda" w czasie ────────
+
+function RewardTrapPanel({ trend }: { trend: ContextWeekShare[] }) {
+  const first = trend[0].share
+  const last = trend[trend.length - 1].share
+  const rising = last - first >= 8
+  const maxS = Math.max(40, ...trend.map(t => t.share))
+  return (
+    <Panel
+      eyebrow="Pułapka nagrody"
+      title="Papieros po zrobionych rzeczach"
+      note="udział papierosa-nagrody wśród otagowanych, tydzień po tygodniu."
+    >
+      <div className="mt-6 overflow-x-auto">
+        <div className="flex items-end gap-2 h-[120px]" style={{ minWidth: Math.max(320, trend.length * 30) }}>
+          {trend.map((w, i) => {
+            const cur = i === trend.length - 1
+            const hpx = Math.round((w.share / maxS) * 96) + 4
+            return (
+              <div key={w.weekStart} className="flex-1 flex flex-col items-center justify-end gap-1.5 min-w-[24px]">
+                <span className={clsx('font-display font-medium text-[13px] tabular-nums leading-none', cur ? 'text-gold-deep' : 'text-muted')}>{w.share}%</span>
+                <div className="w-full flex justify-center" style={{ height: hpx }}>
+                  <div className="w-[70%]" style={{ height: '100%', background: cur ? '#8E7338' : '#CDB683' }} title={`${w.count}/${w.withContext} otagowanych`} />
+                </div>
+                <span className="font-ui uppercase text-[7.5px] tracking-[0.08em] text-muted-light">{formatDayMonth(w.weekStart)}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      <p className="font-serif-body italic text-muted text-[13.5px] mt-5 pt-4 border-t border-border leading-relaxed">
+        {rising ? (
+          <>
+            udział papierosa-nagrody rośnie: <b className="font-display not-italic font-medium text-gold-deep">{first}% → {last}%</b>. warto rozłączyć tę parę wcześnie — im więcej domykasz, tym mocniej papieros wiąże się z nagrodą. <em className="text-dark not-italic">domknięcie questa może dostać inny znacznik niż papieros (niżej).</em>
+          </>
+        ) : (
+          <>
+            udział: <b className="font-display not-italic font-medium text-gold-deep">{first}% → {last}%</b>. nagroda i stres to razem większość — to regulacja, nie kontekst. zamiennik funkcji robi tu robotę (niżej).
+          </>
+        )}
+      </p>
+    </Panel>
+  )
+}
+
+// ── Protokół fazy 2 — reguły środowiskowe + zamienniki funkcji ────
+
+function ProtocolPanel({ focus }: { focus: string | null }) {
+  return (
+    <Panel
+      eyebrow="Zasada przewodnia"
+      title="Podmieniasz funkcję, nie liczbę"
+      note="papieros coś robi (nagradza, reguluje). odejmujesz go, gdy jego robotę przejmuje co innego."
+    >
+      {focus && (
+        <p className="font-serif-body italic text-dark text-[13.5px] mt-4">
+          w tym miesiącu zdejmujesz: <b className="font-display not-italic font-medium text-gold-deep">{focus}</b>
+        </p>
+      )}
+
+      {/* Reguły środowiskowe */}
+      <div className="mt-5">
+        <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-3">Reguły środowiskowe · decyzja raz, bez walki w momencie</SmallCaps>
+        <div className="grid sm:grid-cols-3 gap-px bg-border border border-border">
+          {ENVIRONMENTAL_RULES.map(r => (
+            <div key={r.rule} className="bg-ivory p-4">
+              <div className="flex items-center gap-2">
+                <span className="text-[15px] leading-none">{r.icon}</span>
+                <span className="font-serif-body text-[13.5px] text-dark leading-snug">{r.rule}</span>
+              </div>
+              <p className="font-serif-body italic text-muted text-[12px] mt-2 leading-relaxed">{r.why}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Zamienniki funkcji */}
+      <div className="grid sm:grid-cols-2 gap-5 mt-6">
+        <div>
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-2.5">Za nagrodę · inny znacznik „zrobione"</SmallCaps>
+          <ul className="space-y-1.5">
+            {REWARD_REPLACEMENTS.map(t => (
+              <li key={t} className="font-serif-body text-[13px] text-dark pl-4 relative leading-snug">
+                <span className="absolute left-0 top-0 text-gold-deep">·</span>{t}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-2.5">Za stres · narzędzie, nie 4 minuty ulgi</SmallCaps>
+          <ul className="space-y-1.5">
+            {STRESS_TOOLS.map(t => (
+              <li key={t} className="font-serif-body text-[13px] text-dark pl-4 relative leading-snug">
+                <span className="absolute left-0 top-0 text-gold-deep">·</span>{t}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </Panel>
   )
 }
 
@@ -263,6 +434,15 @@ export default function OddechTab({ logs, loading }: OddechTabProps) {
   const baselineVal = stats.cigarettesBaseline ?? baselineReport?.avgPerDay ?? null
   const targetRange = baselineVal != null ? phase2TargetRange(baselineVal) : null
 
+  // Faza 2: sufit miesięczny (z daty, granica 3:00), status, dni do linii, pułapka nagrody.
+  const today = todayKey()
+  const ceiling = ceilingFor(today)
+  const nextC = nextCeilingAfter(today)
+  const daysLeft = daysUntilQuit(today)
+  const status = ceilingStatus(rolling7, ceiling?.ceiling ?? null)
+  const rewardTrap = contextShareByWeek(logs, 'quest', { through: yesterday })
+  const inSchedule = ceiling != null
+
   const handleStartPhase = async (next: SmokingPhase, baseline?: number) => {
     setSaving(true)
     try {
@@ -316,20 +496,28 @@ export default function OddechTab({ logs, loading }: OddechTabProps) {
         </div>
 
         {phase >= 2 && (
-          <div className="mt-6 pt-5 border-t border-gold-light/20 grid grid-cols-3 gap-3 text-center">
-            <div>
-              <p className="font-display text-ivory text-2xl leading-none tabular-nums">{comma(stats.cigarettesBaseline ?? null)}</p>
-              <SmallCaps tone="parchment" tracking="luxury" size="xs" className="mt-2 block opacity-60">baza z fazy I</SmallCaps>
+          <>
+            <div className="mt-6 pt-5 border-t border-gold-light/20 grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="font-display text-ivory text-2xl leading-none tabular-nums">{ceiling ? `≤${ceiling.ceiling}` : '—'}</p>
+                <SmallCaps tone="parchment" tracking="luxury" size="xs" className="mt-2 block opacity-60">sufit tego miesiąca</SmallCaps>
+              </div>
+              <div>
+                <p className="font-display text-gold-pale text-2xl leading-none tabular-nums">{comma(rolling7)}</p>
+                <SmallCaps tone="parchment" tracking="luxury" size="xs" className="mt-2 block opacity-60">{STATUS_WORD[status]}</SmallCaps>
+              </div>
+              <div>
+                <p className="font-display text-ivory text-2xl leading-none tabular-nums">{daysLeft >= 0 ? daysLeft : '—'}</p>
+                <SmallCaps tone="parchment" tracking="luxury" size="xs" className="mt-2 block opacity-60">dni do 5.04</SmallCaps>
+              </div>
             </div>
-            <div>
-              <p className="font-display text-ivory text-2xl leading-none tabular-nums">{targetRange ? `${targetRange.lo}–${targetRange.hi}` : '—'}</p>
-              <SmallCaps tone="parchment" tracking="luxury" size="xs" className="mt-2 block opacity-60">cel miękki / dzień</SmallCaps>
-            </div>
-            <div>
-              <p className="font-display text-gold-pale text-2xl leading-none tabular-nums">{comma(rolling7)}</p>
-              <SmallCaps tone="parchment" tracking="luxury" size="xs" className="mt-2 block opacity-60">średnia 7 dni</SmallCaps>
-            </div>
-          </div>
+            {ceiling && (
+              <p className="font-serif-body italic text-parchment text-[13px] mt-4 leading-relaxed">
+                co zdejmujesz w tym miesiącu: <em className="text-gold-pale not-italic">{ceiling.focus}</em>
+                {nextC && <span className="opacity-60"> · dalej: ≤{nextC.ceiling}</span>}
+              </p>
+            )}
+          </>
         )}
         {stats.cigarettesPhaseStartDate && (
           <SmallCaps tone="parchment" tracking="luxury" size="xs" className="mt-4 block opacity-40">
@@ -365,9 +553,9 @@ export default function OddechTab({ logs, loading }: OddechTabProps) {
               </div>
               <div className="flex items-center justify-center text-gold text-[17px]">→</div>
               <div className="p-6 text-center">
-                <div className="font-display font-medium text-gold-deep text-[36px] leading-[0.9] tracking-tight tabular-nums">{targetRange ? `${targetRange.lo}–${targetRange.hi}` : '—'}</div>
-                <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="mt-3 block">Cel miękki fazy II</SmallCaps>
-                <p className="font-serif-body italic text-muted text-[12px] mt-1.5">−15–25% od bazy</p>
+                <div className="font-display font-medium text-gold-deep text-[36px] leading-[0.9] tracking-tight tabular-nums">{ceiling ? `≤${ceiling.ceiling}` : targetRange ? `${targetRange.lo}–${targetRange.hi}` : '—'}</div>
+                <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="mt-3 block">Sufit pierwszego miesiąca</SmallCaps>
+                <p className="font-serif-body italic text-muted text-[12px] mt-1.5">nie więcej niż tyle, nie „dobić do"</p>
               </div>
             </div>
 
@@ -413,19 +601,30 @@ export default function OddechTab({ logs, loading }: OddechTabProps) {
         )
       )}
 
+      {/* Harmonogram sufitów — schody do 5 kwietnia */}
+      {inSchedule && (
+        <Panel
+          eyebrow="Harmonogram sufitów"
+          title="Sufit, nie cel — w dół po jednym"
+          note="minus jeden papieros co circa trzy tygodnie, z liczby, która i tak już spada."
+        >
+          <CeilingStaircase currentMonth={ceiling ? ceiling.month : null} />
+        </Panel>
+      )}
+
       {/* Trend tygodniowy — wykres */}
       {weeks.length >= 2 && (
         <Panel eyebrow="Trend tygodniowy" title="Średnia dzienna per tydzień" note="patrz na linię, nie na pojedyncze dni.">
-          <OddechTrendChart weeks={weeks} baseline={baselineVal} target={targetRange} />
+          <OddechTrendChart weeks={weeks} baseline={baselineVal} />
           <div className="flex flex-wrap gap-x-8 gap-y-2 mt-5 pt-4 border-t border-border">
             <div className="flex items-center gap-2.5">
               <span className="w-[18px] border-t-2 border-dashed" style={{ borderColor: '#B29355' }} />
               <SmallCaps tone="muted" tracking="luxury" size="xs">Baza <b className="font-display italic text-dark ml-1">{comma(baselineVal)}</b></SmallCaps>
             </div>
-            {targetRange && (
+            {inSchedule && (
               <div className="flex items-center gap-2.5">
-                <span className="w-[18px] h-[11px]" style={{ background: '#6B7D59', opacity: 0.35 }} />
-                <SmallCaps tone="muted" tracking="luxury" size="xs">Cel fazy II <b className="font-display italic text-dark ml-1">{targetRange.lo}–{targetRange.hi}</b></SmallCaps>
+                <span className="w-[18px] border-t-2 border-dotted" style={{ borderColor: '#6B7D59' }} />
+                <SmallCaps tone="muted" tracking="luxury" size="xs">Sufit miesięczny <b className="font-display italic text-dark ml-1">malejący</b></SmallCaps>
               </div>
             )}
           </div>
@@ -434,6 +633,12 @@ export default function OddechTab({ logs, loading }: OddechTabProps) {
           </p>
         </Panel>
       )}
+
+      {/* Pułapka nagrody — udział kontekstu „nagroda" w czasie */}
+      {rewardTrap.length >= 2 && <RewardTrapPanel trend={rewardTrap} />}
+
+      {/* Protokół fazy 2 — reguły środowiskowe + zamienniki funkcji */}
+      {inSchedule && <ProtocolPanel focus={ceiling ? ceiling.focus : null} />}
 
       {/* Mapa wzorca — heatmapa */}
       {total >= MIN_FOR_HEATMAP && (

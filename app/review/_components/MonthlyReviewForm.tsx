@@ -11,6 +11,7 @@ import * as paths from '@/lib/paths'
 import { doc, setDoc } from 'firebase/firestore'
 import { getMonthKey, XP_VALUES, getEffectiveNow } from '@/lib/gameLogic'
 import { getMonthAggregate } from '@/lib/analytics'
+import { dailyCigaretteCounts, computeBaseline, ceilingFor, ceilingStatus } from '@/lib/smokeStats'
 import type { MonthlyReview } from '@/types'
 import { formatMonthPL } from './shared'
 import ContinuityBanner from './ContinuityBanner'
@@ -27,6 +28,17 @@ interface MonthlyFormProps {
 export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyReview, lastReview }: MonthlyFormProps) {
   const monthKey = useMemo(() => getMonthKey(getEffectiveNow()), [])
   const agg = useMemo(() => getMonthAggregate(logs, monthKey), [logs, monthKey])
+
+  // Checkpoint ścieżki papierosowej — jedno pytanie przy każdym miesięcznym podsumowaniu.
+  const smokePhase = stats.cigarettesPhase ?? 1
+  const cigCeiling = ceilingFor(`${monthKey}-15`)
+  const cigAvg = useMemo(() => {
+    const counts = dailyCigaretteCounts(logs).filter(c => c.date.slice(0, 7) === monthKey)
+    return computeBaseline(counts)?.avgPerDay ?? null
+  }, [logs, monthKey])
+  const cigStatusWord = { under: 'pod sufitem', at: 'przy suficie', over: 'nad sufitem', unknown: '' }[
+    ceilingStatus(cigAvg, cigCeiling?.ceiling ?? null)
+  ]
 
   const [highlights, setHighlights] = useState('')
   const [challenges, setChallenges] = useState('')
@@ -119,6 +131,36 @@ export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyRevi
           focusText={lastReview.intentionNextMonth}
           pillarsRated={lastReview.pillarsRated}
         />
+      )}
+
+      {/* Checkpoint ścieżki papierosowej — cadence miesięczna (PLAN_PALENIE / Faza 2) */}
+      {smokePhase >= 2 && cigCeiling && (
+        <section className="ritual-card p-6 md:p-8">
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+            Oddech · checkpoint miesiąca
+          </SmallCaps>
+          <h2 className="font-heading text-dark text-xl mt-1">Ścieżka papierosowa</h2>
+          <p className="font-serif-body italic text-muted text-[13px] mt-2 leading-relaxed">
+            sufit {cigCeiling.month.replace('-', '.')}: <b className="not-italic font-heading text-gold-deep">maks. {cigCeiling.ceiling}</b> / dzień
+            {cigAvg != null && (
+              <> · średnia miesiąca: <b className="not-italic font-heading text-dark">{String(cigAvg).replace('.', ',')}</b>{cigStatusWord && <span className="text-muted-light"> · {cigStatusWord}</span>}</>
+            )}
+          </p>
+          <ul className="mt-4 space-y-1.5">
+            {[
+              'czy sufit tego miesiąca był dotrzymany (średnia ≤ plan)?',
+              'który trigger dominował i czy zamiennik zadziałał?',
+              'czy nie ma kompensacji (dłuższe, głębsze zaciąganie)?',
+            ].map(q => (
+              <li key={q} className="font-serif-body italic text-muted text-[13px] pl-4 relative leading-snug">
+                <span className="absolute left-0 top-0 text-gold-deep">·</span>{q}
+              </li>
+            ))}
+          </ul>
+          <p className="font-serif-body italic text-muted-light text-[12px] mt-3">
+            spokojne lustro, nie ocena — papieros to dane.
+          </p>
+        </section>
       )}
 
       {/* Pillars */}

@@ -32,6 +32,8 @@ export interface BriefingSmoking {
   phaseLabel: string
   softTarget: string
   avg7days: number | null
+  ceiling: number | null    // sufit tego miesiąca (maks./dzień)
+  daysToLine: number | null // dni do 30. urodzin (twarda data rzucenia)
 }
 
 export interface BriefingInput {
@@ -99,7 +101,13 @@ export function buildTomorrowBriefing(input: BriefingInput): string {
   if (input.smoking) {
     const s = input.smoking
     const avg = s.avg7days !== null ? ` Średnia z 7 dni: ${fmt1(s.avg7days)}/dzień.` : ''
-    lines.push(`- Papierosy: faza „${s.phaseLabel}”, cel miękki: ${s.softTarget}.${avg} Wpleć świadome przerwy zamiast palenia z automatu; bez moralizowania.`)
+    const ceil = s.ceiling !== null
+      ? ` Sufit tego miesiąca: maks. ${s.ceiling}/dzień (sufit, nie cel — nie „dobić do", tylko „nie więcej niż").`
+      : ''
+    const line = s.daysToLine !== null && s.daysToLine >= 0
+      ? ` Do rzucenia (30. urodziny, 5.04.2027): ${s.daysToLine} dni.`
+      : ''
+    lines.push(`- Papierosy: faza „${s.phaseLabel}”.${ceil}${avg}${line} Wpleć świadome przerwy i zamiennik po zrobionych rzeczach zamiast palenia z automatu; bez moralizowania.`)
   }
   lines.push('')
 

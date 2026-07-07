@@ -225,12 +225,15 @@ export interface CigaretteEntry {
 
 export type SmokingPhase = 1 | 2 | 3 | 4 | 5
 
+// Uwaga: od 07.07.2026 realnym celem jest SUFIT MIESIĘCZNY liczony z daty
+// (lib/smokeStats.ts → MONTHLY_CEILINGS), nie pasmo „−15–25%". Te etykiety to
+// makro-łuk (tło paska faz); operacyjny cel podaje ceilingFor(dzień).
 export const SMOKING_PHASE_META: Record<SmokingPhase, { label: string; period: string; softTarget: string }> = {
-  1: { label: 'Obserwacja',     period: 'maj–czerwiec 2026',     softTarget: 'bez limitu — tylko liczymy' },
-  2: { label: 'Dywersyfikacja', period: 'lipiec–wrzesień 2026',  softTarget: '–15–25% od bazy' },
-  3: { label: 'Kompresja',      period: 'październik–grudzień 2026', softTarget: '8–12 / dzień' },
-  4: { label: 'Transfer',       period: 'styczeń–luty 2027',     softTarget: '3–5 / dzień, większość dni 0' },
-  5: { label: 'Okazjonalnie',   period: 'marzec 2027 →',         softTarget: 'domyślnie 0' },
+  1: { label: 'Obserwacja',     period: '18.05 – 06.07.2026',       softTarget: 'bez limitu — tylko liczymy' },
+  2: { label: 'Redukcja',       period: '07.07.2026 → 5.04.2027',   softTarget: 'sufit miesięczny, w dół po jednym (14 → 0)' },
+  3: { label: 'Kompresja',      period: 'październik–grudzień 2026', softTarget: 'sufit 9 → 6 / dzień, kontekst przed liczbą' },
+  4: { label: 'Transfer',       period: 'styczeń–luty 2027',        softTarget: 'sufit 5 → 3, coraz więcej dni 0' },
+  5: { label: 'Ostatnia prosta',period: 'marzec–kwiecień 2027',     softTarget: 'sufit 2 → 0, rzucam 5.04' },
 }
 
 export interface DailyLog {

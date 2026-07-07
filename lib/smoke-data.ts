@@ -140,11 +140,49 @@ export const CIGARETTE_CONTEXTS: CigaretteContextMeta[] = [
 // Nie używaj jako presji — tylko jako kontekst gdy ktoś pyta „gdzie jestem?".
 export const PHASE_GENTLE_HINT: Record<SmokingPhase, string> = {
   1: 'Tylko liczymy. Bez celu, bez limitu. Każdy zapalony to dane.',
-  2: 'Mikro-eliminacje pojedynczo. Papieros zostaje, ale przestaje być jedyną kartą w talii.',
-  3: 'Papieros tylko na zewnątrz. Świadoma decyzja, kurtka, buty.',
-  4: '„Domyślnie nie palę" jako nowa norma. Smoke Protocol działa najczęściej tutaj.',
-  5: 'Okazjonalnie. Wybór z radością, nie z głodu. Aplikacja patrzy spokojnie.',
+  2: 'Sufit miesięczny, nie cel: „nie więcej niż tyle". Schodzisz po jednym papierosie co circa trzy tygodnie — z liczby, która i tak już spada.',
+  3: 'Kontekst schodzi przed liczbą. Papieros tylko na zewnątrz, świadoma decyzja.',
+  4: 'Coraz więcej dni na zero. Zostają tylko te najbardziej „twoje".',
+  5: 'Ostatnia prosta do 5 kwietnia. Sufit 2 → 0, wybór z radością, nie z głodu.',
 }
+
+// ── Faza 2: reguły środowiskowe + zamienniki funkcji ─────────────────────
+// Zasada przewodnia: podmieniasz FUNKCJĘ papierosa, nie samą liczbę. Papieros
+// coś robi (nagradza, reguluje) — odejmujesz go, gdy jego robotę przejmuje co
+// innego. Reguła środowiskowa > postanowienie: „w aucie się nie pali", nie
+// „będę mniej palić w aucie". Zero negocjacji w locie.
+
+export interface EnvRule {
+  icon: string
+  rule: string
+  why: string
+}
+
+export const ENVIRONMENTAL_RULES: EnvRule[] = [
+  { icon: '🚗', rule: 'Auto = strefa bez papierosa.',  why: 'Jedna decyzja zdejmuje ~1 dziennie. Kontekst, nie walka w momencie.' },
+  { icon: '☕', rule: 'Kawa bez papierosa.',            why: 'Rozłączasz parę, którą łatwo rozłączyć — nisko wisi (2% udziału).' },
+  { icon: '🌀', rule: 'Nuda ma inny ruch.',            why: '„Bo nic" = sygnał na 2 minuty czegokolwiek: woda, okno, krótki spacer.' },
+]
+
+// Za nagrodę (po queście): inny znacznik „zrobione" niż papieros — to samo
+// domknięcie, inny nośnik. Od października: papieros-nagroda tylko po realnym
+// kamieniu milowym, nie po każdym odhaczeniu.
+export const REWARD_REPLACEMENTS: string[] = [
+  'łyk dobrej kawy albo herbaty — świadomie, bez papierosa',
+  'wpis „done" — jedno słowo w notatkach',
+  'trzy głębokie oddechy',
+  'krótkie przeciągnięcie się, rozluźnienie ramion',
+]
+
+// Za stres: masz już te narzędzia w rutynie — nic nie trzeba wymyślać.
+// Papieros gasi napięcie na 4 minuty i wraca; narzędzie realnie reguluje.
+export const STRESS_TOOLS: string[] = [
+  'box breathing 4-4-4-4 (minuta, naprawdę działa)',
+  'NSDR / yoga nidra 10 min',
+  'spacer bez telefonu',
+  '„name it to tame it" — nazwij emocję jednym zdaniem',
+  'journaling — wypisz, co ściska',
+]
 
 // Pomocnicze do logiki interwencji — która warstwa interwencji dla danej intensity.
 export function pickIntervention(

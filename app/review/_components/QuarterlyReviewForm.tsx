@@ -10,7 +10,7 @@ import * as paths from '@/lib/paths'
 import { doc, setDoc } from 'firebase/firestore'
 import { dateKey, XP_VALUES } from '@/lib/gameLogic'
 import { getMonthAggregate, computeStreaks, type LogMap } from '@/lib/analytics'
-import { dailyCigaretteCounts, computeBaseline, phase2TargetRange } from '@/lib/smokeStats'
+import { dailyCigaretteCounts, computeBaseline, phase2TargetRange, ceilingFor } from '@/lib/smokeStats'
 import { GHOST_CATEGORIES } from '@/lib/ghost-data'
 import { PILLARS } from '@/lib/pillars'
 import { JEWEL } from './PillarRating'
@@ -141,6 +141,8 @@ export default function QuarterlyReviewForm({
   const phase = stats.cigarettesPhase ?? 1
   const phaseMeta = SMOKING_PHASE_META[phase]
   const targetRange = stats.cigarettesBaseline !== undefined ? phase2TargetRange(stats.cigarettesBaseline) : null
+  // Sufit obowiązujący na koniec okna kwartału — operacyjny cel, nie pasmo.
+  const cigCeiling = ceilingFor(range.end)
 
   // Refleksja — zawsze dla bieżącego kwartału (kwartał w trakcie).
   const [lessons, setLessons] = useState('')
@@ -360,7 +362,28 @@ export default function QuarterlyReviewForm({
             brak danych o papierosach w tym kwartale.
           </p>
         )}
-        {targetRange && (
+        {cigCeiling ? (
+          <div className="mt-4 pt-4 border-t border-gold-light/20">
+            <p className="font-serif-body italic text-muted text-[12.5px]">
+              sufit ({cigCeiling.month.replace('-', '.')}): <span className="not-italic font-heading text-gold-deep">maks. {cigCeiling.ceiling}</span> / dzień
+              {cigBaseline && (
+                <> · średnia w kwartale: <span className="not-italic font-heading text-dark">{cigBaseline.avgPerDay}</span></>
+              )}
+            </p>
+            <p className="font-serif-body italic text-muted-light text-[11.5px] mt-3">checkpoint ścieżki papierosowej:</p>
+            <ul className="mt-1.5 space-y-1">
+              {[
+                'czy sufit tego miesiąca był dotrzymany (średnia ≤ plan)?',
+                'który trigger dominował i czy zamiennik zadziałał?',
+                'czy nie ma kompensacji (dłuższe, głębsze zaciąganie)?',
+              ].map(q => (
+                <li key={q} className="font-serif-body italic text-muted text-[12px] pl-3 relative">
+                  <span className="absolute left-0 text-gold-deep">·</span>{q}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : targetRange && (
           <p className="font-serif-body italic text-muted text-[12.5px] mt-4 pt-4 border-t border-gold-light/20">
             cel fazy 2: <span className="not-italic font-heading text-gold-deep">{targetRange.lo}–{targetRange.hi}</span> / dzień
             (baza: {stats.cigarettesBaseline})
@@ -381,15 +404,20 @@ export default function QuarterlyReviewForm({
             </h3>
             <div className="space-y-3">
               {[
-                { label: 'XP', now: agg.totalXP, prev: prevAgg.totalXP, fmt: (v: number) => v.toLocaleString('pl-PL') },
-                { label: 'Dni aktywne', now: agg.activeDays, prev: prevAgg.activeDays, fmt: (v: number) => String(v) },
-                { label: 'Side questy', now: agg.totalSideQuests, prev: prevAgg.totalSideQuests, fmt: (v: number) => String(v) },
+                { label: 'XP', now: agg.totalXP, prev: prevAgg.totalXP, fmt: (v: number) => v.toLocaleString('pl-PL'), lowerIsBetter: false },
+                { label: 'Dni aktywne', now: agg.activeDays, prev: prevAgg.activeDays, fmt: (v: number) => String(v), lowerIsBetter: false },
+                { label: 'Side questy', now: agg.totalSideQuests, prev: prevAgg.totalSideQuests, fmt: (v: number) => String(v), lowerIsBetter: false },
+                // Papierosy: mniej = lepiej, i NIGDY czerwień (PLAN_PALENIE §5 — spokojny licznik).
                 ...(agg.cigsAvgPerDay !== null && prevAgg.cigsAvgPerDay !== null
-                  ? [{ label: 'Papierosy / dzień', now: agg.cigsAvgPerDay, prev: prevAgg.cigsAvgPerDay, fmt: (v: number) => String(v) }]
+                  ? [{ label: 'Papierosy / dzień', now: agg.cigsAvgPerDay, prev: prevAgg.cigsAvgPerDay, fmt: (v: number) => String(v), lowerIsBetter: true }]
                   : []),
-              ].map(({ label, now, prev, fmt }) => {
+              ].map(({ label, now, prev, fmt, lowerIsBetter }) => {
                 const diff = Math.round((now - prev) * 10) / 10
-                const positive = diff >= 0
+                const good = lowerIsBetter ? diff < 0 : diff > 0
+                // Dla papierosów zero czerwieni: postęp = złoto, wzrost = spokojny parchment.
+                const colorClass = lowerIsBetter
+                  ? (good ? '!text-gold-light' : '!text-parchment/50')
+                  : (diff >= 0 ? '!text-gold-light' : '!text-red-300')
                 return (
                   <div key={label} className="flex items-center justify-between">
                     <SmallCaps tone="parchment" tracking="luxury" size="xs">{label}</SmallCaps>
@@ -398,8 +426,8 @@ export default function QuarterlyReviewForm({
                       <span className="text-parchment/40">→</span>
                       <span className="font-display text-ivory text-sm">{fmt(now)}</span>
                       {diff !== 0 && (
-                        <SmallCaps tracking="luxury" size="xs" className={positive ? '!text-gold-light' : '!text-red-300'}>
-                          {positive ? '+' : ''}{fmt(diff)}
+                        <SmallCaps tracking="luxury" size="xs" className={colorClass}>
+                          {diff > 0 ? '+' : ''}{fmt(diff)}
                         </SmallCaps>
                       )}
                     </div>

@@ -10,7 +10,7 @@ import { getAprilQuestsForDate, getPostponedQuestsForDate } from '@/lib/seasonal
 import { getTodayWeeklyHabits, getWeeklyStudyItem, DAILY_RULES } from '@/lib/routineData'
 import { getPhaseForDate } from '@/lib/cycle-data'
 import { getPillar } from '@/lib/pillars'
-import { dailyCigaretteCounts, rollingAverage, shiftDateKey } from '@/lib/smokeStats'
+import { dailyCigaretteCounts, rollingAverage, shiftDateKey, ceilingFor, daysUntilQuit } from '@/lib/smokeStats'
 import { tomorrowDate, tomorrowKey, todayKey, getDaysElapsed, getEffectiveNow } from '@/lib/gameLogic'
 import { SMOKING_PHASE_META } from '@/types'
 import { buildTomorrowBriefing, type BriefingInput } from '@/lib/tomorrowBriefing'
@@ -75,10 +75,14 @@ export default function TomorrowBriefing({ variant = 'tomorrow' }: { variant?: '
       }
     }
 
-    // Papierosy — faza + średnia krocząca
+    // Papierosy — faza + średnia krocząca + sufit miesięczny + dni do linii
     const phase = stats.cigarettesPhase ?? 1
     const phaseMeta = SMOKING_PHASE_META[phase]
     const avg7 = rollingAverage(dailyCigaretteCounts(logs), today, 7)
+    // Sufit i odliczanie kotwiczą do DNIA DOCELOWEGO (plan na dziś/jutro), nie do „today".
+    // avg7 zostaje na „today" — to statystyka wsteczna z ostatnich 7 dni.
+    const smokeCeiling = ceilingFor(targetDateKey)?.ceiling ?? null
+    const smokeDaysToLine = daysUntilQuit(targetDateKey)
 
     const input: BriefingInput = {
       target: variant,
@@ -112,7 +116,7 @@ export default function TomorrowBriefing({ variant = 'tomorrow' }: { variant?: '
         avgMood: n > 0 ? Math.round((mSum / n) * 10) / 10 : null,
       },
       currentStreak: stats.currentStreak ?? 0,
-      smoking: { phaseLabel: phaseMeta.label, softTarget: phaseMeta.softTarget, avg7days: avg7 },
+      smoking: { phaseLabel: phaseMeta.label, softTarget: phaseMeta.softTarget, avg7days: avg7, ceiling: smokeCeiling, daysToLine: smokeDaysToLine },
     }
 
     return buildTomorrowBriefing(input)
