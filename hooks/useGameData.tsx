@@ -904,6 +904,27 @@ export function useGameData() {
     return xp
   }, [user, stats, statsRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
 
+  // CBT — generyczny bonus (nie dzienny, bez limitu) za domkniętą pracę: +30 za
+  // eksperyment behawioralny, +15 za opanowany szczebel drabiny lęków. Ograniczony
+  // liczbą realnie domkniętych jednostek. Ten sam wzór co awardCBTReframe/Belief/
+  // Coping — tylko kwota jest parametrem. Tylko do stats; odbudowa przez recoverStats
+  // (fromCBT sumuje xpEarned po całej kolekcji cbtJournal, niezależnie od kind).
+  const awardCBTBonus = useCallback(async (xp: number): Promise<number> => {
+    if (!user || !statsRef || !statsLoadedRef.current || xp <= 0) return 0
+    const withStreak = await applyStreakIfNeeded(stats)
+    let newStats: UserStats = {
+      ...withStreak,
+      totalXP: withStreak.totalXP + xp,
+      pillarXP: { ...withStreak.pillarXP, pozycja: (withStreak.pillarXP.pozycja ?? 0) + xp },
+    }
+    newStats = applyPillarBalanceIfNeeded(newStats, 'pozycja')
+    const achUpdates = await checkAchievements(newStats)
+    const finalStats = { ...newStats, ...achUpdates }
+    checkLevelUp(stats.totalXP, finalStats.totalXP)
+    await setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true })
+    return xp
+  }, [user, stats, statsRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
+
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(currentDateKey.slice(0, 7))
 
   // Full stats reconstruction from Firestore source documents.
@@ -1282,7 +1303,7 @@ export function useGameData() {
     logCigarette, removeLastCigarette, startSmokingPhase,
     completeHeartBlock,
     recordGhostImpulseV2, recordHonestFailure, logCustomSideQuest,
-    awardCBTCapture, awardCBTReframe, awardCBTBelief, awardCBTCoping,
+    awardCBTCapture, awardCBTReframe, awardCBTBelief, awardCBTCoping, awardCBTBonus,
     recoverStats, applyRecoveredStats,
   }
 }

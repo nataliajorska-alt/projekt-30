@@ -8,7 +8,9 @@ import { RitualSurface, SmallCaps, GoldRule, Diamond, Fleuron } from '@/componen
 import { XP_VALUES, todayKey, getISOWeekKey, getEffectiveNow } from '@/lib/gameLogic'
 import {
   SOCRATIC, BOOK_SHIELD, COPING_STYLES, copingStyle, restructureComplete, upsertPctWeek,
-  type CBTThoughtEntry, type CBTEmotionEntry, type CBTBeliefEntry, type CBTBeliefPctPoint, type CBTCopingEntry, type CBTCopingStyle, type CBTEmotionTag, type CBTShield,
+  experimentComplete, sortRungs, emptyExperiment, emptyExposureRung, cbtUid,
+  type CBTThoughtEntry, type CBTEmotionEntry, type CBTBeliefEntry, type CBTBeliefPctPoint, type CBTCopingEntry, type CBTCopingStyle,
+  type CBTBeliefExperiment, type CBTExposureLadder, type CBTExposureRung, type CBTEmotionTag, type CBTShield,
 } from '@/lib/cbt-data'
 
 const ROSE = '#8f4d63'
@@ -26,7 +28,7 @@ function fmtDate(ts: number): string {
 // ════════════════════════════════════════════════════════════════════
 //  STRONA
 // ════════════════════════════════════════════════════════════════════
-type Tab = 'mysli' | 'emocje' | 'przekonania' | 'style' | 'tarcza'
+type Tab = 'mysli' | 'emocje' | 'przekonania' | 'style' | 'ekspozycja' | 'tarcza'
 
 export default function CBTPage() {
   const cbt = useCBT()
@@ -69,15 +71,14 @@ export default function CBTPage() {
           <GoldRule variant="fleuron" tone="gold" className="mt-6 max-w-xs mx-auto" />
         </header>
 
-        {/* Zakładki — 5 sztuk: rząd 3 (po 2/6) + rząd 2 (po 3/6) */}
+        {/* Zakładki — 6 sztuk: dwa rzędy po 3 (każda col-span-2 z 6) */}
         <div className="mt-9 grid grid-cols-6 gap-1.5 border border-gold-light/25 p-1.5">
-          {([['mysli','Myśli'],['emocje','Emocje'],['przekonania','Przekonania'],['style','Style'],['tarcza','Tarcza']] as [Tab, string][]).map(([key, label], i) => (
+          {([['mysli','Myśli'],['emocje','Emocje'],['przekonania','Przekonania'],['style','Style'],['ekspozycja','Ekspozycja'],['tarcza','Tarcza']] as [Tab, string][]).map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
               className={clsx(
-                'py-2.5 transition-colors text-center',
-                i < 3 ? 'col-span-2' : 'col-span-3',
+                'py-2.5 col-span-2 transition-colors text-center',
                 tab === key ? 'bg-forest/60 border border-gold-light/30' : 'hover:bg-forest/30 border border-transparent',
               )}
             >
@@ -97,6 +98,8 @@ export default function CBTPage() {
             <BeliefTab cbt={cbt} />
           ) : tab === 'style' ? (
             <CopingTab cbt={cbt} />
+          ) : tab === 'ekspozycja' ? (
+            <ExposureTab cbt={cbt} />
           ) : (
             <ShieldTab shield={cbt.shield} onSave={cbt.saveShield} />
           )}
@@ -685,6 +688,7 @@ function BeliefWork({ entry, cbt }: { entry: CBTBeliefEntry; cbt: ReturnType<typ
   const [evidence, setEvidence] = useState<string[]>(entry.evidence.length ? entry.evidence : [''])
   const [confirmations, setConfirmations] = useState(entry.confirmations)
   const [confInput, setConfInput] = useState('')
+  const [experiments, setExperiments] = useState<CBTBeliefExperiment[]>(entry.experiments)
   const [saved, setSaved] = useState(false)
   const [onShield, setOnShield] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -704,13 +708,13 @@ function BeliefWork({ entry, cbt }: { entry: CBTBeliefEntry; cbt: ReturnType<typ
         behaveWhenActive: behave, ifOpposite: opposite, source,
         axisSelf: aSelf, axisOthers: aOthers, axisWorld: aWorld,
         newBelief, newBeliefPct: pct, evidence: evidence.map(x => x.trim()).filter(Boolean),
-        confirmations,
+        confirmations, experiments,
         pctHistory: newBelief.trim() ? upsertPctWeek(entry.pctHistory, thisWeek, pct) : entry.pctHistory,
       })
       setSaved(true); setTimeout(() => setSaved(false), 1400)
     }, 700)
     return () => { if (timer.current) clearTimeout(timer.current) }
-  }, [behave, opposite, source, aSelf, aOthers, aWorld, newBelief, pct, evidence, confirmations])
+  }, [behave, opposite, source, aSelf, aOthers, aWorld, newBelief, pct, evidence, confirmations, experiments])
 
   const setEv = (i: number, v: string) => setEvidence(evidence.map((e, j) => (j === i ? v : e)))
   const addEv = () => evidence.length < 5 && setEvidence([...evidence, ''])
@@ -727,6 +731,15 @@ function BeliefWork({ entry, cbt }: { entry: CBTBeliefEntry; cbt: ReturnType<typ
   }
   const rmConf = (target: { dateKey: string; text: string }) =>
     setConfirmations(confirmations.filter(c => c !== target))
+
+  // Trwały `awarded` czytamy z propa `entry` (świeży po nagrodzie), nie z
+  // lokalnego stanu (zainicjowany raz, zostaje na false — patrz updateBelief).
+  const awardedExpIds = new Set(entry.experiments.filter(e => e.awarded).map(e => e.id))
+  const setExpField = (i: number, field: 'task' | 'worry' | 'results' | 'conclusion', v: string) =>
+    setExperiments(experiments.map((x, j) => (j === i ? { ...x, [field]: v } : x)))
+  const addExperiment = () =>
+    experiments.length < 5 && setExperiments([...experiments, emptyExperiment(cbtUid(), today)])
+  const rmExperiment = (i: number) => setExperiments(experiments.filter((_, j) => j !== i))
 
   const done = restructureComplete({ coreBelief: entry.coreBelief, newBelief })
   const nb = newBelief.trim()
@@ -805,6 +818,60 @@ function BeliefWork({ entry, cbt }: { entry: CBTBeliefEntry; cbt: ReturnType<typ
             </button>
           )}
         </div>
+      </div>
+
+      {/* Eksperyment behawioralny (rozdz. 11, ćw. 3) — realny test przekonania */}
+      <div className="mt-5 pt-4 border-t border-dashed border-[#c9b27f]/60">
+        <h4 className="font-display font-medium text-[16px] text-[#2a2a26]">Eksperyment behawioralny</h4>
+        <p className="font-serif-body italic text-[12.5px] text-[#7c7256] mt-0.5 mb-3">
+          Przetestuj to przekonanie w realu. Zaplanuj małe zadanie, wykonaj je i sprawdź, czy Twoje obawy się potwierdziły. Wynik to najmocniejszy dowód.
+        </p>
+        {entry.coreBelief.trim() && (
+          <div className="mb-3 text-[13px]">
+            <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8f4d63]">Przekonanie, które testuję</span>
+            <div className="font-serif-body italic text-[#2a2a26] mt-0.5">„{entry.coreBelief}"</div>
+          </div>
+        )}
+        {experiments.map((ex, i) => {
+          const expDone = experimentComplete(ex)
+          return (
+            <div key={ex.id} className="border border-[#c9b27f] bg-[#d3ccaf] p-3.5 mb-2.5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338]">Eksperyment {i + 1}</span>
+                <button onClick={() => rmExperiment(i)} aria-label="usuń eksperyment" className="text-[#7c7256] hover:text-[#8A3A2C] transition-colors"><X size={14} /></button>
+              </div>
+              <div className="mb-2.5">
+                <label className="cbt-lab font-normal" style={cormorant}>Zadanie<span className="cbt-hint">Co zrobię, żeby to sprawdzić?</span></label>
+                <textarea className="cbt-ta" rows={2} value={ex.task} onChange={e => setExpField(i, 'task', e.target.value)} placeholder="Założyć konto na Tinderze." />
+              </div>
+              <div className="mb-2.5">
+                <label className="cbt-lab font-normal" style={cormorant}>Obawy<span className="cbt-hint">Czego się boję, że się stanie?</span></label>
+                <textarea className="cbt-ta" rows={2} value={ex.worry} onChange={e => setExpField(i, 'worry', e.target.value)} placeholder="Wszyscy przesuną mnie w lewo, nikt nie napisze." />
+              </div>
+              <div className="mb-2.5">
+                <label className="cbt-lab font-normal" style={cormorant}>Wyniki eksperymentu<span className="cbt-hint">Co się realnie wydarzyło?</span></label>
+                <textarea className="cbt-ta" rows={2} value={ex.results} onChange={e => setExpField(i, 'results', e.target.value)} placeholder="Z 20 potencjalnych matchów miałam 7." />
+              </div>
+              <div>
+                <label className="cbt-lab font-normal" style={cormorant}>Wniosek<span className="cbt-hint">Czy obawy się potwierdziły?</span></label>
+                <textarea className="cbt-ta" rows={2} value={ex.conclusion} onChange={e => setExpField(i, 'conclusion', e.target.value)} placeholder="Nie zawsze jestem odrzucana. Są osoby, które chcą rozmawiać." />
+              </div>
+              <div className="mt-2.5 flex items-center gap-3 min-h-[16px]">
+                {awardedExpIds.has(ex.id)
+                  ? <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338]">◆ eksperyment domknięty · +{XP_VALUES.cbtExperiment} XP</span>
+                  : <span className="font-ui uppercase tracking-luxury text-[9px] text-[#7c7256] opacity-70">domknij: zadanie + wynik + wniosek → +{XP_VALUES.cbtExperiment} XP</span>}
+                {expDone && newBelief.trim() !== ex.conclusion.trim() && (
+                  <button onClick={() => setNewBelief(ex.conclusion.trim())} className="ml-auto font-ui text-[10px] text-[#3f7d5c] underline underline-offset-2 hover:text-[#2a2a26] transition-colors">→ jako nowe przekonanie</button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+        {experiments.length < 5 && (
+          <button onClick={addExperiment} className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 border border-dashed border-[#c9b27f] text-[#6f6448] hover:border-[#b56a82] transition-colors">
+            <Plus size={13} /><span className="font-ui uppercase tracking-luxury text-[10px]">zaplanuj eksperyment</span>
+          </button>
+        )}
       </div>
 
       {newBelief.trim() && (
@@ -1023,6 +1090,269 @@ function CopingWork({ entry, cbt }: { entry: CBTCopingEntry; cbt: ReturnType<typ
           : <span className="font-ui uppercase tracking-luxury text-[9px] text-[#7c7256] opacity-70">domknij: z czym się mierzę + jak bym się zachowała → +{XP_VALUES.cbtCoping} XP</span>}
         {saved && <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8f4d63] ml-auto">zapisano ✓</span>}
       </div>
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  ZAKŁADKA: EKSPOZYCJA (drabina lęków + stopniowana ekspozycja)
+// ════════════════════════════════════════════════════════════════════
+function fearColor(fear: number): string {
+  return fear < 34 ? DOWN : fear < 67 ? '#b58a3c' : UP
+}
+
+// Drabina lęków — szczeble od najniższego (dół) do najwyższego (góra), jak w książce.
+// Szerszy u dołu = łatwiejszy start; kolor od zieleni (mały lęk) do wina (panika).
+function FearLadderSVG({ rungs }: { rungs: CBTExposureRung[] }) {
+  const sorted = sortRungs(rungs)
+  if (sorted.length === 0) return null
+  const n = sorted.length, w = 320, barH = 24, gap = 9, padY = 8, padX = 6
+  const h = padY * 2 + n * barH + (n - 1) * gap
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full max-w-[340px] mx-auto block" role="img" aria-label="Drabina lęków">
+      {sorted.map((r, i) => {
+        const fromTop = n - 1 - i // i=0 (najniższy lęk) ląduje na dole
+        const y = padY + fromTop * (barH + gap)
+        const t = Math.max(0, Math.min(100, r.fear)) / 100
+        const barW = (w - 2 * padX) * (0.55 + 0.4 * (1 - t)) // szerszy = mniejszy lęk
+        const color = fearColor(r.fear)
+        const label = r.situation.length > 34 ? r.situation.slice(0, 33) + '…' : r.situation
+        return (
+          <g key={r.id}>
+            <rect x={padX} y={y} width={barW} height={barH} rx={5} fill={r.done ? color : 'none'} fillOpacity={r.done ? 0.14 : 0} stroke={color} strokeWidth={1.4} />
+            <text x={padX + 10} y={y + barH / 2 + 4} fontSize={11.5} fill="#2a2a26" fontFamily="'Cormorant Garamond',serif">{label || '—'}</text>
+            <text x={padX + barW - 8} y={y + barH / 2 + 4} textAnchor="end" fontSize={11} fontWeight={600} fill={color} fontFamily="'Bodoni Moda',serif">{r.fear}{r.done ? ' ✓' : ''}</text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+function ExposureTab({ cbt }: { cbt: ReturnType<typeof useCBT> }) {
+  const [area, setArea] = useState('')
+  const [rows, setRows] = useState<{ situation: string; fear: number }[]>([{ situation: '', fear: 40 }, { situation: '', fear: 60 }, { situation: '', fear: 80 }])
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [flash, setFlash] = useState<string | null>(null)
+
+  const setRow = (i: number, k: 'situation' | 'fear', v: string | number) =>
+    setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)))
+  const addRow = () => rows.length < 10 && setRows([...rows, { situation: '', fear: 50 }])
+  const rmRow = (i: number) => rows.length > 1 && setRows(rows.filter((_, j) => j !== i))
+
+  const save = async () => {
+    const built: CBTExposureRung[] = rows.filter(r => r.situation.trim())
+      .map(r => ({ ...emptyExposureRung(cbtUid()), situation: r.situation.trim(), fear: r.fear }))
+    if (!area.trim() && built.length === 0) {
+      setFlash('Najpierw nazwij lęk i dodaj sytuacje'); setTimeout(() => setFlash(null), 1600); return
+    }
+    const created = await cbt.createExposure({ area: area.trim(), rungs: built })
+    setArea(''); setRows([{ situation: '', fear: 40 }, { situation: '', fear: 60 }, { situation: '', fear: 80 }])
+    setFlash(created && created.xpEarned > 0 ? `Zapisano · +${created.xpEarned} XP` : 'Zapisano ✓')
+    setTimeout(() => setFlash(null), 1800)
+  }
+
+  return (
+    <div>
+      <p className="font-serif-body italic text-parchment text-[14px] leading-[1.8] text-center mb-7 max-w-lg mx-auto">
+        Wybierz jeden obszar lęku i rozłóż go na 10 sytuacji o różnej trudności. Oceń strach w każdej (0 = brak, 100 = panika)
+        i ułóż je w drabinę — od najłatwiejszej. Potem wchodź na kolejne szczeble, wielokrotnie, aż strach opadnie.
+      </p>
+
+      {/* Ćw. 1 — budowa drabiny lęków */}
+      <div className="cbt-card px-6 md:px-8 py-7">
+        <div className="mb-5">
+          <label className="cbt-lab">Obszar lęku<span className="cbt-hint">Jeden temat, np. „bliskość", „perfekcjonizm", „pająki".</span></label>
+          <input className="cbt-input" value={area} onChange={e => setArea(e.target.value)} placeholder="perfekcjonizm" />
+        </div>
+
+        <label className="cbt-lab">Sytuacje i poziom strachu</label>
+        {rows.map((r, i) => (
+          <div key={i} className="mb-3">
+            <div className="grid grid-cols-[1fr_28px] gap-2 items-start">
+              <textarea className="cbt-ta" rows={2} value={r.situation} onChange={e => setRow(i, 'situation', e.target.value)}
+                placeholder={i === 0 ? 'napisanie zdania z błędem' : 'kolejna sytuacja z tym lękiem'} />
+              {rows.length > 1
+                ? <button onClick={() => rmRow(i)} aria-label="usuń" className="text-[#7c7256] hover:text-[#8A3A2C] transition-colors flex justify-center pt-2"><X size={16} /></button>
+                : <span />}
+            </div>
+            <div className="flex items-center gap-3 mt-1.5 pr-9">
+              <span className="font-ui uppercase tracking-luxury text-[9px] text-[#7c7256] shrink-0">strach</span>
+              <input type="range" min={0} max={100} step={5} value={r.fear} onChange={e => setRow(i, 'fear', Number(e.target.value))} className="cbt-range" />
+              <span className="font-display font-semibold text-[16px] w-9 text-right" style={{ color: fearColor(r.fear) }}>{r.fear}</span>
+            </div>
+          </div>
+        ))}
+        {rows.length < 10 && (
+          <button onClick={addRow} className="inline-flex items-center gap-1.5 mt-1 mb-6 px-3 py-1.5 border border-dashed border-[#c9b27f] text-[#6f6448] hover:border-[#b56a82] transition-colors">
+            <Plus size={13} /><span className="font-ui uppercase tracking-luxury text-[10px]">dodaj sytuację</span>
+          </button>
+        )}
+
+        <SaveButton onClick={save} flash={flash}>utwórz drabinę</SaveButton>
+      </div>
+
+      {/* Lista drabin */}
+      <div className="mt-9 mb-4 flex items-center gap-2">
+        <Diamond size={6} className="text-gold" />
+        <SmallCaps tone="gold-light" tracking="luxury" size="xs">Twoje drabiny · {cbt.exposures.length}</SmallCaps>
+      </div>
+
+      {cbt.exposures.length === 0 ? (
+        <EmptyNote>Tu staną Twoje drabiny lęków. Wielkie zmiany składają się z bardzo wielu małych kroków.</EmptyNote>
+      ) : (
+        <div className="space-y-3">
+          {cbt.exposures.map(x => (
+            <ExposureLadderCard key={x.id} entry={x} cbt={cbt} open={openId === x.id}
+              onToggle={() => setOpenId(openId === x.id ? null : x.id)}
+              onDelete={() => { cbt.deleteEntry(x.id); setOpenId(null) }} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Jedna drabina — lokalny stan szczebli + autozapis (debounce 700 ms).
+// Bonus +15 za KAŻDY opanowany szczebel (done + „co mi się udało") — w useCBT.
+function ExposureLadderCard({ entry, cbt, open, onToggle, onDelete }: {
+  entry: CBTExposureLadder; cbt: ReturnType<typeof useCBT>; open: boolean; onToggle: () => void; onDelete: () => void
+}) {
+  const [area, setArea] = useState(entry.area)
+  const [rungs, setRungs] = useState<CBTExposureRung[]>(entry.rungs)
+  const [openRung, setOpenRung] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const first = useRef(true)
+
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(async () => {
+      await cbt.updateExposure(entry.id, { area, rungs })
+      setSaved(true); setTimeout(() => setSaved(false), 1400)
+    }, 700)
+    return () => { if (timer.current) clearTimeout(timer.current) }
+  }, [area, rungs])
+
+  const patchRung = (id: string, patch: Partial<CBTExposureRung>) =>
+    setRungs(rungs.map(r => (r.id === id ? { ...r, ...patch } : r)))
+  const addRung = () => rungs.length < 10 && setRungs([...rungs, emptyExposureRung(cbtUid())])
+  const rmRung = (id: string) => setRungs(rungs.filter(r => r.id !== id))
+
+  const masteredCount = rungs.filter(r => r.done).length
+  const sorted = sortRungs(rungs)
+  // Trwały `awarded` z propa `entry` (świeży po nagrodzie), nie z lokalnego stanu.
+  const awardedRungIds = new Set(entry.rungs.filter(r => r.awarded).map(r => r.id))
+  const cormorant = { fontFamily: "'Cormorant Garamond',serif", fontSize: '14px' } as const
+
+  return (
+    <div className="cbt-card">
+      <button onClick={onToggle} className="w-full text-left px-5 py-4 flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338]">{fmtDate(entry.timestamp)}</div>
+          <div className="font-display text-[16px] text-[#2a2a26] mt-1 leading-[1.35]">{entry.area || '(bez nazwy)'}</div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-[11px] text-[#6f6448] border border-[#c9b27f] px-2 py-0.5 rounded-full">{rungs.length} szczebli</span>
+            {masteredCount > 0 && <span className="text-[11px] text-[#3f7d5c] border border-[#3f7d5c]/40 px-2 py-0.5 rounded-full">◆ {masteredCount} opanowanych</span>}
+          </div>
+        </div>
+        <ChevronDown size={15} className={clsx('text-[#8e7338] shrink-0 mt-1 transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 border-t border-[#c9b27f]/40">
+          <div className="mt-4">
+            <label className="cbt-lab font-normal" style={cormorant}>Obszar lęku</label>
+            <input className="cbt-input" value={area} onChange={e => setArea(e.target.value)} />
+          </div>
+
+          {rungs.length > 0 && (
+            <div className="mt-5">
+              <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338] mb-2 text-center">Twoja drabina lęków</div>
+              <FearLadderSVG rungs={rungs} />
+            </div>
+          )}
+
+          <div className="mt-5 space-y-2">
+            {sorted.map(r => {
+              const isOpen = openRung === r.id
+              return (
+                <div key={r.id} className="border border-[#c9b27f] bg-[#d3ccaf]">
+                  <button onClick={() => setOpenRung(isOpen ? null : r.id)} className="w-full text-left px-3.5 py-3 flex items-center gap-2.5">
+                    <span className="font-display font-semibold text-[15px] w-8 shrink-0" style={{ color: fearColor(r.fear) }}>{r.fear}</span>
+                    <span className="flex-1 min-w-0 font-serif-body text-[14px] text-[#2a2a26] line-clamp-1">{r.situation || '(sytuacja)'}</span>
+                    {r.done && <span className="text-[#3f7d5c] shrink-0 text-[13px]">✓</span>}
+                    <ChevronDown size={14} className={clsx('text-[#8e7338] shrink-0 transition-transform', isOpen && 'rotate-180')} />
+                  </button>
+
+                  {isOpen && (
+                    <div className="px-3.5 pb-4 border-t border-[#c9b27f]/50">
+                      <div className="mt-3">
+                        <label className="cbt-lab font-normal" style={cormorant}>Sytuacja</label>
+                        <textarea className="cbt-ta" rows={2} value={r.situation} onChange={e => patchRung(r.id, { situation: e.target.value })} />
+                      </div>
+                      <div className="flex items-center gap-3 mt-2.5">
+                        <span className="font-ui uppercase tracking-luxury text-[9px] text-[#7c7256] shrink-0">poziom strachu</span>
+                        <input type="range" min={0} max={100} step={5} value={r.fear} onChange={e => patchRung(r.id, { fear: Number(e.target.value) })} className="cbt-range" />
+                        <span className="font-display font-semibold text-[16px] w-9 text-right" style={{ color: fearColor(r.fear) }}>{r.fear}</span>
+                      </div>
+                      <div className="mt-3">
+                        <label className="cbt-lab font-normal" style={cormorant}>Czynnik pomocniczy<span className="cbt-hint">Co pomoże Ci zrobić tę ekspozycję? np. towarzystwo bliskiej osoby.</span></label>
+                        <input className="cbt-input" value={r.helper} onChange={e => patchRung(r.id, { helper: e.target.value })} />
+                      </div>
+
+                      <div className="mt-3.5 pt-3 border-t border-dashed border-[#c9b27f]/60">
+                        <div className="font-ui uppercase tracking-luxury text-[9px] text-[#8A3A2C] mb-2">Przed ekspozycją</div>
+                        <label className="cbt-lab font-normal" style={cormorant}>Plan ekspozycji<span className="cbt-hint">Co, kiedy, gdzie i jak?</span></label>
+                        <textarea className="cbt-ta" rows={2} value={r.plan} onChange={e => patchRung(r.id, { plan: e.target.value })} />
+                      </div>
+
+                      <div className="mt-3.5 pt-3 border-t border-dashed border-[#c9b27f]/60">
+                        <div className="font-ui uppercase tracking-luxury text-[9px] text-[#3f7d5c] mb-2">Po ekspozycji</div>
+                        <div className="mb-2.5">
+                          <label className="cbt-lab font-normal" style={cormorant}>Jak przebiegła? (obserwacje)</label>
+                          <textarea className="cbt-ta" rows={2} value={r.observations} onChange={e => patchRung(r.id, { observations: e.target.value })} />
+                        </div>
+                        <div className="mb-2.5">
+                          <label className="cbt-lab font-normal" style={cormorant}>Jakie myśli się pojawiły?</label>
+                          <textarea className="cbt-ta" rows={2} value={r.thoughts} onChange={e => patchRung(r.id, { thoughts: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="cbt-lab font-normal" style={cormorant}>Co mi się udało?<span className="cbt-hint">Doceń swoją pracę — choćby najmniejszy krok.</span></label>
+                          <textarea className="cbt-ta" rows={2} value={r.success} onChange={e => patchRung(r.id, { success: e.target.value })} />
+                        </div>
+                      </div>
+
+                      <button onClick={() => patchRung(r.id, { done: !r.done })}
+                        className={clsx('mt-3.5 w-full py-2.5 border transition-colors text-center font-ui uppercase tracking-luxury text-[10px]',
+                          r.done ? 'bg-[#3f7d5c]/15 border-[#3f7d5c] text-[#3f7d5c]' : 'bg-dark-deep border-gold text-ivory hover:bg-forest')}>
+                        {r.done ? '✓ szczebel opanowany' : 'oznacz jako opanowany'}
+                      </button>
+                      <div className="mt-2 flex items-center gap-3 min-h-[16px]">
+                        {awardedRungIds.has(r.id)
+                          ? <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338]">◆ +{XP_VALUES.cbtExposure} XP za ekspozycję</span>
+                          : <span className="font-ui uppercase tracking-luxury text-[9px] text-[#7c7256] opacity-70">opanuj szczebel + „co mi się udało" → +{XP_VALUES.cbtExposure} XP</span>}
+                        <button onClick={() => rmRung(r.id)} aria-label="usuń szczebel" className="ml-auto font-ui text-[10px] text-[#7c7256] underline underline-offset-2 hover:text-[#8A3A2C] transition-colors">usuń</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            {rungs.length < 10 && (
+              <button onClick={addRung} className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-[#c9b27f] text-[#6f6448] hover:border-[#b56a82] transition-colors">
+                <Plus size={13} /><span className="font-ui uppercase tracking-luxury text-[10px]">dodaj szczebel</span>
+              </button>
+            )}
+            {saved && <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8f4d63]">zapisano ✓</span>}
+            <button onClick={onDelete} className="ml-auto font-ui text-[11px] text-[#7c7256] underline underline-offset-2 hover:text-[#8A3A2C] transition-colors">usuń drabinę</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

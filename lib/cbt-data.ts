@@ -85,6 +85,20 @@ export interface CBTBeliefPctPoint {
   pct: number // 0–100
 }
 
+/** Eksperyment behawioralny (rozdz. 11, ćw. 3) — realny test przekonania
+ *  kluczowego. Testowane przekonanie = coreBelief wpisu; jeśli test wyjdzie,
+ *  jego „nowe przekonanie" można przenieść na newBelief. Wynik to najsilniejszy
+ *  możliwy dowód, więc naturalnie przesuwa % wiary. */
+export interface CBTBeliefExperiment {
+  id: string
+  dateKey: string
+  task: string // zadanie — co zrobię, żeby przetestować przekonanie
+  worry: string // obawy — czego się boję, że się stanie
+  results: string // wyniki eksperymentu — co się realnie wydarzyło
+  conclusion: string // wniosek — czy obawy się potwierdziły
+  awarded: boolean // czy bonus za domknięty eksperyment już przyznany
+}
+
 /** Wpis „strzałki w dół" — identyfikacja przekonania kluczowego (ćw. 1)
  *  + restrukturyzacja w nowe, zdrowe przekonanie (ćw. 2). Obiekt DŁUGOŻYJĄCY:
  *  wracasz do niego, przesuwasz % wiary, dopisujesz dowody. */
@@ -111,6 +125,8 @@ export interface CBTBeliefEntry {
   // Codzienna pielęgnacja (rozdz. „codzienna pielęgnacja") — BEZ XP:
   confirmations: CBTBeliefConfirmation[] // codzienne sytuacje potwierdzające nowe przekonanie
   pctHistory: CBTBeliefPctPoint[] // % wiary tydzień-po-tygodniu (krzywa postępu)
+  // Eksperymenty behawioralne (rozdz. 11, ćw. 3) — realne testy tego przekonania:
+  experiments: CBTBeliefExperiment[]
   // XP / księgowość (jak CBTThoughtEntry — bonus stemplowany na xpEarned):
   xpEarned: number
   restructureAwarded: boolean // czy bonus za domknięcie już przyznany
@@ -141,7 +157,37 @@ export interface CBTCopingEntry {
   updatedAt: string
 }
 
-export type CBTEntry = CBTThoughtEntry | CBTEmotionEntry | CBTBeliefEntry | CBTCopingEntry
+/** Jeden szczebel drabiny lęków (rozdz. 11, ćw. 1) + jego ekspozycja (ćw. 2).
+ *  `fear` (0–100) buduje hierarchię; reszta pól to planowanie i log ekspozycji. */
+export interface CBTExposureRung {
+  id: string
+  situation: string // sytuacja związana z lękiem
+  fear: number // 0–100 (0 = brak lęku, 100 = panika) — pozycja na drabinie
+  helper: string // czynnik pomocniczy (ćw. 2) — co pomoże zrealizować ekspozycję
+  // Log ekspozycji (tabela ćw. 2) — przed:
+  plan: string // plan ekspozycji: co, kiedy, gdzie, jak
+  // …po:
+  observations: string // jak przebiegła ekspozycja (obserwacje)
+  thoughts: string // jakie myśli pojawiły się w trakcie
+  success: string // co mi się udało (docenienie)
+  done: boolean // „opanowana" — czuję się już dobrze w tej sytuacji
+  awarded: boolean // czy bonus za opanowany szczebel już przyznany
+}
+
+/** Drabina lęków + stopniowana ekspozycja (rozdz. 11, ćw. 1–2). Obiekt
+ *  DŁUGOŻYJĄCY: wracasz, obniżasz `fear` szczebli, logujesz kolejne ekspozycje. */
+export interface CBTExposureLadder {
+  id: string
+  kind: 'exposure'
+  dateKey: string
+  timestamp: number
+  area: string // obszar lęku (np. „bliskość", „perfekcjonizm", „pająki")
+  rungs: CBTExposureRung[]
+  xpEarned: number // capture +10 + bonusy za opanowane szczeble (stemplowane)
+  updatedAt: string
+}
+
+export type CBTEntry = CBTThoughtEntry | CBTEmotionEntry | CBTBeliefEntry | CBTCopingEntry | CBTExposureLadder
 
 /** Tarcza wspierających myśli — stała kolekcja zdań. Bez XP. */
 export interface CBTShield {
@@ -214,8 +260,30 @@ export function emptyBelief(id: string, dateKey: string): CBTBeliefEntry {
     evidence: [],
     confirmations: [],
     pctHistory: [],
+    experiments: [],
     xpEarned: 0,
     restructureAwarded: false,
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+export function emptyExperiment(id: string, dateKey: string): CBTBeliefExperiment {
+  return { id, dateKey, task: '', worry: '', results: '', conclusion: '', awarded: false }
+}
+
+export function emptyExposureRung(id: string): CBTExposureRung {
+  return { id, situation: '', fear: 50, helper: '', plan: '', observations: '', thoughts: '', success: '', done: false, awarded: false }
+}
+
+export function emptyExposure(id: string, dateKey: string): CBTExposureLadder {
+  return {
+    id,
+    kind: 'exposure',
+    dateKey,
+    timestamp: Date.now(),
+    area: '',
+    rungs: [],
+    xpEarned: 0,
     updatedAt: new Date().toISOString(),
   }
 }
@@ -346,6 +414,28 @@ export function restructureComplete(b: Pick<CBTBeliefEntry, 'coreBelief' | 'newB
  *  przekonań. Dopiero to (nie samo przyłapanie się) kwalifikuje do bonusu XP. */
 export function copingComplete(c: Pick<CBTCopingEntry, 'confront' | 'healthy'>): boolean {
   return c.confront.trim().length > 0 && c.healthy.trim().length > 0
+}
+
+/** Czy eksperyment behawioralny jest „domknięty" — zaplanowane zadanie, realny
+ *  wynik ORAZ wniosek. Dopiero realne przeprowadzenie testu (nie sam plan)
+ *  kwalifikuje do bonusu XP. */
+export function experimentComplete(e: Pick<CBTBeliefExperiment, 'task' | 'results' | 'conclusion'>): boolean {
+  return e.task.trim().length > 0 && e.results.trim().length > 0 && e.conclusion.trim().length > 0
+}
+
+/** Czy szczebel drabiny jest „opanowany" — świadomie zaznaczony jako done
+ *  ORAZ z docenieniem („co mi się udało"). Dopiero realna ekspozycja (nie sam
+ *  plan) kwalifikuje do bonusu XP. */
+export function rungMastered(r: Pick<CBTExposureRung, 'done' | 'success'>): boolean {
+  return r.done && r.success.trim().length > 0
+}
+
+/** Szczeble uporządkowane od najniższego lęku do najwyższego — drabina rośnie
+ *  ku górze (najtrudniejsze na szczycie), jak w książce. Stabilne dla remisów. */
+export function sortRungs(rungs: CBTExposureRung[]): CBTExposureRung[] {
+  return rungs.map((r, i) => [r, i] as const)
+    .sort(([a, ai], [b, bi]) => (a.fear - b.fear) || (ai - bi))
+    .map(([r]) => r)
 }
 
 export function cbtUid(): string {

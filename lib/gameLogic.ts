@@ -41,12 +41,16 @@ export const XP_VALUES = {
   // się), +20 za domknięcie wywiadu sokratejskiego z przeformułowaniem (praca
   // poznawcza), +25 za restrukturyzację przekonania (strzałka w dół → nowe zdrowe
   // przekonanie — cięższa praca niż reframe), +20 za przepytanie stylu radzenia
-  // sobie (unikanie/kompensacja/poddanie: konfrontacja + zdrowa alternatywa).
+  // sobie (unikanie/kompensacja/poddanie: konfrontacja + zdrowa alternatywa),
+  // +30 za domknięty eksperyment behawioralny (realny test przekonania — najcięższa
+  // praca poznawcza), +15 za opanowany szczebel drabiny lęków (realna ekspozycja).
   // XP nagradza pracę, nie zalogowanie bólu.
   cbtCapture: 10,
   cbtReframe: 20,
   cbtRestructure: 25,
   cbtCoping: 20,
+  cbtExperiment: 30,
+  cbtExposure: 15,
 }
 
 export const MAX_MOOD_CHECKINS_PER_DAY = 3

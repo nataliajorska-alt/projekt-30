@@ -320,6 +320,15 @@ export const CBTBeliefEntrySchema = z.object({
   evidence:           z.array(z.string()).catch([]),
   confirmations:      z.array(z.object({ dateKey: z.string().catch(''), text: z.string().catch('') })).catch([]),
   pctHistory:         z.array(z.object({ weekKey: z.string().catch(''), pct: z.number().min(0).max(100).catch(0) })).catch([]),
+  experiments:        z.array(z.object({
+                        id:         z.string().catch(''),
+                        dateKey:    z.string().catch(''),
+                        task:       z.string().catch(''),
+                        worry:      z.string().catch(''),
+                        results:    z.string().catch(''),
+                        conclusion: z.string().catch(''),
+                        awarded:    z.boolean().catch(false),
+                      })).catch([]),
   xpEarned:           z.number().nonnegative().catch(0),
   restructureAwarded: z.boolean().catch(false),
   updatedAt:          z.string().catch(() => new Date().toISOString()),
@@ -341,14 +350,37 @@ export const CBTCopingEntrySchema = z.object({
   updatedAt:     z.string().catch(() => new Date().toISOString()),
 })
 
-// Wpis dziennika to myśl, emocja, praca z przekonaniem ALBO przyłapany styl
-// radzenia sobie — rozróżniane po `kind`. KAŻDY nowy kind MUSI mieć tu gałąź,
-// inaczej parseSafe w useCBT po cichu podmieni wpisy na fallback.
+export const CBTExposureLadderSchema = z.object({
+  id:        z.string().catch(''),
+  kind:      z.literal('exposure'),
+  dateKey:   z.string().catch(''),
+  timestamp: z.number().nonnegative().catch(() => Date.now()),
+  area:      z.string().catch(''),
+  rungs:     z.array(z.object({
+               id:           z.string().catch(''),
+               situation:    z.string().catch(''),
+               fear:         z.number().min(0).max(100).catch(50),
+               helper:       z.string().catch(''),
+               plan:         z.string().catch(''),
+               observations: z.string().catch(''),
+               thoughts:     z.string().catch(''),
+               success:      z.string().catch(''),
+               done:         z.boolean().catch(false),
+               awarded:      z.boolean().catch(false),
+             })).catch([]),
+  xpEarned:  z.number().nonnegative().catch(0),
+  updatedAt: z.string().catch(() => new Date().toISOString()),
+})
+
+// Wpis dziennika to myśl, emocja, praca z przekonaniem, przyłapany styl radzenia
+// sobie ALBO drabina lęków / ekspozycja — rozróżniane po `kind`. KAŻDY nowy kind
+// MUSI mieć tu gałąź, inaczej parseSafe w useCBT po cichu podmieni wpisy na fallback.
 export const CBTEntrySchema = z.discriminatedUnion('kind', [
   CBTThoughtEntrySchema,
   CBTEmotionEntrySchema,
   CBTBeliefEntrySchema,
   CBTCopingEntrySchema,
+  CBTExposureLadderSchema,
 ])
 
 export const CBTShieldSchema = z.object({

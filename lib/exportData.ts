@@ -595,11 +595,12 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
   const cbtEmotions = cbtEntries.filter(e => e.kind === 'emotion')
   const cbtBeliefs = cbtEntries.filter(e => e.kind === 'belief')
   const cbtCopings = cbtEntries.filter(e => e.kind === 'coping')
+  const cbtExposures = cbtEntries.filter(e => e.kind === 'exposure')
 
-  if (cbtThoughts.length > 0 || cbtEmotions.length > 0 || cbtBeliefs.length > 0 || cbtCopings.length > 0) {
+  if (cbtThoughts.length > 0 || cbtEmotions.length > 0 || cbtBeliefs.length > 0 || cbtCopings.length > 0 || cbtExposures.length > 0) {
     lines.push(`## Myśli i emocje — dziennik CBT`)
     lines.push(``)
-    lines.push(`_Praca poznawczo-behawioralna: łapanie myśli automatycznych, wywiad sokratejski, rozkładanie emocji na czynniki, strzałka w dół i style radzenia sobie ze schematem._`)
+    lines.push(`_Praca poznawczo-behawioralna: łapanie myśli automatycznych, wywiad sokratejski, rozkładanie emocji na czynniki, strzałka w dół, style radzenia sobie ze schematem oraz drabina lęków i ekspozycja._`)
     lines.push(``)
 
     if (cbtThoughts.length > 0) {
@@ -655,6 +656,15 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
         if (confs.length) lines.push(`- Codzienne potwierdzenia: ${confs.length}`)
         const hist = (e.pctHistory ?? []) as { weekKey: string; pct: number }[]
         if (hist.length) lines.push(`- Wiara w czasie: ${hist.map(p => `${p.weekKey} ${p.pct}%`).join(' · ')}`)
+        const exps = (e.experiments ?? []) as { task: string; worry: string; results: string; conclusion: string }[]
+        for (const x of exps) {
+          if (!x.task && !x.results && !x.conclusion) continue
+          lines.push(`- Eksperyment behawioralny:`)
+          if (x.task) lines.push(`  - Zadanie: ${x.task}`)
+          if (x.worry) lines.push(`  - Obawy: ${x.worry}`)
+          if (x.results) lines.push(`  - Wyniki: ${x.results}`)
+          if (x.conclusion) lines.push(`  - Wniosek: ${x.conclusion}`)
+        }
         lines.push(``)
       }
     }
@@ -671,6 +681,25 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
         if (e.confront) lines.push(`- Z czym bym się zmierzyła / jakich emocji unikam: ${e.confront}`)
         if (e.source) lines.push(`- Źródło (dzieciństwo?): ${e.source}`)
         if (e.healthy) lines.push(`- Gdyby nie dysfunkcyjne przekonania: ${e.healthy}`)
+        lines.push(``)
+      }
+    }
+
+    if (cbtExposures.length > 0) {
+      lines.push(`### Drabina lęków i ekspozycja (${cbtExposures.length})`)
+      lines.push(``)
+      for (const e of cbtExposures) {
+        const time = new Date(e.timestamp).toTimeString().slice(0, 5)
+        lines.push(`**${e.dateKey} ${time}** · ${e.area || '(bez nazwy)'}`)
+        const rungs = ([...(e.rungs ?? [])] as any[]).sort((a, b) => (a.fear ?? 0) - (b.fear ?? 0))
+        for (const r of rungs) {
+          lines.push(`- [${r.done ? 'x' : ' '}] (${r.fear ?? 0}) ${r.situation || '—'}`)
+          if (r.helper) lines.push(`  - Czynnik pomocniczy: ${r.helper}`)
+          if (r.plan) lines.push(`  - Plan: ${r.plan}`)
+          if (r.observations) lines.push(`  - Obserwacje: ${r.observations}`)
+          if (r.thoughts) lines.push(`  - Myśli w trakcie: ${r.thoughts}`)
+          if (r.success) lines.push(`  - Co się udało: ${r.success}`)
+        }
         lines.push(``)
       }
     }
