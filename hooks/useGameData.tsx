@@ -18,6 +18,7 @@ import {
   MAX_MOOD_CHECKINS_PER_DAY,
 } from '@/lib/gameLogic'
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
+import { EMERGENCY_DAYS_PER_MONTH } from '@/lib/smokeStats'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import { DAILY_QUESTS_POOL, SIDE_QUESTS } from '@/lib/questData'
 import { APRIL_QUESTS } from '@/lib/seasonal/aprilData'
@@ -729,6 +730,25 @@ export function useGameData() {
     await setDoc(statsRef, updates, { merge: true })
   }, [user, statsRef, currentDateKey])
 
+  // Dzień awaryjny (PLAN_PALENIE / Faza 2): oznaczasz dziś jako awaryjny → sufit
+  // zdjęty, bez presji. Limit/miesiąc chroni przed „codziennie awaryjny".
+  // Ponowne wywołanie w oznaczonym dniu = cofnięcie (oddaje limit). Bez XP.
+  const toggleSmokeEmergencyDay = useCallback(async () => {
+    if (!user || !statsRef || !statsLoadedRef.current) return
+    const today = currentDateKey
+    const current = stats.smokeEmergencyDays ?? []
+    const isOn = current.includes(today)
+    let next: string[]
+    if (isOn) {
+      next = current.filter(d => d !== today)
+    } else {
+      const used = current.filter(d => d.slice(0, 7) === today.slice(0, 7)).length
+      if (used >= EMERGENCY_DAYS_PER_MONTH) return // limit — UI blokuje wcześniej
+      next = [...current, today]
+    }
+    await setDoc(statsRef, { smokeEmergencyDays: next }, { merge: true })
+  }, [user, statsRef, currentDateKey, stats.smokeEmergencyDays])
+
   const completeReturnCeremony = useCallback(async () => {
     if (!user || !statsRef || !statsLoadedRef.current) return
     const newStats: UserStats = {
@@ -1233,6 +1253,7 @@ export function useGameData() {
     if (currentStats.cigarettesPhase        !== undefined) preservedOptional.cigarettesPhase        = currentStats.cigarettesPhase
     if (currentStats.cigarettesPhaseStartDate !== undefined) preservedOptional.cigarettesPhaseStartDate = currentStats.cigarettesPhaseStartDate
     if (currentStats.cigarettesAlarmTriggered !== undefined) preservedOptional.cigarettesAlarmTriggered = currentStats.cigarettesAlarmTriggered
+    if (currentStats.smokeEmergencyDays     !== undefined) preservedOptional.smokeEmergencyDays     = currentStats.smokeEmergencyDays
 
     const reconstructedStats: UserStats = {
       ...statsForEval,
@@ -1300,7 +1321,7 @@ export function useGameData() {
     streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity, toggleSubStep,
     postponeRoutineToTomorrow,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
-    logCigarette, removeLastCigarette, startSmokingPhase,
+    logCigarette, removeLastCigarette, startSmokingPhase, toggleSmokeEmergencyDay,
     completeHeartBlock,
     recordGhostImpulseV2, recordHonestFailure, logCustomSideQuest,
     awardCBTCapture, awardCBTReframe, awardCBTBelief, awardCBTCoping, awardCBTBonus,

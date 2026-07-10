@@ -335,6 +335,7 @@ export interface UserStats {
   cigarettesPhase?: SmokingPhase            // aktualna faza planu
   cigarettesPhaseStartDate?: string | null  // YYYY-MM-DD startu fazy
   cigarettesAlarmTriggered?: string | null  // ostatnia data alarmu rolling 30-day avg
+  smokeEmergencyDays?: string[]             // dni „awaryjne" (YYYY-MM-DD): sufit zdjęty, bez presji; limit/miesiąc
 }
 
 export interface UserProfile {

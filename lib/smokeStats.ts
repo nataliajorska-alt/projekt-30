@@ -297,3 +297,15 @@ export function smokePacing(
     remaining > 0 && minutesLeftActive > 0 ? Math.round(minutesLeftActive / remaining) : null
   return { ceiling, remaining, over, atCeiling, minutesLeftActive, pace, intervalMin }
 }
+
+// ── Dzień awaryjny — wentyl z limitem (nie dług) ─────────────────────────
+// Ciężki dzień oznaczasz świadomie: sufit zdjęty, zero „nad sufitem", dzień
+// nie liczy się przeciwko tobie w momencie. Limit/miesiąc to jedyny strażnik,
+// żeby nie stał się normą — bez tego „redukcja utyka w nieskończoność".
+
+export const EMERGENCY_DAYS_PER_MONTH = 2
+
+/** Ile dni awaryjnych zużyto w danym miesiącu (klucze YYYY-MM-DD). */
+export function emergencyDaysUsedInMonth(days: string[], monthKey: string): number {
+  return days.filter(d => d.slice(0, 7) === monthKey).length
+}

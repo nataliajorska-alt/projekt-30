@@ -7,7 +7,7 @@ import { useCycleData } from '@/hooks/useCycleData'
 import { useCycleSettings } from '@/hooks/useCycleSettings'
 import { getPhaseForDate } from '@/lib/cycle-data'
 import { CIGARETTE_CONTEXTS, REWARD_REPLACEMENTS, STRESS_TOOLS } from '@/lib/smoke-data'
-import { ceilingFor, smokePacing, activeWindowFor } from '@/lib/smokeStats'
+import { ceilingFor, smokePacing, activeWindowFor, emergencyDaysUsedInMonth, EMERGENCY_DAYS_PER_MONTH } from '@/lib/smokeStats'
 import { todayKey, getEffectiveNow } from '@/lib/gameLogic'
 import type { CigaretteContext } from '@/types'
 import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
@@ -61,7 +61,7 @@ function fmtHoursLeft(min: number): string {
 }
 
 export default function SmokeButton({ onClose }: SmokeButtonProps) {
-  const { todayLog, logCigarette, removeLastCigarette } = useGameData()
+  const { todayLog, logCigarette, removeLastCigarette, stats, toggleSmokeEmergencyDay } = useGameData()
   const { logs: cycleLogs } = useCycleData()
   const { settings: cycleSettings } = useCycleSettings()
   const [showContextPicker, setShowContextPicker] = useState(false)
@@ -75,10 +75,18 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
 
   // Tempo dnia — spokojne lustro: ile do sufitu i ile aktywnego dnia przed Tobą.
   // Bez blokady, bez czerwieni; tylko fakty, byś sama zobaczyła, czy warto zwolnić.
-  const ceilingInfo = ceilingFor(todayKey())
+  const today = todayKey()
+  const ceilingInfo = ceilingFor(today)
   const now = getEffectiveNow()
   const weekday = (now.getDay() + 6) % 7 // 0=Pon … 6=Nd
-  const pacing = ceilingInfo
+
+  // Dzień awaryjny — sufit zdjęty, bez presji; limit/miesiąc.
+  const emergencyDays = stats.smokeEmergencyDays ?? []
+  const isEmergencyToday = emergencyDays.includes(today)
+  const emergencyLeft = Math.max(0, EMERGENCY_DAYS_PER_MONTH - emergencyDaysUsedInMonth(emergencyDays, today.slice(0, 7)))
+
+  // Tempo tylko poza dniem awaryjnym — w awaryjnym nie liczymy w górę.
+  const pacing = ceilingInfo && !isEmergencyToday
     ? smokePacing(now.getHours(), now.getMinutes(), todayCount, ceilingInfo.ceiling, activeWindowFor(weekday))
     : null
 
@@ -118,7 +126,8 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
 
   // Tap kontekstu: emocjonalny (nagroda/stres) → zamiennik funkcji; reszta → log od razu.
   const handleContextTap = (ctx: CigaretteContext) => {
-    if (ctx === 'quest' || ctx === 'stres') setInterveneContext(ctx)
+    // W dniu awaryjnym bez zamiennika-lekcji — palisz dowolnie, bez presji.
+    if (!isEmergencyToday && (ctx === 'quest' || ctx === 'stres')) setInterveneContext(ctx)
     else handleContextLog(ctx)
   }
 
@@ -232,6 +241,24 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
               )}
             </div>
 
+            {/* Dzień awaryjny — sufit zdjęty, bez presji */}
+            {ceilingInfo && isEmergencyToday && (
+              <div className="mb-6 border border-gold-light/50 bg-cream-warm/60 px-4 py-4 text-center">
+                <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="block">Dzień awaryjny</SmallCaps>
+                <p className="font-serif-body italic text-dark text-[13px] mt-2 leading-relaxed">
+                  bez sufitu dziś — palisz swoim rytmem, bez liczenia w górę. słaby dzień to nie „nie spełniasz oczekiwań". jutro wracasz do rytmu.
+                </p>
+                {isLuteal && (
+                  <p className="font-serif-body italic text-gold-deep/80 text-[11.5px] mt-2 leading-relaxed">
+                    faza lutealna — głód mocniejszy. tym bardziej łagodnie.
+                  </p>
+                )}
+                <button onClick={() => toggleSmokeEmergencyDay()} className="mt-3 text-muted-light hover:text-dark transition-colors">
+                  <SmallCaps tone="muted" tracking="luxury" size="xs">cofnij oznaczenie</SmallCaps>
+                </button>
+              </div>
+            )}
+
             {/* Tempo dnia — pasek budżetu + sufit + reszta dnia (spokojne lustro, nie blokada) */}
             {pacing && (
               <div className="mb-6 border border-hairline bg-cream-warm/40 px-4 py-3.5">
@@ -281,6 +308,19 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
                     faza lutealna — głód mocniejszy dziś. bądź dla siebie łagodna.
                   </p>
                 )}
+                <div className="mt-3 pt-2.5 border-t border-hairline text-center">
+                  {emergencyLeft > 0 ? (
+                    <button onClick={() => toggleSmokeEmergencyDay()} className="text-muted-light hover:text-dark transition-colors">
+                      <SmallCaps tone="muted" tracking="luxury" size="xs">
+                        zły dzień? oznacz awaryjny · zostały {emergencyLeft} z {EMERGENCY_DAYS_PER_MONTH}
+                      </SmallCaps>
+                    </button>
+                  ) : (
+                    <SmallCaps tone="muted" tracking="luxury" size="xs" className="opacity-50 block">
+                      dni awaryjne wykorzystane ({EMERGENCY_DAYS_PER_MONTH}/{EMERGENCY_DAYS_PER_MONTH})
+                    </SmallCaps>
+                  )}
+                </div>
               </div>
             )}
 

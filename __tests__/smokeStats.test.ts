@@ -16,6 +16,8 @@ import {
   contextShareByWeek,
   smokePacing,
   activeWindowFor,
+  EMERGENCY_DAYS_PER_MONTH,
+  emergencyDaysUsedInMonth,
 } from '@/lib/smokeStats'
 import type { DailyLog, CigaretteContext, CigaretteEntry } from '@/types'
 
@@ -317,5 +319,20 @@ describe('smokePacing — tempo dnia', () => {
     expect(p.minutesLeftActive).toBe(60)
     expect(p.remaining).toBe(2)
     expect(p.intervalMin).toBe(30)  // 60 / 2 = co 30 min
+  })
+})
+
+describe('dzień awaryjny — limit miesięczny', () => {
+  it('domyślny limit to 2 / miesiąc', () => {
+    expect(EMERGENCY_DAYS_PER_MONTH).toBe(2)
+  })
+  it('liczy zużycie tylko w danym miesiącu', () => {
+    const days = ['2026-07-05', '2026-07-20', '2026-08-02']
+    expect(emergencyDaysUsedInMonth(days, '2026-07')).toBe(2)
+    expect(emergencyDaysUsedInMonth(days, '2026-08')).toBe(1)
+    expect(emergencyDaysUsedInMonth(days, '2026-09')).toBe(0)
+  })
+  it('pusta lista = 0', () => {
+    expect(emergencyDaysUsedInMonth([], '2026-07')).toBe(0)
   })
 })
