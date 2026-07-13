@@ -8,7 +8,7 @@ import {
   getWeeklyStudyItem, getWeeklyStudyLabel,
   MORNING_SKINCARE_STEPS, EVENING_SKINCARE,
   MORNING_SUPPLEMENTS, EVENING_SUPPLEMENTS,
-  MORNING_TEETH_STEPS,
+  MORNING_TEETH_STEPS, MORNING_MEDITATION_STEPS,
 } from '@/lib/routineData'
 import { getEffectiveNow, DAY_START_HOUR } from '@/lib/gameLogic'
 import { filterItemsForMinimumDay } from '@/lib/minimumDayLogic'
@@ -263,6 +263,42 @@ function TeethGuide({ checkedSteps, onToggleStep }: GuideProps) {
               label={step}
               index={i}
               checked={checkedSteps.includes(`m8-${i}`)}
+              onToggle={onToggleStep}
+            />
+          ))}
+        </ol>
+      )}
+    </div>
+  )
+}
+
+function MeditationGuide({ checkedSteps, onToggleStep }: GuideProps) {
+  const [open, setOpen] = useState(false)
+  const steps = MORNING_MEDITATION_STEPS
+
+  return (
+    <div className="ml-[26px] -mt-1 mb-1">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-[11px] font-serif-body italic text-forest/70 hover:text-gold-deep transition-colors py-0.5"
+      >
+        {!open && <span>pokaż kroki</span>}
+        {open && <span>ukryj</span>}
+        <ChevronDown
+          size={10}
+          strokeWidth={1.5}
+          className={clsx('transition-transform', open && 'rotate-180')}
+        />
+      </button>
+      {open && (
+        <ol className="mt-2 space-y-1 pb-1">
+          {steps.map((step, i) => (
+            <CheckableStep
+              key={i}
+              stepKey={`m5-${i}`}
+              label={step}
+              index={i}
+              checked={checkedSteps.includes(`m5-${i}`)}
               onToggle={onToggleStep}
             />
           ))}
@@ -589,6 +625,12 @@ export default function RoutineChecklist() {
                     ) : undefined
                   }
                 />
+                {item.id === 'm5' && (
+                  <MeditationGuide
+                    checkedSteps={checkedSubSteps}
+                    onToggleStep={toggleSubStep}
+                  />
+                )}
                 {(item.id === 'm7' || item.id === 'e2') && (
                   <SkincareGuide
                     itemId={item.id as 'm7' | 'e2'}

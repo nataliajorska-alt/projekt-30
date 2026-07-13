@@ -288,6 +288,14 @@ export function getWeeklyStudyLabel(forDate?: Date): string {
   return topic.label
 }
 
+// ─── MEDYTACJA ─────────────────────────────────────────────────
+// Kroki pomocnicze dla „5–10 minut medytacji" (m5) — dwa elementy
+// porannej praktyki (Waking Up), odhaczane osobno, bez osobnego XP.
+export const MORNING_MEDITATION_STEPS = [
+  'The Wake Up',
+  "Today's Meditation",
+]
+
 // ─── ZĘBY ──────────────────────────────────────────────────────
 // Kroki pomocnicze dla „Umycie zębów + nitkowanie" (m8) — odhaczane
 // osobno, bez osobnego XP. Kolejność jak w tekście pozycji.
