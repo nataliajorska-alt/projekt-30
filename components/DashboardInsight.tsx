@@ -1,21 +1,33 @@
 'use client'
 import Link from 'next/link'
-import { useEffect } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
 import { useWeeklyInsight } from '@/hooks/useWeeklyInsight'
-import { SmallCaps, Fleuron, CornerBrackets } from '@/components/ui'
+import { SmallCaps, Fleuron } from '@/components/ui'
+import type { Confidence } from '@/lib/statTests'
 
-// Kompaktowy pasek „wzorca tygodnia" na dashboardzie.
+// Kompaktowa linijka „wzorca tygodnia" na dashboardzie — celowo NIE panel.
+// Pełny rozkład (tekst, pytanie refleksyjne, CTA eksperymentu) mieszka w
+// /timeline?tab=patterns; tu tylko zajawka.
 //
-// #3 — Silnik insightów (stopnie pewności: pewny/wstępny/słaby, korekta FDR)
-// renderował się DOTĄD wyłącznie w /timeline?tab=patterns. To najmocniejszy atut
-// aplikacji, a był schowany dwa tapnięcia głębiej. Tu pokazujemy nagłówek +
-// najsilniejszy wzorzec od razu na „Dziś", ale TYLKO gdy naprawdę coś wyszło
-// (hasContent) — w przeciwnym razie komponent nic nie renderuje (zero szumu).
-//
-// #4 — Zamykamy pętlę wniosek→działanie: zamiast kończyć na pytaniu
-// refleksyjnym, dajemy CTA prowadzące do questów (eksperyment) i do pełnych
-// wzorców. Insight ma prowadzić do ruchu, nie tylko do zadumy.
+// Cykl ustępuje miejsca: hipotezy fazy cyklu to wiedza strukturalna („owulacja
+// wyżej, menstruacja niżej") — prawie zawsze najsilniejszy sygnał i tygodniami
+// ta sama treść. Dashboard pokazuje najciekawszy sygnał BEHAWIORALNY, a cyklowy
+// dopiero gdy nic innego nie wyszło.
+const RANK: Record<Confidence, number> = { pewny: 3, wstępny: 2, słaby: 1 }
+
+const TIER_STYLE: Record<Confidence, string> = {
+  pewny:   'text-forest border-forest/40 bg-forest/5',
+  wstępny: 'text-gold-deep border-gold-light',
+  słaby:   'text-muted border-hairline',
+}
+
+// Pierwsze zdanie — wystarczy na zajawkę. Polskie liczby używają przecinka
+// („2,6"), więc pierwsze „. " to naprawdę koniec zdania.
+function firstSentence(t: string): string {
+  const i = t.indexOf('. ')
+  return i > 0 ? t.slice(0, i + 1) : t
+}
+
 export default function DashboardInsight() {
   const { insight, loading, hasNewBadge, markSeen } = useWeeklyInsight()
 
@@ -23,52 +35,44 @@ export default function DashboardInsight() {
     if (insight?.hasContent && hasNewBadge) markSeen()
   }, [insight, hasNewBadge, markSeen])
 
-  if (loading || !insight || !insight.hasContent) return null
+  const top = useMemo(() => {
+    const signals = (insight?.outcomes ?? []).filter(o => o.confidence && o.text)
+    if (signals.length === 0) return null
+    return [...signals].sort((a, b) => {
+      const cycA = a.id.startsWith('cycle_phase') ? 1 : 0
+      const cycB = b.id.startsWith('cycle_phase') ? 1 : 0
+      if (cycA !== cycB) return cycA - cycB
+      const r = RANK[b.confidence!] - RANK[a.confidence!]
+      if (r !== 0) return r
+      return (a.result?.pCorrected ?? 1) - (b.result?.pCorrected ?? 1)
+    })[0]
+  }, [insight])
 
-  // pierwsze zdanie najmocniejszego sygnału — body jest już posortowane po sile,
-  // a każdy akapit zaczyna się od tagu pewności [pewny]/[wstępny]/[słaby], który tu
-  // zdejmujemy. Działa dla każdego stopnia, nie tylko „pewny".
-  const topLine = insight.body
-    ?.split('\n')
-    .find((l) => l.trim())
-    ?.replace(/^\[[^\]]+\]\s*/, '')
-    .trim()
+  if (loading || !insight || !insight.hasContent || !top) return null
 
   return (
-    <section className="relative bg-ivory border border-gold-light/40 p-5 sm:p-6 mb-4">
-      <CornerBrackets size={10} tone="gold-light" />
-      <div className="flex items-center gap-2">
-        <Fleuron size={11} className="text-gold-deep" />
-        <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-          Czego nauczyły się Twoje dane
-        </SmallCaps>
-        {hasNewBadge && <span className="w-1.5 h-1.5 rounded-full bg-gold" aria-hidden="true" />}
-      </div>
-
-      <h2 className="font-heading text-dark text-lg sm:text-xl mt-1.5 leading-tight">
-        {insight.headline}
-      </h2>
-
-      {topLine && (
-        <p className="font-serif-body italic text-muted text-[14px] mt-2 leading-relaxed max-w-[62ch]">
-          {topLine}
+    <section className="relative bg-ivory border border-gold-light/40 px-4 py-3 mb-4">
+      <div className="flex items-baseline gap-x-3 gap-y-1.5 flex-wrap">
+        <span className="flex items-center gap-2 shrink-0">
+          <Fleuron size={10} className="text-gold-deep" />
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
+            Wzorzec tygodnia
+          </SmallCaps>
+          <span
+            className={`font-ui uppercase tracking-luxury text-[7px] border px-1.5 py-0.5 whitespace-nowrap ${TIER_STYLE[top.confidence!]}`}
+          >
+            {top.confidence}
+          </span>
+        </span>
+        <p className="font-serif-body italic text-muted text-[13px] leading-snug flex-1 min-w-[220px] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
+          {firstSentence(top.text!)}{' '}
+          <Link
+            href="/timeline?tab=patterns"
+            className="not-italic font-ui uppercase tracking-luxury text-[9px] text-gold-deep hover:opacity-70 transition-opacity whitespace-nowrap"
+          >
+            wzorce →
+          </Link>
         </p>
-      )}
-
-      <div className="mt-4 flex items-center gap-4 flex-wrap">
-        <Link
-          href="/quests"
-          className="inline-flex items-center gap-1.5 font-ui uppercase tracking-luxury text-[10px] text-ivory bg-forest px-4 py-2 transition-opacity hover:opacity-85"
-        >
-          Zaplanuj eksperyment
-          <ArrowRight size={12} strokeWidth={1.5} />
-        </Link>
-        <Link
-          href="/timeline?tab=patterns"
-          className="font-ui uppercase tracking-luxury text-[10px] text-gold-deep hover:opacity-70 transition-opacity"
-        >
-          Wszystkie wzorce →
-        </Link>
       </div>
     </section>
   )
