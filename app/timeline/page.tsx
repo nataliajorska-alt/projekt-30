@@ -4,6 +4,9 @@ import { useSearchParams } from 'next/navigation'
 import clsx from 'clsx'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { useGameData } from '@/hooks/useGameData'
+import { useCycleData } from '@/hooks/useCycleData'
+import { useCycleSettings } from '@/hooks/useCycleSettings'
+import { getPhaseIdForDate } from '@/lib/cycle-data'
 import { useHabitAnalytics } from '@/hooks/useHabitAnalytics'
 import { useGhostV2 } from '@/hooks/useGhostV2'
 import YearHeatmap from '@/components/YearHeatmap'
@@ -91,6 +94,17 @@ export default function TimelinePage() {
   const { logs, loading } = useTimelineData()
   const { stats } = useGameData()
   const { entries: ghostEntries, failures: ghostFailures, loading: ghostLoading } = useGhostV2()
+  const { logs: cycleLogs } = useCycleData()
+  const { settings: cycleSettings } = useCycleSettings()
+
+  // Resolver fazy cyklu dla dowolnego dnia — trzecia oś analizy wzorców. Stabilny
+  // referencyjnie (useMemo), by nie przeliczać korelacji przy każdym renderze.
+  const cyclePhaseOf = useMemo(
+    () => (cycleLogs.length > 0
+      ? (dateKey: string) => getPhaseIdForDate(cycleLogs, dateKey, cycleSettings)
+      : undefined),
+    [cycleLogs, cycleSettings],
+  )
   const searchParams = useSearchParams()
   const initialTab = (() => {
     const t = searchParams.get('tab') as TimelineMode | null
@@ -364,7 +378,7 @@ export default function TimelinePage() {
       ) : mode === 'mood' ? (
         <MoodTab logs={logs} />
       ) : mode === 'patterns' ? (
-        <PatternsTab logs={logs} cigarettesPhase={stats.cigarettesPhase} />
+        <PatternsTab logs={logs} cigarettesPhase={stats.cigarettesPhase} cyclePhaseOf={cyclePhaseOf} />
       ) : mode === 'oddech' ? (
         <OddechTab logs={logs} loading={loading} />
       ) : (

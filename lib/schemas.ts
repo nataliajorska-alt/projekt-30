@@ -405,6 +405,8 @@ export const WeeklyInsightSchema = z.object({
   headline:        z.string().catch(''),
   body:            z.string().catch(''),
   hasContent:      z.boolean().catch(false),
+  topConfidence:   z.enum(['pewny', 'wstępny', 'słaby']).nullable().optional().catch(undefined),
+  profile:         z.any().optional().catch(undefined),
   inputSig:        z.number().optional().catch(undefined),
 })
 

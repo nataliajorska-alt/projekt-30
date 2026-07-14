@@ -244,10 +244,76 @@ function chiSquareP(x: number, dof: number): number {
 /**
  * Bonferroni correction: zwraca p_adjusted = min(1, p * K) dla każdego testu.
  * K to liczba testów które rzeczywiście były wykonane (nie wszystkie zaplanowane).
+ *
+ * Uwaga: Bonferroni kontroluje FWER (prawdopodobieństwo choćby JEDNEGO fałszywego
+ * odkrycia) i jest bardzo konserwatywny — przy stabilnych danych osobistych prawie
+ * zawsze chowa realne, subtelne wzorce. Do eksploracji własnych danych używamy
+ * Benjamini-Hochberg (poniżej), który kontroluje FDR (oczekiwany ODSETEK fałszywych
+ * odkryć) i ma znacznie większą moc. `bonferroni` zostaje dla kompatybilności/testów.
  */
 export function bonferroni(pValues: number[]): number[] {
   const K = pValues.length
   return pValues.map(p => Math.min(1, p * K))
+}
+
+/**
+ * Benjamini-Hochberg (1995) — korekta FDR metodą step-up.
+ * Zwraca q-values (adjusted p) w oryginalnej kolejności wejścia.
+ * q_(i) = min_{k ≥ i} ( m/k · p_(k) ), z wymuszeniem monotoniczności i klipem do [0,1].
+ * Łagodniejsza niż Bonferroni: przy K testach próg efektywny rośnie liniowo z rangą,
+ * więc drugi/trzeci co do siły wzorzec ma szansę przebić, nie tylko najsilniejszy.
+ */
+export function benjaminiHochberg(pValues: number[]): number[] {
+  const m = pValues.length
+  if (m === 0) return []
+  const idx = pValues.map((p, i) => ({ p, i })).sort((a, b) => a.p - b.p)
+  const q = new Array<number>(m)
+  let prev = 1
+  // Idź od największej rangi do najmniejszej, wymuszając q niemalejące po p.
+  for (let rank = m; rank >= 1; rank--) {
+    const { p, i } = idx[rank - 1]
+    const val = Math.min(prev, (p * m) / rank)
+    q[i] = val
+    prev = val
+  }
+  return q.map(v => Math.min(1, Math.max(0, v)))
+}
+
+// ── Confidence tiers ─────────────────────────────────────────────────────────
+// Zamiast bramki zdał/nie-zdał — stopniujemy pewność, by karta ZAWSZE mogła
+// pokazać najsilniejszy sygnał, uczciwie oznaczony. „pewny" = dawny twardy próg.
+export type Confidence = 'pewny' | 'wstępny' | 'słaby'
+
+export const CONFIDENCE_LABEL: Record<Confidence, string> = {
+  pewny:   'pewny',
+  wstępny: 'wstępny',
+  słaby:   'słaby sygnał',
+}
+
+/**
+ * Stopień pewności testu do wyświetlenia. Świadomie kind-aware, bo skala efektu
+ * różni się między testami: rank-biserial r / ρ ∈ [-1,1] vs ε² (Kruskal) jest
+ * znacznie mniejsze przy tej samej „sile". Zwraca null gdy efekt jest tak mały,
+ * że nie warto o nim wspominać (prawdziwy szum).
+ */
+export function gradeConfidence(
+  kind: 'mwu' | 'spearman' | 'kruskal',
+  rawP: number,
+  qValue: number,
+  effect: number,
+): Confidence | null {
+  const e = Math.abs(effect)
+  if (kind === 'kruskal') {
+    // ε²: ~0.06 średni, ~0.14 duży (konwencje Cohena dla ε²/η²).
+    if (qValue < THRESHOLDS.MAX_P && e >= 0.06) return 'pewny'
+    if ((qValue < 0.2 || rawP < THRESHOLDS.MAX_P) && e >= 0.04) return 'wstępny'
+    if (rawP < 0.15 && e >= 0.025) return 'słaby'
+    return null
+  }
+  if (qValue < THRESHOLDS.MAX_P && e >= THRESHOLDS.MIN_EFFECT) return 'pewny'
+  if ((qValue < 0.2 || rawP < THRESHOLDS.MAX_P) && e >= 0.15) return 'wstępny'
+  if (rawP < 0.15 && e >= 0.12) return 'słaby'
+  return null
 }
 
 // ── Test result envelope ─────────────────────────────────────────────────────

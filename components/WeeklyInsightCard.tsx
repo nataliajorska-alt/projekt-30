@@ -95,14 +95,16 @@ export default function WeeklyInsightCard({ moodDays }: { moodDays?: number }) {
             label="hipotez sprawdzonych"
           />
           {moodDays != null && <Stat value={moodDays} label="dni z check-inem nastroju" />}
-          <Stat value={<>p &lt; .05</>} label="próg · korekta Bonferroniego" />
+          <Stat value={<>FDR</>} label="korekta · Benjamini-Hochberg" />
         </div>
       </div>
 
       <div className="mt-5 pt-4 border-t border-border font-serif-body italic text-muted-light text-[13px] leading-relaxed">
-        próg rygoru: n ≥ 10 dni, |efekt| ≥ 0,2
+        sygnały stopniowane: <span className="text-gold-deep not-italic">pewny</span> · wstępny · słaby
         <span className="text-gold mx-2">·</span>
-        wzorce aktualizują się automatycznie wraz z nowymi danymi.
+        „pewny" = twardy próg (n ≥ 10, |efekt| ≥ 0,2, istotne po korekcie FDR)
+        <span className="text-gold mx-2">·</span>
+        aktualizują się automatycznie wraz z nowymi danymi.
       </div>
 
       {/* #4 — zamknięcie pętli: od wzorca do działania, nie tylko do refleksji */}
@@ -137,21 +139,21 @@ export default function WeeklyInsightCard({ moodDays }: { moodDays?: number }) {
               <div className="flex items-center gap-2 min-w-0">
                 <Diamond
                   size={5}
-                  filled={o.passed}
-                  className={o.passed ? 'text-gold' : 'text-muted-light/50'}
+                  filled={!!o.confidence}
+                  className={o.confidence ? 'text-gold' : 'text-muted-light/50'}
                 />
                 <span
                   className={clsx(
                     'font-serif-body text-[12.5px] truncate',
-                    o.passed ? 'text-dark' : 'text-muted-light italic'
+                    o.confidence ? 'text-dark' : 'text-muted-light italic'
                   )}
                 >
                   {o.shortLabel}
                 </span>
               </div>
               <SmallCaps tone="muted" size="xs" className="shrink-0 opacity-70">
-                {o.passed
-                  ? `passed · |effect|=${Math.abs(o.result!.effectSize).toFixed(2)}`
+                {o.confidence
+                  ? `${o.confidence} · |efekt|=${Math.abs(o.result!.effectSize).toFixed(2)}`
                   : REASON_LABELS[o.reason ?? 'no_data']}
               </SmallCaps>
             </div>

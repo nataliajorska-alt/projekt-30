@@ -3,12 +3,32 @@
 // Reguły:
 //   • Hipotezy są zdefiniowane Z GÓRY — żadnego "data dredgingu".
 //   • Każda hipoteza dostaje swój extractor, test (MWU/Spearman/Kruskal) i template.
-//   • Orchestrator (weeklyInsight.ts) wywoła wszystkie, zrobi Bonferroni, odsieje te bez danych.
+//   • Orchestrator (weeklyInsight.ts) wywoła wszystkie, zrobi korektę FDR (Benjamini-Hochberg), odsieje te bez danych.
 //   • Template NIGDY nie używa języka przyczynowego ("X powoduje Y") — tylko obserwacyjnego ("po dniach X mood był wyższy").
 //   • Każdy template kończy się pytaniem refleksyjnym losowanym z puli per-hipoteza.
 
 import type { DailyLog } from '@/types'
 import { dateKey, getISOWeekKey } from './gameLogic'
+
+// ── Kontekst hipotez ──────────────────────────────────────────────────────
+// Dane, których nie ma w samym DailyLog, a które hipoteza może potrzebować.
+// Faza cyklu liczona jest z osobnej kolekcji (cycleLogs + settings) i wstrzykiwana
+// tu jako resolver — dzięki temu silnik wzorców zyskuje „trzecią oś" bez mutowania
+// logów ani zapisywania fazy do Firestore.
+export type CyclePhaseId = 'menstruacja' | 'folikularna' | 'owulacyjna' | 'lutealna'
+
+export const CYCLE_PHASE_ORDER: CyclePhaseId[] = ['menstruacja', 'folikularna', 'owulacyjna', 'lutealna']
+export const CYCLE_PHASE_LABEL: Record<CyclePhaseId, string> = {
+  menstruacja: 'menstruacja',
+  folikularna: 'faza folikularna',
+  owulacyjna:  'owulacja',
+  lutealna:    'faza lutealna',
+}
+
+export interface HypothesisContext {
+  /** Zwraca fazę cyklu dla danego dnia (YYYY-MM-DD) lub null gdy brak danych o cyklu. */
+  cyclePhaseOf?: (dateKey: string) => CyclePhaseId | null
+}
 
 // ── Helpers do ekstrakcji ─────────────────────────────────────────────────
 
@@ -41,6 +61,12 @@ function avgMood(log: DailyLog): number | null {
   return ci.reduce((s, c) => s + c.mood, 0) / ci.length
 }
 
+function avgEnergy(log: DailyLog): number | null {
+  const ci = log.moodCheckIns ?? []
+  if (ci.length === 0) return null
+  return ci.reduce((s, c) => s + c.energy, 0) / ci.length
+}
+
 function firstMood(log: DailyLog): number | null {
   const ci = sortedCheckIns(log)
   return ci[0]?.mood ?? null
@@ -56,6 +82,53 @@ function nextDayKey(key: string): string {
   const dt = new Date(y, m - 1, d)
   dt.setDate(dt.getDate() + 1)
   return dateKey(dt)
+}
+
+function cigCount(log: DailyLog): number {
+  return log.cigarettes?.length ?? 0
+}
+
+// Okno śledzenia papierosów: od pierwszego dnia z zalogowanym papierosem. Dni
+// sprzed startu logowania NIE są „bez palenia", tylko sprzed pomiaru — muszą
+// wypaść, inaczej zaniżają medianę i psują kontrast (patrz lib/correlations.ts).
+function cigTrackingWindow(logs: Record<string, DailyLog>): DailyLog[] {
+  const firstCigKey = Object.entries(logs)
+    .filter(([, l]) => cigCount(l) > 0)
+    .map(([k]) => k)
+    .sort()[0] ?? null
+  if (!firstCigKey) return []
+  return Object.entries(logs)
+    .filter(([k, l]) => k >= firstCigKey && (l.moodCheckIns?.length ?? 0) > 0)
+    .map(([, l]) => l)
+}
+
+function median(nums: number[]): number {
+  if (nums.length === 0) return 0
+  const s = [...nums].sort((a, b) => a - b)
+  return s[Math.floor(s.length / 2)]
+}
+
+// Dzieli obserwacje na „mniej" / „więcej" wg wartości. Odporne na przypadek, gdy
+// mediana leży na krawędzi (np. połowa dni ma tę samą, wysoką liczbę papierosów)
+// — wtedy „> med" byłoby puste; przesuwamy próg na „< med" / „≥ med", żeby
+// kontrast się zachował. Zwraca null, gdy wszystkie wartości są identyczne.
+export function medianSplit<T>(items: T[], valueOf: (t: T) => number): {
+  lo: T[]; hi: T[]; med: number; loOp: '≤' | '<'; hiOp: '>' | '≥'
+} | null {
+  if (items.length === 0) return null
+  const med = median(items.map(valueOf))
+  let lo = items.filter(t => valueOf(t) <= med)
+  let hi = items.filter(t => valueOf(t) > med)
+  let loOp: '≤' | '<' = '≤'
+  let hiOp: '>' | '≥' = '>'
+  if (lo.length === 0 || hi.length === 0) {
+    lo = items.filter(t => valueOf(t) < med)
+    hi = items.filter(t => valueOf(t) >= med)
+    loOp = '<'
+    hiOp = '≥'
+  }
+  if (lo.length === 0 || hi.length === 0) return null
+  return { lo, hi, med, loOp, hiOp }
 }
 
 // ── Extracted data shapes ─────────────────────────────────────────────────
@@ -101,8 +174,9 @@ export interface Hypothesis {
   category: HypothesisCategory
   /** Krótki nagłówek — do listy "co testowaliśmy". */
   shortLabel: string
-  /** Funkcja ekstrakcji danych z logów. Zwraca null gdy nie ma żadnych danych do testu. */
-  extract: (logs: Record<string, DailyLog>) => ExtractedData | null
+  /** Funkcja ekstrakcji danych z logów. Zwraca null gdy nie ma żadnych danych do testu.
+   *  `ctx` niesie dane spoza logu (np. faza cyklu); starsze hipotezy go ignorują. */
+  extract: (logs: Record<string, DailyLog>, ctx: HypothesisContext) => ExtractedData | null
   /** Szablon tekstu po polsku — dostaje wynik testu, generuje 2-4 zdania. */
   template: (r: HypothesisResult) => string
   /** Pula pytań refleksyjnych do losowania. */
@@ -435,6 +509,142 @@ export const HYPOTHESES: Hypothesis[] = [
       'Co się dzieje z Tobą w sobotę wieczorem, kiedy nikt nie pisze?',
       'Czy umawiasz weekendy z wyprzedzeniem, czy improwizujesz?',
       'A co jeśli "samotny weekend" to nie problem, tylko zaproszenie do choreografii?',
+    ],
+  },
+
+  // ─ 11. Faza cyklu → nastrój (Kruskal) ────────────────────────────────────
+  // Trzecia oś analizy. U kobiety ze stabilnym nastrojem to zwykle najsilniejsze,
+  // powtarzalne źródło zmienności — faza daje naturalny kontrast, którego pojedyncze
+  // zachowania (robione „zawsze" albo „nigdy") nie mają.
+  {
+    id: 'cycle_phase_mood',
+    category: 'rytm',
+    shortLabel: 'Faza cyklu a nastrój',
+    extract: (logs, ctx) => {
+      if (!ctx.cyclePhaseOf) return null
+      const byPhase: Record<CyclePhaseId, number[]> = {
+        menstruacja: [], folikularna: [], owulacyjna: [], lutealna: [],
+      }
+      for (const [key, log] of Object.entries(logs)) {
+        const m = avgMood(log)
+        if (m === null) continue
+        const phase = ctx.cyclePhaseOf(key)
+        if (!phase) continue
+        byPhase[phase].push(m)
+      }
+      const groups = CYCLE_PHASE_ORDER.map(p => byPhase[p])
+      if (groups.every(g => g.length === 0)) return null
+      return {
+        test: 'kruskal', groups,
+        groupLabels: CYCLE_PHASE_ORDER.map(p => CYCLE_PHASE_LABEL[p]),
+      }
+    },
+    template: (r) => {
+      const best = r.facts.primary
+      const worst = r.facts.secondary!
+      return `Wśród faz cyklu ${best.label} miała najwyższy średni nastrój (${fmt(best.value)}), a ${worst.label} najniższy (${fmt(worst.value)}, ε²=${fmt(r.effectSize, 2)}, n=${r.n} dni). To Twój rytm hormonalny — nie porażka w gorszej fazie, tylko mapa, którą można zaplanować łagodniej.`
+    },
+    reflectionQuestions: [
+      'Czy planujesz trudniejsze rzeczy z uwzględnieniem tej fazy?',
+      'Co potrzebujesz w najsłabszej fazie, żeby być dla siebie łagodna?',
+      'Czy to, co czujesz w ciele, zgadza się z tymi liczbami?',
+    ],
+  },
+
+  // ─ 12. Faza cyklu → energia (Kruskal) ────────────────────────────────────
+  {
+    id: 'cycle_phase_energy',
+    category: 'rytm',
+    shortLabel: 'Faza cyklu a energia',
+    extract: (logs, ctx) => {
+      if (!ctx.cyclePhaseOf) return null
+      const byPhase: Record<CyclePhaseId, number[]> = {
+        menstruacja: [], folikularna: [], owulacyjna: [], lutealna: [],
+      }
+      for (const [key, log] of Object.entries(logs)) {
+        const e = avgEnergy(log)
+        if (e === null) continue
+        const phase = ctx.cyclePhaseOf(key)
+        if (!phase) continue
+        byPhase[phase].push(e)
+      }
+      const groups = CYCLE_PHASE_ORDER.map(p => byPhase[p])
+      if (groups.every(g => g.length === 0)) return null
+      return {
+        test: 'kruskal', groups,
+        groupLabels: CYCLE_PHASE_ORDER.map(p => CYCLE_PHASE_LABEL[p]),
+      }
+    },
+    template: (r) => {
+      const best = r.facts.primary
+      const worst = r.facts.secondary!
+      return `Energia najwyższa w fazie ${best.label} (${fmt(best.value)}), najniższa w ${worst.label} (${fmt(worst.value)}, ε²=${fmt(r.effectSize, 2)}, n=${r.n} dni). Warto dopasować tempo do fazy — szczyt na trudne questy, dolina na regenerację.`
+    },
+    reflectionQuestions: [
+      'Czy ciśniesz najmocniej wtedy, gdy ciało ma najwięcej energii?',
+      'Co by się zmieniło, gdybyś planowała miesiąc wg tego rytmu?',
+    ],
+  },
+
+  // ─ 13. Praca z myślami (CBT) → nastrój dnia (MWU) ────────────────────────
+  // Dzień z wpisem w module /myśli vs bez. Osobista dźwignia: czy zatrzymanie się
+  // nad myślą/emocją idzie w parze z lepszym nastrojem tego dnia.
+  {
+    id: 'cbt_capture_mood',
+    category: 'aktywność',
+    shortLabel: 'Praca z myślami a nastrój',
+    extract: (logs) => {
+      const groupA: number[] = []  // dni z wpisem CBT
+      const groupB: number[] = []
+      for (const log of Object.values(logs)) {
+        const m = avgMood(log)
+        if (m === null) continue
+        if (log.cbtCaptureAwarded) groupA.push(m)
+        else groupB.push(m)
+      }
+      if (groupA.length === 0 && groupB.length === 0) return null
+      return { test: 'mwu', groupA, groupB, labelA: 'dni z pracą nad myślą', labelB: 'dni bez wpisu' }
+    },
+    template: (r) => {
+      const diff = Math.abs(r.facts.primary.value - r.facts.secondary!.value)
+      const which = r.facts.primary.value > r.facts.secondary!.value ? 'wyższy' : 'niższy'
+      return `W dniach, gdy zatrzymałaś się nad myślą albo emocją (moduł /myśli), średni nastrój był o ${fmt(diff)} pkt ${which} (${fmt(r.facts.primary.value)} vs ${fmt(r.facts.secondary!.value)}, n=${r.n}). Siła efektu ${effectStrength(Math.abs(r.effectSize))}. Może rozbrajanie myśli działa; a może po prostu w lepsze dni łatwiej po nie sięgnąć.`
+    },
+    reflectionQuestions: [
+      'Sięgasz po pracę z myślą, gdy jest ciężko, czy gdy jest dobrze?',
+      'Który rodzaj wpisu — myśl czy emocja — najbardziej Ci pomaga?',
+    ],
+  },
+
+  // ─ 14. Mniej vs więcej papierosów → nastrój (MWU) ────────────────────────
+  // Split po medianie dziennej liczby w oknie śledzenia. W fazie redukcji masz
+  // realny kontrast dni, więc ta hipoteza faktycznie ma czym się karmić.
+  {
+    id: 'cigarettes_less_more_mood',
+    category: 'trudność',
+    shortLabel: 'Mniej vs więcej papierosów a nastrój',
+    extract: (logs) => {
+      const window = cigTrackingWindow(logs)
+      if (window.length === 0) return null
+      const split = medianSplit(window, cigCount)
+      if (!split) return null  // wszystkie dni z tą samą liczbą — brak kontrastu
+      const groupA = split.lo.map(avgMood).filter((m): m is number => m !== null)
+      const groupB = split.hi.map(avgMood).filter((m): m is number => m !== null)
+      if (groupA.length === 0 && groupB.length === 0) return null
+      return {
+        test: 'mwu', groupA, groupB,
+        labelA: `dni z ${split.loOp} ${split.med} papier.`,
+        labelB: `dni z ${split.hiOp} ${split.med} papier.`,
+      }
+    },
+    template: (r) => {
+      const diff = Math.abs(r.facts.primary.value - r.facts.secondary!.value)
+      const which = r.facts.primary.value > r.facts.secondary!.value ? 'wyższy' : 'niższy'
+      return `W dniach z mniejszą liczbą papierosów średni nastrój był o ${fmt(diff)} pkt ${which} (${fmt(r.facts.primary.value)} vs ${fmt(r.facts.secondary!.value)}, n=${r.n}). Effect ${fmt(Math.abs(r.effectSize), 2)} — ${effectStrength(Math.abs(r.effectSize))}. Obserwacja bez oceny: co jest pierwsze — spokojniejszy dzień czy mniej sięgania?`
+    },
+    reflectionQuestions: [
+      'Czy w gorsze dni papieros wraca jako regulacja?',
+      'Co innego robisz w te lżejsze dni, że mniej sięgasz?',
     ],
   },
 ]

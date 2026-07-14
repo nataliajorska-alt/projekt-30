@@ -144,13 +144,13 @@ describe('computeWeeklyInsight — szum nie generuje insightu', () => {
     }
     const r = computeWeeklyInsight(logs, '2026-W14')
     const morning = r.outcomes.find(o => o.id === 'morning_routine_first_mood')!
-    // Effect size powinien być słaby przy losowych danych
-    if (morning.passed) {
-      // Jeśli przeszedł mimo szumu, sprawdź że effect jest naprawdę duży
-      expect(Math.abs(morning.result!.effectSize)).toBeGreaterThan(0.5)
-    } else {
-      // Najczęściej powinien być effect_too_small lub p_too_high
-      expect(['effect_too_small', 'p_too_high', 'n_too_small']).toContain(morning.reason)
+    // Szum NIE może dać „pewnego" wzorca. Może wylądować jako słaby/wstępny sygnał
+    // (uczciwie oznaczony), ale nie jako twardy pewnik.
+    expect(morning.confidence).not.toBe('pewny')
+    expect(morning.passed).toBe(false)
+    if (!morning.confidence) {
+      // Gdy nie wystawiono nawet słabego sygnału — powód jest jednym z odrzuceń.
+      expect(['effect_too_small', 'p_too_high', 'n_too_small', 'no_data']).toContain(morning.reason)
     }
   })
 })
@@ -201,11 +201,10 @@ describe('computeWeeklyInsight — K nie zawiera testów bez mocy', () => {
     }
     const r = computeWeeklyInsight(logs, '2026-W14')
 
-    // K = dokładnie te outcome'y, które faktycznie odpaliły test (miały rawP):
-    // passed / effect_too_small / p_too_high. n_too_small i no_data są POZA K.
-    const ran = r.outcomes.filter(o =>
-      o.passed || o.reason === 'effect_too_small' || o.reason === 'p_too_high'
-    ).length
+    // K = dokładnie te outcome'y, które faktycznie odpaliły test — czyli mają
+    // `result` (rawP policzone): pewny/wstępny/słaby lub odrzucone
+    // (effect_too_small / p_too_high). n_too_small i no_data są POZA K (brak result).
+    const ran = r.outcomes.filter(o => o.result !== undefined).length
     expect(r.testsRun).toBe(ran)
     expect(r.testsRun).toBeGreaterThan(0)
 

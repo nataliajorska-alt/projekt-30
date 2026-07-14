@@ -3,6 +3,9 @@
  * Computes cross-metric patterns: routine → mood, activity → energy, etc.
  */
 import type { DailyLog } from '@/types'
+import {
+  type CyclePhaseId, CYCLE_PHASE_ORDER, CYCLE_PHASE_LABEL, medianSplit,
+} from './weeklyHypotheses'
 
 // ── IDs by routine type ──────────────────────────────────────────────────────
 
@@ -82,6 +85,10 @@ function hasCigarettes(log: DailyLog): boolean {
 
 function hasSocial(log: DailyLog): boolean {
   return log.socialPresence === true
+}
+
+function cbtDone(log: DailyLog): boolean {
+  return log.cbtCaptureAwarded === true
 }
 
 function rulesKept(log: DailyLog): boolean {
@@ -169,11 +176,24 @@ export interface CarryoverInsight {
   hasEnoughData: boolean
 }
 
+// Faza cyklu → nastrój / energia. Trzecia oś: naturalny, powtarzalny kontrast,
+// którego pojedyncze zachowania (robione „zawsze"/„nigdy") nie dają.
+export interface CyclePhaseInsight {
+  type: 'cyclephase'
+  id: string
+  icon: string
+  title: string
+  metric: 'mood' | 'energy'
+  byPhase: { id: CyclePhaseId; label: string; value: number | null; count: number }[]
+  hasEnoughData: boolean
+}
+
 export type CorrelationInsight =
   | ComparisonInsight
   | DayOfWeekInsight
   | LiftInsight
   | CarryoverInsight
+  | CyclePhaseInsight
 
 // ── Main computation ─────────────────────────────────────────────────────────
 
@@ -185,6 +205,7 @@ export const MIN_LIFT_GROUP = 3
 export function computeCorrelations(
   logs: Record<string, DailyLog>,
   cigarettesPhase: number = 1,
+  opts: { cyclePhaseOf?: (dateKey: string) => CyclePhaseId | null } = {},
 ): CorrelationInsight[] {
   // Only logs that have at least one mood check-in
   const withMood = Object.values(logs).filter(
@@ -357,37 +378,36 @@ export function computeCorrelations(
   // Split po medianie dziennej liczby papierosów daje sygnał już w fazie 1
   // (obserwacja), gdzie nie ma jeszcze realnych dni „zero". Liczymy tylko
   // w oknie śledzenia, żeby dni sprzed startu logowania nie zaniżały mediany.
-  const cigCountsSorted = cigWindow
-    .map(l => l.cigarettes?.length ?? 0)
-    .sort((a, b) => a - b)
-  const cigMedian = cigCountsSorted[Math.floor(cigCountsSorted.length / 2)] ?? 0
-  const cigsLess  = cigWindow.filter(l => (l.cigarettes?.length ?? 0) <= cigMedian)
-  const cigsMore  = cigWindow.filter(l => (l.cigarettes?.length ?? 0) >  cigMedian)
+  const cigSplit = medianSplit(cigWindow, l => l.cigarettes?.length ?? 0)
+  const cigsLess  = cigSplit?.lo ?? []
+  const cigsMore  = cigSplit?.hi ?? []
+  const cigLessLabel = cigSplit ? `Dni z ${cigSplit.loOp} ${cigSplit.med} papierosami` : 'Mniej papierosów'
+  const cigMoreLabel = cigSplit ? `Dni z ${cigSplit.hiOp} ${cigSplit.med} papierosami` : 'Więcej papierosów'
+  const cigSplitOk = !!cigSplit
+    && cigWindow.length >= MIN_TOTAL
+    && cigsLess.length >= MIN_PER_GROUP
+    && cigsMore.length >= MIN_PER_GROUP
   insights.push({
     type: 'comparison', id: 'cigarettes_less_more_mood',
     icon: '🚬', title: 'Mniej vs więcej papierosów → nastrój',
-    withLabel: `Dni z ≤ ${cigMedian} papierosami`,
-    withoutLabel: `Dni z > ${cigMedian} papierosami`,
+    withLabel: cigLessLabel,
+    withoutLabel: cigMoreLabel,
     metric: 'mood',
     withValue:    avg(cigsLess.map(logAvgMood)),
     withoutValue: avg(cigsMore.map(logAvgMood)),
     withCount: cigsLess.length, withoutCount: cigsMore.length,
-    hasEnoughData: cigWindow.length >= MIN_TOTAL
-      && cigsLess.length >= MIN_PER_GROUP
-      && cigsMore.length >= MIN_PER_GROUP,
+    hasEnoughData: cigSplitOk,
   })
   insights.push({
     type: 'comparison', id: 'cigarettes_less_more_energy',
     icon: '🚬', title: 'Mniej vs więcej papierosów → energia',
-    withLabel: `Dni z ≤ ${cigMedian} papierosami`,
-    withoutLabel: `Dni z > ${cigMedian} papierosami`,
+    withLabel: cigLessLabel,
+    withoutLabel: cigMoreLabel,
     metric: 'energy',
     withValue:    avg(cigsLess.map(logAvgEnergy)),
     withoutValue: avg(cigsMore.map(logAvgEnergy)),
     withCount: cigsLess.length, withoutCount: cigsMore.length,
-    hasEnoughData: cigWindow.length >= MIN_TOTAL
-      && cigsLess.length >= MIN_PER_GROUP
-      && cigsMore.length >= MIN_PER_GROUP,
+    hasEnoughData: cigSplitOk,
   })
 
   // ── Lift insights — controlled directional comparisons ──────────────────────
@@ -549,6 +569,66 @@ export function computeCorrelations(
         && wLift.length >= MIN_LIFT_GROUP
         && woLift.length >= MIN_LIFT_GROUP,
     })
+  }
+
+  // ─ L8. Praca z myślami (CBT /myśli) → wzrost nastroju w ciągu dnia ────────
+  {
+    const wC  = withLift.filter(cbtDone)
+    const woC = withLift.filter(l => !cbtDone(l))
+    const wLift  = wC.map(l => dayLift(l, 'mood')!).filter(v => v !== null)
+    const woLift = woC.map(l => dayLift(l, 'mood')!).filter(v => v !== null)
+    insights.push({
+      type: 'lift', id: 'lift_cbt_mood',
+      icon: '🧠', title: 'Czy praca z myślą podnosi nastrój?',
+      subtitle: 'Wzrost nastroju w dni, gdy zatrzymałaś się nad myślą/emocją (moduł /myśli) vs bez wpisu.',
+      metric: 'mood',
+      withLabel: 'W dni z pracą nad myślą',
+      withoutLabel: 'W dni bez wpisu',
+      withLift: avg(wLift), withoutLift: avg(woLift),
+      withCount: wLift.length, withoutCount: woLift.length,
+      hasEnoughData: withLift.length >= MIN_LIFT_TOTAL
+        && wLift.length >= MIN_LIFT_GROUP
+        && woLift.length >= MIN_LIFT_GROUP,
+    })
+  }
+
+  // ── Faza cyklu → nastrój / energia ─────────────────────────────────────────
+  // Trzecia oś analizy. Faza liczona ze zewnętrznej kolekcji cyklu (resolver),
+  // więc dostępna tylko gdy podano opts.cyclePhaseOf.
+  if (opts.cyclePhaseOf) {
+    const phaseOf = opts.cyclePhaseOf
+    const buckets: Record<CyclePhaseId, { mood: number[]; energy: number[] }> = {
+      menstruacja: { mood: [], energy: [] },
+      folikularna: { mood: [], energy: [] },
+      owulacyjna:  { mood: [], energy: [] },
+      lutealna:    { mood: [], energy: [] },
+    }
+    for (const [dk, log] of Object.entries(logs)) {
+      const ci = log.moodCheckIns ?? []
+      if (ci.length === 0) continue
+      const phase = phaseOf(dk)
+      if (!phase) continue
+      buckets[phase].mood.push(logAvgMood(log))
+      buckets[phase].energy.push(logAvgEnergy(log))
+    }
+    const phasesWithData = CYCLE_PHASE_ORDER.filter(p => buckets[p].mood.length > 0).length
+    const mkPhase = (metric: 'mood' | 'energy'): CyclePhaseInsight => ({
+      type: 'cyclephase',
+      id: `cyclephase_${metric}`,
+      icon: metric === 'mood' ? '☾' : '⚡',
+      title: metric === 'mood' ? 'Nastrój według fazy cyklu' : 'Energia według fazy cyklu',
+      metric,
+      byPhase: CYCLE_PHASE_ORDER.map(p => ({
+        id: p,
+        label: CYCLE_PHASE_LABEL[p],
+        value: avg(buckets[p][metric]),
+        count: buckets[p][metric].length,
+      })),
+      // Sensowne dopiero gdy ≥2 fazy mają dane — inaczej nie ma czego porównać.
+      hasEnoughData: phasesWithData >= 2,
+    })
+    insights.push(mkPhase('mood'))
+    insights.push(mkPhase('energy'))
   }
 
   // ── Carryover — yesterday's evening → today's morning ──────────────────────

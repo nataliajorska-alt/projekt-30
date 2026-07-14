@@ -4,7 +4,9 @@ import clsx from 'clsx'
 import {
   computeCorrelations, MIN_LIFT_GROUP,
   type ComparisonInsight, type DayOfWeekInsight, type LiftInsight, type CarryoverInsight,
+  type CyclePhaseInsight,
 } from '@/lib/correlations'
+import type { CyclePhaseId } from '@/lib/weeklyHypotheses'
 import type { DailyLog } from '@/types'
 import WeeklyInsightCard from '@/components/WeeklyInsightCard'
 import { SmallCaps, Fleuron, CornerBrackets } from '@/components/ui'
@@ -57,6 +59,7 @@ function iconFor(id: string): React.ReactNode {
     lift_sidequest_mood: 'target',
     lift_rules_mood: 'target',
     lift_dailyquest_mood: 'flag',
+    lift_cbt_mood: 'pulse',
     carryover_evening_morning: 'moon',
     carryover_evening_energy: 'bolt',
     carryover_activity_energy: 'clock',
@@ -135,6 +138,7 @@ const LEVER_LABEL: Record<string, string> = {
   lift_sidequest_mood: 'Side quest',
   lift_rules_mood: 'Trzymanie zasad',
   lift_dailyquest_mood: 'Quest dnia',
+  lift_cbt_mood: 'Praca z myślami',
   carryover_evening_morning: 'Wieczór z rutyną → poranek',
   carryover_evening_energy: 'Wieczór z rutyną → energia rano',
   carryover_activity_energy: 'Ruch wczoraj → energia rano',
@@ -489,10 +493,71 @@ function WeekdayBlock({ ins }: { ins: DayOfWeekInsight }) {
   )
 }
 
+// ── Cykl (faza → nastrój / energia) ──────────────────────────────
+
+const PHASE_ACCENT: Record<CyclePhaseId, string> = {
+  menstruacja: '#8B3A3A', folikularna: '#3D5247', owulacyjna: '#B8963E', lutealna: '#5A3E6B',
+}
+const PHASE_SHORT: Record<CyclePhaseId, string> = {
+  menstruacja: 'Menstr.', folikularna: 'Folik.', owulacyjna: 'Owul.', lutealna: 'Luteal.',
+}
+
+function CyclePhaseBlock({ ins }: { ins: CyclePhaseInsight }) {
+  const withData = ins.byPhase.filter(p => p.value !== null && p.count >= 1)
+  const best  = withData.length ? withData.reduce((a, b) => ((b.value ?? 0) > (a.value ?? 0) ? b : a)) : null
+  const worst = withData.length ? withData.reduce((a, b) => ((b.value ?? 0) < (a.value ?? 0) ? b : a)) : null
+  const metricPL = ins.metric === 'energy' ? 'Energia' : 'Nastrój'
+  const spread = best && worst && best.id !== worst.id
+
+  return (
+    <div>
+      <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div">
+        {metricPL} <span className="font-serif-body italic lowercase tracking-normal text-muted-light ml-1.5 text-[12px]">i–v</span>
+      </SmallCaps>
+      <div className="flex gap-2 mt-4">
+        {ins.byPhase.map(p => {
+          const has = p.value !== null && p.count >= 1
+          const isBest  = has && spread && best  && p.id === best.id
+          const isWorst = has && spread && worst && p.id === worst.id
+          const h = has ? Math.max(0, Math.min(100, ((p.value! - 2.2) / 1.4) * 100)) : 0
+          const acc = PHASE_ACCENT[p.id]
+          return (
+            <div key={p.id} className="flex-1 text-center">
+              <div className="h-[104px] flex items-end">
+                <div
+                  className="w-full transition-all duration-700"
+                  style={{ height: `${h}%`, background: acc, opacity: !has ? 0.12 : isBest ? 1 : isWorst ? 0.85 : 0.45 }}
+                  title={has ? `${p.label}: ${fmt(p.value)}/5 (${p.count} dni)` : p.label}
+                />
+              </div>
+              <div className="font-ui uppercase tracking-luxury text-[8px] mt-2" style={{ color: has ? acc : undefined }}>
+                {PHASE_SHORT[p.id]}
+              </div>
+              <div className="font-display text-[13px] text-dark tracking-tight mt-1">{fmt(p.value)}</div>
+            </div>
+          )
+        })}
+      </div>
+      <p className="font-serif-body italic text-muted text-[13px] mt-4 pt-3.5 border-t border-border leading-snug">
+        {spread
+          ? `twoja ${metricPL.toLowerCase()} jest najwyższa w fazie ${best!.label} (śr. ${fmt(best!.value)}/5), najniższa w ${worst!.label} (śr. ${fmt(worst!.value)}/5). to rytm, nie ocena — mapa, którą można zaplanować.`
+          : 'za mało kontrastu między fazami — dołóż check-inów w różnych fazach cyklu.'}
+      </p>
+    </div>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────
 
-export default function PatternsTab({ logs, cigarettesPhase }: { logs: Record<string, DailyLog>; cigarettesPhase?: number }) {
-  const insights = useMemo(() => computeCorrelations(logs, cigarettesPhase), [logs, cigarettesPhase])
+export default function PatternsTab({ logs, cigarettesPhase, cyclePhaseOf }: {
+  logs: Record<string, DailyLog>
+  cigarettesPhase?: number
+  cyclePhaseOf?: (dateKey: string) => CyclePhaseId | null
+}) {
+  const insights = useMemo(
+    () => computeCorrelations(logs, cigarettesPhase, { cyclePhaseOf }),
+    [logs, cigarettesPhase, cyclePhaseOf],
+  )
   const logsWithMood = Object.values(logs).filter(l => l.moodCheckIns && l.moodCheckIns.length > 0)
 
   if (logsWithMood.length === 0) {
@@ -521,6 +586,9 @@ export default function PatternsTab({ logs, cigarettesPhase }: { logs: Record<st
   const noData  = directional.filter(i => dirVerdict(i) === 'nodata')
 
   const dowInsights = insights.filter((i): i is DayOfWeekInsight => i.type === 'dow')
+  const cycleInsights = insights.filter(
+    (i): i is CyclePhaseInsight => i.type === 'cyclephase' && i.hasEnoughData
+  )
   const cigInsights = insights.filter(
     (i): i is ComparisonInsight => i.type === 'comparison' && i.id.startsWith('cigarettes')
   )
@@ -588,6 +656,21 @@ export default function PatternsTab({ logs, cigarettesPhase }: { logs: Record<st
             {[...dowInsights]
               .sort((a) => (a.metric === 'energy' ? -1 : 1))
               .map(ins => <WeekdayBlock key={ins.id} ins={ins} />)}
+          </div>
+        </Panel>
+      )}
+
+      {/* Rytm cyklu — faza → nastrój / energia */}
+      {cycleInsights.length > 0 && (
+        <Panel
+          eyebrow="Rytm cyklu"
+          title="Nastrój i energia według fazy"
+          note="trzecia oś: naturalny, powtarzalny rytm hormonalny. u Ciebie zwykle najsilniejsze źródło zmienności — bo daje kontrast, którego nawyki robione „zawsze” nie mają."
+        >
+          <div className="grid sm:grid-cols-2 gap-x-10 gap-y-8 mt-5 sm:[&>div+div]:border-l sm:[&>div+div]:border-border sm:[&>div+div]:pl-10">
+            {[...cycleInsights]
+              .sort((a) => (a.metric === 'energy' ? -1 : 1))
+              .map(ins => <CyclePhaseBlock key={ins.id} ins={ins} />)}
           </div>
         </Panel>
       )}

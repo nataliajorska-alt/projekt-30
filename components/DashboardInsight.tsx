@@ -7,7 +7,7 @@ import { SmallCaps, Fleuron, CornerBrackets } from '@/components/ui'
 
 // Kompaktowy pasek „wzorca tygodnia" na dashboardzie.
 //
-// #3 — Silnik insightów (rygor: n≥10, |effect|≥0.2, korekta Bonferroniego)
+// #3 — Silnik insightów (stopnie pewności: pewny/wstępny/słaby, korekta FDR)
 // renderował się DOTĄD wyłącznie w /timeline?tab=patterns. To najmocniejszy atut
 // aplikacji, a był schowany dwa tapnięcia głębiej. Tu pokazujemy nagłówek +
 // najsilniejszy wzorzec od razu na „Dziś", ale TYLKO gdy naprawdę coś wyszło
@@ -25,9 +25,14 @@ export default function DashboardInsight() {
 
   if (loading || !insight || !insight.hasContent) return null
 
-  const top = insight.outcomes.find((o) => o.passed)
-  // pierwsze zdanie najmocniejszego wzorca — pełny rozkład jest w /timeline
-  const topLine = top?.text?.split('\n')[0]?.trim()
+  // pierwsze zdanie najmocniejszego sygnału — body jest już posortowane po sile,
+  // a każdy akapit zaczyna się od tagu pewności [pewny]/[wstępny]/[słaby], który tu
+  // zdejmujemy. Działa dla każdego stopnia, nie tylko „pewny".
+  const topLine = insight.body
+    ?.split('\n')
+    .find((l) => l.trim())
+    ?.replace(/^\[[^\]]+\]\s*/, '')
+    .trim()
 
   return (
     <section className="relative bg-ivory border border-gold-light/40 p-5 sm:p-6 mb-4">

@@ -1,23 +1,38 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { useTimelineData } from './useTimelineData'
+import { useCycleData } from './useCycleData'
+import { useCycleSettings } from './useCycleSettings'
 import { getISOWeekKey, getEffectiveNow } from '@/lib/gameLogic'
+import { getPhaseIdForDate } from '@/lib/cycle-data'
 import { computeWeeklyInsight, logsSignature, type WeeklyInsight } from '@/lib/weeklyInsight'
+import type { HypothesisContext } from '@/lib/weeklyHypotheses'
 import { parseSafe, WeeklyInsightSchema } from '@/lib/schemas'
 import { fireInsightSeen } from './useWeeklyInsightBadge'
 
 export function useWeeklyInsight() {
   const { user } = useAuth()
   const { logs, loading: logsLoading } = useTimelineData()
+  const { logs: cycleLogs } = useCycleData()
+  const { settings: cycleSettings } = useCycleSettings()
   const [insight, setInsight] = useState<WeeklyInsight | null>(null)
   const [loading, setLoading] = useState(true)
   const [hasNewBadge, setHasNewBadge] = useState(false)
 
   const weekKey = getISOWeekKey(getEffectiveNow())
+
+  // Kontekst z fazą cyklu — daje silnikowi „trzecią oś". Stabilny referencyjnie,
+  // by nie retriggerować przeliczeń bez zmiany danych cyklu.
+  const ctx = useMemo<HypothesisContext>(
+    () => (cycleLogs.length > 0
+      ? { cyclePhaseOf: (dateKey: string) => getPhaseIdForDate(cycleLogs, dateKey, cycleSettings) }
+      : {}),
+    [cycleLogs, cycleSettings],
+  )
 
   const ensureInsight = useCallback(async () => {
     if (!user || logsLoading) return
@@ -25,7 +40,7 @@ export function useWeeklyInsight() {
 
     const ref = doc(db, ...paths.insightDoc(user.uid, weekKey))
     const snap = await getDoc(ref)
-    const sig = logsSignature(logs)
+    const sig = logsSignature(logs, ctx)
 
     if (snap.exists()) {
       const data = parseSafe<WeeklyInsight>(
@@ -48,12 +63,12 @@ export function useWeeklyInsight() {
     }
 
     // Brak cachu albo dane się zmieniły — przelicz (każdego dnia, nie tylko nd/pn).
-    const fresh = computeWeeklyInsight(logs, weekKey)
+    const fresh = computeWeeklyInsight(logs, weekKey, ctx)
     await setDoc(ref, fresh)
     setInsight(fresh)
     setHasNewBadge(true)
     setLoading(false)
-  }, [user?.uid, weekKey, logs, logsLoading])
+  }, [user?.uid, weekKey, logs, logsLoading, ctx])
 
   useEffect(() => { ensureInsight() }, [ensureInsight])
 
@@ -61,13 +76,13 @@ export function useWeeklyInsight() {
   const regenerate = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const fresh = computeWeeklyInsight(logs, weekKey)
+    const fresh = computeWeeklyInsight(logs, weekKey, ctx)
     const ref = doc(db, ...paths.insightDoc(user.uid, weekKey))
     await setDoc(ref, fresh)
     setInsight(fresh)
     setHasNewBadge(true)
     setLoading(false)
-  }, [user?.uid, weekKey, logs])
+  }, [user?.uid, weekKey, logs, ctx])
 
   /** Oznacza badge jako "widziany" w tej sesji. */
   const markSeen = useCallback(() => {
