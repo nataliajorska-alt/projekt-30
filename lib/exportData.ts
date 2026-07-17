@@ -750,7 +750,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
       lines.push(``)
       if (r.highlights) { lines.push(`**Highlights:**`); lines.push(``); lines.push(r.highlights); lines.push(``) }
       if (r.challenges) { lines.push(`**Wyzwania:**`); lines.push(``); lines.push(r.challenges); lines.push(``) }
-      const pr = Object.entries(r.pillarsRated ?? {}).map(([p, v]) => `${pillarName(p)}: ${v}/10`).join(' · ')
+      const pr = Object.entries(r.pillarsRated ?? {}).map(([p, v]) => `${pillarName(p)}: ${v}/5`).join(' · ')
       if (pr) lines.push(`**Oceny filarów:** ${pr}`)
       if (r.intentionNextMonth) { lines.push(``); lines.push(`**Intencja na następny miesiąc:**`); lines.push(``); lines.push(r.intentionNextMonth) }
       lines.push(``)
@@ -772,7 +772,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
       lines.push(``)
       if (r.highlights) { lines.push(`**Co poszło dobrze:**`); lines.push(``); lines.push(r.highlights); lines.push(``) }
       if (r.challenges) { lines.push(`**Wyzwania:**`); lines.push(``); lines.push(r.challenges); lines.push(``) }
-      const pr = Object.entries(r.pillarsRated ?? {}).map(([p, v]) => `${pillarName(p)}: ${v}/10`).join(' · ')
+      const pr = Object.entries(r.pillarsRated ?? {}).map(([p, v]) => `${pillarName(p)}: ${v}/5`).join(' · ')
       if (pr) lines.push(`**Oceny filarów:** ${pr}`)
       if (r.nextWeekFocus) { lines.push(``); lines.push(`**Focus na przyszły tydzień:** ${r.nextWeekFocus}`) }
       lines.push(``)
