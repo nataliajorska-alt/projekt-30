@@ -45,7 +45,7 @@ export default function NegativeChecklist() {
         {DAILY_RULES.map((rule, idx) => {
           const done = todayLog?.keptRules?.includes(rule.id) ?? false
           const xp = isMinimum ? rule.xp * 2 : rule.xp
-          // Only the FIRST rule (r1) gets the Ghost Protocol twin inline.
+          // Only the FIRST rule (r1) gets the Ghost Protocol trigger inline.
           // SoothingPicker (r3) keeps its own collapsible below-row treatment
           // because its suggestion card expands and doesn't fit inline.
           const hasInlineGhost = rule.id === 'r1'
@@ -54,8 +54,8 @@ export default function NegativeChecklist() {
             <div key={rule.id}>
               <div
                 className={clsx(
-                  // flex-wrap + ordering: on mobile twin wraps to a second row
-                  // (label + xp stay together on the first row). On sm+: all inline.
+                  // flex-wrap + ordering: on mobile the trigger wraps to a second
+                  // row (label + xp stay together on the first row). On sm+: inline.
                   'flex flex-wrap items-center gap-x-3.5 gap-y-2 py-2.5 transition-colors',
                   idx > 0 && 'border-t border-border/60',
                 )}

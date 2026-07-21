@@ -27,6 +27,7 @@ type HonestPhase =
   | 'honest_plan' | 'honest_done'
 
 type ActiveFlow =
+  | { type: 'menu' }
   | { type: 'impulse'; phase: ImpulsePhase }
   | { type: 'honest'; phase: HonestPhase }
   | { type: 'express' }
@@ -381,38 +382,101 @@ export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2P
   if (!flow) {
     // Sterowane z zewnątrz (FAB): brak własnego triggera — rodzic odmontuje.
     if (onExit) return null
-    // "Tonę teraz" — ekspres regulacji (jeden tap, bez kategoryzowania).
-    // Pod spodem twin: Mam impuls / Sprawdziłam. Niżej: Prawda na zimno.
+    // Jeden dyskretny trigger — wybór konkretnego narzędzia dzieje się
+    // w pełnoekranowym menu, żeby wiersz zasady nie dźwigał 4 przycisków.
     return (
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => setFlow({ type: 'express' })}
-          className="inline-flex items-center justify-center gap-2 bg-gold/15 border border-gold hover:bg-gold/25 transition-colors px-3.5 py-2 font-ui uppercase tracking-[0.32em] text-[10px] text-gold-deep"
-        >
-          <span className="text-gold text-[9px] leading-none">❖</span>
-          <span>Tonę</span>
-        </button>
-        <button
-          onClick={() => setFlow({ type: 'impulse', phase: 'category' })}
-          className="inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3.5 py-2 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
-        >
-          <span className="text-gold text-[9px] leading-none">◆</span>
-          <span>Impuls</span>
-        </button>
-        <button
-          onClick={startHonest}
-          className="inline-flex items-center justify-center gap-1.5 border border-hairline hover:border-gold transition-colors px-3.5 py-2 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
-        >
-          <span className="text-gold text-[9px] leading-none">∴</span>
-          <span>Sprawdziłam</span>
-        </button>
-        <button
-          onClick={() => setShowTouchstone(true)}
-          className="inline-flex items-center font-ui uppercase tracking-luxury text-[10px] text-muted/70 hover:text-gold-deep transition-colors px-1 py-0.5"
-        >
-          Prawda na zimno
-        </button>
-      </div>
+      <button
+        onClick={() => setFlow({ type: 'menu' })}
+        className="inline-flex items-center justify-center gap-2 border border-hairline hover:border-gold transition-colors px-3.5 py-2 font-ui uppercase tracking-[0.32em] text-[10px] text-muted hover:text-dark"
+      >
+        <span className="text-gold text-[9px] leading-none">❖</span>
+        <span>Protokół</span>
+      </button>
+    )
+  }
+
+  // ─── MENU (wybór narzędzia) ─────────────────────────────────────
+
+  if (flow.type === 'menu') {
+    const tools = [
+      {
+        glyph: '❖',
+        label: 'Tonę teraz',
+        desc: 'kryzys — najpierw układ nerwowy, bez nazywania.',
+        highlight: true,
+        go: () => setFlow({ type: 'express' as const }),
+      },
+      {
+        glyph: '◆',
+        label: 'Mam impuls',
+        desc: 'nazwij, co cię pcha — dostaniesz interwencję.',
+        highlight: false,
+        go: () => setFlow({ type: 'impulse' as const, phase: 'category' as const }),
+      },
+      {
+        glyph: '∴',
+        label: 'Sprawdziłam',
+        desc: 'uczciwy log — bez wstydu, z planem na następny raz.',
+        highlight: false,
+        go: startHonest,
+      },
+      {
+        glyph: '✦',
+        label: 'Prawda na zimno',
+        desc: 'list od ciebie z chłodnej głowy do ciebie teraz.',
+        highlight: false,
+        go: () => setShowTouchstone(true),
+      },
+    ]
+    return (
+      <Frame>
+        <div className="w-full max-w-sm">
+          <FrameLabel>Ghost Protocol</FrameLabel>
+          <h2 className="font-display text-ivory text-3xl text-center leading-tight mb-2">
+            Czego potrzebujesz?
+          </h2>
+          <p className="font-serif-body italic text-parchment text-[14px] text-center mb-8">
+            wybierz, co pasuje do tej chwili.
+          </p>
+          <div className="space-y-2.5">
+            {tools.map(t => (
+              <button
+                key={t.label}
+                onClick={t.go}
+                className={clsx(
+                  'w-full flex items-center gap-4 px-5 py-4 border text-left transition-all',
+                  t.highlight
+                    ? 'bg-gold/10 border-gold hover:bg-gold/20'
+                    : 'border-ivory/15 bg-forest/20 hover:bg-forest/40 hover:border-gold/40',
+                )}
+              >
+                <span
+                  className={clsx(
+                    'text-[13px] leading-none shrink-0',
+                    t.highlight ? 'text-gold' : 'text-gold-light/70',
+                  )}
+                >
+                  {t.glyph}
+                </span>
+                <div className="min-w-0">
+                  <SmallCaps tone={t.highlight ? 'gold-light' : 'ivory'} tracking="luxury" size="xs" as="div">
+                    {t.label}
+                  </SmallCaps>
+                  <p className="font-serif-body italic text-parchment/70 text-[12px] leading-snug mt-1">
+                    {t.desc}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={reset}
+            className="w-full text-center font-ui uppercase tracking-luxury text-[10px] text-parchment/50 hover:text-parchment transition-colors mt-7"
+          >
+            zamknij
+          </button>
+        </div>
+      </Frame>
     )
   }
 
