@@ -76,7 +76,7 @@ export default function SparkScheduleSection() {
       <h2 className="font-display text-dark text-[22px] tracking-tight mt-1">Twoje iskry</h2>
       <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5 leading-relaxed">
         wpisz iskry na kolejne dni — pojawią się jako iskra dnia w odpowiednim momencie.
-        puste dni wrócą do domyślnych afirmacji.
+        puste dni wrócą do domyślnych iskier.
       </p>
 
       {/* Week nav */}

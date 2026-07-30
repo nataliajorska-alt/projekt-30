@@ -28,8 +28,8 @@ export const MONTHLY_DATA: Record<string, MonthData> = {
     motto: 'To moje życie. Ja zostaję.',
   },
   '2026-08': {
-    name: 'Witalność',
-    motto: 'Dbam o ciało i energię jak o kapitał. Lato należy do mnie.',
+    name: 'ZAUFANIE SOBIE',
+    motto: 'Wiem, co jest dla mnie dobre. Nie muszę pytać o zgodę.',
   },
   '2026-09': {
     name: 'Ostrość',
