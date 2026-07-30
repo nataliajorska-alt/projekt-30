@@ -125,7 +125,9 @@ export default function QuarterlyReviewForm({
     const counts: Record<string, number> = {}
     for (const c of GHOST_CATEGORIES) counts[c.id] = 0
     for (const e of quarterGhostEntries) counts[e.category] = (counts[e.category] ?? 0) + 1
-    return GHOST_CATEGORIES.map(c => ({ ...c, count: counts[c.id] })).sort((a, b) => b.count - a.count)[0]
+    const top = GHOST_CATEGORIES.map(c => ({ ...c, count: counts[c.id] })).sort((a, b) => b.count - a.count)[0]
+    // Same chmurki (quick-log spoza GHOST_CATEGORIES) w kwartale → brak nazwanej kategorii.
+    return top && top.count > 0 ? top : null
   }, [quarterGhostEntries, ghostTotal])
   const noContactCount = quarterGhostEntries.filter(e => !e.hadContact).length
   const avgIntensity = ghostTotal > 0
@@ -309,8 +311,8 @@ export default function QuarterlyReviewForm({
               <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-2 block">impulsy</SmallCaps>
             </div>
             <div className="text-center">
-              <p className="text-2xl mb-1 leading-none">{topCat?.icon}</p>
-              <SmallCaps tone="muted" tracking="luxury" size="xs">{topCat?.label}</SmallCaps>
+              <p className="text-2xl mb-1 leading-none">{topCat?.icon ?? '◦'}</p>
+              <SmallCaps tone="muted" tracking="luxury" size="xs">{topCat?.label ?? 'same chmurki'}</SmallCaps>
             </div>
             <div className="text-center">
               <p className="font-display text-dark text-2xl leading-none">{noContactCount}</p>

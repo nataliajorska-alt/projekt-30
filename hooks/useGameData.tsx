@@ -818,6 +818,29 @@ export function useGameData() {
   }, [user, todayLog, stats, statsRef, todayRef, currentDateKey, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
 
   // Honest Failure Log: +15 XP za uczciwość
+  // Quick-log Chmurki: +5 XP pozycja i nic więcej. Celowo BEZ ghostProtocolCompleted,
+  // totalGhostProtocols i lastGhostDate — chmurka to punkt danych (lekka fala),
+  // nie aktywacja protokołu; flaga dzienna zawyżałaby hipotezy tygodniowe,
+  // achievementy i aproksymację pillarXP w recoverStats (+45 XP/dzień dryfu).
+  const recordGhostChmurka = useCallback(async () => {
+    if (!user || !statsRef || !statsLoadedRef.current) return
+    const xp = 5
+    const withStreak = await applyStreakIfNeeded(stats)
+    let newStats: UserStats = {
+      ...withStreak,
+      totalXP: withStreak.totalXP + xp,
+      pillarXP: {
+        ...withStreak.pillarXP,
+        pozycja: (withStreak.pillarXP.pozycja ?? 0) + xp,
+      },
+    }
+    newStats = applyPillarBalanceIfNeeded(newStats, 'pozycja')
+    const achUpdates = await checkAchievements(newStats)
+    const finalStats = { ...newStats, ...achUpdates }
+    checkLevelUp(stats.totalXP, finalStats.totalXP)
+    await setDoc(statsRef, buildStatsWrite(stats, finalStats), { merge: true })
+  }, [user, stats, statsRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
+
   const recordHonestFailure = useCallback(async () => {
     if (!user || !statsRef || !statsLoadedRef.current) return
     const withStreak = await applyStreakIfNeeded(stats)
@@ -1196,9 +1219,12 @@ export function useGameData() {
     pillarXP.pozycja = (pillarXP.pozycja ?? 0) + fromCBT
 
     // Jeśli V2 ma więcej unikalnych dni z impulsami niż log.ghostProtocolCompleted — użyj większego.
-    if (ghostV2Entries.length > 0) {
+    // Chmurki (quick-log) pominięte: nie są aktywacją protokołu i na żywo nie ustawiają
+    // ghostProtocolCompleted ani totalGhostProtocols — recovery musi liczyć tak samo.
+    const v2ProtocolEntries = ghostV2Entries.filter(e => e.category !== 'chmurka')
+    if (v2ProtocolEntries.length > 0) {
       const v2DayKeys = new Set(
-        ghostV2Entries.map(e => {
+        v2ProtocolEntries.map(e => {
           const d = new Date(e.timestamp)
           return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
         })
@@ -1323,7 +1349,7 @@ export function useGameData() {
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
     logCigarette, removeLastCigarette, startSmokingPhase, toggleSmokeEmergencyDay,
     completeHeartBlock,
-    recordGhostImpulseV2, recordHonestFailure, logCustomSideQuest,
+    recordGhostImpulseV2, recordGhostChmurka, recordHonestFailure, logCustomSideQuest,
     awardCBTCapture, awardCBTReframe, awardCBTBelief, awardCBTCoping, awardCBTBonus,
     recoverStats, applyRecoveredStats,
   }

@@ -180,7 +180,7 @@ export default function ProtocolTab({ entries, failures, loading }: ProtocolTabP
         <MetricCell feature idx="I" hero={String(noContactCount)} eyebrow="Bez kontaktu" note={`${noContactPct}% wytrwałości`} />
         <MetricCell idx="II" hero={String(total)} eyebrow="Impulsy" note="zauważone i nazwane" />
         <MetricCell idx="III" hero={avgIntensity} eyebrow="Śr. intensywność" note="skala I–V" />
-        <MetricCell idx="IV" heroText={topCat.label} eyebrow="Główna kategoria" note={`${Math.round((topCat.count / total) * 100)}% impulsów`} />
+        <MetricCell idx="IV" heroText={topCat?.label ?? '—'} eyebrow="Główna kategoria" note={topCat ? `${Math.round((topCat.count / total) * 100)}% impulsów` : 'na razie same chmurki'} />
       </div>
 
       {/* Mapa podatności */}
@@ -281,7 +281,8 @@ export default function ProtocolTab({ entries, failures, loading }: ProtocolTabP
         </Panel>
       )}
 
-      {/* Kategorie impulsów */}
+      {/* Kategorie impulsów — chowany, gdy w logu są na razie same chmurki (quick-log bez kategorii) */}
+      {rankedCats.length > 0 && (
       <Panel eyebrow="Kategorie impulsów" title="Co poprzedza impuls" note="co najczęściej poprzedza impuls — nazwane, policzone, znane.">
         <div className="mt-5">
           {rankedCats.map(cat => {
@@ -305,6 +306,7 @@ export default function ProtocolTab({ entries, failures, loading }: ProtocolTabP
           })}
         </div>
       </Panel>
+      )}
 
       {/* Uczciwy log */}
       {failures.length > 0 && (

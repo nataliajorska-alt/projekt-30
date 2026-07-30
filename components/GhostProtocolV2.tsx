@@ -31,6 +31,7 @@ type ActiveFlow =
   | { type: 'impulse'; phase: ImpulsePhase }
   | { type: 'honest'; phase: HonestPhase }
   | { type: 'express' }
+  | { type: 'chmurka_done' }
 
 // ─── Frame ───────────────────────────────────────────────────────
 
@@ -240,7 +241,7 @@ interface GhostProtocolV2Props {
 }
 
 export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2Props = {}) {
-  const { todayLog, recordGhostImpulseV2, recordHonestFailure } = useGameData()
+  const { todayLog, recordGhostImpulseV2, recordGhostChmurka, recordHonestFailure } = useGameData()
   const { saveImpulseEntry, saveFailureEntry, failures } = useGhostV2()
   const { contacts } = useNominatedContacts()
 
@@ -249,6 +250,7 @@ export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2P
   )
   const [showEmergencyLock, setShowEmergencyLock] = useState(false)
   const [showTouchstone, setShowTouchstone] = useState(false)
+  const [chmurkaSaving, setChmurkaSaving] = useState(false)
 
   // Impulse
   const [selectedCategory, setSelectedCategory] = useState<GhostCategory | null>(null)
@@ -268,6 +270,7 @@ export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2P
 
   const reset = useCallback(() => {
     setFlow(null)
+    setChmurkaSaving(false)
     setSelectedCategory(null)
     setSelectedSubcategory(null)
     setSelectedIntensity(null)
@@ -343,6 +346,37 @@ export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2P
     setFlow({ type: 'impulse', phase: 'done' })
   }, [selectedCategory, selectedSubcategory, selectedIntensity, todayLog, recordGhostImpulseV2, saveImpulseEntry])
 
+  // Quick-log Chmurki: lekka fala zapisana jednym tapem, bez nazywania.
+  // Intensywność 2 z definicji („Wyraźne, ale nie zagrażające"), +5 XP — mikro-praca.
+  // Podczas zapisu menu jest zablokowane (disabled), więc flow nie może się
+  // zmienić pod spodem; finally zdejmuje guard także przy błędzie sieci.
+  const logChmurka = useCallback(async () => {
+    if (chmurkaSaving) return
+    setChmurkaSaving(true)
+    try {
+      const now = new Date()
+      const entry: GhostLogEntryV2 = {
+        version: 2,
+        timestamp: now.getTime(),
+        hour: now.getHours(),
+        weekday: (now.getDay() + 6) % 7,
+        dayMode: todayLog?.dayMode ?? 'normal',
+        category: 'chmurka',
+        subcategory: 'szybki log',
+        intensity: 2,
+        hadContact: false,
+        xpEarned: 5,
+      }
+      await recordGhostChmurka()
+      await saveImpulseEntry(entry)
+      setFlow({ type: 'chmurka_done' })
+    } catch (err) {
+      console.error('chmurka quick-log error:', err)
+    } finally {
+      setChmurkaSaving(false)
+    }
+  }, [chmurkaSaving, todayLog, recordGhostChmurka, saveImpulseEntry])
+
   const startHonest = useCallback(() => {
     setFlow({ type: 'honest', phase: 'honest_start' })
   }, [])
@@ -414,6 +448,13 @@ export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2P
         go: () => setFlow({ type: 'impulse' as const, phase: 'category' as const }),
       },
       {
+        glyph: '◦',
+        label: chmurkaSaving ? 'Chmurka…' : 'Chmurka',
+        desc: 'lekka fala, przeszła — jeden tap i tyle, bez rytuału.',
+        highlight: false,
+        go: logChmurka,
+      },
+      {
         glyph: '∴',
         label: 'Sprawdziłam',
         desc: 'uczciwy log — bez wstydu, z planem na następny raz.',
@@ -443,11 +484,13 @@ export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2P
               <button
                 key={t.label}
                 onClick={t.go}
+                disabled={chmurkaSaving}
                 className={clsx(
                   'w-full flex items-center gap-4 px-5 py-4 border text-left transition-all',
                   t.highlight
                     ? 'bg-gold/10 border-gold hover:bg-gold/20'
                     : 'border-ivory/15 bg-forest/20 hover:bg-forest/40 hover:border-gold/40',
+                  chmurkaSaving && 'opacity-50 pointer-events-none',
                 )}
               >
                 <span
@@ -471,9 +514,46 @@ export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2P
           </div>
           <button
             onClick={reset}
-            className="w-full text-center font-ui uppercase tracking-luxury text-[10px] text-parchment/50 hover:text-parchment transition-colors mt-7"
+            disabled={chmurkaSaving}
+            className={clsx(
+              'w-full text-center font-ui uppercase tracking-luxury text-[10px] text-parchment/50 hover:text-parchment transition-colors mt-7',
+              chmurkaSaving && 'opacity-50 pointer-events-none',
+            )}
           >
             zamknij
+          </button>
+        </div>
+      </Frame>
+    )
+  }
+
+  // ─── CHMURKA DONE (quick-log) ───────────────────────────────────
+
+  if (flow.type === 'chmurka_done') {
+    return (
+      <Frame>
+        <div className="w-full max-w-sm text-center">
+          <FrameLabel>Ghost Protocol</FrameLabel>
+          <Fleuron size={20} className="text-gold mx-auto mb-6 inline-block" />
+          <p className="font-display text-ivory text-3xl leading-tight mb-4">
+            Chmurka, nie burza.
+          </p>
+          <p className="font-serif-body italic text-parchment text-[14px] mb-7 leading-relaxed">
+            zauważona i zapisana. nie musisz z nią nic robić — przejdzie sama.
+          </p>
+          <GoldRule variant="diamond" tone="gold" className="max-w-xs mx-auto mb-6" />
+          <div className="inline-flex items-center gap-3 border border-gold-light/40 px-5 py-2 mb-8">
+            <Diamond size={5} className="text-gold" />
+            <SmallCaps tone="gold-light" tracking="luxury" size="sm">
+              + {toRoman(5)} XP Pozycja
+            </SmallCaps>
+            <Diamond size={5} className="text-gold" />
+          </div>
+          <button
+            onClick={reset}
+            className="w-full font-ui uppercase tracking-luxury text-[10px] text-parchment/70 hover:text-parchment transition-colors py-2"
+          >
+            zamknij  ◆
           </button>
         </div>
       </Frame>

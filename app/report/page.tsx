@@ -307,8 +307,10 @@ export default function ReportPage() {
   const levelsAhead = LEVELS.length - currentLevel.level
 
   // Ghost Protocol: copy panelu mówi „zamiast wysłać wiadomość", więc liczymy
-  // tylko wpisy bez kontaktu — spójnie z ProtocolTab i przeglądem kwartalnym
-  const ghostResisted = ghostEntries.filter(e => !e.hadContact)
+  // tylko wpisy bez kontaktu — spójnie z ProtocolTab i przeglądem kwartalnym.
+  // Chmurki (quick-log) wykluczone: to lekkie fale bez rytuału, a każda kreska
+  // panelu obiecuje pełną aktywację protokołu — nie rozwadniamy tej metryki.
+  const ghostResisted = ghostEntries.filter(e => !e.hadContact && e.category !== 'chmurka')
   const vaultLetters = vaultEntries.filter(e => e.letterType !== 'vent' && e.content)
 
   // Numeracja paneli liczona z faktycznie renderowanych — trzy panele są

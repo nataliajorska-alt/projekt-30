@@ -63,6 +63,9 @@ export type GhostCategory =
   | 'tesknota_hustawka'
   | 'flashback'
   | 'kontakt_zewnetrzny'
+  // quick-log — lekka fala (intensywność 2) zapisana jednym tapem, bez nazywania;
+  // celowo poza GHOST_CATEGORIES, więc nie występuje w rankingu kategorii
+  | 'chmurka'
   // legacy — stare wpisy z maja, niewidoczne w UI, zachowane dla zgodności logów
   | 'social_slady'
   | 'zycie_rownolegla'
