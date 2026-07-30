@@ -236,6 +236,11 @@ export default function CountdownHero() {
               <span className="absolute left-0 top-1.5 bottom-1.5 w-px bg-gold/60" />
               &ldquo;{month.motto}&rdquo;
             </blockquote>
+            {month.question && (
+              <p className="font-serif-body italic text-gold-pale/60 text-[11.5px] leading-snug pl-3 mt-2">
+                {month.question}
+              </p>
+            )}
           </div>
 
           {/* Center divider with ∴ */}

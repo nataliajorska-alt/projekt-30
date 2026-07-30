@@ -82,7 +82,7 @@ export const WEEKLY_HABITS: Record<number, RoutineItem[]> = {
   ],
   5: [ // Piątek
     { id: 'w5_1', text: 'Both minis', type: 'daily', xp: 10 },
-    { id: 'w5_2', text: 'Timesheet', type: 'daily', xp: 10 },
+    // w5_2 „Timesheet" usunięty 30.07.2026 — nawyk EY-owy, martwy po końcu wypowiedzenia (31.08).
     { id: 'w5_3', text: 'Uporządkuj notatki', type: 'daily', xp: 10 },
   ],
   6: [], // Sobota — brak

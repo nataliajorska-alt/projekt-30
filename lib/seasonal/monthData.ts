@@ -5,6 +5,8 @@ import { getEffectiveNow } from '../gameLogic'
 export interface MonthData {
   name: string
   motto: string
+  /** Pytanie miesiąca (z planera) — pokazywane pod mottem w hero, opcjonalne. */
+  question?: string
 }
 
 export const MONTHLY_DATA: Record<string, MonthData> = {
@@ -26,10 +28,12 @@ export const MONTHLY_DATA: Record<string, MonthData> = {
   '2026-07': {
     name: 'ODDECH',
     motto: 'To moje życie. Ja zostaję.',
+    question: 'Co dziś dało mi oddech, którego nikt mi nie dał?',
   },
   '2026-08': {
     name: 'ZAUFANIE SOBIE',
     motto: 'Wiem, co jest dla mnie dobre. Nie muszę pytać o zgodę.',
+    question: 'Czy doświadczam radości, będąc tu i teraz?',
   },
   '2026-09': {
     name: 'Ostrość',
