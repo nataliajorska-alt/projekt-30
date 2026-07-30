@@ -72,6 +72,12 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
   const todayCount = todayLog?.cigarettes?.length ?? 0
   const lastEntry = todayLog?.cigarettes?.[todayLog.cigarettes.length - 1]
   const lastContext = lastEntry?.context
+  // Deklaracja „ostatni na dziś" z wieczornego domknięcia — pokazywana łagodnie,
+  // dopóki żaden papieros nie został zalogowany po niej (wtedy to już dane, nie znak).
+  const lastOfDayAt = todayLog?.smokeLastOfDayAt ?? null
+  // todayCount > 0: przy zerze papierosów deklaracja jest bezprzedmiotowa (np.
+  // osierocona po cofnięciu jedynego wpisu) — nie pokazujemy jej pod licznikiem 0.
+  const declaredLast = lastOfDayAt !== null && todayCount > 0 && !!lastEntry && lastEntry.timestamp <= lastOfDayAt
 
   // Tempo dnia — spokojne lustro: ile do sufitu i ile aktywnego dnia przed Tobą.
   // Bez blokady, bez czerwieni; tylko fakty, byś sama zobaczyła, czy warto zwolnić.
@@ -237,6 +243,11 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
                   {lastContext && (
                     <> · {CIGARETTE_CONTEXTS.find(c => c.id === lastContext)?.label.toLowerCase()}</>
                   )}
+                </p>
+              )}
+              {declaredLast && (
+                <p className="font-serif-body italic text-gold-deep text-[12px] mt-1.5">
+                  zadeklarowany jako ostatni na dziś ◆
                 </p>
               )}
             </div>

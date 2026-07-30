@@ -280,6 +280,12 @@ export interface DailyLog {
    */
   cbtCaptureAwarded?: boolean
   /**
+   * Deklaracja „ostatni papieros dnia" z wieczornego domknięcia — timestamp
+   * momentu deklaracji (null = cofnięta). Czysty znacznik: bez XP, bez blokad;
+   * papieros zalogowany PO deklaracji to dane do analizy, nie wyrok.
+   */
+  smokeLastOfDayAt?: number | null
+  /**
    * Suma XP wpisana w tym dniu przez zewnętrzne aplikacje (na razie tylko
    * The Learning Vault), rozbita per filar. Endpoint /api/external/xp
    * inkrementuje to pole atomowo. recoverStats czyta to pole, żeby pillarXP

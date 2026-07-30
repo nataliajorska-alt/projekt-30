@@ -94,6 +94,8 @@ export const DailyLogSchema = z.object({
   // Dzienny „capture" CBT: pierwszy wpis (myśl LUB emocja) tego dnia przyznał +10.
   // Gdy true — dzienny bonus już zaliczony, kolejne wpisy nie naliczają capture.
   cbtCaptureAwarded: z.boolean().optional(),
+  // Deklaracja „ostatni papieros dnia" (wieczorne domknięcie): timestamp, null = cofnięta.
+  smokeLastOfDayAt: z.number().nullable().optional(),
   // XP z zewnętrznych aplikacji (na razie The Learning Vault), per filar.
   externalXP: z.object({
     pozycja:   z.number().nonnegative().optional(),

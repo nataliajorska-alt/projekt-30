@@ -733,6 +733,17 @@ export function useGameData() {
   // Dzień awaryjny (PLAN_PALENIE / Faza 2): oznaczasz dziś jako awaryjny → sufit
   // zdjęty, bez presji. Limit/miesiąc chroni przed „codziennie awaryjny".
   // Ponowne wywołanie w oznaczonym dniu = cofnięcie (oddaje limit). Bez XP.
+  // Deklaracja „ostatni papieros dnia" (wieczorne domknięcie): czysty znacznik
+  // w logu dnia — bez XP, bez liczników, bez blokad. null = deklaracja cofnięta.
+  // todayLog odświeża się przez onSnapshot, więc lokalny stan nie wymaga ruchu.
+  const setLastCigaretteOfDay = useCallback(async (mark: boolean) => {
+    if (!user || !todayRef) return
+    await setDoc(todayRef, {
+      smokeLastOfDayAt: mark ? Date.now() : null,
+      date: currentDateKey,
+    }, { merge: true })
+  }, [user, todayRef, currentDateKey])
+
   const toggleSmokeEmergencyDay = useCallback(async () => {
     if (!user || !statsRef || !statsLoadedRef.current) return
     const today = currentDateKey
@@ -1347,7 +1358,7 @@ export function useGameData() {
     streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity, toggleSubStep,
     postponeRoutineToTomorrow,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
-    logCigarette, removeLastCigarette, startSmokingPhase, toggleSmokeEmergencyDay,
+    logCigarette, removeLastCigarette, startSmokingPhase, toggleSmokeEmergencyDay, setLastCigaretteOfDay,
     completeHeartBlock,
     recordGhostImpulseV2, recordGhostChmurka, recordHonestFailure, logCustomSideQuest,
     awardCBTCapture, awardCBTReframe, awardCBTBelief, awardCBTCoping, awardCBTBonus,

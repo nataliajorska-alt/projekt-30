@@ -1,8 +1,10 @@
 'use client'
+import { useState } from 'react'
 import { useGameData } from '@/hooks/useGameData'
 import { useRoutineConfig } from '@/hooks/useRoutineConfig'
 import { filterItemsForMinimumDay } from '@/lib/minimumDayLogic'
 import { SmallCaps, Diamond } from '@/components/ui'
+import EveningClosing from '@/components/EveningClosing'
 
 // Pasek „Teraz" — jedna odpowiedź na „co teraz zrobić", wyprowadzona z todayLog.
 // Góra dashboardu była dotąd kontemplacyjnym ornamentem bez pojedynczej wskazówki.
@@ -12,6 +14,7 @@ import { SmallCaps, Diamond } from '@/components/ui'
 export default function DashboardNow() {
   const { todayLog, loading } = useGameData()
   const { getEffectiveItems } = useRoutineConfig()
+  const [showClosing, setShowClosing] = useState(false)
   if (loading || !todayLog) return null
 
   const done = todayLog.completedRoutine ?? []
@@ -66,7 +69,19 @@ export default function DashboardNow() {
       <span className="flex-1 font-serif-body italic text-[14.5px] text-dark leading-snug">
         {label}
       </span>
-      {closed && <Diamond size={5} className="text-gold" filled />}
+      {/* Wieczorne domknięcie: rutyna e1–e7 + „ostatni papieros dnia" na jednym
+          ekranie. Dostępne przez całe okno wieczoru — także po domknięciu rutyny,
+          bo deklarację papierosa można postawić później. */}
+      {eveningWindow && (
+        <button
+          onClick={() => setShowClosing(true)}
+          className="font-ui uppercase tracking-[0.28em] text-[9.5px] text-gold-deep hover:text-dark transition-colors shrink-0"
+        >
+          domknij ◆
+        </button>
+      )}
+      {closed && !eveningWindow && <Diamond size={5} className="text-gold" filled />}
+      {showClosing && <EveningClosing onClose={() => setShowClosing(false)} />}
     </div>
   )
 }
