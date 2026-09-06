@@ -290,6 +290,35 @@ export const PINNED_SPARKS: Record<string, string> = {
   '2026-08-29': 'Dane sierpnia to dane, nie ocena mnie.',
   '2026-08-30': 'Wchodzę we wrzesień wypoczęta, nie przygotowana na sto procent.',
   '2026-08-31': 'Zamykam sześć lat i idę dalej, nie uciekam.',
+  // ── WRZESIEŃ 2026 — LEKKOŚĆ ───────────────────────────────────
+  // Ta sama zasada co w sierpniu: iskra nazywa decyzję albo kierunek, nigdy cechę.
+  // We wrześniu jest dodatkowo twarda — „żadnego jestem wartościowa" to wprost
+  // wykluczenie z planu miesiąca (Wood, Perunovic i Lee 2009).
+  '2026-09-06': 'Przez tę jedną godzinę niczego nie buduję.',
+  '2026-09-07': 'Podchodzę pierwsza, nie czekam, aż ktoś zagada.',
+  '2026-09-08': 'Trzy minuty to nadal slot.',
+  '2026-09-09': 'Mówię to bez „chyba".',
+  '2026-09-10': 'Robię coś, z czego nic nie wynika.',
+  '2026-09-11': 'Zapisuję, jak było, nie czego się nauczyłam.',
+  '2026-09-12': 'Umawiam termin, zamiast czekać na lepszy moment.',
+  '2026-09-13': 'Wpisane się dzieje, niewpisane nie.',
+  '2026-09-14': 'Ustalam godzinę końca rano, bo wieczorem już nie będę umiała.',
+  '2026-09-15': 'Mówię do siebie po imieniu i robię krok w tył.',
+  '2026-09-16': 'Pytam jak przejdę przez ten wieczór, nie dlaczego to mnie spotkało.',
+  '2026-09-17': 'Ruszam się, nawet jeśli to tylko spacer. Zwłaszcza jeśli.',
+  '2026-09-18': 'Nie odrabiam. Zmęczenie nie jest długiem.',
+  '2026-09-19': 'Trudne nie znaczy moja wina.',
+  '2026-09-20': 'Dziś nikomu niczego nie udowadniam, łącznie ze sobą.',
+  '2026-09-21': 'Odczekuję dziesięć minut. Opóźnienie, nie zakaz.',
+  '2026-09-22': 'Próbuję dla siebie, nie dla kadru.',
+  '2026-09-23': 'Decyduję sama i zapisuję procent, zanim się dowiem.',
+  '2026-09-24': 'Wysyłam po drugim przejściu.',
+  '2026-09-25': 'Patrzę na liczbę, zamiast się jej domyślać.',
+  '2026-09-26': 'Robię to i nigdzie tego nie opisuję.',
+  '2026-09-27': 'Pytam, co zrobiłam, bo chciałam.',
+  '2026-09-28': 'Próbowałam. To wystarczy, żeby marzenie było spełnione.',
+  '2026-09-29': 'Nie zaglądam. Jeszcze jeden dzień ciszy.',
+  '2026-09-30': 'Zamykam fazę pytaniem, nie tabelką.',
 }
 
 // ─── TEMAT TYGODNIA (rotacja co 7 dni) ────────────────────────

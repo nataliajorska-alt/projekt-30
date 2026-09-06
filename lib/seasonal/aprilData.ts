@@ -1,6 +1,20 @@
 import type { Pillar } from '@/types'
 import type { QuestPostpone } from '@/hooks/useAprilQuests'
 
+/**
+ * Mięsień, na który pracuje quest (wprowadzone we wrześniu '26).
+ * A — bez zatwierdzenia · B — bez dowodu · C — ze sobą · D — bez oddawania steru.
+ * Quest bez uzasadnienia to zajęcie, nie zmiana — stąd litera na karcie.
+ */
+export type QuestMuscle = 'A' | 'B' | 'C' | 'D'
+
+export const QUEST_MUSCLE_LABEL: Record<QuestMuscle, string> = {
+  A: 'bez zatwierdzenia',
+  B: 'bez dowodu',
+  C: 'ze sobą',
+  D: 'bez oddawania steru',
+}
+
 export interface AprilQuest {
   id: string
   date: string      // YYYY-MM-DD
@@ -8,6 +22,8 @@ export interface AprilQuest {
   description: string
   pillar: Pillar
   xp: number
+  /** Opcjonalne — miesiące sprzed września '26 nie mają liter. */
+  muscles?: QuestMuscle[]
 }
 
 export const APRIL_MOTTO = 'W kwietniu nie proszę świata o miejsce. Zaczynam stawać się kobietą, której miejsce się robi.'
@@ -109,11 +125,25 @@ import { MAY_QUESTS } from './mayData'
 import { JUNE_QUESTS } from './juneData'
 import { JULY_QUESTS } from './julyData'
 import { AUGUST_QUESTS } from './augustData'
+import { SEPTEMBER_QUESTS } from './septemberData'
 
-export const APRIL_QUESTS: AprilQuest[] = [...APRIL_ONLY_QUESTS, ...MAY_QUESTS, ...JUNE_QUESTS, ...JULY_QUESTS, ...AUGUST_QUESTS]
+export const APRIL_QUESTS: AprilQuest[] = [...APRIL_ONLY_QUESTS, ...MAY_QUESTS, ...JUNE_QUESTS, ...JULY_QUESTS, ...AUGUST_QUESTS, ...SEPTEMBER_QUESTS]
 
 export function getAprilQuestsForDate(dateKey: string): AprilQuest[] {
   return APRIL_QUESTS.filter(q => q.date === dateKey)
+}
+
+/**
+ * Miesiące bez nadrabiania — zasada 2 planera września '26:
+ * „Niezrobiony quest nie przechodzi na jutro. Zmęczenie nie jest długiem do spłaty."
+ * Questy z tych miesięcy nigdy nie trafiają do sekcji „zaległe". Świadome przeniesienie
+ * (postpone) dalej działa — to Twoja decyzja, nie zaległość, którą apka Ci wypomina.
+ * Kolejne miesiące dopisuj świadomie: to decyzja projektowa, nie domyślne zachowanie.
+ */
+const NO_ROLLOVER_MONTHS = ['2026-09']
+
+export function isNoRollover(dateKey: string): boolean {
+  return NO_ROLLOVER_MONTHS.includes(dateKey.slice(0, 7))
 }
 
 export function getOverdueAprilQuests(
@@ -124,6 +154,7 @@ export function getOverdueAprilQuests(
 ): AprilQuest[] {
   return APRIL_QUESTS.filter(q => {
     if (q.date >= todayKey) return false
+    if (isNoRollover(q.date)) return false
     if (completedIds.includes(q.id)) return false
     if (skippedIds.includes(q.id)) return false
     // Jeśli quest przeniesiony na dziś lub później — nie jest overdue
