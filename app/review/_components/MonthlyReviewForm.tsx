@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import { useAuth } from '@/hooks/useAuth'
@@ -22,11 +22,57 @@ interface MonthlyFormProps {
   stats: ReturnType<typeof useGameData>['stats']
   logs: ReturnType<typeof useTimelineData>['logs']
   submitMonthlyReview: ReturnType<typeof useGameData>['submitMonthlyReview']
-  lastReview: MonthlyReview | null
+  monthlyReviews: MonthlyReview[]
+  reviewsLoading: boolean
 }
 
-export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyReview, lastReview }: MonthlyFormProps) {
-  const monthKey = useMemo(() => getMonthKey(getEffectiveNow()), [])
+const DEFAULT_RATINGS: Record<Pillar, number> = {
+  pozycja: 3, cialo: 3, styl: 3, kapital: 3, kariera: 3, tozsamosc: 3, milosc: 3,
+}
+
+// Wartość spoza skali 1–5 (np. zera z fallbacku parseSafe) nie jest oceną — wraca do 3.
+function hydrateRatings(saved?: Record<Pillar, number>): Record<Pillar, number> {
+  const out = { ...DEFAULT_RATINGS }
+  if (!saved) return out
+  for (const id of Object.keys(out) as Pillar[]) {
+    const v = saved[id]
+    if (typeof v === 'number' && v >= 1 && v <= 5) out[id] = v
+  }
+  return out
+}
+
+function monthsBack(key: string, n: number): string {
+  const [y, m] = key.split('-').map(Number)
+  const d = new Date(y!, m! - 1 - n, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyReview, monthlyReviews, reviewsLoading }: MonthlyFormProps) {
+  const currentMonthKey = useMemo(() => getMonthKey(getEffectiveNow()), [])
+  const [monthKey, setMonthKey] = useState(currentMonthKey)
+  const reviewedMonths = stats.reviewedMonths
+
+  // Bieżący miesiąc + trzy wstecz. Zamknięte też są na liście: formularz wczytuje
+  // zapisaną treść, więc setDoc(merge) nie ma już czego wyzerować.
+  const selectableMonths = useMemo(
+    () => [0, 1, 2, 3].map(n => monthsBack(currentMonthKey, n)),
+    [currentMonthKey],
+  )
+
+  // useReviewHistory czyta kolekcję raz przy montowaniu, więc zapis z tej sesji
+  // trzymamy lokalnie — inaczej powrót na ten miesiąc pokazałby stan sprzed zapisu.
+  const [sessionDrafts, setSessionDrafts] = useState<Record<string, MonthlyReview>>({})
+  const reviewFor = useCallback(
+    (key: string) => sessionDrafts[key] ?? monthlyReviews.find(r => r.month === key) ?? null,
+    [sessionDrafts, monthlyReviews],
+  )
+
+  // Ciągłość liczona od wybranego miesiąca, nie od dzisiaj (kolekcja jest malejąca).
+  const previousReview = useMemo(
+    () => monthlyReviews.find(r => r.month < monthKey) ?? null,
+    [monthlyReviews, monthKey],
+  )
+
   const agg = useMemo(() => getMonthAggregate(logs, monthKey), [logs, monthKey])
 
   // Checkpoint ścieżki papierosowej — jedno pytanie przy każdym miesięcznym podsumowaniu.
@@ -43,31 +89,53 @@ export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyRevi
   const [highlights, setHighlights] = useState('')
   const [challenges, setChallenges] = useState('')
   const [intention, setIntention] = useState('')
-  const [ratings, setRatings] = useState<Record<Pillar, number>>({
-    pozycja: 3, cialo: 3, styl: 3, kapital: 3, kariera: 3, tozsamosc: 3, milosc: 3,
-  })
+  const [ratings, setRatings] = useState<Record<Pillar, number>>({ ...DEFAULT_RATINGS })
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [xpGranted, setXpGranted] = useState(false)
 
-  const [showContext, setShowContext] = useState(!!lastReview)
-  const alreadyReviewed = (stats.reviewedMonths ?? []).includes(monthKey)
+  const [showContext, setShowContext] = useState(true)
+  const alreadyReviewed = (reviewedMonths ?? []).includes(monthKey)
+
+  // Formularz zaczyna od tego, co już jest w bazie dla wybranego miesiąca. Póki
+  // kolekcja się wczytuje, nie wypełniamy i nie pozwalamy zapisać (patrz canSave).
+  const [hydratedKey, setHydratedKey] = useState<string | null>(null)
+  useEffect(() => {
+    if (!user || reviewsLoading || hydratedKey === monthKey) return
+    const existing = reviewFor(monthKey)
+    setHighlights(existing?.highlights ?? '')
+    setChallenges(existing?.challenges ?? '')
+    setIntention(existing?.intentionNextMonth ?? '')
+    setRatings(hydrateRatings(existing?.pillarsRated))
+    setHydratedKey(monthKey)
+  }, [user, reviewsLoading, hydratedKey, monthKey, reviewFor])
+
+  const handleMonthChange = (key: string) => {
+    if (key === monthKey) return
+    setMonthKey(key)
+    setSaved(false)
+    setXpGranted(false)
+  }
 
   const hasAnyContent = highlights.trim().length > 0 || challenges.trim().length > 0 || intention.trim().length > 0
   const hasNonDefaultRating = Object.values(ratings).some(r => r !== 3)
-  const canSave = hasAnyContent || hasNonDefaultRating
+  const contentMissing = alreadyReviewed && !reviewFor(monthKey)
+  const ready = !reviewsLoading && hydratedKey === monthKey && !contentMissing
+  const canSave = ready && (hasAnyContent || hasNonDefaultRating)
 
   const handleSave = async () => {
-    if (!user) return
+    if (!user || !ready) return
     setSaving(true)
     try {
-      const ref = doc(db, ...paths.monthlyReviewDoc(user.uid, monthKey))
-      await setDoc(ref, {
+      const payload: MonthlyReview = {
         month: monthKey, highlights, challenges,
         pillarsRated: ratings, intentionNextMonth: intention,
         xpEarned: XP_VALUES.monthlyReview, savedAt: new Date().toISOString(),
-      }, { merge: true })
+      }
+      const ref = doc(db, ...paths.monthlyReviewDoc(user.uid, monthKey))
+      await setDoc(ref, payload, { merge: true })
       const granted = await submitMonthlyReview(monthKey)
+      setSessionDrafts(d => ({ ...d, [monthKey]: payload }))
       setXpGranted(granted)
       setSaved(true)
     } finally {
@@ -86,6 +154,13 @@ export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyRevi
             ? `+ ${XP_VALUES.monthlyReview} XP za miesięczną ceremonię. idziesz dalej.`
             : 'zaktualizowano. xp za ten miesiąc masz już przyznane.'}
         </p>
+        <button
+          type="button"
+          onClick={() => setSaved(false)}
+          className="font-ui uppercase tracking-[0.18em] text-[9px] text-muted hover:text-dark border border-gold-deep/30 hover:border-gold-deep px-4 py-2 mt-6 transition-colors"
+        >
+          wybierz inny miesiąc
+        </button>
       </div>
     )
   }
@@ -98,6 +173,28 @@ export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyRevi
         <h2 className="font-display text-ivory text-[23px] leading-tight mt-1.5 tracking-[-0.4px]">
           {formatMonthPL(monthKey)}
         </h2>
+        <div className="flex flex-wrap gap-2 mt-3">
+          {selectableMonths.map(key => {
+            const closed = (reviewedMonths ?? []).includes(key)
+            const note = closed ? 'zamknięty' : key === currentMonthKey ? '' : 'zaległy'
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleMonthChange(key)}
+                className={clsx(
+                  'font-ui uppercase tracking-[0.18em] text-[9px] px-3 py-1.5 border transition-colors',
+                  key === monthKey
+                    ? 'border-gold text-gold-light bg-gold/10'
+                    : 'border-gold-light/30 text-gold-light/60 hover:border-gold-light/60',
+                )}
+              >
+                {formatMonthPL(key)}
+                {note && <span className="ml-1.5 opacity-60">{note}</span>}
+              </button>
+            )
+          })}
+        </div>
         <div className="flex items-center gap-3.5 my-4 max-w-[380px]">
           <span className="flex-1 h-px bg-gradient-to-r from-transparent to-gold-light/50" />
           <span className="text-gold text-[9px] leading-none">◆</span>
@@ -122,14 +219,14 @@ export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyRevi
         </div>
       </div>
 
-      {lastReview && (
+      {previousReview && (
         <ContinuityBanner
           show={showContext}
           onToggle={() => setShowContext(v => !v)}
-          label="Z poprzedniego miesiąca"
+          label={`Z poprzedniego miesiąca · ${formatMonthPL(previousReview.month)}`}
           focusLabel="Twoja intencja"
-          focusText={lastReview.intentionNextMonth}
-          pillarsRated={lastReview.pillarsRated}
+          focusText={previousReview.intentionNextMonth}
+          pillarsRated={previousReview.pillarsRated}
         />
       )}
 
@@ -208,17 +305,29 @@ export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyRevi
         onClick={handleSave}
         disabled={saving || !canSave}
         className="w-full bg-dark-deep text-ivory border border-gold py-4 hover:bg-forest transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-        title={!canSave ? 'Oceń przynajmniej jeden filar lub wypełnij jedno pole' : undefined}
+        title={
+          contentMissing
+            ? 'Ten miesiąc jest zamknięty, ale nie udało się wczytać jego treści — odśwież stronę, żeby zapis jej nie nadpisał'
+            : !ready
+              ? 'Czekam na wczytanie zapisanych przeglądów'
+              : !canSave
+                ? 'Oceń przynajmniej jeden filar lub wypełnij jedno pole'
+                : undefined
+        }
       >
         <Diamond size={5} className="text-gold" />
         <SmallCaps tone="ivory" tracking="luxury" size="sm">
           {saving
             ? 'zapisuję…'
-            : !canSave
-              ? 'wypełnij przynajmniej jedno pole'
-              : alreadyReviewed
-                ? 'zapisz zmiany'
-                : `zamknij miesiąc · + ${XP_VALUES.monthlyReview} XP`}
+            : contentMissing
+              ? 'odśwież — nie mam treści tego miesiąca'
+              : !ready
+                ? 'wczytuję zapisany miesiąc…'
+                : !canSave
+                  ? 'wypełnij przynajmniej jedno pole'
+                  : alreadyReviewed
+                    ? 'zapisz zmiany'
+                    : `zamknij miesiąc · + ${XP_VALUES.monthlyReview} XP`}
         </SmallCaps>
         <Diamond size={5} className="text-gold" />
       </button>

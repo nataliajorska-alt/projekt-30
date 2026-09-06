@@ -33,7 +33,6 @@ export default function ReviewPage() {
     monthlyReviews,
     quarterlyReviews,
     lastWeeklyReview,
-    lastMonthlyReview,
     lastQuarterlyReview,
     loading: historyLoading,
   } = useReviewHistory()
@@ -148,7 +147,8 @@ export default function ReviewPage() {
               stats={stats}
               logs={logs}
               submitMonthlyReview={submitMonthlyReview}
-              lastReview={lastMonthlyReview}
+              monthlyReviews={monthlyReviews}
+              reviewsLoading={historyLoading}
             />
           )}
           {mode === 'quarterly' && (
