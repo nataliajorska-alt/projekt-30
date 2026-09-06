@@ -6,16 +6,7 @@ import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import type { WeeklyReview, MonthlyReview, QuarterlyReview } from '@/types'
 import { parseSafe, WeeklyReviewSchema, MonthlyReviewSchema, QuarterlyReviewSchema, ZERO_PILLAR_RATING } from '@/lib/schemas'
-import { getMonthKey, getEffectiveNow } from '@/lib/gameLogic'
 import { getCurrentQuarterKey } from '@/lib/quarters'
-
-function getCurrentWeekStart(): string {
-  const now = new Date()
-  const day = now.getDay()
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1)
-  const monday = new Date(now.getFullYear(), now.getMonth(), diff)
-  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`
-}
 
 export function useReviewHistory() {
   const { user } = useAuth()
@@ -65,16 +56,9 @@ export function useReviewHistory() {
     fetchReviews()
   }, [user])
 
-  const currentWeekStart = useMemo(() => getCurrentWeekStart(), [])
-  const currentMonth = useMemo(() => getMonthKey(getEffectiveNow()), [])
-
   const lastWeeklyReview = useMemo(() => {
     return weeklyReviews[0] ?? null
   }, [weeklyReviews])
-
-  const lastMonthlyReview = useMemo(() => {
-    return monthlyReviews.find(r => r.month < currentMonth) ?? null
-  }, [monthlyReviews, currentMonth])
 
   const currentQuarter = useMemo(() => getCurrentQuarterKey(), [])
 
@@ -84,7 +68,7 @@ export function useReviewHistory() {
 
   return {
     weeklyReviews, monthlyReviews, quarterlyReviews,
-    lastWeeklyReview, lastMonthlyReview, lastQuarterlyReview,
+    lastWeeklyReview, lastQuarterlyReview,
     loading,
   }
 }
