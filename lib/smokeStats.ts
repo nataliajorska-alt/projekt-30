@@ -145,7 +145,12 @@ export interface MonthlyCeiling {
 export const MONTHLY_CEILINGS: MonthlyCeiling[] = [
   { month: '2026-07', ceiling: 14, focus: 'auto i kawa bez papierosa' },
   { month: '2026-08', ceiling: 12, focus: 'reszta kontekstowych: nuda, część po posiłku' },
-  { month: '2026-09', ceiling: 10, focus: 'wieczory z kimś schodzą do maks. 1' },
+  // Wrzesień podniesiony 10 → 11 (decyzja z 6.09): pierwszy miesiąc w McKinseyu,
+  // stres skoczył z 20 na 51% wyzwalaczy, a poranne palenie to lęk antycypacyjny
+  // przed dniem. Sufit ma być obserwowalny, nie aspiracyjny — sufit, którego się
+  // nie da dotrzymać, przestaje być danymi i zaczyna być kolejną porażką do zapisania.
+  // Koszt: październik schodzi 11 → 9, czyli o dwa zamiast o jeden.
+  { month: '2026-09', ceiling: 11, focus: 'wieczory z kimś schodzą do maks. 1' },
   { month: '2026-10', ceiling: 9,  focus: 'nagroda tylko po realnym kamieniu milowym' },
   { month: '2026-11', ceiling: 7,  focus: 'nagroda dostaje zamiennik nienikotynowy' },
   { month: '2026-12', ceiling: 6,  focus: 'stres → narzędzie zamiast papierosa' },

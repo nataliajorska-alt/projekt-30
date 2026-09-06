@@ -184,6 +184,13 @@ describe('harmonogram sufitów miesięcznych', () => {
     }
   })
 
+  it('wrzesień ma sufit 11 — podniesiony pod stres pierwszego miesiąca w McKinseyu', () => {
+    expect(ceilingFor('2026-09-06')?.ceiling).toBe(11)
+    expect(ceilingFor('2026-09-30')?.ceiling).toBe(11)
+    // Koszt decyzji: październik schodzi o dwa, nie o jeden.
+    expect(nextCeilingAfter('2026-09-15')?.ceiling).toBe(9)
+  })
+
   it('ceilingFor bierze sufit z miesiąca daty', () => {
     expect(ceilingFor('2026-07-07')?.ceiling).toBe(14)
     expect(ceilingFor('2026-07-31')?.ceiling).toBe(14)
