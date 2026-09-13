@@ -27,9 +27,12 @@ import type { AprilQuest } from './aprilData'
 //
 // Kalendarz: 6.09 lot do Budapesztu, 7–11.09 szkolenie McKinsey, 12.09 powrót,
 // od 14.09 pierwszy pełny tydzień pracy w Warszawie, 30.09 domknięcie Fazy 2.
-// Cykl: owulacja ~5–8.09 (najlepsze paliwo ląduje na szkoleniu — tam idą najodważniejsze questy),
-// STREFA SZTORMOWA 14–19.09 (późna lutealna — ani jednego questu wymagającego odwagi),
-// okres ~20.09, folikularna od ~25.09.
+// Cykl — KOREKTA z przeglądu tygodnia 13.09: Natalia podała okres na 17.09, więc cały cykl
+// jest o trzy dni wcześniej, niż zakładał planer (to tłumaczy spadek nastroju od 10.09):
+// owulacja ~2–5.09 (szkolenie wypadło tuż PO oknie, nie na nim),
+// STREFA SZTORMOWA 11–16.09 (późna lutealna — ani jednego questu wymagającego odwagi),
+// okres ~17–21.09, folikularna od ~22.09.
+// Faza w apce liczy się z cycleLogs, nie stąd — te daty są opisem planu, nie źródłem prawdy.
 // Numeracja z planera: `wrz-06`…`wrz-30` = `sep_06_1`…`sep_30_1` (id trzyma konwencję apki).
 
 export const SEPTEMBER_MOTTO = 'Nie wszystko musi być po coś.'
@@ -79,14 +82,17 @@ export const SEPTEMBER_QUESTS: AprilQuest[] = [
     pillar: 'pozycja', xp: 120 },
 
   // ── TYDZIEŃ 2 (14–20.09) „Miękko. To fala, nie diagnoza" ────────
-  // STREFA SZTORMOWA 14–19.09: późna lutealna + pierwszy pełny tydzień pracy.
-  // Ani jednego questu wymagającego odwagi. To projekt, nie przypadek — wszystkie
-  // klastry Ghost Protocola siedzą w ostatnim tygodniu przed okresem.
+  // Po korekcie cyklu sztorm (późna lutealna) to 11–16.09, a okres zaczyna się 17.09:
+  // pon–śr to końcówka sztormu, czw–nd pierwsze dni okresu. Do tego pierwszy pełny
+  // tydzień pracy w Warszawie. Ani jednego questu wymagającego odwagi. To projekt,
+  // nie przypadek — wszystkie klastry Ghost Protocola siedzą w tygodniu przed okresem.
+  // Fokus tygodnia z przeglądu 13.09: RUCH, trzy razy po dwadzieścia minut (spacer się liczy).
+  // Ruch wchodzi PRZED dołkiem, nie w nim — dlatego quest ruchu stoi w poniedziałek.
 
-  // ── 14 września, poniedziałek | początek sztormu ──
-  { id: 'sep_14_1', date: '2026-09-14', title: 'Godzina końca pracy, ustalona rano', muscles: ['D'],
-    description: 'Rano wpisz w kalendarz godzinę, o której kończysz. Wieczorem jej nie negocjujesz. Cue: pierwsza kawa przy biurku, minuta. McKinsey nie zostaje nowym EY: praca bez nagrody była jednym z czterech największych drenów 2025, a zmieniłaś pracę, żeby to naprawić. Pierwszy miesiąc to nauka systemu, nie dowód wartości — rekrutowali Cię pół roku i już podjęli decyzję. Od dziś do 19.09 obowiązują wersje minimum wszystkiego.',
-    pillar: 'kariera', xp: 80 },
+  // ── 14 września, poniedziałek | końcówka sztormu | RUCH przeniesiony z 17.09 ──
+  { id: 'sep_14_1', date: '2026-09-14', title: '20 minut ruchu, obojętnie jakiego', muscles: ['C'],
+    description: 'Tango, pole, szarfy albo zwykły spacer. Zero oceny formy, zero „to się nie liczy, bo tylko spacer". Cue: po pracy, przed kolacją. Przeniesione z czwartku przeglądem z 13.09, bo w czwartek zaczyna się okres — ruch trzeba włożyć przed dołkiem, nie w nim. Dwa tygodnie zera ruchu to źródło jedynki w Ciele, a ruch jest najlepiej udowodnionym regulatorem, jaki masz (COBRA, n=440). Nastrój nadąża za zachowaniem z opóźnieniem tygodnia lub dwóch, więc brak ulgi tego samego wieczoru nie jest dowodem, że nie działa. Dziś nie nadrabiasz tygodnia, tylko wychodzisz na dwadzieścia minut.',
+    pillar: 'cialo', xp: 60 },
 
   // ── 15 września, wtorek | sztorm ──
   { id: 'sep_15_1', date: '2026-09-15', title: 'Trzecia osoba', muscles: ['C'],
@@ -98,10 +104,10 @@ export const SEPTEMBER_QUESTS: AprilQuest[] = [
     description: 'Kiedy głowa zaczyna kręcić „dlaczego on", „dlaczego ja", „dlaczego to niesprawiedliwe", przełóż to na jedno konkretne pytanie: „jak przejdę przez ten wieczór". Zapisz to zdanie. Cue: moment, w którym łapiesz się na „dlaczego", minuta. Front się przesunął: „nie napisać" jest rozwiązane, zostało „nie ruminować", a to inna umiejętność.',
     pillar: 'pozycja', xp: 60 },
 
-  // ── 17 września, czwartek | sztorm ──
-  { id: 'sep_17_1', date: '2026-09-17', title: '20 minut ruchu, obojętnie jakiego', muscles: ['C'],
-    description: 'Tango, pole, szarfy albo zwykły spacer. Zero oceny formy, zero „to się nie liczy, bo tylko spacer". Cue: po pracy, przed kolacją. Forma nie jest celem 2026, tylko regulatorem — w sierpniu Ciało skoczyło z 2 na 5 w tydzień po powrocie do tanga. Nastrój nadąża za zachowaniem z opóźnieniem tygodnia lub dwóch, więc brak ulgi tego samego wieczoru nie jest dowodem, że nie działa.',
-    pillar: 'cialo', xp: 60 },
+  // ── 17 września, czwartek | pierwszy dzień okresu | quest przeniesiony z 14.09 ──
+  { id: 'sep_17_1', date: '2026-09-17', title: 'Godzina końca pracy, ustalona rano', muscles: ['D'],
+    description: 'Rano wpisz w kalendarz godzinę, o której kończysz. Wieczorem jej nie negocjujesz. Cue: pierwsza kawa przy biurku, minuta. McKinsey nie zostaje nowym EY: praca bez nagrody była jednym z czterech największych drenów 2025, a zmieniłaś pracę, żeby to naprawić. Pierwszy miesiąc to nauka systemu, nie dowód wartości — rekrutowali Cię pół roku i już podjęli decyzję. Dziś pierwszy dzień cyklu: mniej to nie jest cofanie się, a wersje minimum wszystkiego obowiązują do końca tygodnia.',
+    pillar: 'kariera', xp: 80 },
 
   // ── 18 września, piątek | sztorm | DWA MIĘŚNIE ──
   { id: 'sep_18_1', date: '2026-09-18', title: 'Piątek bez odrabiania', muscles: ['B', 'D'],
@@ -113,12 +119,12 @@ export const SEPTEMBER_QUESTS: AprilQuest[] = [
     description: 'Wypisz trzy. Bez rozwiązywania ich, bez planu naprawczego, bez wniosków. Sama lista, pięć minut, kiedykolwiek w ciągu dnia. W jednym tygodniu sierpnia system trzy razy zapisał uczucie jako porażkę — Twój system nie ma rubryki na „zrobiłam wszystko dobrze i i tak bolało", więc ból ląduje w rubryce winy. To jest ta brakująca rubryka.',
     pillar: 'pozycja', xp: 60 },
 
-  // ── 20 września, niedziela | okres, slot ──
-  { id: 'sep_20_1', date: '2026-09-20', title: 'Slot Wnętrza miękki + wklep tydzień', muscles: ['C'],
-    description: '19:00. Dziś wolno zrobić wersję trzyminutową i liczy się jako pełny slot — od 3 do 20 minut, Twój wybór. Plus pięć minut na wklepanie questów tygodnia 3. Pierwszy dzień okresu: w sierpniu, w pierwszym dniu okresu, w obcym kraju, poszłaś sama na imprezę i wiedziałaś po co. Dziś nie musisz nikomu niczego udowadniać, łącznie z sobą.',
+  // ── 20 września, niedziela | czwarty dzień okresu, slot ──
+  { id: 'sep_20_1', date: '2026-09-20', title: 'Slot Wnętrza miękki + przegląd tygodnia', muscles: ['C'],
+    description: 'Nowy cue z przeglądu 13.09: nie osobny rytuał o 19:00, tylko trzy minuty self-compassion doklejone do modlitwy wieczornej. Szósty tydzień z rzędu bez slotu znaczy, że problemem jest cue, nie wola — modlitwa trzyma się prawie codziennie od miesięcy. Trzy minuty liczą się jako pełny slot; jeśli masz więcej, zostań dłużej. Plus pięć minut na przejrzenie questów tygodnia 3. Czwarty dzień okresu, więc wersja miękka jest wersją właściwą: dziś nie musisz nikomu niczego udowadniać, łącznie z sobą.',
     pillar: 'pozycja', xp: 80 },
 
-  // ── TYDZIEŃ 3 (21–27.09) „Rytm, nie zryw" | folikularna od ~25.09 ──
+  // ── TYDZIEŃ 3 (21–27.09) „Rytm, nie zryw" | folikularna od ~22.09 (po korekcie cyklu) ──
 
   // ── 21 września, poniedziałek ──
   { id: 'sep_21_1', date: '2026-09-21', title: 'Pierwszy papieros z opóźnieniem 10 min', muscles: ['D'],

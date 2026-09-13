@@ -15,14 +15,18 @@ export const MORNING_ROUTINE: RoutineItem[] = [
   { id: 'm9', text: 'Witaminy',                          type: 'morning', xp: 10, priority: 'essential', category: 'hygiene'   },
 ]
 
+// Wieczór. e5 od 13.09.2026 niesie doklejone trzy minuty dla siebie (self-compassion
+// break): slot Wnętrza jako osobny rytuał o 19:00 nie odbył się sześć tygodni z rzędu,
+// a modlitwa wieczorna trzyma się prawie codziennie od miesięcy — to cue, który działa,
+// więc trzy minuty wsiadają na niego zamiast konkurować. Jeden haczyk, nie dwa.
 export const EVENING_ROUTINE: RoutineItem[] = [
-  { id: 'e1', text: '30 minut bez telefonu przed snem',          type: 'evening', xp: 10, priority: 'normal',   category: 'mental'    },
-  { id: 'e2', text: 'Zadbanie o twarz',                          type: 'evening', xp: 10, priority: 'normal',   category: 'hygiene'   },
-  { id: 'e3', text: 'Umycie zębów',                              type: 'evening', xp: 10, priority: 'essential', category: 'hygiene'   },
-  { id: 'e4', text: '3 rzeczy, z których jestem dumna tego dnia', type: 'evening', xp: 10, priority: 'normal',   category: 'spiritual' },
-  { id: 'e5', text: 'Krótka modlitwa wieczorna',                 type: 'evening', xp: 10, priority: 'essential', category: 'spiritual' },
-  { id: 'e6', text: 'Opcjonalnie: 5 minut czytania',             type: 'evening', xp: 10, priority: 'bonus',    category: 'mental'    },
-  { id: 'e7', text: 'Magnez + duloksetyna',                      type: 'evening', xp: 10, priority: 'essential', category: 'hygiene'   },
+  { id: 'e1', text: '30 minut bez telefonu przed snem',                type: 'evening', xp: 10, priority: 'normal',    category: 'mental'      },
+  { id: 'e2', text: 'Zadbanie o twarz',                                type: 'evening', xp: 10, priority: 'normal',    category: 'hygiene'     },
+  { id: 'e3', text: 'Umycie zębów',                                    type: 'evening', xp: 10, priority: 'essential', category: 'hygiene'     },
+  { id: 'e4', text: '3 rzeczy, z których jestem dumna tego dnia',      type: 'evening', xp: 10, priority: 'normal',    category: 'spiritual'   },
+  { id: 'e5', text: 'Krótka modlitwa wieczorna + 3 minuty dla siebie', type: 'evening', xp: 10, priority: 'essential', category: 'spiritual'   },
+  { id: 'e6', text: 'Opcjonalnie: 5 minut czytania',                   type: 'evening', xp: 10, priority: 'bonus',     category: 'mental'      },
+  { id: 'e7', text: 'Magnez + duloksetyna',                            type: 'evening', xp: 10, priority: 'essential', category: 'hygiene'     },
 ]
 
 // Tylko dni robocze (pon–pt)
@@ -302,13 +306,16 @@ export const PINNED_SPARKS: Record<string, string> = {
   '2026-09-11': 'Zapisuję, jak było, nie czego się nauczyłam.',
   '2026-09-12': 'Umawiam termin, zamiast czekać na lepszy moment.',
   '2026-09-13': 'Wpisane się dzieje, niewpisane nie.',
-  '2026-09-14': 'Ustalam godzinę końca rano, bo wieczorem już nie będę umiała.',
-  '2026-09-15': 'Mówię do siebie po imieniu i robię krok w tył.',
-  '2026-09-16': 'Pytam jak przejdę przez ten wieczór, nie dlaczego to mnie spotkało.',
-  '2026-09-17': 'Ruszam się, nawet jeśli to tylko spacer. Zwłaszcza jeśli.',
-  '2026-09-18': 'Nie odrabiam. Zmęczenie nie jest długiem.',
-  '2026-09-19': 'Trudne nie znaczy moja wina.',
-  '2026-09-20': 'Dziś nikomu niczego nie udowadniam, łącznie ze sobą.',
+  // Tydzień 14–20.09 przepisany przeglądem z 13.09 (strata przyjaciółki, pierwszy pełny
+  // tydzień w McKinseyu, okres od 17.09). Intencja tygodnia: „Nie ma harmonogramu.
+  // Nie da się na niego spóźnić."
+  '2026-09-14': 'Dziś nie nadrabiam tygodnia. Wychodzę na dwadzieścia minut, bo ciało tego potrzebuje, nie bo ma wyglądać.',
+  '2026-09-15': 'Kiedy przyjdzie fala, mówię do siebie po imieniu. Natalia teraz jest smutna i to jest w porządku.',
+  '2026-09-16': 'Nie wiem, co się stało, i nie muszę wiedzieć, żeby przejść przez dziś.',
+  '2026-09-17': 'Dziś mniej. To nie jest cofanie się, to jest pierwszy dzień cyklu.',
+  '2026-09-18': 'Kończę o ustalonej godzinie. Nie zasługuję na to miejsce, ja je już mam.',
+  '2026-09-19': 'Trzy rzeczy są teraz trudne i żadna z nich nie jest moją winą.',
+  '2026-09-20': 'Robię jedną rzecz, z której nic nie wynika. To jest cały wrzesień w jednym geście.',
   '2026-09-21': 'Odczekuję dziesięć minut. Opóźnienie, nie zakaz.',
   '2026-09-22': 'Próbuję dla siebie, nie dla kadru.',
   '2026-09-23': 'Decyduję sama i zapisuję procent, zanim się dowiem.',
