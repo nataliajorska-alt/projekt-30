@@ -64,7 +64,6 @@ export const WEEKLY_HABITS: Record<number, RoutineItem[]> = {
     { id: 'w1_2', text: 'Leg warm-up', type: 'daily', xp: 10 },
     { id: 'w1_3', text: 'Duolingo ×3', type: 'daily', xp: 10 },
     { id: 'w1_4', text: 'Książka — hiszpański', type: 'daily', xp: 10 },
-    { id: 'w1_5', text: 'Dieta — ustalić posiłki na tydzień', type: 'daily', xp: 10 },
     { id: 'w1_6', text: 'Uporządkuj powiadomienia', type: 'daily', xp: 10 },
   ],
   2: [ // Wtorek
