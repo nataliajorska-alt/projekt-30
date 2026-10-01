@@ -152,10 +152,11 @@ export const MONTHLY_CEILINGS: MonthlyCeiling[] = [
   { month: '2026-09', ceiling: 11, focus: 'wieczory z kimś schodzą do maks. 1' },
   // Październik 9 → 10 (decyzja z 1.10): nowa praca, ten sam mechanizm co we
   // wrześniu — sufit obserwowalny, nie aspiracyjny. Wrzesień → październik
-  // wraca do zejścia o jeden. Koszt przesuwa się dalej: listopad schodzi 10 → 7,
-  // o trzy. To jest miejsce do ponownej decyzji przy przeglądzie października.
+  // wraca do zejścia o jeden.
   { month: '2026-10', ceiling: 10, focus: 'nagroda tylko po realnym kamieniu milowym' },
-  { month: '2026-11', ceiling: 7,  focus: 'nagroda dostaje zamiennik nienikotynowy' },
+  // Listopad 7 → 8 (decyzja z 1.10): zejście 10 → 8 zamiast o trzy. Koszt:
+  // grudzień schodzi 8 → 6, o dwa.
+  { month: '2026-11', ceiling: 8,  focus: 'nagroda dostaje zamiennik nienikotynowy' },
   { month: '2026-12', ceiling: 6,  focus: 'stres → narzędzie zamiast papierosa' },
   { month: '2027-01', ceiling: 5,  focus: 'stres dalej, ze wsparciem terapii' },
   { month: '2027-02', ceiling: 3,  focus: 'zostają tylko te najbardziej „twoje"' },
@@ -323,7 +324,7 @@ export function emergencyDaysUsedInMonth(days: string[], monthKey: string): numb
 // nie nadrobię. Zamiast dosypywać XP za nic, nadrabiam tym, co i tak jest
 // najtrudniejsze: trzymaniem sufitu. Dzień ≤ sufit = baza, każdy papieros
 // poniżej sufitu = dopłata (max 5, żeby „zero" nie było jackpotem, który
-// kusi, żeby czegoś nie kliknąć). Pełne 61 dni przy sufit −3 ≈ 20 000 XP.
+// kusi, żeby czegoś nie kliknąć). Pełne 61 dni przy sufit −3 ≈ 20 700 XP.
 // Przyznawane przy deklaracji „ostatni papieros dnia" — dzień zamknięty na
 // bieżąco, nie liczony z pamięci. Ponad sufitem: 0, bez kar i bez komunikatów.
 

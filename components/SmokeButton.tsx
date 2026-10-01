@@ -7,7 +7,7 @@ import { useCycleData } from '@/hooks/useCycleData'
 import { useCycleSettings } from '@/hooks/useCycleSettings'
 import { getPhaseForDate } from '@/lib/cycle-data'
 import { CIGARETTE_CONTEXTS, REWARD_REPLACEMENTS, STRESS_TOOLS } from '@/lib/smoke-data'
-import { ceilingFor, smokePacing, activeWindowFor, emergencyDaysUsedInMonth, EMERGENCY_DAYS_PER_MONTH } from '@/lib/smokeStats'
+import { ceilingFor, smokePacing, activeWindowFor, emergencyDaysUsedInMonth, EMERGENCY_DAYS_PER_MONTH, smokeCeilingXP } from '@/lib/smokeStats'
 import { todayKey, getEffectiveNow } from '@/lib/gameLogic'
 import type { CigaretteContext } from '@/types'
 import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
@@ -95,6 +95,10 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
   const pacing = ceilingInfo && !isEmergencyToday
     ? smokePacing(now.getHours(), now.getMinutes(), todayCount, ceilingInfo.ceiling, activeWindowFor(weekday))
     : null
+
+  // Sprint nadrabiania (X–XI): ile XP czeka dziś za sufit, gdyby dzień zamknąć teraz.
+  const sprintXPNow = smokeCeilingXP(today, todayCount, isEmergencyToday)
+  const sprintXPNext = smokeCeilingXP(today, todayCount + 1, isEmergencyToday)
 
   // Łagodność cyklu — w fazie lutealnej głód nikotynowy jest mocniejszy.
   const cycleInfo = cycleLogs.length > 0 ? getPhaseForDate(cycleLogs[0].startDate, todayKey(), cycleSettings) : null
@@ -312,6 +316,13 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
                 {paceLine && (
                   <p className="font-serif-body italic text-muted text-[12px] mt-3 pt-2.5 border-t border-hairline text-center leading-relaxed">
                     {paceLine}
+                  </p>
+                )}
+                {sprintXPNow > 0 && (
+                  <p className="font-serif-body italic text-gold-deep text-[12px] mt-2 text-center leading-relaxed">
+                    za sufit czeka dziś <b className="font-display not-italic font-medium">+{sprintXPNow} XP</b>
+                    {sprintXPNext < sprintXPNow && <> · po kolejnym: +{sprintXPNext}</>}
+                    . wpada przy „ostatni na dziś”.
                   </p>
                 )}
                 {isLuteal && (

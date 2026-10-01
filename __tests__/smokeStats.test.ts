@@ -194,8 +194,13 @@ describe('harmonogram sufitów miesięcznych', () => {
   it('październik ma sufit 10 — podniesiony pod start nowej pracy', () => {
     expect(ceilingFor('2026-10-01')?.ceiling).toBe(10)
     expect(ceilingFor('2026-10-31')?.ceiling).toBe(10)
-    // Koszt decyzji: listopad schodzi o trzy, nie o jeden.
-    expect(nextCeilingAfter('2026-10-15')?.ceiling).toBe(7)
+    expect(nextCeilingAfter('2026-10-15')?.ceiling).toBe(8)
+  })
+
+  it('listopad ma sufit 8 — zejście z października o dwa, nie o trzy', () => {
+    expect(ceilingFor('2026-11-01')?.ceiling).toBe(8)
+    // Koszt decyzji: grudzień schodzi o dwa.
+    expect(nextCeilingAfter('2026-11-15')?.ceiling).toBe(6)
   })
 
   it('ceilingFor bierze sufit z miesiąca daty', () => {
@@ -355,7 +360,7 @@ describe('smokeCeilingXP — sprint nadrabiania X–XI 2026', () => {
   it('na suficie daje bazę, poniżej dopłatę za każdy papieros', () => {
     expect(smokeCeilingXP('2026-10-05', 10)).toBe(250)
     expect(smokeCeilingXP('2026-10-05', 8)).toBe(310)
-    expect(smokeCeilingXP('2026-11-20', 6)).toBe(280)
+    expect(smokeCeilingXP('2026-11-20', 6)).toBe(310)
   })
 
   it('dopłata liczona maks. do 5 poniżej sufitu', () => {
