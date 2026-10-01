@@ -286,6 +286,13 @@ export interface DailyLog {
    */
   smokeLastOfDayAt?: number | null
   /**
+   * XP za dzień pod sufitem (sprint nadrabiania X–XI 2026, smokeCeilingXP).
+   * Stempel aktualnie przyznanej kwoty: przeliczany przy deklaracji, przy
+   * papierosie po deklaracji i przy dniu awaryjnym (zmiana idzie deltą). Leci
+   * tylko do stats, nie do log.totalXP; recoverStats sumuje ten stempel.
+   */
+  smokeCeilingXP?: number
+  /**
    * Suma XP wpisana w tym dniu przez zewnętrzne aplikacje (na razie tylko
    * The Learning Vault), rozbita per filar. Endpoint /api/external/xp
    * inkrementuje to pole atomowo. recoverStats czyta to pole, żeby pillarXP

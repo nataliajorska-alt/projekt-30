@@ -317,3 +317,30 @@ export const EMERGENCY_DAYS_PER_MONTH = 2
 export function emergencyDaysUsedInMonth(days: string[], monthKey: string): number {
   return days.filter(d => d.slice(0, 7) === monthKey).length
 }
+
+// ── Sprint nadrabiania: XP za dzień pod sufitem (X–XI 2026) ──────────────
+// Decyzja z 1.10: jestem ~20 000 XP za harmonogramem i normalnym tempem tego
+// nie nadrobię. Zamiast dosypywać XP za nic, nadrabiam tym, co i tak jest
+// najtrudniejsze: trzymaniem sufitu. Dzień ≤ sufit = baza, każdy papieros
+// poniżej sufitu = dopłata (max 5, żeby „zero" nie było jackpotem, który
+// kusi, żeby czegoś nie kliknąć). Pełne 61 dni przy sufit −3 ≈ 20 000 XP.
+// Przyznawane przy deklaracji „ostatni papieros dnia" — dzień zamknięty na
+// bieżąco, nie liczony z pamięci. Ponad sufitem: 0, bez kar i bez komunikatów.
+
+export const SMOKE_SPRINT = { start: '2026-10-01', end: '2026-11-30' }
+
+export const SMOKE_CEILING_XP = {
+  base: 250,       // dzień na suficie lub poniżej
+  perBelow: 30,    // za każdy papieros poniżej sufitu
+  maxBelow: 5,     // dopłata liczona maks. do 5 poniżej
+}
+
+/** XP za dzień względem sufitu. 0 poza sprintem, w dniu awaryjnym i ponad sufitem. */
+export function smokeCeilingXP(dateKey: string, count: number, emergency = false): number {
+  if (dateKey < SMOKE_SPRINT.start || dateKey > SMOKE_SPRINT.end) return 0
+  if (emergency) return 0
+  const c = ceilingFor(dateKey)
+  if (!c || count > c.ceiling) return 0
+  const below = Math.min(SMOKE_CEILING_XP.maxBelow, c.ceiling - count)
+  return SMOKE_CEILING_XP.base + SMOKE_CEILING_XP.perBelow * below
+}
