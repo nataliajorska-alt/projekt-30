@@ -149,9 +149,12 @@ export const MONTHLY_CEILINGS: MonthlyCeiling[] = [
   // stres skoczył z 20 na 51% wyzwalaczy, a poranne palenie to lęk antycypacyjny
   // przed dniem. Sufit ma być obserwowalny, nie aspiracyjny — sufit, którego się
   // nie da dotrzymać, przestaje być danymi i zaczyna być kolejną porażką do zapisania.
-  // Koszt: październik schodzi 11 → 9, czyli o dwa zamiast o jeden.
   { month: '2026-09', ceiling: 11, focus: 'wieczory z kimś schodzą do maks. 1' },
-  { month: '2026-10', ceiling: 9,  focus: 'nagroda tylko po realnym kamieniu milowym' },
+  // Październik 9 → 10 (decyzja z 1.10): nowa praca, ten sam mechanizm co we
+  // wrześniu — sufit obserwowalny, nie aspiracyjny. Wrzesień → październik
+  // wraca do zejścia o jeden. Koszt przesuwa się dalej: listopad schodzi 10 → 7,
+  // o trzy. To jest miejsce do ponownej decyzji przy przeglądzie października.
+  { month: '2026-10', ceiling: 10, focus: 'nagroda tylko po realnym kamieniu milowym' },
   { month: '2026-11', ceiling: 7,  focus: 'nagroda dostaje zamiennik nienikotynowy' },
   { month: '2026-12', ceiling: 6,  focus: 'stres → narzędzie zamiast papierosa' },
   { month: '2027-01', ceiling: 5,  focus: 'stres dalej, ze wsparciem terapii' },
