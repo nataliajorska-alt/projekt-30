@@ -149,10 +149,14 @@ export const MONTHLY_CEILINGS: MonthlyCeiling[] = [
   // stres skoczył z 20 na 51% wyzwalaczy, a poranne palenie to lęk antycypacyjny
   // przed dniem. Sufit ma być obserwowalny, nie aspiracyjny — sufit, którego się
   // nie da dotrzymać, przestaje być danymi i zaczyna być kolejną porażką do zapisania.
-  // Koszt: październik schodzi 11 → 9, czyli o dwa zamiast o jeden.
   { month: '2026-09', ceiling: 11, focus: 'wieczory z kimś schodzą do maks. 1' },
-  { month: '2026-10', ceiling: 9,  focus: 'nagroda tylko po realnym kamieniu milowym' },
-  { month: '2026-11', ceiling: 7,  focus: 'nagroda dostaje zamiennik nienikotynowy' },
+  // Październik 9 → 10 (decyzja z 1.10): nowa praca, ten sam mechanizm co we
+  // wrześniu — sufit obserwowalny, nie aspiracyjny. Wrzesień → październik
+  // wraca do zejścia o jeden.
+  { month: '2026-10', ceiling: 10, focus: 'nagroda tylko po realnym kamieniu milowym' },
+  // Listopad 7 → 8 (decyzja z 1.10): zejście 10 → 8 zamiast o trzy. Koszt:
+  // grudzień schodzi 8 → 6, o dwa.
+  { month: '2026-11', ceiling: 8,  focus: 'nagroda dostaje zamiennik nienikotynowy' },
   { month: '2026-12', ceiling: 6,  focus: 'stres → narzędzie zamiast papierosa' },
   { month: '2027-01', ceiling: 5,  focus: 'stres dalej, ze wsparciem terapii' },
   { month: '2027-02', ceiling: 3,  focus: 'zostają tylko te najbardziej „twoje"' },
@@ -313,4 +317,31 @@ export const EMERGENCY_DAYS_PER_MONTH = 2
 /** Ile dni awaryjnych zużyto w danym miesiącu (klucze YYYY-MM-DD). */
 export function emergencyDaysUsedInMonth(days: string[], monthKey: string): number {
   return days.filter(d => d.slice(0, 7) === monthKey).length
+}
+
+// ── Sprint nadrabiania: XP za dzień pod sufitem (X–XI 2026) ──────────────
+// Decyzja z 1.10: jestem ~20 000 XP za harmonogramem i normalnym tempem tego
+// nie nadrobię. Zamiast dosypywać XP za nic, nadrabiam tym, co i tak jest
+// najtrudniejsze: trzymaniem sufitu. Dzień ≤ sufit = baza, każdy papieros
+// poniżej sufitu = dopłata (max 5, żeby „zero" nie było jackpotem, który
+// kusi, żeby czegoś nie kliknąć). Pełne 61 dni przy sufit −3 ≈ 20 700 XP.
+// Przyznawane przy deklaracji „ostatni papieros dnia" — dzień zamknięty na
+// bieżąco, nie liczony z pamięci. Ponad sufitem: 0, bez kar i bez komunikatów.
+
+export const SMOKE_SPRINT = { start: '2026-10-01', end: '2026-11-30' }
+
+export const SMOKE_CEILING_XP = {
+  base: 250,       // dzień na suficie lub poniżej
+  perBelow: 30,    // za każdy papieros poniżej sufitu
+  maxBelow: 5,     // dopłata liczona maks. do 5 poniżej
+}
+
+/** XP za dzień względem sufitu. 0 poza sprintem, w dniu awaryjnym i ponad sufitem. */
+export function smokeCeilingXP(dateKey: string, count: number, emergency = false): number {
+  if (dateKey < SMOKE_SPRINT.start || dateKey > SMOKE_SPRINT.end) return 0
+  if (emergency) return 0
+  const c = ceilingFor(dateKey)
+  if (!c || count > c.ceiling) return 0
+  const below = Math.min(SMOKE_CEILING_XP.maxBelow, c.ceiling - count)
+  return SMOKE_CEILING_XP.base + SMOKE_CEILING_XP.perBelow * below
 }

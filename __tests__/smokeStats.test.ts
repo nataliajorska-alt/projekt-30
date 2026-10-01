@@ -18,6 +18,7 @@ import {
   activeWindowFor,
   EMERGENCY_DAYS_PER_MONTH,
   emergencyDaysUsedInMonth,
+  smokeCeilingXP,
 } from '@/lib/smokeStats'
 import type { DailyLog, CigaretteContext, CigaretteEntry } from '@/types'
 
@@ -187,8 +188,19 @@ describe('harmonogram sufitów miesięcznych', () => {
   it('wrzesień ma sufit 11 — podniesiony pod stres pierwszego miesiąca w McKinseyu', () => {
     expect(ceilingFor('2026-09-06')?.ceiling).toBe(11)
     expect(ceilingFor('2026-09-30')?.ceiling).toBe(11)
-    // Koszt decyzji: październik schodzi o dwa, nie o jeden.
-    expect(nextCeilingAfter('2026-09-15')?.ceiling).toBe(9)
+    expect(nextCeilingAfter('2026-09-15')?.ceiling).toBe(10)
+  })
+
+  it('październik ma sufit 10 — podniesiony pod start nowej pracy', () => {
+    expect(ceilingFor('2026-10-01')?.ceiling).toBe(10)
+    expect(ceilingFor('2026-10-31')?.ceiling).toBe(10)
+    expect(nextCeilingAfter('2026-10-15')?.ceiling).toBe(8)
+  })
+
+  it('listopad ma sufit 8 — zejście z października o dwa, nie o trzy', () => {
+    expect(ceilingFor('2026-11-01')?.ceiling).toBe(8)
+    // Koszt decyzji: grudzień schodzi o dwa.
+    expect(nextCeilingAfter('2026-11-15')?.ceiling).toBe(6)
   })
 
   it('ceilingFor bierze sufit z miesiąca daty', () => {
@@ -341,5 +353,34 @@ describe('dzień awaryjny — limit miesięczny', () => {
   })
   it('pusta lista = 0', () => {
     expect(emergencyDaysUsedInMonth([], '2026-07')).toBe(0)
+  })
+})
+
+describe('smokeCeilingXP — sprint nadrabiania X–XI 2026', () => {
+  it('na suficie daje bazę, poniżej dopłatę za każdy papieros', () => {
+    expect(smokeCeilingXP('2026-10-05', 10)).toBe(250)
+    expect(smokeCeilingXP('2026-10-05', 8)).toBe(310)
+    expect(smokeCeilingXP('2026-11-20', 6)).toBe(310)
+  })
+
+  it('dopłata liczona maks. do 5 poniżej sufitu', () => {
+    expect(smokeCeilingXP('2026-10-05', 5)).toBe(400)
+    expect(smokeCeilingXP('2026-10-05', 0)).toBe(400)
+  })
+
+  it('ponad sufitem, w dniu awaryjnym i poza sprintem: 0', () => {
+    expect(smokeCeilingXP('2026-10-05', 11)).toBe(0)
+    expect(smokeCeilingXP('2026-10-05', 3, true)).toBe(0)
+    expect(smokeCeilingXP('2026-09-30', 3)).toBe(0)
+    expect(smokeCeilingXP('2026-12-01', 3)).toBe(0)
+  })
+
+  it('pełny sprint przy sufit −3 daje ok. 20 000 XP', () => {
+    let total = 0
+    for (let d = '2026-10-01'; d <= '2026-11-30'; d = shiftDateKey(d, 1)) {
+      total += smokeCeilingXP(d, ceilingFor(d)!.ceiling - 3)
+    }
+    expect(total).toBeGreaterThanOrEqual(20_000)
+    expect(total).toBeLessThan(21_000)
   })
 })
