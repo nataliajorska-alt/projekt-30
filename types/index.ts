@@ -352,6 +352,7 @@ export interface UserStats {
   cigarettesPhaseStartDate?: string | null  // YYYY-MM-DD startu fazy
   cigarettesAlarmTriggered?: string | null  // ostatnia data alarmu rolling 30-day avg
   smokeEmergencyDays?: string[]             // dni „awaryjne" (YYYY-MM-DD): sufit zdjęty, bez presji; limit/miesiąc
+  smokeBackfillOct2026Done?: boolean        // jednorazowe +1000 XP za sufit 1–4.10.2026 już przyznane
 }
 
 export interface UserProfile {

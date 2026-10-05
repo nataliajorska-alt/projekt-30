@@ -159,6 +159,7 @@ export const UserStatsSchema = z.object({
   cigarettesPhaseStartDate:   z.string().nullable().optional(),
   cigarettesAlarmTriggered:   z.string().nullable().optional(),
   smokeEmergencyDays:         z.array(z.string()).optional(),
+  smokeBackfillOct2026Done:   z.boolean().optional(),
 })
 
 // ── Vault ────────────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   doc, setDoc, onSnapshot, collection, getDocs, getDoc,
-  increment, arrayUnion, arrayRemove,
+  increment, arrayUnion, arrayRemove, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
@@ -92,6 +92,15 @@ function buildStatsWrite(base: UserStats, final: UserStats): Record<string, unkn
 // kodem wyrównujemy różnicę (q.xp − 50) — WYŁĄCZNIE w dniu wdrożenia poprawki,
 // żeby nie ruszać przeszłości ani nie podwajać questów liczonych już poprawnie.
 const QUEST_XP_FIX_DATE = '2026-06-07'
+// ── Jednorazowe dosypanie XP za sufit 1–4.10.2026 ─────────────────────
+// Sprint sufitu ruszył 1.10, ale przycisk „ostatni na dziś" był schowany
+// w wieczornym „domknij ◆" i przez pierwsze dni nikt go nie klikał, więc
+// XP za sufit nie wpadło. Decyzja Natalii z 5.10: dosypać 1000 XP, czyli
+// bazę 250 za każdy z tych czterech dni. Stempel idzie do log.smokeCeilingXP,
+// żeby recoverStats je zachowało; flaga w stats pilnuje, że to raz.
+const SMOKE_BACKFILL_DAYS = ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04']
+const SMOKE_BACKFILL_XP_PER_DAY = 250
+
 const SEASONAL_QUEST_XP: Record<string, { pillar: Pillar; xp: number }> = {}
 for (const q of APRIL_QUESTS) SEASONAL_QUEST_XP[q.id] = { pillar: q.pillar as Pillar, xp: q.xp }
 
@@ -106,6 +115,7 @@ export function useGameData() {
   const [currentDateKey, setCurrentDateKey] = useState<string>(todayKey())
   const statsLoadedRef = useRef(false)
   const questXpFixDoneRef = useRef<string | null>(null)
+  const smokeBackfillDoneRef = useRef(false)
 
   // Refresh currentDateKey when the effective day rolls over (after DAY_START_HOUR).
   useEffect(() => {
@@ -235,6 +245,33 @@ export function useGameData() {
       questXpFixDoneRef.current = null
     })
   }, [user, statsRef, todayRef, todayLog, stats, currentDateKey])
+
+  useEffect(() => {
+    if (!user || !statsRef || !statsLoadedRef.current) return
+    if (stats.smokeBackfillOct2026Done) return
+    if (smokeBackfillDoneRef.current) return
+    smokeBackfillDoneRef.current = true
+    const uid = user.uid
+    runTransaction(db, async (tx) => {
+      const statsSnap = await tx.get(statsRef)
+      if (statsSnap.data()?.smokeBackfillOct2026Done) return
+      const logRefs = SMOKE_BACKFILL_DAYS.map(d => doc(db, ...paths.logDoc(uid, d)))
+      const logSnaps = await Promise.all(logRefs.map(r => tx.get(r)))
+      let delta = 0
+      logSnaps.forEach((snap, i) => {
+        const already = snap.data()?.smokeCeilingXP ?? 0
+        if (already >= SMOKE_BACKFILL_XP_PER_DAY) return
+        delta += SMOKE_BACKFILL_XP_PER_DAY - already
+        tx.set(logRefs[i], { smokeCeilingXP: SMOKE_BACKFILL_XP_PER_DAY, date: SMOKE_BACKFILL_DAYS[i] }, { merge: true })
+      })
+      tx.set(statsRef, {
+        smokeBackfillOct2026Done: true,
+        ...(delta > 0 ? { totalXP: increment(delta), pillarXP: { cialo: increment(delta) } } : {}),
+      }, { merge: true })
+    }).catch(() => {
+      smokeBackfillDoneRef.current = false
+    })
+  }, [user, statsRef, stats.smokeBackfillOct2026Done])
 
   const checkLevelUp = useCallback((oldXP: number, newXP: number) => {
     const oldLevel = getLevelFromXP(oldXP).level
