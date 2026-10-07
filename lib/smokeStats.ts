@@ -345,3 +345,14 @@ export function smokeCeilingXP(dateKey: string, count: number, emergency = false
   const below = Math.min(SMOKE_CEILING_XP.maxBelow, c.ceiling - count)
   return SMOKE_CEILING_XP.base + SMOKE_CEILING_XP.perBelow * below
 }
+
+/**
+ * Automatyczne domknięcie minionego dnia sprintu (bez klikania „ostatni na dziś").
+ * Liczy z zalogowanych papierosów. Dzień z zerem w logu dostaje tylko bazę:
+ * zero wpisów to też „zapomniałam logować", więc dopłata za zero (do 400)
+ * zostaje dla dni zamkniętych świadomie przyciskiem „zamykam dzień na zerze".
+ */
+export function autoSettleSmokeXP(dateKey: string, count: number, emergency = false): number {
+  const xp = smokeCeilingXP(dateKey, count, emergency)
+  return count === 0 ? Math.min(xp, SMOKE_CEILING_XP.base) : xp
+}

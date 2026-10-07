@@ -19,6 +19,7 @@ import {
   EMERGENCY_DAYS_PER_MONTH,
   emergencyDaysUsedInMonth,
   smokeCeilingXP,
+  autoSettleSmokeXP,
 } from '@/lib/smokeStats'
 import type { DailyLog, CigaretteContext, CigaretteEntry } from '@/types'
 
@@ -382,5 +383,22 @@ describe('smokeCeilingXP — sprint nadrabiania X–XI 2026', () => {
     }
     expect(total).toBeGreaterThanOrEqual(20_000)
     expect(total).toBeLessThan(21_000)
+  })
+})
+
+describe('autoSettleSmokeXP — samo-domknięcie minionego dnia', () => {
+  it('z papierosami w logu liczy jak przycisk', () => {
+    expect(autoSettleSmokeXP('2026-10-05', 8)).toBe(310)
+    expect(autoSettleSmokeXP('2026-10-05', 3)).toBe(400)
+    expect(autoSettleSmokeXP('2026-10-05', 11)).toBe(0)
+  })
+
+  it('zero w logu daje tylko bazę, nie dopłatę za zero', () => {
+    expect(autoSettleSmokeXP('2026-10-05', 0)).toBe(250)
+  })
+
+  it('dzień awaryjny i poza sprintem: 0', () => {
+    expect(autoSettleSmokeXP('2026-10-05', 0, true)).toBe(0)
+    expect(autoSettleSmokeXP('2026-12-01', 2)).toBe(0)
   })
 })

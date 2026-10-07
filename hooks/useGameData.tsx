@@ -18,7 +18,7 @@ import {
   MAX_MOOD_CHECKINS_PER_DAY,
 } from '@/lib/gameLogic'
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
-import { EMERGENCY_DAYS_PER_MONTH, smokeCeilingXP } from '@/lib/smokeStats'
+import { EMERGENCY_DAYS_PER_MONTH, smokeCeilingXP, autoSettleSmokeXP, SMOKE_SPRINT, shiftDateKey } from '@/lib/smokeStats'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import { DAILY_QUESTS_POOL, SIDE_QUESTS } from '@/lib/questData'
 import { APRIL_QUESTS } from '@/lib/seasonal/aprilData'
@@ -116,6 +116,7 @@ export function useGameData() {
   const statsLoadedRef = useRef(false)
   const questXpFixDoneRef = useRef<string | null>(null)
   const smokeBackfillDoneRef = useRef(false)
+  const smokeAutoSettleRef = useRef<string | null>(null)
 
   // Refresh currentDateKey when the effective day rolls over (after DAY_START_HOUR).
   useEffect(() => {
@@ -272,6 +273,46 @@ export function useGameData() {
       smokeBackfillDoneRef.current = false
     })
   }, [user, statsRef, stats.smokeBackfillOct2026Done])
+
+  // ── Automatyczne domknięcie minionych dni sprintu sufitu ───────────────
+  // Przycisk „ostatni na dziś" jest tylko wieczorem i łatwo go przegapić, więc
+  // każdy miniony dzień sprintu z logiem domyka się sam przy otwarciu apki:
+  // kwota z zalogowanych papierosów (autoSettleSmokeXP). Tylko DOPŁATA do
+  // istniejącego stempla, nigdy odjęcie: dzień zamknięty przyciskiem albo
+  // dosypką zostaje, jak był. Transakcja, więc dwa urządzenia nie zdublują XP.
+  useEffect(() => {
+    if (!user || !statsRef || !statsLoadedRef.current) return
+    if (currentDateKey <= SMOKE_SPRINT.start) return
+    if (currentDateKey > shiftDateKey(SMOKE_SPRINT.end, 7)) return
+    if (smokeAutoSettleRef.current === currentDateKey) return
+    smokeAutoSettleRef.current = currentDateKey
+    const uid = user.uid
+    const lastDay = currentDateKey > SMOKE_SPRINT.end ? SMOKE_SPRINT.end : shiftDateKey(currentDateKey, -1)
+    const days: string[] = []
+    for (let d = SMOKE_SPRINT.start; d <= lastDay; d = shiftDateKey(d, 1)) days.push(d)
+    runTransaction(db, async (tx) => {
+      const statsSnap = await tx.get(statsRef)
+      const emergency: string[] = statsSnap.data()?.smokeEmergencyDays ?? []
+      const logRefs = days.map(d => doc(db, ...paths.logDoc(uid, d)))
+      const logSnaps = await Promise.all(logRefs.map(r => tx.get(r)))
+      let delta = 0
+      logSnaps.forEach((snap, i) => {
+        if (!snap.exists()) return
+        const data = snap.data()
+        const count = Array.isArray(data.cigarettes) ? data.cigarettes.length : 0
+        const target = autoSettleSmokeXP(days[i], count, emergency.includes(days[i]))
+        const stamp = Number.isFinite(data.smokeCeilingXP) ? data.smokeCeilingXP : 0
+        if (target <= stamp) return
+        delta += target - stamp
+        tx.set(logRefs[i], { smokeCeilingXP: target }, { merge: true })
+      })
+      if (delta > 0) {
+        tx.set(statsRef, { totalXP: increment(delta), pillarXP: { cialo: increment(delta) } }, { merge: true })
+      }
+    }).catch(() => {
+      smokeAutoSettleRef.current = null
+    })
+  }, [user, statsRef, currentDateKey, stats.totalXP])
 
   const checkLevelUp = useCallback((oldXP: number, newXP: number) => {
     const oldLevel = getLevelFromXP(oldXP).level
