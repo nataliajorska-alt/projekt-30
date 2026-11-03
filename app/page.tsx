@@ -16,7 +16,7 @@ import MoodCheckInModal from '@/components/MoodCheckInModal'
 import KeyMomentCapture from '@/components/KeyMomentCapture'
 import ReturnCeremony from '@/components/ReturnCeremony'
 import DashboardNudges from '@/components/DashboardNudges'
-import DashboardInsight from '@/components/DashboardInsight'
+import DashboardInsight, { selectTopSignal } from '@/components/DashboardInsight'
 import DashboardNow from '@/components/DashboardNow'
 import SafeHoursBanner from '@/components/SafeHoursBanner'
 import CyclePhaseWidget from '@/components/CyclePhaseWidget'
@@ -25,6 +25,7 @@ import PatternOfTheWeek from '@/components/PatternOfTheWeek'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { SkeletonHero, SkeletonChecklist, SkeletonCard } from '@/components/SkeletonCard'
 import { useGameData } from '@/hooks/useGameData'
+import { useWeeklyInsight } from '@/hooks/useWeeklyInsight'
 import {
   todayKey,
   tomorrowDate,
@@ -142,6 +143,11 @@ function daysBetween(a: string, b: string): number {
 
 export default function Dashboard() {
   const { loading, todayLog, stats, saveMoodCheckIn, completeReturnCeremony } = useGameData()
+  // Jedno wywołanie na dashboard — DashboardInsight dostaje dane propem,
+  // a my tą samą regułą decydujemy, czy The Glance pokazuje fallbackowy
+  // PatternOfTheWeek (tylko gdy silnik insightów nie ma nic do pokazania).
+  const weeklyInsight = useWeeklyInsight()
+  const insightVisible = !weeklyInsight.loading && !!selectTopSignal(weeklyInsight.insight)
   const [showMoodModal, setShowMoodModal] = useState(false)
   const [showReturn, setShowReturn] = useState(false)
   const [daysMissed, setDaysMissed] = useState(0)
@@ -283,14 +289,18 @@ export default function Dashboard() {
       <CountdownHero />
 
       {/* Wzorzec tygodnia — pokazuje się tylko gdy silnik insightów coś znalazł */}
-      <ErrorBoundary label="Wzorzec tygodnia"><DashboardInsight /></ErrorBoundary>
+      <ErrorBoundary label="Wzorzec tygodnia"><DashboardInsight data={weeklyInsight} /></ErrorBoundary>
 
       {/* II — THE GLANCE: orientation widgets (zwijane, by szybciej dojść do ćwiczenia) */}
       <CollapsibleSection num={2} name="The Glance" sub="stan rzeczy" storageKey="dash.collapse.glance">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
           <ErrorBoundary label="Drzewko"><MiniGardenWidget /></ErrorBoundary>
           <ErrorBoundary label="Cykl"><CyclePhaseWidget /></ErrorBoundary>
-          <ErrorBoundary label="Wzorzec tygodnia"><PatternOfTheWeek /></ErrorBoundary>
+          {/* Fallback: prosty „najlepszy dzień" tylko, gdy insight milczy —
+              dwa widgety wzorca naraz to był ten sam komunikat dwa razy. */}
+          {!weeklyInsight.loading && !insightVisible && (
+            <ErrorBoundary label="Wzorzec tygodnia"><PatternOfTheWeek /></ErrorBoundary>
+          )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-6 md:gap-8">
           <ErrorBoundary label="Magnetyzm"><MagnetismMeter /></ErrorBoundary>

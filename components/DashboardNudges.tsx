@@ -180,11 +180,15 @@ export default function DashboardNudges() {
   const showVault = vaultNudge && !vaultDismissed
   const showCrisis = crisisNudge && !crisisDismissed
 
-  if (!showPhoto && !showVault && !showCrisis) return null
+  // Maks jedna karta naraz — kryzysowa nie może ginąć w stosie trzech zaczepek.
+  // Dismissy są per-dzień w sessionStorage, więc po odrzuceniu pierwszej
+  // naturalnie wraca kolejna z kolejki.
+  const active = showCrisis ? 'crisis' : showPhoto ? 'photo' : showVault ? 'vault' : null
+  if (!active) return null
 
   return (
     <div className="space-y-2 mb-4">
-      {showCrisis && (
+      {active === 'crisis' && (
         <NudgeCard
           icon={<Heart size={15} strokeWidth={1.5} />}
           label="Skarbiec · trudna chwila"
@@ -194,7 +198,7 @@ export default function DashboardNudges() {
           onDismiss={dismissCrisis}
         />
       )}
-      {showPhoto && (
+      {active === 'photo' && (
         <NudgeCard
           icon={<Camera size={15} strokeWidth={1.5} />}
           label="Photo Timeline"
@@ -212,7 +216,7 @@ export default function DashboardNudges() {
           onDismiss={dismissPhoto}
         />
       )}
-      {showVault && (
+      {active === 'vault' && (
         <NudgeCard
           icon={<ScrollText size={15} strokeWidth={1.5} />}
           label="Skarbiec"

@@ -13,6 +13,7 @@ import {
 } from '@/lib/vaultUnlock'
 import { getRandomPrompt } from '@/lib/vaultPrompts'
 import { SmallCaps, GoldRule, Fleuron, Diamond, CornerBrackets } from '@/components/ui'
+import PageHeader from '@/components/PageHeader'
 import WaxSeal from '@/components/WaxSeal'
 import { toRoman } from '@/lib/romanNumerals'
 
@@ -891,20 +892,13 @@ export default function VaultPage() {
 
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-12 reveal-stagger">
-      {/* Editorial header */}
-      <header className="mb-7">
-        <SmallCaps tone="muted" tracking="editorial" size="xs">
-          Prywatne · Vol. I
-        </SmallCaps>
-        <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.75rem)] leading-tight mt-2">
-          Skarbiec
-        </h1>
-        <p className="font-serif-body italic text-muted text-[14px] mt-2 leading-relaxed">
-          listy w pięciu stanach: do siebie z przyszłości, na trudną chwilę,
-          wdzięczność, vent, na konkretną datę.
-        </p>
-        <GoldRule variant="diamond" tone="gold-deep" className="mt-5 opacity-50" />
-      </header>
+      <PageHeader
+        eyebrow="Prywatne"
+        title="Skarbiec"
+        subtitle="listy w pięciu stanach: do siebie z przyszłości, na trudną chwilę, wdzięczność, vent, na konkretną datę."
+        rule
+        className="mb-7"
+      />
 
       {!loading && entries.length > 0 && (
         <VaultCountdown entries={entries} unlockedCount={unlockedCount} />

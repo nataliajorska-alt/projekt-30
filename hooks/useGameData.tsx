@@ -749,7 +749,10 @@ export function useGameData() {
     if (!user || !todayRef || !todayLog) return
     const existing = todayLog.cigarettes ?? []
     if (existing.length === 0) return
-    await setDoc(todayRef, { cigarettes: existing.slice(0, -1) }, { merge: true })
+    // arrayRemove zamiast nadpisania całej tablicy — jak przy logCigarette:
+    // nieświeży snapshot z laptopa nie może skasować wpisu dodanego równolegle
+    // na telefonie. Wpisy mają unikalne timestampy, więc znika dokładnie jeden.
+    await setDoc(todayRef, { cigarettes: arrayRemove(existing[existing.length - 1]) }, { merge: true })
     if (todayLog.smokeLastOfDayAt) {
       await settleSmokeCeilingXP(existing.length - 1, true)
     }

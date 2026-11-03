@@ -10,7 +10,9 @@ import SmokeButton from './SmokeButton'
 import type { MoodState } from '@/types'
 import { SmallCaps } from '@/components/ui'
 
-const HIDDEN_ON = ['/settings']
+// /mostek to pełny rytuał wyciszenia (oddech z zamkniętymi oczami) — pływający
+// „+" z akcją „Papieros" jest tam nie na miejscu; /report to podgląd dokumentu.
+const HIDDEN_ON = ['/settings', '/mostek', '/report']
 
 export default function QuickActionsFab() {
   const pathname = usePathname()
@@ -52,7 +54,9 @@ export default function QuickActionsFab() {
           open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
         )}>
           <FabAction label="Mood" onClick={handleMood} icon={<Heart size={14} strokeWidth={1.5} />} />
-          <FabAction label="Myśli" href="/mysli" icon={<Brain size={14} strokeWidth={1.5} />} />
+          {pathname !== '/mysli' && (
+            <FabAction label="Myśli" href="/mysli" icon={<Brain size={14} strokeWidth={1.5} />} />
+          )}
           <FabAction label="Papieros" onClick={handleSmoke} icon={<Wind size={14} strokeWidth={1.5} />} />
           <FabAction label="Mostek" href="/mostek" icon={<Feather size={14} strokeWidth={1.5} />} />
         </div>

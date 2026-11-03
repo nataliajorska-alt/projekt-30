@@ -46,7 +46,8 @@ describe('zasada 2 — niezrobiony quest nie przechodzi na jutro', () => {
   })
 
   it('nie zwraca zaległych questów z września, ale nadal zwraca sierpniowe', () => {
-    const overdue = getOverdueAprilQuests('2026-09-20', [], [], [])
+    // Okno zaległych to 7 dni (OVERDUE_WINDOW_DAYS) — 5.09 obejmuje koniec sierpnia i początek września.
+    const overdue = getOverdueAprilQuests('2026-09-05', [], [], [])
     expect(overdue.some(q => q.date.startsWith('2026-09'))).toBe(false)
     expect(overdue.some(q => q.date.startsWith('2026-08'))).toBe(true)
   })

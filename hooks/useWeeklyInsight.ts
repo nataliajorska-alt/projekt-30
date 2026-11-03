@@ -39,32 +39,41 @@ export function useWeeklyInsight() {
     setLoading(true)
 
     const ref = doc(db, ...paths.insightDoc(user.uid, weekKey))
-    const snap = await getDoc(ref)
     const sig = logsSignature(logs, ctx)
 
-    if (snap.exists()) {
-      const data = parseSafe<WeeklyInsight>(
-        WeeklyInsightSchema,
-        snap.data(),
-        { weekKey, generatedAt: new Date().toISOString(), totalHypotheses: 0, testsRun: 0, passedCount: 0, outcomes: [], headline: '', body: '', hasContent: false },
-        `WeeklyInsight ${weekKey}`,
-      )
-      // Cache jest aktualny tylko gdy policzony z tych samych danych. Gdy dojdą
-      // nowe check-iny/dni — przelicz (insight odświeża się codziennie, nie raz
-      // w tygodniu).
-      if (data.inputSig === sig) {
-        setInsight(data)
-        // Badge: "nowy" gdy sessionStorage nie pamięta że już widział tego tygodnia.
-        const seenKey = `insight_seen_${weekKey}`
-        setHasNewBadge(!sessionStorage.getItem(seenKey))
-        setLoading(false)
-        return
+    try {
+      const snap = await getDoc(ref)
+      if (snap.exists()) {
+        const data = parseSafe<WeeklyInsight>(
+          WeeklyInsightSchema,
+          snap.data(),
+          { weekKey, generatedAt: new Date().toISOString(), totalHypotheses: 0, testsRun: 0, passedCount: 0, outcomes: [], headline: '', body: '', hasContent: false },
+          `WeeklyInsight ${weekKey}`,
+        )
+        // Cache jest aktualny tylko gdy policzony z tych samych danych. Gdy dojdą
+        // nowe check-iny/dni — przelicz (insight odświeża się codziennie, nie raz
+        // w tygodniu).
+        if (data.inputSig === sig) {
+          setInsight(data)
+          // Badge: "nowy" gdy sessionStorage nie pamięta że już widział tego tygodnia.
+          const seenKey = `insight_seen_${weekKey}`
+          setHasNewBadge(!sessionStorage.getItem(seenKey))
+          setLoading(false)
+          return
+        }
       }
+    } catch (e) {
+      // Offline / błąd odczytu — liczymy świeży insight lokalnie, zamiast
+      // zostawiać loading=true na zawsze (to chowało też fallbackowy
+      // PatternOfTheWeek na dashboardzie).
+      console.warn('weekly insight read error', e)
     }
 
     // Brak cachu albo dane się zmieniły — przelicz (każdego dnia, nie tylko nd/pn).
     const fresh = computeWeeklyInsight(logs, weekKey, ctx)
-    await setDoc(ref, fresh)
+    // Celowo bez await: offline promise setDoc rozstrzyga się dopiero po
+    // acku serwera, a UI nie ma na co czekać — cache to optymalizacja.
+    setDoc(ref, fresh).catch(e => console.warn('weekly insight cache write error', e))
     setInsight(fresh)
     setHasNewBadge(true)
     setLoading(false)
@@ -78,7 +87,8 @@ export function useWeeklyInsight() {
     setLoading(true)
     const fresh = computeWeeklyInsight(logs, weekKey, ctx)
     const ref = doc(db, ...paths.insightDoc(user.uid, weekKey))
-    await setDoc(ref, fresh)
+    // Jak w ensureInsight: bez await, żeby offline nie wieszał loading=true.
+    setDoc(ref, fresh).catch(e => console.warn('weekly insight cache write error', e))
     setInsight(fresh)
     setHasNewBadge(true)
     setLoading(false)

@@ -4,7 +4,8 @@ import * as paths from '@/lib/paths'
 import type { DailyLog, WeeklyReview, MonthlyReview, UserStats } from '@/types'
 import { SIDE_QUESTS, getDailyQuests } from '@/lib/questData'
 import { DAILY_RULES } from '@/lib/routineData'
-import { APRIL_QUESTS } from '@/lib/seasonal/aprilData'
+import { createQuestBook, type QuestBook } from '@/lib/seasonal/aprilData'
+import { parseMonthPlan, type MonthPlan } from '@/lib/seasonal/monthPlans'
 import { MONTHLY_DATA } from '@/lib/seasonal/monthData'
 import { CIGARETTE_CONTEXTS } from '@/lib/smoke-data'
 import { copingStyle } from '@/lib/cbt-data'
@@ -51,10 +52,25 @@ function inRange(date: string, from: string | null, to: string | null): boolean 
   return true
 }
 
-function findQuestTitle(questId: string, dateKey: string): string {
+// Księga questów z planami z /plan — bez nich questy z apki eksportowałyby się jako gołe id.
+async function loadQuestBook(uid: string): Promise<QuestBook> {
+  try {
+    const snap = await getDocs(collection(db, ...paths.monthPlansCol(uid)))
+    const plans: MonthPlan[] = []
+    snap.forEach(d => {
+      const p = parseMonthPlan({ monthKey: d.id, ...d.data() })
+      if (p) plans.push(p)
+    })
+    return createQuestBook(plans)
+  } catch {
+    return createQuestBook()
+  }
+}
+
+function findQuestTitle(questId: string, dateKey: string, book: QuestBook): string {
   const side = SIDE_QUESTS.find(q => q.id === questId)
   if (side) return side.title
-  const april = APRIL_QUESTS.find(q => q.id === questId)
+  const april = book.findQuest(questId)
   if (april) return april.title
   const daily = getDailyQuests(dateKey).find(q => q.id === questId)
   if (daily) return daily.title
@@ -162,10 +178,10 @@ export async function exportLogsAsCSV(uid: string, range: DateRange = { from: nu
 
 // ── Eksport ukończonych questów ──────────────────────────────────
 export async function exportQuestsAsCSV(uid: string, range: DateRange = { from: null, to: null }) {
-  const snap = await getDocs(query(
-    collection(db, ...paths.logsCol(uid)),
-    orderBy('date', 'asc')
-  ))
+  const [snap, book] = await Promise.all([
+    getDocs(query(collection(db, ...paths.logsCol(uid)), orderBy('date', 'asc'))),
+    loadQuestBook(uid),
+  ])
 
   const headers = ['Data', 'Tytuł questa', 'Filar', 'XP', 'Typ']
   const rows: string[][] = [headers]
@@ -191,8 +207,8 @@ export async function exportQuestsAsCSV(uid: string, range: DateRange = { from: 
     }
 
     for (const questId of d.completedDailyQuests ?? []) {
-      const title = findQuestTitle(questId, date)
-      const april = APRIL_QUESTS.find(q => q.id === questId)
+      const title = findQuestTitle(questId, date, book)
+      const april = book.findQuest(questId)
       const pillar = april?.pillar ?? getDailyQuests(date).find(q => q.id === questId)?.pillar ?? ''
       rows.push([date, title, pillar, String(april?.xp ?? 50), april ? 'quest miesięczny' : 'quest dzienny'])
     }
@@ -327,7 +343,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
   const [
     logsSnap, weeklySnap, monthlySnap, statsSnap,
     ghostV2Snap, honestFailureSnap, vaultSnap, photosSnap,
-    cycleSnap, aprilQuestSnap, cbtSnap,
+    cycleSnap, aprilQuestSnap, cbtSnap, book,
   ] = await Promise.all([
     getDocs(query(collection(db, ...paths.logsCol(uid)), orderBy('date', 'asc'))),
     getDocs(query(collection(db, ...paths.reviewsCol(uid)), orderBy('weekStart', 'asc'))),
@@ -340,11 +356,11 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
     getDocs(query(collection(db, ...paths.cycleCol(uid)), orderBy('startDate', 'asc'))),
     getDoc(doc(db, ...paths.dataDoc(uid, 'aprilQuestLog'))),
     getDocs(query(collection(db, ...paths.cbtJournalCol(uid)), orderBy('timestamp', 'asc'))),
+    loadQuestBook(uid),
   ])
   // ── NOWE: imports danych statycznych ──────────────────────────
   const { ACHIEVEMENTS } = await import('./achievements')
   const { DAILY_RULES, MORNING_ROUTINE, EVENING_ROUTINE, DAILY_HABITS, MORNING_MINIMUM, EVENING_MINIMUM } = await import('./routineData')
-  const { APRIL_QUESTS } = await import('./seasonal/aprilData')
   const { GHOST_CATEGORIES, INTENSITY_LABELS } = await import('./ghost-data')
 
   // Lookup map elementów rutyny
@@ -497,7 +513,11 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
   }
 
   // ── QUESTY MIESIĘCZNE ─────────────────────────────────────────
-  const monthlyInRange = APRIL_QUESTS.filter(q => aprilCompleted.includes(q.id) && inRange(q.date, range.from, range.to))
+  // Przez księgę — liczą się też plany z /plan i stałe propozycje.
+  const monthlyInRange = aprilCompleted
+    .map(id => book.findQuest(id))
+    .filter((q): q is NonNullable<typeof q> => !!q && inRange(q.date, range.from, range.to))
+    .sort((a, b) => a.date.localeCompare(b.date))
   if (monthlyInRange.length > 0) {
     const byMonth = new Map<string, typeof monthlyInRange>()
     for (const q of monthlyInRange) {
@@ -509,7 +529,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
     lines.push(``)
     for (const k of Array.from(byMonth.keys()).sort()) {
       lines.push(`### ${monthLabel(k)}`)
-      const motto = MONTHLY_DATA[k]?.motto
+      const motto = book.monthMeta(k)?.motto
       if (motto) { lines.push(``); lines.push(`_Motto: ${motto}_`) }
       lines.push(``)
       for (const q of byMonth.get(k)!) {
@@ -832,9 +852,9 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
       // Questy dzienne — tytuły
       if ((d.completedDailyQuests?.length ?? 0) > 0) {
         const titles = d.completedDailyQuests!.map((qId: string) => {
-          const aprilQ = APRIL_QUESTS.find(q => q.id === qId)
+          const aprilQ = book.findQuest(qId)
           if (aprilQ) return `${aprilQ.title} [${(PL_MONTHS[aprilQ.date.slice(5, 7)] ?? '').toLowerCase()}]`
-          return findQuestTitle(qId, d.date)
+          return findQuestTitle(qId, d.date, book)
         })
         lines.push(`**Questy dzienne:** ${titles.join(', ')}`)
         lines.push(``)

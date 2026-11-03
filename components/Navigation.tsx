@@ -11,7 +11,7 @@ import {
   LogOut, Settings, Lock, Camera, Scroll,
   Archive, Moon, Heart, Brain,
   Sprout, TreePine, Columns3, Sparkles,
-  GraduationCap, ArrowUpRight,
+  GraduationCap, ArrowUpRight, CalendarRange,
 } from 'lucide-react'
 import { SmallCaps, Diamond } from '@/components/ui'
 
@@ -54,6 +54,7 @@ const NAV: NavItem[] = [
       { href: '/cycle',  icon: Moon,     label: 'Cykl' },
       { href: '/serce',  icon: Heart,    label: 'Serce' },
       { href: '/mysli',  icon: Brain,    label: 'Myśli' },
+      { href: '/plan',   icon: CalendarRange, label: 'Plan miesiąca' },
       { href: '/review', icon: BookOpen, label: 'Przegląd' },
     ],
   },

@@ -111,16 +111,22 @@ export function getLevelProgress(xp: number): number {
   return Math.round((earned / range) * 100)
 }
 
+// Różnicę dni liczymy po komponentach daty (Date.UTC), nie po surowych ms —
+// PROJECT_START jest w CEST, a daty 25.10–28.03 w CET, więc dzielenie ms
+// dawało off-by-one w oknie 23:00–23:59 zimą (trwale stemplowany m.in.
+// w dayOfProject wpisów Vault/Photos).
 export function getDaysElapsed(): number {
   const now = getEffectiveNow()
-  const diff = now.getTime() - PROJECT_START.getTime()
-  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)))
+  const diff = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
+    Date.UTC(PROJECT_START.getFullYear(), PROJECT_START.getMonth(), PROJECT_START.getDate())
+  return Math.max(0, Math.round(diff / 86400000))
 }
 
 export function getDaysRemaining(): number {
   const now = getEffectiveNow()
-  const diff = PROJECT_END.getTime() - now.getTime()
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+  const diff = Date.UTC(PROJECT_END.getFullYear(), PROJECT_END.getMonth(), PROJECT_END.getDate()) -
+    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  return Math.max(0, Math.round(diff / 86400000))
 }
 
 export function getProjectProgress(): number {

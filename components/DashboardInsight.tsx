@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo } from 'react'
 import { useWeeklyInsight } from '@/hooks/useWeeklyInsight'
+import type { WeeklyInsight } from '@/lib/weeklyInsight'
 import { SmallCaps, Fleuron } from '@/components/ui'
 import type { Confidence } from '@/lib/statTests'
 
@@ -28,27 +29,42 @@ function firstSentence(t: string): string {
   return i > 0 ? t.slice(0, i + 1) : t
 }
 
-export default function DashboardInsight() {
-  const { insight, loading, hasNewBadge, markSeen } = useWeeklyInsight()
+/**
+ * Najciekawszy sygnał do zajawki (cyklowy dopiero, gdy nic behawioralnego
+ * nie wyszło). Eksportowane, żeby dashboard tą samą regułą decydował,
+ * czy w The Glance pokazać fallbackowy PatternOfTheWeek.
+ */
+export function selectTopSignal(insight: WeeklyInsight | null) {
+  if (!insight?.hasContent) return null
+  // Schema przepuszcza outcomes jako z.any() (zepsute dokumenty nie mają
+  // wywalać UI) — a ta funkcja liczy się w renderze Dashboardu, POZA
+  // ErrorBoundary karty. Stąd twardy filtr kształtu przed sortowaniem.
+  const signals = (insight.outcomes ?? []).filter(
+    o => o && typeof o.id === 'string' && o.confidence && o.text
+  )
+  if (signals.length === 0) return null
+  return [...signals].sort((a, b) => {
+    const cycA = a.id.startsWith('cycle_phase') ? 1 : 0
+    const cycB = b.id.startsWith('cycle_phase') ? 1 : 0
+    if (cycA !== cycB) return cycA - cycB
+    const r = RANK[b.confidence!] - RANK[a.confidence!]
+    if (r !== 0) return r
+    return (a.result?.pCorrected ?? 1) - (b.result?.pCorrected ?? 1)
+  })[0]
+}
+
+// Dane przychodzą z góry (app/page.tsx woła useWeeklyInsight raz) — drugi
+// hook w tym komponencie dublowałby odczyt roku logów i zapis insightu.
+export default function DashboardInsight({ data }: { data: ReturnType<typeof useWeeklyInsight> }) {
+  const { insight, loading, hasNewBadge, markSeen } = data
 
   useEffect(() => {
     if (insight?.hasContent && hasNewBadge) markSeen()
   }, [insight, hasNewBadge, markSeen])
 
-  const top = useMemo(() => {
-    const signals = (insight?.outcomes ?? []).filter(o => o.confidence && o.text)
-    if (signals.length === 0) return null
-    return [...signals].sort((a, b) => {
-      const cycA = a.id.startsWith('cycle_phase') ? 1 : 0
-      const cycB = b.id.startsWith('cycle_phase') ? 1 : 0
-      if (cycA !== cycB) return cycA - cycB
-      const r = RANK[b.confidence!] - RANK[a.confidence!]
-      if (r !== 0) return r
-      return (a.result?.pCorrected ?? 1) - (b.result?.pCorrected ?? 1)
-    })[0]
-  }, [insight])
+  const top = useMemo(() => selectTopSignal(insight), [insight])
 
-  if (loading || !insight || !insight.hasContent || !top) return null
+  if (loading || !top) return null
 
   return (
     <section className="relative bg-ivory border border-gold-light/40 px-4 py-3 mb-4">

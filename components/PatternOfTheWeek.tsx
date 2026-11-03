@@ -4,7 +4,9 @@ import { useMemo } from 'react'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { dateKey, getEffectiveNow } from '@/lib/gameLogic'
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+// Skróty jak w safe-hours/MoodTab/eksporcie — kapitalizacja odróżnia
+// „Śr" (środa) od „średnio" w linijce niżej.
+const WEEKDAYS = ['Nd', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob']
 
 interface Pattern {
   short: string
@@ -36,8 +38,8 @@ function computePattern(logs: Record<string, { totalXP?: number }>): Pattern | n
   const bestAvg = Math.round(avgs[bestIdx])
 
   return {
-    short: `Best day · ${WEEKDAYS[bestIdx]}`,
-    detail: `avg ${bestAvg} XP · 28d`,
+    short: `Najlepszy dzień · ${WEEKDAYS[bestIdx]}`,
+    detail: `średnio ${bestAvg} XP · 28 dni`,
   }
 }
 
@@ -57,13 +59,15 @@ export default function PatternOfTheWeek() {
       </span>
       <span className="flex-1 min-w-0 leading-tight">
         <span className="block font-ui uppercase tracking-[0.3em] text-[8px] text-gold-deep">
-          Pattern
+          Wzorzec
         </span>
+        {/* Detail w osobnej linii — polskie copy nie mieści się w jednej
+            przy szerokości kafelka The Glance (truncate ucinał dzień). */}
         <span className="block font-display text-dark text-[13px] font-medium mt-0.5 truncate">
           {pattern.short}
-          <span className="ml-1.5 font-serif-body italic text-muted text-[11px]">
-            {pattern.detail}
-          </span>
+        </span>
+        <span className="block font-serif-body italic text-muted text-[11px] truncate">
+          {pattern.detail}
         </span>
       </span>
     </Link>

@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { doc, onSnapshot, setDoc } from 'firebase/firestore'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { doc, onSnapshot, setDoc, arrayUnion } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
@@ -62,16 +62,27 @@ export function useAprilQuests() {
     return unsub
   }, [user?.uid])
 
+  // Guardy niżej czytają snapshoty stanu Reacta, więc drugie tapnięcie
+  // w trakcie zapisu (setDoc + XP trwa setki ms) przechodziłoby oba i XP
+  // naliczałoby się podwójnie — ref-owy lock trzyma questy „w locie".
+  const inFlightRef = useRef<Set<string>>(new Set())
+
   const completeQuest = useCallback(async (questId: string, pillar: Pillar, xp: number) => {
-    if (!user || !logRef || log.completed.includes(questId)) return
-    const updated = { ...log, completed: [...log.completed, questId] }
-    await setDoc(logRef, updated, { merge: true })
-    // If quest was already pre-completed "na zapas" (sits in todayLog.completedDailyQuests),
-    // XP was already awarded yesterday — skip toggleDailyQuest to prevent double-counting.
-    const alreadyInTodayLog = todayLog?.completedDailyQuests?.includes(questId) ?? false
-    if (!alreadyInTodayLog) {
-      // Przekazujemy realną wartość questa (q.xp), nie płaskie 50.
-      await toggleDailyQuest(questId, pillar, xp)
+    if (!user || !logRef || log.completed.includes(questId) || inFlightRef.current.has(questId)) return
+    inFlightRef.current.add(questId)
+    try {
+      // arrayUnion zamiast rozlewania snapshotu — zapis całej tablicy gubił
+      // quest odhaczony równolegle chwilę wcześniej (lock jest per-questId).
+      await setDoc(logRef, { completed: arrayUnion(questId) }, { merge: true })
+      // If quest was already pre-completed "na zapas" (sits in todayLog.completedDailyQuests),
+      // XP was already awarded yesterday — skip toggleDailyQuest to prevent double-counting.
+      const alreadyInTodayLog = todayLog?.completedDailyQuests?.includes(questId) ?? false
+      if (!alreadyInTodayLog) {
+        // Przekazujemy realną wartość questa (q.xp), nie płaskie 50.
+        await toggleDailyQuest(questId, pillar, xp)
+      }
+    } finally {
+      inFlightRef.current.delete(questId)
     }
   }, [user, logRef, log, todayLog, toggleDailyQuest])
 
