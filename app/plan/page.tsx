@@ -9,8 +9,12 @@ import { useToast } from '@/components/ToastProvider'
 import { useMonthPlans } from '@/hooks/useMonthPlans'
 import { useCycleData } from '@/hooks/useCycleData'
 import { useCycleSettings } from '@/hooks/useCycleSettings'
+import { useTimelineData } from '@/hooks/useTimelineData'
+import { useAprilQuests } from '@/hooks/useAprilQuests'
+import { useReviewHistory } from '@/hooks/useReviewHistory'
+import { computePlanInsights } from '@/lib/planInsights'
 import { MONTHLY_DATA } from '@/lib/seasonal/monthData'
-import { isCodePlannedMonth, type AprilQuest } from '@/lib/seasonal/aprilData'
+import { isCodePlannedMonth, createQuestBook, type AprilQuest } from '@/lib/seasonal/aprilData'
 import { newPlanQuestId, type MonthPlan } from '@/lib/seasonal/monthPlans'
 import {
   projectPhase, draftMonth, buildClaudePrompt, parsePlanText,
@@ -42,6 +46,9 @@ export default function PlanPage() {
   const { logs: cycleLogs } = useCycleData()
   const { settings: cycleSettings } = useCycleSettings()
   const { addToast } = useToast()
+  const { logs } = useTimelineData()
+  const { log: questLog } = useAprilQuests()
+  const { monthlyReviews } = useReviewHistory()
   const searchParams = useSearchParams()
   const today = todayKey()
   const thisMonth = today.slice(0, 7)
@@ -82,6 +89,18 @@ export default function PlanPage() {
   const lastStart = cycleLogs[0]?.startDate ?? null
   const phaseFor = useMemo(() => projectPhase(lastStart, cycleSettings), [lastStart, cycleSettings])
   const days = useMemo(() => monthDays(monthKey), [monthKey])
+
+  // Wnioski z historii — zapisane plany, nie bieżący szkic, żeby panel nie skakał przy edycji.
+  const insights = useMemo(() => computePlanInsights({
+    today,
+    logs,
+    completedIds: questLog.completed,
+    skips: questLog.skips,
+    book: createQuestBook(plans),
+    cycleLogs,
+    cycleSettings,
+    monthlyReviews,
+  }), [today, logs, questLog, plans, cycleLogs, cycleSettings, monthlyReviews])
   const byDay = useMemo(() => {
     const m = new Map<string, AprilQuest[]>()
     for (const q of draft.quests) m.set(q.date, [...(m.get(q.date) ?? []), q])
@@ -127,6 +146,7 @@ export default function PlanPage() {
       phaseFor,
       question: draft.question?.trim() || undefined,
       nextMonthName: MONTHLY_DATA[next]?.name ?? plans.find(p => p.monthKey === next)?.name,
+      adapt: insights.adapt,
     })
     if (replaceFromToday(quests, 'Szkic')) {
       addToast({ message: 'Szkic gotowy. Przytnij, dopisz swoje stałe punkty i zapisz.', type: 'success' })
@@ -136,6 +156,7 @@ export default function PlanPage() {
   const handleCopyPrompt = async () => {
     const prompt = buildClaudePrompt({
       monthKey, name: draft.name, motto: draft.motto, question: draft.question?.trim() || undefined, phaseFor,
+      dataSection: insights.promptSection || undefined,
     })
     try {
       await navigator.clipboard.writeText(prompt)
@@ -248,6 +269,22 @@ export default function PlanPage() {
                 : <>Brak zalogowanego cyklu — szkic będzie po 2 questy dziennie. Zaloguj start okresu w Cyklu, a szkic dopasuje gęstość do faz.</>}
               {' '}Szkic i wklejka zmieniają tylko dni od dziś.
             </p>
+
+            {insights.lines.length > 0 && (
+              <div className="mt-4 border-l-2 border-gold-light pl-4">
+                <SmallCaps tone="muted" tracking="luxury" size="xs">Co mówią Twoje dane</SmallCaps>
+                <ul className="mt-2 space-y-1.5">
+                  {insights.lines.map(l => (
+                    <li key={l} className="font-serif-body text-[13.5px] text-dark leading-relaxed">{l}</li>
+                  ))}
+                </ul>
+                {insights.adaptNotes.length > 0 && (
+                  <p className="font-serif-body italic text-muted text-[13px] mt-2.5 leading-relaxed">
+                    Szkic to uwzględni: {insights.adaptNotes.join(' · ')}. Prompt dla Claude dostaje te same dane, plus Twoje powody pominięć i ostatnią ceremonię.
+                  </p>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap gap-2 mt-3">
               <button onClick={handleDraft}
                 className="inline-flex items-center gap-2 bg-dark text-ivory border border-dark hover:bg-gold-deep hover:border-gold-deep transition-colors px-4 py-2">

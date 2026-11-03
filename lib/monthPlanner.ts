@@ -12,6 +12,7 @@
 import { computePhaseRanges, type CyclePhase, type CycleSettings } from './cycle-data'
 import { PILLARS } from './pillars'
 import type { AprilQuest } from './seasonal/aprilData'
+import type { DraftAdapt } from './planInsights'
 import type { Pillar } from '@/types'
 
 export type PhaseId = CyclePhase['id']
@@ -119,6 +120,8 @@ const FILLERS: Tpl[] = [
   tpl('Styl ponad komfort', 'Ubierz się lepiej niż „wystarczy", także w domu. Poczuj różnicę.', 'styl', 50),
   tpl('Życioumilacz', 'Kwiaty dla siebie, książka w kawiarni, ulubiona herbata. Pozwolenie, nie zadanie.', 'styl', 50),
   tpl('List do Skarbca', 'Kilka zdań do siebie z przyszłości albo na trudną chwilę. Napisane w dobry dzień, czytane w zły.', 'tozsamosc', 60),
+  tpl('Cisza 10 minut', 'Bez telefonu i bez muzyki. Tylko oddech i to, co przychodzi.', 'pozycja', 50),
+  tpl('Czułość wobec siebie', 'Jedna rzecz, którą zrobiłabyś dla przyjaciółki w trudny dzień — zrób ją dla siebie.', 'milosc', 60),
 ]
 
 export interface DraftInput {
@@ -126,15 +129,22 @@ export interface DraftInput {
   phaseFor: (dateKey: string) => DayPhase | null
   question?: string
   nextMonthName?: string
+  /** Dopasowanie do Twojej historii (planInsights) — bez niego reguły domyślne. */
+  adapt?: DraftAdapt
 }
 
 /** Szkic całego miesiąca. Deterministyczny — ten sam wejściowy stan daje ten sam szkic. */
-export function draftMonth({ monthKey, phaseFor, question, nextMonthName }: DraftInput): AprilQuest[] {
+export function draftMonth({ monthKey, phaseFor, question, nextMonthName, adapt }: DraftInput): AprilQuest[] {
   const days = monthDays(monthKey)
   const out: AprilQuest[] = []
   const counters = new Map<Tpl[], number>()
-  const take = (pool: Tpl[], avoid: Set<string>): Tpl => {
+  const take = (pool: Tpl[], avoid: Set<string>, prefer?: Pillar | null): Tpl => {
     let i = counters.get(pool) ?? 0
+    if (prefer) {
+      // Filar w centrum uwagi: weź jego quest z puli, nie ruszając rotacji reszty.
+      const hit = pool.find(t => t.pillar === prefer && !avoid.has(t.title))
+      if (hit) return hit
+    }
     for (let k = 0; k < pool.length; k++) {
       const t = pool[(i + k) % pool.length]
       if (!avoid.has(t.title)) { counters.set(pool, i + k + 1); return t }
@@ -183,7 +193,11 @@ export function draftMonth({ monthKey, phaseFor, question, nextMonthName }: Draf
     }
 
     // Gęstość wg fazy; bez danych o cyklu — 2 dziennie.
-    const target = ph === 'folikularna' || ph === 'owulacyjna' ? 3 : 2
+    let target = ph === 'folikularna' || ph === 'owulacyjna' ? 3 : 2
+    if (adapt) {
+      target = Math.min(target, adapt.maxPerDay)
+      if (adapt.lightWeekday === wd) target = Math.max(1, target - 1)
+    }
     const avoid = new Set(day.map(t => t.title))
     const hasFixedHeavy = dom === 1 || isLast || isPenultimate || wd === 0
     if (day.length < target && !hasFixedHeavy && (ph === 'folikularna' || ph === 'owulacyjna')) {
@@ -193,7 +207,10 @@ export function draftMonth({ monthKey, phaseFor, question, nextMonthName }: Draf
     while (day.length < target) {
       // Lutealna trwa ~12 dni — co drugi dzień lekki wypełniacz, żeby pula się nie zapętlała.
       const pool = ph === 'lutealna' ? (dom % 2 === 0 ? LUTEAL : FILLERS) : ph === 'menstruacja' ? MENSTRUAL : FILLERS
-      const t = take(pool, avoid)
+      // Co drugi dzień wypełniacz z filaru w centrum uwagi, jeśli dnia jeszcze nie ma.
+      const focus = adapt?.focusPillar && pool === FILLERS && dom % 2 === 1 && !day.some(t => t.pillar === adapt.focusPillar)
+        ? adapt.focusPillar : null
+      const t = take(pool, avoid, focus)
       day.push(t); avoid.add(t.title)
     }
 
@@ -210,9 +227,11 @@ export interface PromptInput {
   motto: string
   question?: string
   phaseFor: (dateKey: string) => DayPhase | null
+  /** Sekcja „Co mówią moje dane" z planInsights. */
+  dataSection?: string
 }
 
-export function buildClaudePrompt({ monthKey, name, motto, question, phaseFor }: PromptInput): string {
+export function buildClaudePrompt({ monthKey, name, motto, question, phaseFor, dataSection }: PromptInput): string {
   const [y, m] = monthKey.split('-').map(Number)
   const lines = monthDays(monthKey).map(d => {
     const ph = phaseFor(d)
@@ -229,6 +248,8 @@ export function buildClaudePrompt({ monthKey, name, motto, question, phaseFor }:
     ``,
     `Mój kontekst na ten miesiąc (uzupełnij przed wysłaniem): praca / terapia / wyjazdy / ludzie / pętle do zamknięcia / czego chcę od tego miesiąca.`,
     ``,
+    dataSection ?? '',
+    dataSection ? `` : '',
     `Zasady:`,
     `- folikularna i owulacja: 3 questy dziennie, w tym maksymalnie JEDEN „projekt" (trudna rzecz); lutealna: 2, domykanie zamiast zaczynania; okres: 1–2 miękkie`,
     `- rytm 3 aktywności w tygodniu; niedziela: Slot Wnętrza + plan tygodnia; ostatni dzień: domknięcie miesiąca`,

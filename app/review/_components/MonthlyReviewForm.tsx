@@ -16,6 +16,9 @@ import type { MonthlyReview } from '@/types'
 import { formatMonthPL } from './shared'
 import ContinuityBanner from './ContinuityBanner'
 import { SmallCaps, GoldRule, Fleuron, Diamond } from '@/components/ui'
+import Link from 'next/link'
+import { nextMonthKey } from '@/lib/monthPlanner'
+import { MONTHLY_DATA } from '@/lib/seasonal/monthData'
 
 interface MonthlyFormProps {
   user: ReturnType<typeof useAuth>['user']
@@ -154,6 +157,19 @@ export default function MonthlyReviewForm({ user, stats, logs, submitMonthlyRevi
             ? `+ ${XP_VALUES.monthlyReview} XP za miesięczną ceremonię. idziesz dalej.`
             : 'zaktualizowano. xp za ten miesiąc masz już przyznane.'}
         </p>
+        {/* Ceremonia płynie w plan: intencja i oceny filarów trafiają do szkicu i promptu w /plan. */}
+        {nextMonthKey(monthKey) <= '2027-04' && (
+          <Link
+            href={`/plan?month=${nextMonthKey(monthKey)}`}
+            className="inline-flex items-center gap-2 bg-dark text-ivory border border-dark hover:bg-gold-deep hover:border-gold-deep transition-colors px-5 py-2.5 mt-6"
+          >
+            <span className="text-gold text-[9px] leading-none">◆</span>
+            <span className="font-ui uppercase tracking-luxury text-[10px]">
+              Rozpisz {MONTHLY_DATA[nextMonthKey(monthKey)]?.name ? `„${MONTHLY_DATA[nextMonthKey(monthKey)].name}"` : 'następny miesiąc'} →
+            </span>
+          </Link>
+        )}
+        <br />
         <button
           type="button"
           onClick={() => setSaved(false)}
