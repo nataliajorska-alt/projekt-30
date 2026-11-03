@@ -7,17 +7,37 @@ import {
   getAprilQuestsForDate,
   getOverdueAprilQuests,
   getPostponedQuestsForDate,
+  isPlannedMonth,
 } from '@/lib/seasonal/aprilData'
+import { MONTHLY_DATA } from '@/lib/seasonal/monthData'
 import { getPillar } from '@/lib/pillars'
 import { todayKey } from '@/lib/gameLogic'
 import { Clock } from 'lucide-react'
-import { SmallCaps, Fleuron, Diamond } from '@/components/ui'
+import { Fleuron } from '@/components/ui'
 import PostponeModal from '@/components/PostponeModal'
 import SkipModal from '@/components/SkipModal'
 import type { AprilQuest } from '@/lib/seasonal/aprilData'
 
-const APRIL_LAST_DAY = '2026-04-30'
-const APRIL_FIRST_DAY = '2026-04-05'
+// Ile dni przed końcem miesiąca przypominamy, że następny nie ma planu.
+const PLAN_AHEAD_DAYS = 7
+
+/** Notka pod listą: „ten miesiąc bez planu" albo „następny miesiąc bez planu". */
+function planNote(today: string): string | null {
+  const [y, m, d] = today.split('-').map(Number)
+  const monthKey = today.slice(0, 7)
+  if (!isPlannedMonth(monthKey)) {
+    const name = MONTHLY_DATA[monthKey]?.name
+    return `${name ? `„${name}" nie ma` : 'Ten miesiąc nie ma'} jeszcze rozpisanych questów — to stałe propozycje, żeby rytm nie stanął.`
+  }
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate()
+  const left = daysInMonth - d + 1
+  if (left > PLAN_AHEAD_DAYS) return null
+  const next = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7)
+  if (isPlannedMonth(next)) return null
+  const name = MONTHLY_DATA[next]?.name
+  const when = left === 1 ? 'Od jutra' : `Za ${left} dni`
+  return `${when} ${name ? `„${name}"` : 'nowy miesiąc'} — rozpisz go, zanim się zacznie.`
+}
 
 /* ── Inline SVG icons matching the design ─────────────────────────── */
 function PostponeIcon() {
@@ -204,33 +224,11 @@ export default function DailyQuests() {
 
   if (loading) return null
 
-  if (todayQuests.length === 0 && overdueQuests.length === 0) {
-    if (today > APRIL_LAST_DAY) {
-      return (
-        <div className="bg-ivory border border-gold-light/40 mb-4">
-          <div className="px-5 pt-5 pb-3 flex items-baseline gap-3">
-            <h2 className="font-heading text-dark text-xl whitespace-nowrap">Questy dnia</h2>
-            <SmallCaps tone="muted" tracking="luxury" size="xs" className="hidden sm:inline">
-              today&apos;s quests
-            </SmallCaps>
-          </div>
-          <div className="px-5 pb-5">
-            <div className="border border-gold-light/30 bg-gold-pale/30 p-6 text-center">
-              <Fleuron size={14} className="text-gold mx-auto mb-3 inline-block" />
-              <h3 className="font-heading text-dark text-lg">Nowy rozdział wkrótce</h3>
-              <p className="font-serif-body italic text-muted text-[13px] mt-2 leading-relaxed">
-                treść na ten miesiąc jest w przygotowaniu. w międzyczasie skup się na rutynie, zasadach i side questach.
-              </p>
-            </div>
-          </div>
-        </div>
-      )
-    }
-    if (today < APRIL_FIRST_DAY) return null
-    return null
-  }
+  // Pusto tylko, gdy plan tak chce (dzień bez questów) albo wszystko pominięte.
+  if (todayQuests.length === 0 && overdueQuests.length === 0) return null
 
   const allQuests = [...overdueQuests, ...todayQuests]
+  const note = planNote(today)
   const completedCount = allQuests.filter(q => log.completed.includes(q.id)).length
   const earnedXP = allQuests
     .filter(q => log.completed.includes(q.id))
@@ -311,6 +309,13 @@ export default function DailyQuests() {
           <p className="text-center py-4 font-serif-body italic text-muted-light text-[13px]">
             — {postponedAwayIds.length}{' '}
             {postponedAwayIds.length === 1 ? 'quest przeniesiony' : 'questy przeniesione'} na później —
+          </p>
+        )}
+
+        {note && (
+          <p className="flex items-center justify-center gap-2 py-4 border-t border-border/60 font-serif-body italic text-muted text-[13px] text-center leading-relaxed">
+            <Fleuron size={11} className="text-gold shrink-0" />
+            <span>{note}</span>
           </p>
         )}
       </section>

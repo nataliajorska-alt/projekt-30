@@ -4,7 +4,7 @@ import * as paths from '@/lib/paths'
 import type { DailyLog, WeeklyReview, MonthlyReview, UserStats } from '@/types'
 import { SIDE_QUESTS, getDailyQuests } from '@/lib/questData'
 import { DAILY_RULES } from '@/lib/routineData'
-import { APRIL_QUESTS } from '@/lib/seasonal/aprilData'
+import { findMonthlyQuest } from '@/lib/seasonal/aprilData'
 import { MONTHLY_DATA } from '@/lib/seasonal/monthData'
 import { CIGARETTE_CONTEXTS } from '@/lib/smoke-data'
 import { copingStyle } from '@/lib/cbt-data'
@@ -54,7 +54,7 @@ function inRange(date: string, from: string | null, to: string | null): boolean 
 function findQuestTitle(questId: string, dateKey: string): string {
   const side = SIDE_QUESTS.find(q => q.id === questId)
   if (side) return side.title
-  const april = APRIL_QUESTS.find(q => q.id === questId)
+  const april = findMonthlyQuest(questId)
   if (april) return april.title
   const daily = getDailyQuests(dateKey).find(q => q.id === questId)
   if (daily) return daily.title
@@ -192,7 +192,7 @@ export async function exportQuestsAsCSV(uid: string, range: DateRange = { from: 
 
     for (const questId of d.completedDailyQuests ?? []) {
       const title = findQuestTitle(questId, date)
-      const april = APRIL_QUESTS.find(q => q.id === questId)
+      const april = findMonthlyQuest(questId)
       const pillar = april?.pillar ?? getDailyQuests(date).find(q => q.id === questId)?.pillar ?? ''
       rows.push([date, title, pillar, String(april?.xp ?? 50), april ? 'quest miesięczny' : 'quest dzienny'])
     }
@@ -344,7 +344,6 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
   // ── NOWE: imports danych statycznych ──────────────────────────
   const { ACHIEVEMENTS } = await import('./achievements')
   const { DAILY_RULES, MORNING_ROUTINE, EVENING_ROUTINE, DAILY_HABITS, MORNING_MINIMUM, EVENING_MINIMUM } = await import('./routineData')
-  const { APRIL_QUESTS } = await import('./seasonal/aprilData')
   const { GHOST_CATEGORIES, INTENSITY_LABELS } = await import('./ghost-data')
 
   // Lookup map elementów rutyny
@@ -497,7 +496,11 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
   }
 
   // ── QUESTY MIESIĘCZNE ─────────────────────────────────────────
-  const monthlyInRange = APRIL_QUESTS.filter(q => aprilCompleted.includes(q.id) && inRange(q.date, range.from, range.to))
+  // Przez findMonthlyQuest — liczą się też stałe propozycje z miesięcy bez planu.
+  const monthlyInRange = aprilCompleted
+    .map(id => findMonthlyQuest(id))
+    .filter((q): q is NonNullable<typeof q> => !!q && inRange(q.date, range.from, range.to))
+    .sort((a, b) => a.date.localeCompare(b.date))
   if (monthlyInRange.length > 0) {
     const byMonth = new Map<string, typeof monthlyInRange>()
     for (const q of monthlyInRange) {
@@ -832,7 +835,7 @@ export async function exportAsMarkdown(uid: string, range: DateRange = { from: n
       // Questy dzienne — tytuły
       if ((d.completedDailyQuests?.length ?? 0) > 0) {
         const titles = d.completedDailyQuests!.map((qId: string) => {
-          const aprilQ = APRIL_QUESTS.find(q => q.id === qId)
+          const aprilQ = findMonthlyQuest(qId)
           if (aprilQ) return `${aprilQ.title} [${(PL_MONTHS[aprilQ.date.slice(5, 7)] ?? '').toLowerCase()}]`
           return findQuestTitle(qId, d.date)
         })

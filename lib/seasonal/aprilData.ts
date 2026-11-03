@@ -110,10 +110,38 @@ import { JUNE_QUESTS } from './juneData'
 import { JULY_QUESTS } from './julyData'
 import { AUGUST_QUESTS } from './augustData'
 
+import { getEvergreenQuestsForDate, findEvergreenQuest } from './evergreenData'
+
 export const APRIL_QUESTS: AprilQuest[] = [...APRIL_ONLY_QUESTS, ...MAY_QUESTS, ...JUNE_QUESTS, ...JULY_QUESTS, ...AUGUST_QUESTS]
 
+const PROJECT_FIRST_DAY = '2026-04-05'
+const PLANNED_MONTHS = new Set(APRIL_QUESTS.map(q => q.date.slice(0, 7)))
+
+/** Czy miesiąc (YYYY-MM) ma własny, rozpisany plan questów. */
+export function isPlannedMonth(monthKey: string): boolean {
+  return PLANNED_MONTHS.has(monthKey)
+}
+
 export function getAprilQuestsForDate(dateKey: string): AprilQuest[] {
-  return APRIL_QUESTS.filter(q => q.date === dateKey)
+  // Miesiąc z planem: tylko jego questy (dzień bez questów to decyzja planu, np. Bali).
+  if (isPlannedMonth(dateKey.slice(0, 7))) return APRIL_QUESTS.filter(q => q.date === dateKey)
+  // Miesiąc bez planu: stałe propozycje zamiast pustej karty.
+  if (dateKey < PROJECT_FIRST_DAY) return []
+  return getEvergreenQuestsForDate(dateKey)
+}
+
+/** Quest miesięczny po id — rozpisany albo stała propozycja. */
+export function findMonthlyQuest(id: string): AprilQuest | undefined {
+  return APRIL_QUESTS.find(q => q.id === id) ?? findEvergreenQuest(id)
+}
+
+// Zaległe tylko z ostatniego tygodnia. Bez okna każdy nieodhaczony quest od
+// kwietnia wisiał na dashboardzie w nieskończoność — ściana winy zamiast planu.
+export const OVERDUE_WINDOW_DAYS = 7
+
+function shiftDateKey(dateKey: string, days: number): string {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10)
 }
 
 export function getOverdueAprilQuests(
@@ -122,13 +150,15 @@ export function getOverdueAprilQuests(
   skippedIds: string[],
   postponed: QuestPostpone[]
 ): AprilQuest[] {
+  const windowStart = shiftDateKey(todayKey, -OVERDUE_WINDOW_DAYS)
   return APRIL_QUESTS.filter(q => {
-    if (q.date >= todayKey) return false
     if (completedIds.includes(q.id)) return false
     if (skippedIds.includes(q.id)) return false
-    // Jeśli quest przeniesiony na dziś lub później — nie jest overdue
+    // Termin efektywny: data przeniesienia, jeśli była — inaczej data questa.
     const p = postponed.find(pp => pp.questId === q.id)
-    if (p && p.targetDate >= todayKey) return false
+    const due = p ? p.targetDate : q.date
+    if (due >= todayKey) return false
+    if (due < windowStart) return false
     return true
   })
 }
@@ -137,8 +167,8 @@ export function getPostponedQuestsForDate(
   dateKey: string,
   postponed: QuestPostpone[]
 ): AprilQuest[] {
-  const questIds = postponed
+  return postponed
     .filter(p => p.targetDate === dateKey)
-    .map(p => p.questId)
-  return APRIL_QUESTS.filter(q => questIds.includes(q.id))
+    .map(p => findMonthlyQuest(p.questId))
+    .filter((q): q is AprilQuest => !!q)
 }
