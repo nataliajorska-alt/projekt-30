@@ -58,7 +58,7 @@ export default function PageHeader({
       </div>
 
       {subtitle && (
-        <p className="mt-2 font-serif-body italic text-muted text-[14px]">
+        <p className="mt-2 font-serif-body italic text-muted text-[14px] leading-relaxed">
           {subtitle}
         </p>
       )}

@@ -714,7 +714,10 @@ export function useGameData() {
     if (!user || !todayRef || !todayLog) return
     const existing = todayLog.cigarettes ?? []
     if (existing.length === 0) return
-    await setDoc(todayRef, { cigarettes: existing.slice(0, -1) }, { merge: true })
+    // arrayRemove zamiast nadpisania całej tablicy — jak przy logCigarette:
+    // nieświeży snapshot z laptopa nie może skasować wpisu dodanego równolegle
+    // na telefonie. Wpisy mają unikalne timestampy, więc znika dokładnie jeden.
+    await setDoc(todayRef, { cigarettes: arrayRemove(existing[existing.length - 1]) }, { merge: true })
   }, [user, todayRef, todayLog])
 
   // Przejście do kolejnej fazy planu palenia (PLAN_PALENIE.md sekcja 2).
