@@ -6,7 +6,7 @@ import { useRoutineConfig } from '@/hooks/useRoutineConfig'
 import { useAprilQuests } from '@/hooks/useAprilQuests'
 import { useCycleData } from '@/hooks/useCycleData'
 import { useCycleSettings } from '@/hooks/useCycleSettings'
-import { getAprilQuestsForDate, getPostponedQuestsForDate } from '@/lib/seasonal/aprilData'
+import { useQuestBook } from '@/hooks/useMonthPlans'
 import { getTodayWeeklyHabits, getWeeklyStudyItem, DAILY_RULES } from '@/lib/routineData'
 import { getPhaseForDate } from '@/lib/cycle-data'
 import { getPillar } from '@/lib/pillars'
@@ -29,6 +29,7 @@ export default function TomorrowBriefing({ variant = 'tomorrow' }: { variant?: '
   const { log: questLog, skippedIds } = useAprilQuests()
   const { logs: cycleLogs } = useCycleData()
   const { settings: cycleSettings } = useCycleSettings()
+  const { book } = useQuestBook()
   const [copied, setCopied] = useState(false)
   const isToday = variant === 'today'
 
@@ -48,8 +49,8 @@ export default function TomorrowBriefing({ variant = 'tomorrow' }: { variant?: '
       : [...extraDaily, ...getEffectiveItems('daily', false).filter(i => i.id.startsWith('custom_'))]
 
     // Questy — ta sama logika co TomorrowQuests
-    const native = getAprilQuestsForDate(targetDateKey)
-    const postponedToTarget = getPostponedQuestsForDate(targetDateKey, questLog.postponed)
+    const native = book.questsForDate(targetDateKey)
+    const postponedToTarget = book.postponedForDate(targetDateKey, questLog.postponed)
     const postponedAwayIds = questLog.postponed
       .filter(p => p.targetDate > targetDateKey)
       .map(p => p.questId)

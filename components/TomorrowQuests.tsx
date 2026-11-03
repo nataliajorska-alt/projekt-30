@@ -3,7 +3,7 @@ import { useState } from 'react'
 import clsx from 'clsx'
 import { useTomorrowData } from '@/hooks/useTomorrowData'
 import { useAprilQuests } from '@/hooks/useAprilQuests'
-import { getAprilQuestsForDate, getPostponedQuestsForDate } from '@/lib/seasonal/aprilData'
+import { useQuestBook } from '@/hooks/useMonthPlans'
 import { getPillar } from '@/lib/pillars'
 import { todayKey } from '@/lib/gameLogic'
 import type { AprilQuest } from '@/lib/seasonal/aprilData'
@@ -11,8 +11,6 @@ import { SmallCaps, Diamond, Fleuron } from '@/components/ui'
 import PostponeModal, { addDaysKey } from '@/components/PostponeModal'
 import SkipModal from '@/components/SkipModal'
 
-const APRIL_LAST_DAY  = '2026-04-30'
-const APRIL_FIRST_DAY = '2026-04-05'
 
 function QuestCard({ quest, done, postponed, onComplete, onPostpone, onSkip }: {
   quest: AprilQuest
@@ -115,11 +113,12 @@ export default function TomorrowQuests() {
   const { log, skippedIds, loading: questsLoading, postponeQuest, skipQuest } = useAprilQuests()
   const [postponeTarget, setPostponeTarget] = useState<AprilQuest | null>(null)
   const [skipTarget, setSkipTarget] = useState<AprilQuest | null>(null)
+  const { book, loading: bookLoading } = useQuestBook()
 
-  if (loading || questsLoading) return null
+  if (loading || questsLoading || bookLoading) return null
 
-  const native = getAprilQuestsForDate(tomorrowDateKey)
-  const postponedToTomorrow = getPostponedQuestsForDate(tomorrowDateKey, log.postponed)
+  const native = book.questsForDate(tomorrowDateKey)
+  const postponedToTomorrow = book.postponedForDate(tomorrowDateKey, log.postponed)
   // Quest natywnie na jutro, ale przeniesiony jeszcze dalej — nie pokazuj go jutro
   const postponedAwayIds = log.postponed
     .filter(p => p.targetDate > tomorrowDateKey)
@@ -131,31 +130,8 @@ export default function TomorrowQuests() {
     ...postponedToTomorrow.filter(q => !native.some(n => n.id === q.id)),
   ].filter(q => !skippedIds.includes(q.id))
 
-  if (quests.length === 0) {
-    if (tomorrowDateKey > APRIL_LAST_DAY) {
-      return (
-        <div className="bg-ivory border border-gold-light/40 mb-4">
-          <div className="px-5 pt-5 pb-3 flex items-baseline gap-3">
-            <h2 className="font-heading text-dark text-xl whitespace-nowrap">Questy dnia</h2>
-            <SmallCaps tone="gold-deep" tracking="luxury" size="xs">
-              na zapas
-            </SmallCaps>
-          </div>
-          <div className="px-5 pb-5">
-            <div className="border border-gold-light/30 bg-gold-pale/30 p-6 text-center">
-              <Fleuron size={14} className="text-gold mx-auto mb-3 inline-block" />
-              <h3 className="font-heading text-dark text-lg">Nowy rozdział wkrótce</h3>
-              <p className="font-serif-body italic text-muted text-[13px] mt-2 leading-relaxed">
-                treść na ten miesiąc jest w przygotowaniu.
-              </p>
-            </div>
-          </div>
-        </div>
-      )
-    }
-    if (tomorrowDateKey < APRIL_FIRST_DAY) return null
-    return null
-  }
+  // Pusto tylko, gdy plan tak chce albo wszystko pominięte/przeniesione.
+  if (quests.length === 0) return null
 
   return (
     <>

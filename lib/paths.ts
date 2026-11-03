@@ -97,6 +97,11 @@ export const photosCol = (uid: Uid): [string, string, string] => ['users', uid, 
 export const photoDoc = (uid: Uid, id: string): [string, string, string, string] =>
   ['users', uid, 'photos', id]
 
+// users/{uid}/monthPlans/{YYYY-MM}  (plany miesięcy rozpisane w /plan)
+export const monthPlansCol = (uid: Uid): [string, string, string] => ['users', uid, 'monthPlans']
+export const monthPlanDoc = (uid: Uid, monthKey: string): [string, string, string, string] =>
+  ['users', uid, 'monthPlans', monthKey]
+
 // users/{uid}/cycle
 export const cycleCol = (uid: Uid): [string, string, string] => ['users', uid, 'cycle']
 export const cycleDoc = (uid: Uid, id: string): [string, string, string, string] =>

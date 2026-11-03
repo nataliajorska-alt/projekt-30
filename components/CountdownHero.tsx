@@ -16,6 +16,7 @@ import {
 import { useGameData } from '@/hooks/useGameData'
 import { getDailySpark } from '@/lib/questData'
 import { getCurrentMonthData } from '@/lib/seasonal/monthData'
+import { useQuestBook } from '@/hooks/useMonthPlans'
 import { useSparkSchedule } from '@/hooks/useSparkSchedule'
 import { toRoman } from '@/lib/romanNumerals'
 
@@ -40,6 +41,7 @@ function currentProjectMonthIndex(): number {
 export default function CountdownHero() {
   const { stats } = useGameData()
   const { sparks } = useSparkSchedule()
+  const { book } = useQuestBook()
   const daysLeft = getDaysRemaining()
   const daysElapsed = getDaysElapsed()
   const projectProgress = getProjectProgress()
@@ -48,7 +50,8 @@ export default function CountdownHero() {
   const lvlProgress = getLevelProgress(stats.totalXP)
   const key = todayKey()
   const spark = sparks[key] || getDailySpark(key)
-  const month = getCurrentMonthData()
+  // Hasło/motto/pytanie z planu w /plan nadpisują szkic z monthData.
+  const month = book.monthMeta(key.slice(0, 7)) ?? getCurrentMonthData()
   const projectMonth = currentProjectMonthIndex()
 
   // 10-segment level bar: how many full + one partial

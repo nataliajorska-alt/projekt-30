@@ -3,13 +3,10 @@ import { useState } from 'react'
 import clsx from 'clsx'
 import { useAprilQuests } from '@/hooks/useAprilQuests'
 import { useGameData } from '@/hooks/useGameData'
-import {
-  getAprilQuestsForDate,
-  getOverdueAprilQuests,
-  getPostponedQuestsForDate,
-  isPlannedMonth,
-} from '@/lib/seasonal/aprilData'
-import { MONTHLY_DATA } from '@/lib/seasonal/monthData'
+import Link from 'next/link'
+import { useQuestBook } from '@/hooks/useMonthPlans'
+import { nextMonthKey } from '@/lib/monthPlanner'
+import type { QuestBook } from '@/lib/seasonal/aprilData'
 import { getPillar } from '@/lib/pillars'
 import { todayKey } from '@/lib/gameLogic'
 import { Clock } from 'lucide-react'
@@ -21,22 +18,25 @@ import type { AprilQuest } from '@/lib/seasonal/aprilData'
 // Ile dni przed końcem miesiąca przypominamy, że następny nie ma planu.
 const PLAN_AHEAD_DAYS = 7
 
-/** Notka pod listą: „ten miesiąc bez planu" albo „następny miesiąc bez planu". */
-function planNote(today: string): string | null {
+/** Notka pod listą: „ten miesiąc bez planu" albo „następny miesiąc bez planu" + link do /plan. */
+function planNote(today: string, book: QuestBook): { text: string; month: string } | null {
   const [y, m, d] = today.split('-').map(Number)
   const monthKey = today.slice(0, 7)
-  if (!isPlannedMonth(monthKey)) {
-    const name = MONTHLY_DATA[monthKey]?.name
-    return `${name ? `„${name}" nie ma` : 'Ten miesiąc nie ma'} jeszcze rozpisanych questów — to stałe propozycje, żeby rytm nie stanął.`
+  if (!book.isPlannedMonth(monthKey)) {
+    const name = book.monthMeta(monthKey)?.name
+    return {
+      text: `${name ? `„${name}" nie ma` : 'Ten miesiąc nie ma'} jeszcze planu — to stałe propozycje, żeby rytm nie stanął.`,
+      month: monthKey,
+    }
   }
   const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate()
   const left = daysInMonth - d + 1
   if (left > PLAN_AHEAD_DAYS) return null
-  const next = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7)
-  if (isPlannedMonth(next)) return null
-  const name = MONTHLY_DATA[next]?.name
+  const next = nextMonthKey(monthKey)
+  if (book.isPlannedMonth(next)) return null
+  const name = book.monthMeta(next)?.name
   const when = left === 1 ? 'Od jutra' : `Za ${left} dni`
-  return `${when} ${name ? `„${name}"` : 'nowy miesiąc'} — rozpisz go, zanim się zacznie.`
+  return { text: `${when} ${name ? `„${name}"` : 'nowy miesiąc'} — rozpisz go, zanim się zacznie.`, month: next }
 }
 
 /* ── Inline SVG icons matching the design ─────────────────────────── */
@@ -207,28 +207,30 @@ function QuestRow({
 export default function DailyQuests() {
   const { log, skippedIds, loading, completeQuest, skipQuest, postponeQuest } = useAprilQuests()
   const { todayLog } = useGameData()
+  const { book, loading: bookLoading } = useQuestBook()
   const isMinimum = (todayLog?.dayMode ?? 'normal') === 'minimum'
   const [skipTarget, setSkipTarget] = useState<AprilQuest | null>(null)
   const [postponeTarget, setPostponeTarget] = useState<AprilQuest | null>(null)
   const today = todayKey()
 
-  const nativeToday = getAprilQuestsForDate(today)
-  const postponedToToday = getPostponedQuestsForDate(today, log.postponed)
+  const nativeToday = book.questsForDate(today)
+  const postponedToToday = book.postponedForDate(today, log.postponed)
   const postponedAwayIds = log.postponed.filter(p => p.targetDate > today).map(p => p.questId)
 
   const todayQuests = [
     ...nativeToday.filter(q => !postponedAwayIds.includes(q.id)),
     ...postponedToToday.filter(q => !nativeToday.some(n => n.id === q.id)),
   ].filter(q => !skippedIds.includes(q.id))
-  const overdueQuests = getOverdueAprilQuests(today, log.completed, skippedIds, log.postponed)
+  const overdueQuests = book.overdue(today, log.completed, skippedIds, log.postponed)
 
-  if (loading) return null
+  // Czekamy też na plany z apki — inaczej przez chwilę mignęłyby stałe propozycje.
+  if (loading || bookLoading) return null
 
   // Pusto tylko, gdy plan tak chce (dzień bez questów) albo wszystko pominięte.
   if (todayQuests.length === 0 && overdueQuests.length === 0) return null
 
   const allQuests = [...overdueQuests, ...todayQuests]
-  const note = planNote(today)
+  const note = planNote(today, book)
   const completedCount = allQuests.filter(q => log.completed.includes(q.id)).length
   const earnedXP = allQuests
     .filter(q => log.completed.includes(q.id))
@@ -315,7 +317,12 @@ export default function DailyQuests() {
         {note && (
           <p className="flex items-center justify-center gap-2 py-4 border-t border-border/60 font-serif-body italic text-muted text-[13px] text-center leading-relaxed">
             <Fleuron size={11} className="text-gold shrink-0" />
-            <span>{note}</span>
+            <span>
+              {note.text}{' '}
+              <Link href={`/plan?month=${note.month}`} className="not-italic font-ui uppercase tracking-luxury text-[10px] text-gold-deep hover:text-dark whitespace-nowrap">
+                Rozpisz →
+              </Link>
+            </span>
           </p>
         )}
       </section>
