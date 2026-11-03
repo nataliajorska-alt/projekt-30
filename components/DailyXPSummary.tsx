@@ -1,11 +1,19 @@
 'use client'
 import { useGameData } from '@/hooks/useGameData'
-import { getLevelFromXP, getNextLevel, getLevelProgress } from '@/lib/gameLogic'
+import { getLevelFromXP, getNextLevel, getLevelProgress, XP_VALUES } from '@/lib/gameLogic'
 import { toRoman } from '@/lib/romanNumerals'
 
 export default function DailyXPSummary() {
   const { todayLog, stats } = useGameData()
-  const todayXP = todayLog?.totalXP ?? 0
+  // XP za check-in nastroju leci tylko do stats.totalXP, nie do log.totalXP
+  // (tak samo jak heart block, Ghost V2 i CBT — recoverStats odbudowuje je osobno,
+  // więc pisanie ich do logu podwajałoby XP przy każdym rebuildzie).
+  // Skutek uboczny: modal obiecywał „+5 XP", a kafelek „Dziś" się nie ruszał.
+  // Doliczamy je tu, przy wyświetlaniu — ledger zostaje nietknięty.
+  const moodXP = (todayLog?.moodCheckIns?.length ?? 0) * XP_VALUES.moodCheckIn
+  // XP za dzień pod sufitem (sprint X–XI) — tak samo tylko w stats, doliczane tu.
+  const smokeXP = todayLog?.smokeCeilingXP ?? 0
+  const todayXP = (todayLog?.totalXP ?? 0) + moodXP + smokeXP
   const vaultXP = todayLog?.externalXP
     ? Object.values(todayLog.externalXP).reduce<number>((a, b) => a + (b ?? 0), 0)
     : 0
@@ -49,6 +57,28 @@ export default function DailyXPSummary() {
               <span className="text-gold text-[8px] leading-none">◆</span>
               <span className="font-serif-body italic text-gold-deep text-[11px] tabular-nums">
                 vault · +{vaultXP}
+              </span>
+            </div>
+          )}
+          {moodXP > 0 && (
+            <div
+              className="mt-1 inline-flex items-center gap-1.5"
+              title={`za check-iny nastroju: +${moodXP} XP`}
+            >
+              <span className="text-gold text-[8px] leading-none">◆</span>
+              <span className="font-serif-body italic text-gold-deep text-[11px] tabular-nums">
+                nastrój · +{moodXP}
+              </span>
+            </div>
+          )}
+          {smokeXP > 0 && (
+            <div
+              className="mt-1 inline-flex items-center gap-1.5"
+              title={`za dzień pod sufitem: +${smokeXP} XP`}
+            >
+              <span className="text-gold text-[8px] leading-none">◆</span>
+              <span className="font-serif-body italic text-gold-deep text-[11px] tabular-nums">
+                sufit · +{smokeXP}
               </span>
             </div>
           )}

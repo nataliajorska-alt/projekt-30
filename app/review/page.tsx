@@ -148,7 +148,6 @@ export default function ReviewPage() {
               logs={logs}
               submitMonthlyReview={submitMonthlyReview}
               monthlyReviews={monthlyReviews}
-              reviewsLoading={historyLoading}
             />
           )}
           {mode === 'quarterly' && (

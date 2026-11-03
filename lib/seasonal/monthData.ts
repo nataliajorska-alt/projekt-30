@@ -36,8 +36,9 @@ export const MONTHLY_DATA: Record<string, MonthData> = {
     question: 'Czy doświadczam radości, będąc tu i teraz?',
   },
   '2026-09': {
-    name: 'Ostrość',
-    motto: 'Wracam do struktury. Kariera i finanse dostają moją pełną uwagę.',
+    name: 'LEKKOŚĆ',
+    motto: 'Nie wszystko musi być po coś.',
+    question: 'Czy potrafię wskazać choć jedną rzecz z tego miesiąca, która do niczego nie posłużyła?',
   },
   '2026-10': {
     name: 'Głębia',

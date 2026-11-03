@@ -234,7 +234,7 @@ export type SmokingPhase = 1 | 2 | 3 | 4 | 5
 export const SMOKING_PHASE_META: Record<SmokingPhase, { label: string; period: string; softTarget: string }> = {
   1: { label: 'Obserwacja',     period: '18.05 – 06.07.2026',       softTarget: 'bez limitu — tylko liczymy' },
   2: { label: 'Redukcja',       period: '07.07.2026 → 5.04.2027',   softTarget: 'sufit miesięczny, w dół po jednym (14 → 0)' },
-  3: { label: 'Kompresja',      period: 'październik–grudzień 2026', softTarget: 'sufit 9 → 6 / dzień, kontekst przed liczbą' },
+  3: { label: 'Kompresja',      period: 'październik–grudzień 2026', softTarget: 'sufit 10 → 6 / dzień, kontekst przed liczbą' },
   4: { label: 'Transfer',       period: 'styczeń–luty 2027',        softTarget: 'sufit 5 → 3, coraz więcej dni 0' },
   5: { label: 'Ostatnia prosta',period: 'marzec–kwiecień 2027',     softTarget: 'sufit 2 → 0, rzucam 5.04' },
 }
@@ -285,6 +285,13 @@ export interface DailyLog {
    * papieros zalogowany PO deklaracji to dane do analizy, nie wyrok.
    */
   smokeLastOfDayAt?: number | null
+  /**
+   * XP za dzień pod sufitem (sprint nadrabiania X–XI 2026, smokeCeilingXP).
+   * Stempel aktualnie przyznanej kwoty: przeliczany przy deklaracji, przy
+   * papierosie po deklaracji i przy dniu awaryjnym (zmiana idzie deltą). Leci
+   * tylko do stats, nie do log.totalXP; recoverStats sumuje ten stempel.
+   */
+  smokeCeilingXP?: number
   /**
    * Suma XP wpisana w tym dniu przez zewnętrzne aplikacje (na razie tylko
    * The Learning Vault), rozbita per filar. Endpoint /api/external/xp

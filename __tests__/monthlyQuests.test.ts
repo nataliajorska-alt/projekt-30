@@ -10,8 +10,9 @@ import {
 import { getEvergreenQuestsForDate } from '@/lib/seasonal/evergreenData'
 
 describe('miesiące z planem i bez', () => {
-  it('kwiecień–sierpień mają plan, listopad nie', () => {
+  it('kwiecień–wrzesień mają plan, listopad nie', () => {
     expect(isPlannedMonth('2026-08')).toBe(true)
+    expect(isPlannedMonth('2026-09')).toBe(true)
     expect(isPlannedMonth('2026-11')).toBe(false)
   })
 
@@ -21,7 +22,7 @@ describe('miesiące z planem i bez', () => {
   })
 
   it('miesiąc bez planu dostaje 2 stałe propozycje dziennie', () => {
-    for (const d of ['2026-09-15', '2026-11-03', '2027-01-20']) {
+    for (const d of ['2026-10-15', '2026-11-03', '2027-01-20']) {
       const qs = getAprilQuestsForDate(d)
       expect(qs).toHaveLength(2)
       expect(qs.every(q => q.date === d && q.id.startsWith(`ev_${d}_`))).toBe(true)

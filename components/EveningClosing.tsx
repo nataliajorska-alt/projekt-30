@@ -6,11 +6,13 @@ import { useGameData } from '@/hooks/useGameData'
 import { useRoutineConfig } from '@/hooks/useRoutineConfig'
 import { filterItemsForMinimumDay } from '@/lib/minimumDayLogic'
 import { SmallCaps, Diamond, Fleuron, GoldRule, CornerBrackets } from '@/components/ui'
+import { smokeCeilingXP } from '@/lib/smokeStats'
 
 // Wieczorne domknięcie dnia — jeden ceremonialny ekran spinający istniejącą
 // rutynę wieczorną (te same id i toggleRoutine co checklista — zero drugiego
-// źródła prawdy) plus deklarację „ostatni papieros dnia". Deklaracja to czysty
-// znacznik w logu dnia (smokeLastOfDayAt), bez XP i bez blokowania — pull, not push.
+// źródła prawdy) plus deklarację „ostatni papieros dnia". Deklaracja to znacznik
+// w logu dnia (smokeLastOfDayAt), bez blokowania — pull, not push. W sprincie
+// X–XI 2026 zamyka dzień dla XP za sufit (smokeCeilingXP).
 
 interface EveningClosingProps {
   onClose: () => void
@@ -20,7 +22,7 @@ const fmtTime = (ts: number) =>
   new Date(ts).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
 
 export default function EveningClosing({ onClose }: EveningClosingProps) {
-  const { todayLog, toggleRoutine, setLastCigaretteOfDay } = useGameData()
+  const { todayLog, stats, toggleRoutine, setLastCigaretteOfDay } = useGameData()
   const { getEffectiveItems } = useRoutineConfig()
   const [marking, setMarking] = useState(false)
 
@@ -46,6 +48,9 @@ export default function EveningClosing({ onClose }: EveningClosingProps) {
   const lastCig = cigs.length > 0 ? cigs[cigs.length - 1] : null
   const markedAt = todayLog.smokeLastOfDayAt ?? null
   const smokedAfterMark = markedAt !== null && lastCig !== null && lastCig.timestamp > markedAt
+  // Sprint X–XI: ile XP daje zamknięcie dnia teraz / ile już przyznano.
+  const sprintXP = smokeCeilingXP(todayLog.date, cigs.length, (stats.smokeEmergencyDays ?? []).includes(todayLog.date))
+  const awardedXP = todayLog.smokeCeilingXP ?? 0
 
   const mark = async (on: boolean) => {
     if (marking) return
@@ -125,6 +130,24 @@ export default function EveningClosing({ onClose }: EveningClosingProps) {
                 <p className="font-serif-body italic text-parchment text-[13.5px] leading-relaxed">
                   dziś zero. nie ma czego domykać — to już jest domknięcie.
                 </p>
+                {/* Sprint X–XI: zero też trzeba zamknąć, żeby XP za sufit wpadło */}
+                {markedAt === null && sprintXP > 0 && (
+                  <button
+                    onClick={() => mark(true)}
+                    disabled={marking}
+                    className={clsx(
+                      'mt-3 w-full border border-gold/50 hover:bg-gold/10 px-4 py-2.5 font-ui uppercase tracking-[0.28em] text-[10px] text-gold-light transition-colors',
+                      marking && 'opacity-50 pointer-events-none',
+                    )}
+                  >
+                    zamykam dzień na zerze · +{sprintXP} xp
+                  </button>
+                )}
+                {markedAt !== null && awardedXP > 0 && (
+                  <p className="mt-3 font-serif-body italic text-gold-light text-[13px]">
+                    za sufit: +{awardedXP} XP
+                  </p>
+                )}
                 {/* Osierocona deklaracja (papieros cofnięty po deklaracji) — droga odwrotu */}
                 {markedAt !== null && (
                   <button
@@ -153,7 +176,7 @@ export default function EveningClosing({ onClose }: EveningClosingProps) {
                       marking && 'opacity-50 pointer-events-none',
                     )}
                   >
-                    to był ostatni na dziś
+                    to był ostatni na dziś{sprintXP > 0 && <> · +{sprintXP} xp</>}
                   </button>
                 ) : smokedAfterMark ? (
                   <>
@@ -177,7 +200,7 @@ export default function EveningClosing({ onClose }: EveningClosingProps) {
                     <span className="inline-flex items-center gap-2.5">
                       <Diamond size={5} className="text-gold" filled />
                       <SmallCaps tone="gold-light" tracking="luxury" size="xs">
-                        ostatni na dziś · {fmtTime(markedAt)}
+                        ostatni na dziś · {fmtTime(markedAt)}{awardedXP > 0 && <> · +{awardedXP} xp</>}
                       </SmallCaps>
                     </span>
                     <button

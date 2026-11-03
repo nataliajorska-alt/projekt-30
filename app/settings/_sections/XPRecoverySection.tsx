@@ -9,6 +9,7 @@ type RecoveryBreakdown = {
   fromAchievements: number; total: number; weeklyCount: number; monthlyCount: number; achievementsCount: number
   fromMoodCheckIns: number; fromHeartBlocks: number; fromPillarBalance: number
   fromGhostV2: number; fromHonestFailure: number; fromCBT: number
+  fromSmokeCeiling: number; smokeCeilingDaysCount: number
   moodCheckInsCount: number; heartBlocksCount: number; pillarBalanceCount: number
   ghostV2Count: number; honestFailureCount: number; cbtCount: number
   /** XP z Learning Vault, JUŻ wliczone w fromLogs — informacyjny rozkład. */
@@ -104,6 +105,7 @@ export default function XPRecoverySection() {
             [`Ghost Protocol V2 (${breakdown.ghostV2Count})`, breakdown.fromGhostV2],
             [`Honest Failure (${breakdown.honestFailureCount})`, breakdown.fromHonestFailure],
             [`Myśli i emocje — CBT (${breakdown.cbtCount})`, breakdown.fromCBT],
+            [`Dni pod sufitem (${breakdown.smokeCeilingDaysCount})`, breakdown.fromSmokeCeiling],
             [`Osiągnięcia (${breakdown.achievementsCount})`, breakdown.fromAchievements],
             // Z Learning Vault — informacyjnie, JUŻ wliczone w „Dzienne wpisy" wyżej.
             ...(breakdown.fromExternal > 0

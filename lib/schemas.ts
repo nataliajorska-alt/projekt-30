@@ -96,6 +96,8 @@ export const DailyLogSchema = z.object({
   cbtCaptureAwarded: z.boolean().optional(),
   // Deklaracja „ostatni papieros dnia" (wieczorne domknięcie): timestamp, null = cofnięta.
   smokeLastOfDayAt: z.number().nullable().optional(),
+  // XP za dzień pod sufitem (sprint X–XI 2026): stempel przyznanej kwoty.
+  smokeCeilingXP: z.number().nonnegative().optional(),
   // XP z zewnętrznych aplikacji (na razie The Learning Vault), per filar.
   externalXP: z.object({
     pozycja:   z.number().nonnegative().optional(),

@@ -18,7 +18,7 @@ import {
   MAX_MOOD_CHECKINS_PER_DAY,
 } from '@/lib/gameLogic'
 import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
-import { EMERGENCY_DAYS_PER_MONTH } from '@/lib/smokeStats'
+import { EMERGENCY_DAYS_PER_MONTH, smokeCeilingXP } from '@/lib/smokeStats'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import { DAILY_QUESTS_POOL, SIDE_QUESTS } from '@/lib/questData'
 import { APRIL_QUESTS } from '@/lib/seasonal/aprilData'
@@ -690,8 +690,39 @@ export function useGameData() {
     await setDoc(todayRef, { keyMoment: null }, { merge: true })
   }, [user, todayRef])
 
+  // Sprint nadrabiania (X–XI 2026): XP za dzień pod sufitem. Przyznawane tylko
+  // w dniu zamkniętym deklaracją „ostatni papieros dnia"; każda zmiana (papieros
+  // po deklaracji, cofnięcie, dzień awaryjny) przelicza kwotę i zapisuje DELTĘ
+  // względem stempla log.smokeCeilingXP. Tylko do stats (jak mood/CBT), stempel
+  // w logu jest źródłem prawdy dla recoverStats.
+  const settleSmokeCeilingXP = useCallback(async (
+    count: number,
+    declared: boolean,
+    emergencyDays: string[] = stats.smokeEmergencyDays ?? [],
+  ) => {
+    if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current) return
+    const target = declared
+      ? smokeCeilingXP(currentDateKey, count, emergencyDays.includes(currentDateKey))
+      : 0
+    const delta = target - (todayLog.smokeCeilingXP ?? 0)
+    if (delta === 0) return
+    // buildStatsWrite pisze pola bezwzględnie, więc lista dni awaryjnych musi
+    // być ta świeża — inaczej nadpisałaby zapis z toggleSmokeEmergencyDay.
+    const newStats: UserStats = {
+      ...stats,
+      smokeEmergencyDays: emergencyDays,
+      totalXP: Math.max(0, stats.totalXP + delta),
+      pillarXP: { ...stats.pillarXP, cialo: Math.max(0, (stats.pillarXP.cialo ?? 0) + delta) },
+    }
+    checkLevelUp(stats.totalXP, newStats.totalXP)
+    await Promise.all([
+      setDoc(todayRef, { smokeCeilingXP: target, date: currentDateKey }, { merge: true }),
+      setDoc(statsRef, buildStatsWrite(stats, newStats), { merge: true }),
+    ])
+  }, [user, stats, statsRef, todayRef, todayLog, currentDateKey, checkLevelUp])
+
   // Papierosy — patrz PLAN_PALENIE.md sekcja 6.
-  // Świadomie: brak XP, brak wpływu na streak, brak alertów.
+  // Brak wpływu na streak, brak alertów. XP tylko przez sprint sufitu (wyżej).
   // Spokojny licznik. Logowanie ZAWSZE może się zdarzyć — to jest cały feedback loop.
   const logCigarette = useCallback(async (context?: CigaretteContext, intensity?: 1 | 2 | 3 | 4 | 5) => {
     if (!user || !todayRef || !todayLog) return
@@ -707,7 +738,11 @@ export function useGameData() {
     // więc zawsze się dodaje — a równoległy log z drugiego urządzenia nie nadpisze
     // tablicy (to są dane fazy 1, najważniejsze do ochrony).
     await setDoc(todayRef, { cigarettes: arrayUnion(entry) }, { merge: true })
-  }, [user, todayRef, todayLog])
+    // Papieros po deklaracji: dzień dalej zamknięty, kwota przeliczona.
+    if (todayLog.smokeLastOfDayAt) {
+      await settleSmokeCeilingXP((todayLog.cigarettes?.length ?? 0) + 1, true)
+    }
+  }, [user, todayRef, todayLog, settleSmokeCeilingXP])
 
   // Cofnięcie omyłki (np. podwójne tapnięcie). Bez „undo streak", tylko czysta korekta danych.
   const removeLastCigarette = useCallback(async () => {
@@ -718,7 +753,10 @@ export function useGameData() {
     // nieświeży snapshot z laptopa nie może skasować wpisu dodanego równolegle
     // na telefonie. Wpisy mają unikalne timestampy, więc znika dokładnie jeden.
     await setDoc(todayRef, { cigarettes: arrayRemove(existing[existing.length - 1]) }, { merge: true })
-  }, [user, todayRef, todayLog])
+    if (todayLog.smokeLastOfDayAt) {
+      await settleSmokeCeilingXP(existing.length - 1, true)
+    }
+  }, [user, todayRef, todayLog, settleSmokeCeilingXP])
 
   // Przejście do kolejnej fazy planu palenia (PLAN_PALENIE.md sekcja 2).
   // Przy zamknięciu fazy 1 przekazujemy wyliczony baseline — zostaje na zawsze
@@ -736,8 +774,9 @@ export function useGameData() {
   // Dzień awaryjny (PLAN_PALENIE / Faza 2): oznaczasz dziś jako awaryjny → sufit
   // zdjęty, bez presji. Limit/miesiąc chroni przed „codziennie awaryjny".
   // Ponowne wywołanie w oznaczonym dniu = cofnięcie (oddaje limit). Bez XP.
-  // Deklaracja „ostatni papieros dnia" (wieczorne domknięcie): czysty znacznik
-  // w logu dnia — bez XP, bez liczników, bez blokad. null = deklaracja cofnięta.
+  // Deklaracja „ostatni papieros dnia" (wieczorne domknięcie): znacznik w logu
+  // dnia, bez blokad. null = deklaracja cofnięta. W sprincie X–XI zamyka dzień
+  // dla XP za sufit (settleSmokeCeilingXP); cofnięcie oddaje to XP.
   // todayLog odświeża się przez onSnapshot, więc lokalny stan nie wymaga ruchu.
   const setLastCigaretteOfDay = useCallback(async (mark: boolean) => {
     if (!user || !todayRef) return
@@ -745,7 +784,8 @@ export function useGameData() {
       smokeLastOfDayAt: mark ? Date.now() : null,
       date: currentDateKey,
     }, { merge: true })
-  }, [user, todayRef, currentDateKey])
+    await settleSmokeCeilingXP(todayLog?.cigarettes?.length ?? 0, mark)
+  }, [user, todayRef, todayLog, currentDateKey, settleSmokeCeilingXP])
 
   const toggleSmokeEmergencyDay = useCallback(async () => {
     if (!user || !statsRef || !statsLoadedRef.current) return
@@ -761,7 +801,11 @@ export function useGameData() {
       next = [...current, today]
     }
     await setDoc(statsRef, { smokeEmergencyDays: next }, { merge: true })
-  }, [user, statsRef, currentDateKey, stats.smokeEmergencyDays])
+    // Dzień awaryjny zdejmuje sufit, więc i XP za sufit; cofnięcie je przywraca.
+    if (todayLog?.smokeLastOfDayAt) {
+      await settleSmokeCeilingXP(todayLog.cigarettes?.length ?? 0, true, next)
+    }
+  }, [user, statsRef, currentDateKey, stats.smokeEmergencyDays, todayLog, settleSmokeCeilingXP])
 
   const completeReturnCeremony = useCallback(async () => {
     if (!user || !statsRef || !statsLoadedRef.current) return
@@ -1038,6 +1082,8 @@ export function useGameData() {
     let fromExternal = 0           // XP z zewnętrznych apek (Learning Vault), z log.externalXP
     let externalDaysCount = 0      // liczba dni, w których byl jakikolwiek external XP
     let totalMoodCheckIns = 0      // sumujemy w pętli — log.moodCheckIns nie idą do log.totalXP
+    let fromSmokeCeiling = 0       // sprint X–XI: stempel log.smokeCeilingXP (tylko stats, nie log.totalXP)
+    let smokeCeilingDaysCount = 0
     let totalRoutinesCompleted = 0
     let totalQuestsCompleted = 0
     let totalSideQuestsCompleted = 0
@@ -1077,6 +1123,8 @@ export function useGameData() {
       totalSideQuestsCompleted += (log.completedSideQuests?.length ?? 0) + (log.customSideQuests?.length ?? 0)
       totalRulesKept += log.keptRules?.length ?? 0
       totalMoodCheckIns += log.moodCheckIns?.length ?? 0
+      const smokeXP = (Number.isFinite(log.smokeCeilingXP) && (log.smokeCeilingXP ?? 0) > 0) ? log.smokeCeilingXP! : 0
+      if (smokeXP > 0) { fromSmokeCeiling += smokeXP; smokeCeilingDaysCount += 1 }
 
       // Ghost Protocol — count + day-streak.
       if (log.ghostProtocolCompleted) {
@@ -1232,6 +1280,9 @@ export function useGameData() {
     }, 0)
     pillarXP.pozycja = (pillarXP.pozycja ?? 0) + fromCBT
 
+    // Sprint sufitu (X–XI 2026) — XP leci do filaru ciało, jak na żywo.
+    pillarXP.cialo = (pillarXP.cialo ?? 0) + fromSmokeCeiling
+
     // Jeśli V2 ma więcej unikalnych dni z impulsami niż log.ghostProtocolCompleted — użyj większego.
     // Chmurki (quick-log) pominięte: nie są aktywacją protokołu i na żywo nie ustawiają
     // ghostProtocolCompleted ani totalGhostProtocols — recovery musi liczyć tak samo.
@@ -1251,7 +1302,7 @@ export function useGameData() {
     // historycznych passy — żeby achievement złapał się nawet jeśli aktualna passa = 0.
     const baseXP = fromLogs + fromWeeklyReviews + fromMonthlyReviews
                  + fromMoodCheckIns + fromHeartBlocks + fromPillarBalance
-                 + fromGhostV2 + fromHonestFailure + fromCBT
+                 + fromGhostV2 + fromHonestFailure + fromCBT + fromSmokeCeiling
     const statsForEval: UserStats = {
       ...DEFAULT_STATS,
       totalXP: baseXP,
@@ -1326,6 +1377,7 @@ export function useGameData() {
         fromGhostV2,
         fromHonestFailure,
         fromCBT,
+        fromSmokeCeiling,
         // fromExternal informacyjnie — XP z Learning Vault, JUŻ wliczone
         // w fromLogs (endpoint inkrementuje log.totalXP). Pokazujemy
         // osobno tylko dla rozbicia UI, nie sumujemy ponownie.
@@ -1341,6 +1393,7 @@ export function useGameData() {
         ghostV2Count:         ghostV2Entries.length,
         honestFailureCount:   failureEntries.length,
         cbtCount:             cbtSnap.docs.length,
+        smokeCeilingDaysCount,
       },
     }
   }, [user, statsRef, currentDateKey])

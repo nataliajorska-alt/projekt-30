@@ -6,7 +6,7 @@ import { useGameData } from '@/hooks/useGameData'
 import Link from 'next/link'
 import { useQuestBook } from '@/hooks/useMonthPlans'
 import { nextMonthKey } from '@/lib/monthPlanner'
-import type { QuestBook } from '@/lib/seasonal/aprilData'
+import { QUEST_MUSCLE_LABEL, type QuestBook } from '@/lib/seasonal/aprilData'
 import { getPillar } from '@/lib/pillars'
 import { todayKey } from '@/lib/gameLogic'
 import { Clock } from 'lucide-react'
@@ -128,6 +128,19 @@ function QuestRow({
           >
             <span className="ml-0">{pillar.shortName}</span>
           </span>
+          {quest.muscles?.map(m => (
+            <span
+              key={m}
+              title={`Mięsień ${m}: ${QUEST_MUSCLE_LABEL[m]}`}
+              className={clsx(
+                'inline-flex items-center gap-1 border px-1.5 py-0.5 font-ui uppercase tracking-luxury text-[9px]',
+                done ? 'border-hairline text-muted-light' : 'border-gold-light/60 text-gold-deep',
+              )}
+            >
+              <span className="font-medium">{m}</span>
+              <span className="hidden sm:inline">· {QUEST_MUSCLE_LABEL[m]}</span>
+            </span>
+          ))}
         </div>
         <h3
           className={clsx(

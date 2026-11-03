@@ -1,6 +1,20 @@
 import type { Pillar } from '@/types'
 import type { QuestPostpone } from '@/hooks/useAprilQuests'
 
+/**
+ * Mięsień, na który pracuje quest (wprowadzone we wrześniu '26).
+ * A — bez zatwierdzenia · B — bez dowodu · C — ze sobą · D — bez oddawania steru.
+ * Quest bez uzasadnienia to zajęcie, nie zmiana — stąd litera na karcie.
+ */
+export type QuestMuscle = 'A' | 'B' | 'C' | 'D'
+
+export const QUEST_MUSCLE_LABEL: Record<QuestMuscle, string> = {
+  A: 'bez zatwierdzenia',
+  B: 'bez dowodu',
+  C: 'ze sobą',
+  D: 'bez oddawania steru',
+}
+
 export interface AprilQuest {
   id: string
   date: string      // YYYY-MM-DD
@@ -8,6 +22,8 @@ export interface AprilQuest {
   description: string
   pillar: Pillar
   xp: number
+  /** Opcjonalne — miesiące sprzed września '26 nie mają liter. */
+  muscles?: QuestMuscle[]
 }
 
 export const APRIL_MOTTO = 'W kwietniu nie proszę świata o miejsce. Zaczynam stawać się kobietą, której miejsce się robi.'
@@ -109,12 +125,13 @@ import { MAY_QUESTS } from './mayData'
 import { JUNE_QUESTS } from './juneData'
 import { JULY_QUESTS } from './julyData'
 import { AUGUST_QUESTS } from './augustData'
+import { SEPTEMBER_QUESTS } from './septemberData'
 
 import { getEvergreenQuestsForDate, findEvergreenQuest } from './evergreenData'
 import type { MonthPlan } from './monthPlans'
 import { MONTHLY_DATA, type MonthData } from './monthData'
 
-export const APRIL_QUESTS: AprilQuest[] = [...APRIL_ONLY_QUESTS, ...MAY_QUESTS, ...JUNE_QUESTS, ...JULY_QUESTS, ...AUGUST_QUESTS]
+export const APRIL_QUESTS: AprilQuest[] = [...APRIL_ONLY_QUESTS, ...MAY_QUESTS, ...JUNE_QUESTS, ...JULY_QUESTS, ...AUGUST_QUESTS, ...SEPTEMBER_QUESTS]
 
 const PROJECT_FIRST_DAY = '2026-04-05'
 const CODE_MONTHS = new Set(APRIL_QUESTS.map(q => q.date.slice(0, 7)))
@@ -122,6 +139,19 @@ const CODE_MONTHS = new Set(APRIL_QUESTS.map(q => q.date.slice(0, 7)))
 /** Czy miesiąc ma plan w pliku lib/seasonal (wtedy /plan go nie nadpisuje). */
 export function isCodePlannedMonth(monthKey: string): boolean {
   return CODE_MONTHS.has(monthKey)
+}
+
+/**
+ * Miesiące bez nadrabiania — zasada 2 planera września '26:
+ * „Niezrobiony quest nie przechodzi na jutro. Zmęczenie nie jest długiem do spłaty."
+ * Questy z tych miesięcy nigdy nie trafiają do sekcji „zaległe". Świadome przeniesienie
+ * (postpone) dalej działa — to Twoja decyzja, nie zaległość, którą apka Ci wypomina.
+ * Kolejne miesiące dopisuj świadomie: to decyzja projektowa, nie domyślne zachowanie.
+ */
+const NO_ROLLOVER_MONTHS = ['2026-09']
+
+export function isNoRollover(dateKey: string): boolean {
+  return NO_ROLLOVER_MONTHS.includes(dateKey.slice(0, 7))
 }
 
 // Zaległe tylko z ostatniego tygodnia. Bez okna każdy nieodhaczony quest od
@@ -136,7 +166,7 @@ function shiftDateKey(dateKey: string, days: number): string {
 export type QuestBook = ReturnType<typeof createQuestBook>
 
 /**
- * Jedno źródło questów miesięcznych: pliki z kodu (kwiecień–sierpień) +
+ * Jedno źródło questów miesięcznych: pliki z kodu (kwiecień–wrzesień) +
  * plany z apki (/plan) + stałe propozycje dla miesięcy bez żadnego planu.
  * Komponenty biorą je przez useQuestBook(), eksport składa z planów z Firestore.
  */
@@ -170,6 +200,7 @@ export function createQuestBook(plans: MonthPlan[] = []) {
   ): AprilQuest[] => {
     const windowStart = shiftDateKey(todayKey, -OVERDUE_WINDOW_DAYS)
     return planned.filter(q => {
+      if (isNoRollover(q.date)) return false
       if (completedIds.includes(q.id)) return false
       if (skippedIds.includes(q.id)) return false
       // Termin efektywny: data przeniesienia, jeśli była — inaczej data questa.

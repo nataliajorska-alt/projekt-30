@@ -1,8 +1,8 @@
 import type { AprilQuest } from './aprilData'
 
 // STAŁE PROPOZYCJE — siatka bezpieczeństwa dla miesięcy bez rozpisanych questów.
-// Od września do listopada 2026 lista questów kończyła się na 31.08 i „Questy dnia"
-// milczały. Te propozycje nie zastępują planu miesiąca — trzymają rytm, dopóki
+// Po wrześniu 2026 (ostatni miesiąc rozpisany w kodzie) „Questy dnia" milczały.
+// Te propozycje nie zastępują planu miesiąca — trzymają rytm, dopóki
 // plan nie powstanie. Gdy miesiąc dostanie własny plik (np. novemberData.ts),
 // stałe propozycje same znikają z tego miesiąca.
 //
