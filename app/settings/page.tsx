@@ -14,6 +14,7 @@ import NominatedContactsSection from './_sections/NominatedContactsSection'
 import XPRecoverySection from './_sections/XPRecoverySection'
 import SkincareGuideSection from './_sections/SkincareGuideSection'
 import SupplementGuideSection from './_sections/SupplementGuideSection'
+import RewardsSection from './_sections/RewardsSection'
 
 type SettingsTab = 'account' | 'personal' | 'skincare' | 'vitamins' | 'notify' | 'export' | 'safety'
 
@@ -91,6 +92,7 @@ export default function SettingsPage() {
             <RoutineEditSection />
             <SparkScheduleSection />
             <CustomQuestLibrarySection />
+            <RewardsSection />
           </>
         )}
         {tab === 'skincare' && <SkincareGuideSection />}

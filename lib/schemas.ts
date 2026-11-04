@@ -98,6 +98,8 @@ export const DailyLogSchema = z.object({
   smokeLastOfDayAt: z.number().nullable().optional(),
   // XP za dzień pod sufitem (sprint X–XI 2026): stempel przyznanej kwoty.
   smokeCeilingXP: z.number().nonnegative().optional(),
+  // Nagrody silnika dopaminowego (pieczęć dnia, rozpęd, znaleziska) — id przyznanych dziś.
+  rewardsClaimed: z.array(z.string()).optional(),
   // XP z zewnętrznych aplikacji (na razie The Learning Vault), per filar.
   externalXP: z.object({
     pozycja:   z.number().nonnegative().optional(),

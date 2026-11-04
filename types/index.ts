@@ -285,6 +285,8 @@ export interface DailyLog {
    * papieros zalogowany PO deklaracji to dane do analizy, nie wyrok.
    */
   smokeLastOfDayAt?: number | null
+  /** Id nagród przyznanych tego dnia (lib/rewards: seal_, combo3_, loot_…) — każda raz. */
+  rewardsClaimed?: string[]
   /**
    * XP za dzień pod sufitem (sprint nadrabiania X–XI 2026, smokeCeilingXP).
    * Stempel aktualnie przyznanej kwoty: przeliczany przy deklaracji, przy

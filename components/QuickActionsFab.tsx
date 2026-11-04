@@ -2,9 +2,10 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Plus, Heart, Wind, Brain, Feather } from 'lucide-react'
+import { Plus, Heart, Wind, Brain, Feather, Play } from 'lucide-react'
 import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
+import { openFocus } from '@/lib/rewards'
 import MoodCheckInModal from './MoodCheckInModal'
 import SmokeButton from './SmokeButton'
 import type { MoodState } from '@/types'
@@ -53,6 +54,7 @@ export default function QuickActionsFab() {
           'flex flex-col items-end gap-2 transition-all duration-200',
           open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
         )}>
+          <FabAction label="Jedna rzecz" onClick={() => { setOpen(false); openFocus() }} icon={<Play size={14} strokeWidth={1.5} />} />
           <FabAction label="Mood" onClick={handleMood} icon={<Heart size={14} strokeWidth={1.5} />} />
           {pathname !== '/mysli' && (
             <FabAction label="Myśli" href="/mysli" icon={<Brain size={14} strokeWidth={1.5} />} />
