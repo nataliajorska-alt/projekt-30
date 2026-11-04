@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v26-domkniecie';
+const CACHE_NAME = 'p30-v27-dopamina';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {

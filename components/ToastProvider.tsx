@@ -42,7 +42,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <div className="fixed bottom-20 left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-80 z-50 flex flex-col gap-2 pointer-events-none">
+      {/* z-[100]: nad trybem „Jedna rzecz" (z-80) i nagrodami — błąd zapisu
+          czy „seria uratowana" nie mogą zniknąć pod nakładką. */}
+      <div className="fixed bottom-20 left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-80 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onDismiss={removeToast} />
         ))}

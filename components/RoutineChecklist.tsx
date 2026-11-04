@@ -11,7 +11,7 @@ import {
   MORNING_TEETH_STEPS, MORNING_MEDITATION_STEPS,
 } from '@/lib/routineData'
 import { getEffectiveNow, DAY_START_HOUR } from '@/lib/gameLogic'
-import { filterItemsForMinimumDay } from '@/lib/minimumDayLogic'
+import { buildTodayRoutine } from '@/lib/todayPlan'
 import { MINIMUM_DAY_REASONS } from '@/types'
 import { BatteryLow, ChevronDown, Check } from 'lucide-react'
 import MinimumDayModal from '@/components/MinimumDayModal'
@@ -376,44 +376,20 @@ export default function RoutineChecklist() {
   const minimumReason = todayLog?.minimumReason
   const reasonMeta = minimumReason ? MINIMUM_DAY_REASONS.find(r => r.value === minimumReason) : null
 
+  // Lista na dziś z lib/todayPlan — ta sama, z której liczą pasek „Teraz"
+  // i tryb „Jedna rzecz", więc procenty i kolejka zgadzają się z tym widokiem.
+  const routine = buildTodayRoutine(getEffectiveItems, todayLog, getEffectiveNow())
   const weeklyToday = getTodayWeeklyHabits()
   const studyItem = getWeeklyStudyItem()
   const studyLabel = getWeeklyStudyLabel()
   const DAY_NAMES = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota']
   const dow = getEffectiveNow().getDay()
   const todayName = DAY_NAMES[dow]
-  const isWeekday = dow >= 1 && dow <= 5
-
-  const extraDaily = [...weeklyToday, ...([1, 3, 5].includes(dow) ? [studyItem] : [])]
-  // Zadania dnia przeniesione Z dziś (chowamy z listy) i NA dziś (carried — dorenderujemy).
-  const postponedAway = todayLog?.postponedRoutine ?? []
-  const allDailyItems = (isWeekday
-    ? getEffectiveItems('daily', false, extraDaily)
-    : [...extraDaily, ...getEffectiveItems('daily', false).filter(i => i.id.startsWith('custom_'))]
-  ).filter(i => !postponedAway.includes(i.id))
   // Przenosić można tylko zadania DNIA-SPECYFICZNE (tygodniowe + temat tygodnia),
   // nie codzienne d1/d2/d3 — te i tak wracają każdego dnia.
-  const postponableIds = new Set<string>([...weeklyToday.map(i => i.id), studyItem.id])
-  const carried = (todayLog?.carriedRoutine ?? []).filter(c => !allDailyItems.some(i => i.id === c.id))
-
-  const getItemSplit = (catTab: Tab): { essential: RoutineItem[]; optional: RoutineItem[] } => {
-    if (!isMinimum || !minimumReason) {
-      if (catTab === 'morning') return { essential: getEffectiveItems('morning', false), optional: [] }
-      if (catTab === 'evening') return { essential: getEffectiveItems('evening', false), optional: [] }
-      return { essential: allDailyItems, optional: [] }
-    }
-    if (catTab === 'morning') {
-      const full = getEffectiveItems('morning', false)
-      const ess = filterItemsForMinimumDay(full, minimumReason)
-      return { essential: ess, optional: full.filter(i => !ess.find(e => e.id === i.id)) }
-    }
-    if (catTab === 'evening') {
-      const full = getEffectiveItems('evening', false)
-      const ess = filterItemsForMinimumDay(full, minimumReason)
-      return { essential: ess, optional: full.filter(i => !ess.find(e => e.id === i.id)) }
-    }
-    return { essential: [], optional: allDailyItems }
-  }
+  const { postponableIds, carried } = routine
+  const postponedAway = todayLog?.postponedRoutine ?? []
+  const getItemSplit = (catTab: Tab) => routine[catTab]
 
   const { essential, optional } = getItemSplit(tab)
   const completedCount = essential.filter(i => todayLog?.completedRoutine?.includes(i.id)).length

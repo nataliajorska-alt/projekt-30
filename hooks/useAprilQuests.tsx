@@ -5,6 +5,7 @@ import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
 import { useGameData } from './useGameData'
+import { emit } from '@/lib/rewards'
 import type { Pillar } from '@/types'
 
 export interface QuestSkip {
@@ -70,13 +71,18 @@ export function useAprilQuests() {
   const completeQuest = useCallback(async (questId: string, pillar: Pillar, xp: number) => {
     if (!user || !logRef || log.completed.includes(questId) || inFlightRef.current.has(questId)) return
     inFlightRef.current.add(questId)
+    // If quest was already pre-completed "na zapas" (sits in todayLog.completedDailyQuests),
+    // XP was already awarded yesterday — skip toggleDailyQuest to prevent double-counting.
+    const alreadyInTodayLog = todayLog?.completedDailyQuests?.includes(questId) ?? false
+    // Nagroda (RewardLayer) od razu — setDoc niżej czeka na serwer, a offline
+    // aż do powrotu sieci. XP jak w toggleDailyQuest: dzień minimum ×2.
+    if (!alreadyInTodayLog) {
+      emit('reward', { source: 'quest', id: questId, xp: todayLog?.dayMode === 'minimum' ? xp * 2 : xp })
+    }
     try {
       // arrayUnion zamiast rozlewania snapshotu — zapis całej tablicy gubił
       // quest odhaczony równolegle chwilę wcześniej (lock jest per-questId).
       await setDoc(logRef, { completed: arrayUnion(questId) }, { merge: true })
-      // If quest was already pre-completed "na zapas" (sits in todayLog.completedDailyQuests),
-      // XP was already awarded yesterday — skip toggleDailyQuest to prevent double-counting.
-      const alreadyInTodayLog = todayLog?.completedDailyQuests?.includes(questId) ?? false
       if (!alreadyInTodayLog) {
         // Przekazujemy realną wartość questa (q.xp), nie płaskie 50.
         await toggleDailyQuest(questId, pillar, xp)

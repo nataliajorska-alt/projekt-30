@@ -26,6 +26,7 @@ import { DailyLogSchema, UserStatsSchema, parseSafe } from '@/lib/schemas'
 import { useToast } from '@/components/ToastProvider'
 import { useAchievementUnlock } from '@/components/AchievementUnlockModal'
 import { useLevelUp } from '@/components/LevelUpModal'
+import { emit } from '@/lib/rewards'
 
 const DEFAULT_STATS: UserStats = {
   totalXP: 0,
@@ -60,6 +61,10 @@ const DEFAULT_STATS: UserStats = {
 }
 
 const ALL_PILLARS: Pillar[] = ['pozycja', 'cialo', 'styl', 'kapital', 'kariera', 'tozsamosc', 'milosc']
+
+// Nagrody „w locie" — wspólne dla wszystkich instancji hooka (każdy komponent
+// ma własną), żeby dwa szybkie wywołania claimReward nie przyznały tego samego.
+const claimsInFlight = new Set<string>()
 
 // ── Zapis statystyk odporny na równoległe zapisy ───────────────────────
 // Pola ADYTYWNE (totalXP, pillarXP, liczniki akcji) zapisujemy jako
@@ -352,6 +357,8 @@ export function useGameData() {
       : [...current, itemId]
     const effectiveXP = todayLog.dayMode === 'minimum' ? xp * 2 : xp
     const xpDelta = completed ? -effectiveXP : effectiveXP
+    // Nagroda od razu, przed zapisem — feedback ma być natychmiastowy (RewardLayer).
+    if (!completed) emit('reward', { source: 'routine', id: itemId, xp: effectiveXP })
 
     const newTodayXP = Math.max(0, (todayLog.totalXP ?? 0) + xpDelta)
     const withStreak = await applyStreakIfNeeded(stats)
@@ -438,6 +445,8 @@ export function useGameData() {
     const baseXP = xp
     const effectiveXP = todayLog.dayMode === 'minimum' ? baseXP * 2 : baseXP
     const xpDelta = completed ? -effectiveXP : effectiveXP
+    // Nagrodę (emit 'reward') puszcza useAprilQuests.completeQuest — jeszcze
+    // przed zapisem questa na serwer, który poprzedza to wywołanie.
 
     const withStreak = await applyStreakIfNeeded(stats)
     let newStats: UserStats = {
@@ -469,6 +478,7 @@ export function useGameData() {
     const currentSQ = todayLog.completedSideQuests ?? []
     const completed = currentSQ.includes(questId)
     const xpDelta = completed ? -xp : xp
+    if (!completed) emit('reward', { source: 'side', id: questId, xp })
 
     const withStreak = await applyStreakIfNeeded(stats)
     let newStats: UserStats = {
@@ -501,6 +511,7 @@ export function useGameData() {
     const kept = currentRules.includes(ruleId)
     const baseRule = XP_VALUES.rulekept
     const xpDelta = kept ? -(todayLog.dayMode === 'minimum' ? baseRule * 2 : baseRule) : (todayLog.dayMode === 'minimum' ? baseRule * 2 : baseRule)
+    if (!kept) emit('reward', { source: 'rule', id: ruleId, xp: xpDelta })
 
     const withStreak = await applyStreakIfNeeded(stats)
     const newStats: UserStats = {
@@ -1026,6 +1037,41 @@ export function useGameData() {
     return xp
   }, [user, stats, statsRef, applyStreakIfNeeded, applyPillarBalanceIfNeeded, checkAchievements, checkLevelUp])
 
+  // Nagrody silnika dopaminowego (lib/rewards): pieczęć dnia, rozpęd, znaleziska.
+  // Każda ma własne id w logu dnia (rewardsClaimed) i przychodzi raz. XP idzie
+  // też do log.totalXP, więc recoverStats je odtworzy. Bez applyStreakIfNeeded:
+  // złamanie pieczęci to nie aktywność, a rozpęd i znaleziska przychodzą tylko
+  // po prawdziwym odhaczeniu, które streak już zaliczyło.
+  // Do stats idą WYŁĄCZNIE przyrosty (XP, nowe odznaki), nie buildStatsWrite:
+  // bonus za rozpęd leci w trakcie toggleRoutine, a pełny zapis ze snapshotu
+  // sprzed odhaczenia cofnąłby to, co ono właśnie policzyło (seria poranków itd.).
+  // Zapis bez await — offline albo na wolnej sieci nagroda ma być od razu,
+  // a Firestore dośle zapis, gdy wróci połączenie.
+  const claimReward = useCallback(async (rewardId: string, xp: number): Promise<boolean> => {
+    if (!user || !statsRef || !todayRef || !todayLog || !statsLoadedRef.current || xp <= 0) return false
+    if ((todayLog.rewardsClaimed ?? []).includes(rewardId) || claimsInFlight.has(rewardId)) return false
+    claimsInFlight.add(rewardId)
+    // Id zostaje „w locie", aż snapshot logu dojedzie z rewardsClaimed.
+    setTimeout(() => claimsInFlight.delete(rewardId), 5000)
+
+    const achUpdates = await checkAchievements({ ...stats, totalXP: stats.totalXP + xp })
+    const finalXP = achUpdates.totalXP ?? stats.totalXP + xp
+    const newlyUnlocked = (achUpdates.unlockedAchievements ?? []).filter(id => !stats.unlockedAchievements.includes(id))
+    checkLevelUp(stats.totalXP, finalXP)
+
+    const statsWrite: Record<string, unknown> = { totalXP: increment(finalXP - stats.totalXP) }
+    if (newlyUnlocked.length > 0) statsWrite.unlockedAchievements = arrayUnion(...newlyUnlocked)
+    Promise.all([
+      setDoc(todayRef, {
+        rewardsClaimed: arrayUnion(rewardId),
+        totalXP: increment(xp),
+        date: currentDateKey,
+      }, { merge: true }),
+      setDoc(statsRef, statsWrite, { merge: true }),
+    ]).catch(err => console.error('claimReward failed:', err))
+    return true
+  }, [user, todayLog, stats, statsRef, todayRef, currentDateKey, checkAchievements, checkLevelUp])
+
   const streakFreezeAvailable = !(stats.streakFreezeUsedMonths ?? []).includes(currentDateKey.slice(0, 7))
 
   // Full stats reconstruction from Firestore source documents.
@@ -1418,6 +1464,7 @@ export function useGameData() {
     completeHeartBlock,
     recordGhostImpulseV2, recordGhostChmurka, recordHonestFailure, logCustomSideQuest,
     awardCBTCapture, awardCBTReframe, awardCBTBelief, awardCBTCoping, awardCBTBonus,
+    claimReward,
     recoverStats, applyRecoveredStats,
   }
 }

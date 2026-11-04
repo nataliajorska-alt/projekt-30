@@ -9,6 +9,7 @@ import {
   RitualSurface,
 } from '@/components/ui';
 import ModalPreviewTriggers from './_ModalPreviewTriggers';
+import RewardPreviews from './_RewardPreviews';
 
 export const metadata = { title: 'Design System — Quiet Inheritance' };
 
@@ -223,6 +224,7 @@ export default function DesignSystemPage() {
         <section>
           <SectionLabel num={5} title="The Ceremonial Modals" />
           <ModalPreviewTriggers />
+          <RewardPreviews />
         </section>
 
         {/* RITUAL SURFACE PREVIEW */}

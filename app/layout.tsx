@@ -8,6 +8,7 @@ import { ToastProvider } from '@/components/ToastProvider'
 import { AchievementUnlockProvider } from '@/components/AchievementUnlockModal'
 import { LevelUpProvider } from '@/components/LevelUpModal'
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
+import RewardLayer from '@/components/RewardLayer'
 
 export const metadata: Metadata = {
   title: 'Projekt 30',
@@ -52,6 +53,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </main>
                 <QuickActionsFab />
               </div>
+              {/* Nagrody (+XP, rozpęd, znaleziska) i tryb „Jedna rzecz" — jedna instancja na apkę. */}
+              <RewardLayer />
             </AuthGate>
           </ToastProvider>
           </LevelUpProvider>
