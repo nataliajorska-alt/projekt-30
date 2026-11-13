@@ -15,3 +15,7 @@ backups/
 firebase-debug.log
 firestore-debug.log
 .next-sandbox/
+# Prywatne: dzienniki i eksporty logów z apki. Repozytorium jest publiczne —
+# te foldery nie mogą trafić do commita (np. przez `git add -A`).
+dzienniki/
+logi_eksporty/
