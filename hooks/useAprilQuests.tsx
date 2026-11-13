@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { doc, onSnapshot, setDoc, arrayUnion } from 'firebase/firestore'
+import { doc, onSnapshot, setDoc, arrayUnion, arrayRemove } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
@@ -80,37 +80,48 @@ export function useAprilQuests() {
       emit('reward', { source: 'quest', id: questId, xp: todayLog?.dayMode === 'minimum' ? xp * 2 : xp })
     }
     try {
-      // arrayUnion zamiast rozlewania snapshotu — zapis całej tablicy gubił
-      // quest odhaczony równolegle chwilę wcześniej (lock jest per-questId).
-      await setDoc(logRef, { completed: arrayUnion(questId) }, { merge: true })
-      if (!alreadyInTodayLog) {
+      // Oba zapisy startują od razu, obok siebie. Wcześniej naliczenie XP czekało
+      // na potwierdzenie pierwszego zapisu z serwera — przy słabej sieci quest był
+      // „ukończony", ale XP dochodziło po sekundach albo (po zamknięciu apki) wcale.
+      await Promise.all([
+        // arrayUnion zamiast rozlewania snapshotu — zapis całej tablicy gubił
+        // quest odhaczony równolegle chwilę wcześniej (lock jest per-questId).
+        setDoc(logRef, { completed: arrayUnion(questId) }, { merge: true }),
         // Przekazujemy realną wartość questa (q.xp), nie płaskie 50.
-        await toggleDailyQuest(questId, pillar, xp)
-      }
+        alreadyInTodayLog ? Promise.resolve() : toggleDailyQuest(questId, pillar, xp),
+      ])
     } finally {
       inFlightRef.current.delete(questId)
     }
   }, [user, logRef, log, todayLog, toggleDailyQuest])
 
+  // Pominięcie i przeniesienie zapisują WYŁĄCZNIE swoje pole (arrayUnion /
+  // arrayRemove). Wcześniej szedł tu cały `log` ze stanu Reacta — gdy stan był
+  // pusty (nasłuch jeszcze nie doszedł, błąd odczytu, apka otwarta bez zasięgu),
+  // zapis `completed: []` kasował po powrocie sieci całą historię ukończonych
+  // questów, a zapis z drugiego urządzenia ginął.
   const skipQuest = useCallback(async (questId: string, reason: string) => {
     if (!user || !logRef) return
     const skip: QuestSkip = { questId, reason, skippedAt: new Date().toISOString() }
-    const updated = { ...log, skips: [...log.skips, skip] }
-    await setDoc(logRef, updated, { merge: true })
-  }, [user, logRef, log])
+    await setDoc(logRef, { skips: arrayUnion(skip) }, { merge: true })
+  }, [user, logRef])
 
   const postponeQuest = useCallback(async (questId: string, originalDate: string, targetDate: string) => {
     if (!user || !logRef) return
-    const filtered = log.postponed.filter(p => p.questId !== questId)
     const entry: QuestPostpone = {
       questId,
       originalDate,
       targetDate,
       postponedAt: new Date().toISOString(),
     }
-    const updated = { ...log, postponed: [...filtered, entry] }
-    await setDoc(logRef, updated, { merge: true })
-  }, [user, logRef, log])
+    // Quest ma mieć jeden termin — poprzednie przeniesienie tego samego questa
+    // wypada. Dwa zapisy idą do serwera w tej kolejności, w jakiej je wołamy.
+    const previous = log.postponed.filter(p => p.questId === questId)
+    if (previous.length > 0) {
+      void setDoc(logRef, { postponed: arrayRemove(...previous) }, { merge: true })
+    }
+    await setDoc(logRef, { postponed: arrayUnion(entry) }, { merge: true })
+  }, [user, logRef, log.postponed])
 
   const skippedIds = log.skips.map(s => s.questId)
 

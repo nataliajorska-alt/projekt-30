@@ -261,7 +261,7 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
               <div className="mb-6 border border-gold-light/50 bg-cream-warm/60 px-4 py-4 text-center">
                 <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="block">Dzień awaryjny</SmallCaps>
                 <p className="font-serif-body italic text-dark text-[13px] mt-2 leading-relaxed">
-                  bez sufitu dziś — palisz swoim rytmem, bez liczenia w górę. słaby dzień to nie „nie spełniasz oczekiwań". jutro wracasz do rytmu.
+                  bez sufitu dziś — palisz swoim rytmem, bez liczenia w górę. słaby dzień to nie „nie spełniasz oczekiwań”. jutro wracasz do rytmu.
                 </p>
                 {isLuteal && (
                   <p className="font-serif-body italic text-gold-deep/80 text-[11.5px] mt-2 leading-relaxed">

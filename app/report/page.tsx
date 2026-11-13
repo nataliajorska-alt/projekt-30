@@ -15,7 +15,7 @@ import {
 } from '@/lib/gameLogic'
 import { aggregateXpByMonth } from '@/lib/analytics'
 import { cloudinaryThumb } from '@/lib/cloudinary'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { Printer, Lock, Star, Camera } from 'lucide-react'
@@ -430,7 +430,7 @@ export default function ReportPage() {
             <p className="font-serif-body italic text-parchment text-[17px] leading-relaxed max-w-[480px] mx-auto mt-6">
               „nie musisz być jutro inna niż dziś.
               <br />
-              wystarczy, że jesteś tu — i działasz."
+              wystarczy, że jesteś tu — i działasz.”
             </p>
           </div>
         </section>
@@ -846,7 +846,7 @@ export default function ReportPage() {
               <p className="mt-6 pt-4 border-t border-border font-serif-body italic text-muted text-[13.5px]">
                 {keyMoments.length === 1
                   ? 'jeden moment zapisany'
-                  : `${keyMoments.length} ${plural(keyMoments.length, 'moment zapisany', 'momenty zapisane', 'momentów zapisanych')}`} — oznaczaj kolejne z poziomu „Dziś", trafią tu automatycznie.
+                  : `${keyMoments.length} ${plural(keyMoments.length, 'moment zapisany', 'momenty zapisane', 'momentów zapisanych')}`} — oznaczaj kolejne z poziomu „Dziś”, trafią tu automatycznie.
               </p>
             </>
           )}

@@ -145,7 +145,7 @@ export default function RoutineEditSection() {
             </SmallCaps>
             <button
               onClick={() => removeCustomItem(item.id)}
-              className="text-muted hover:text-red-500 transition-colors"
+              className="text-muted hover:text-wine transition-colors"
               aria-label="Usuń"
             >
               <X size={12} strokeWidth={1.5} />

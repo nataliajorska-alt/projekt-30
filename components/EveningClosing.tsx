@@ -72,7 +72,7 @@ export default function EveningClosing({ onClose }: EveningClosingProps) {
       role="dialog"
       aria-modal="true"
       aria-label="Domknięcie dnia"
-      className="fixed inset-0 z-[90] bg-forest-deep grain-linen animate-fade-in overflow-y-auto"
+      className="fixed inset-0 z-[90] bg-forest-deep grain-linen animate-fade-in overflow-y-auto pt-[env(safe-area-inset-top)]"
     >
       <div className="pointer-events-none absolute inset-6 border border-gold-light/40" />
       <div className="pointer-events-none absolute inset-9 border border-gold-light/15" />
@@ -158,7 +158,7 @@ export default function EveningClosing({ onClose }: EveningClosingProps) {
                       marking && 'opacity-50 pointer-events-none',
                     )}
                   >
-                    cofnij deklarację „ostatni na dziś"
+                    cofnij deklarację „ostatni na dziś”
                   </button>
                 )}
               </>

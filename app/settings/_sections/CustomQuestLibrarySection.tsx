@@ -52,7 +52,7 @@ export default function CustomQuestLibrarySection() {
               </div>
               <button
                 onClick={() => removeQuest(q.id)}
-                className="text-muted hover:text-red-500 transition-colors shrink-0 mt-0.5"
+                className="text-muted hover:text-wine transition-colors shrink-0 mt-0.5"
                 aria-label="Usuń quest"
               >
                 <X size={12} strokeWidth={1.5} />

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
@@ -42,10 +42,13 @@ export function useCustomQuestLibrary() {
   }, [user])
 
   const addQuest = useCallback(async (title: string, description?: string) => {
+    // Opis tylko, gdy jest — `description: undefined` wywracało zapis w Firestore
+    // (pomysł bez opisu nie dawał się dodać).
+    const desc = description?.trim()
     const newQuest: CustomQuestIdea = {
       id: `cqi_${Date.now()}`,
       title: title.trim(),
-      description: description?.trim() || undefined,
+      ...(desc ? { description: desc } : {}),
       createdAt: Date.now(),
     }
     const updated = [...quests, newQuest]

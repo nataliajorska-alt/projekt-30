@@ -1,9 +1,9 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext, type ReactNode } from 'react'
 import {
   doc, setDoc, onSnapshot, collection, getDocs, getDoc,
-  increment, arrayUnion, arrayRemove,
-} from 'firebase/firestore'
+  increment, arrayUnion, arrayRemove, deleteField,
+} from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
@@ -21,12 +21,12 @@ import { MORNING_ROUTINE, MORNING_MINIMUM } from '@/lib/routineData'
 import { EMERGENCY_DAYS_PER_MONTH, smokeCeilingXP } from '@/lib/smokeStats'
 import { ACHIEVEMENTS } from '@/lib/achievements'
 import { DAILY_QUESTS_POOL, SIDE_QUESTS } from '@/lib/questData'
-import { APRIL_QUESTS } from '@/lib/seasonal/aprilData'
 import { DailyLogSchema, UserStatsSchema, parseSafe } from '@/lib/schemas'
 import { useToast } from '@/components/ToastProvider'
 import { useAchievementUnlock } from '@/components/AchievementUnlockModal'
 import { useLevelUp } from '@/components/LevelUpModal'
 import { emit } from '@/lib/rewards'
+import { patchTimelineLog } from './useTimelineData'
 
 const DEFAULT_STATS: UserStats = {
   totalXP: 0,
@@ -91,16 +91,14 @@ function buildStatsWrite(base: UserStats, final: UserStats): Record<string, unkn
   return out
 }
 
-// ── Jednorazowa korekta XP questów ─────────────────────────────────────
-// Questy sezonowe były naliczane jako płaskie 50 zamiast realnej wartości q.xp.
-// Naprawiamy naliczanie na przyszłość, a dla questów odhaczonych jeszcze starym
-// kodem wyrównujemy różnicę (q.xp − 50) — WYŁĄCZNIE w dniu wdrożenia poprawki,
-// żeby nie ruszać przeszłości ani nie podwajać questów liczonych już poprawnie.
-const QUEST_XP_FIX_DATE = '2026-06-07'
-const SEASONAL_QUEST_XP: Record<string, { pillar: Pillar; xp: number }> = {}
-for (const q of APRIL_QUESTS) SEASONAL_QUEST_XP[q.id] = { pillar: q.pillar as Pillar, xp: q.xp }
+// Osiągnięcia „w locie". Dwie akcje w tym samym ticku (np. odhaczenie rutyny
+// i bonus za rozpęd z RewardLayer) liczą się z tego samego snapshotu statystyk,
+// więc obie widziały to samo nowe osiągnięcie i obie doliczały za nie bonus XP
+// (increment sumuje) oraz pokazywały modal. Id zostaje tu, aż snapshot ze
+// statystykami dojedzie z odznaką na liście.
+const achievementsInFlight = new Set<string>()
 
-export function useGameData() {
+function useGameDataState() {
   const { user } = useAuth()
   const { addToast } = useToast()
   const { showAchievementUnlock } = useAchievementUnlock()
@@ -110,7 +108,14 @@ export function useGameData() {
   const [loading, setLoading] = useState(true)
   const [currentDateKey, setCurrentDateKey] = useState<string>(todayKey())
   const statsLoadedRef = useRef(false)
-  const questXpFixDoneRef = useRef<string | null>(null)
+  // Czy statystyki i log dnia są już potwierdzone przez serwer (a nie tylko
+  // z pamięci urządzenia). Jednorazowe decyzje oparte o „co było ostatnio"
+  // — np. ceremonia powrotu — czekają na to, bo pamięć telefonu nieużywanego
+  // od trzech dni nie wie, że wczoraj odhaczałaś na laptopie.
+  const [synced, setSynced] = useState(false)
+  // Czy statystyki w ogóle dojechały (z serwera albo z pamięci urządzenia).
+  // Dopóki nie — akcje są wstrzymane, a pasek połączenia mówi dlaczego.
+  const [statsReady, setStatsReady] = useState(false)
 
   // Refresh currentDateKey when the effective day rolls over (after DAY_START_HOUR).
   useEffect(() => {
@@ -131,21 +136,42 @@ export function useGameData() {
     let unsub1: () => void
     let unsub2: () => void
 
+    statsLoadedRef.current = false
+    setSynced(false)
+    setStatsReady(false)
+
     unsub1 = onSnapshot(statsRef,
       (snap) => {
         if (snap.exists()) {
           const raw = snap.data()
           const parsed = parseSafe(UserStatsSchema, { ...DEFAULT_STATS, ...raw }, DEFAULT_STATS, 'UserStats')
+          if (parsed === DEFAULT_STATS) {
+            // Dokument istnieje, ale nie dał się odczytać NAWET z naprawą pól.
+            // Nie udajemy, że statystyki są zerowe: akcje liczyłyby serię, dni
+            // i odznaki od zera i nadpisały prawdziwe wartości. Blokujemy zapis.
+            statsLoadedRef.current = false
+            addToast({ message: 'Statystyki mają nieczytelny format — nic nie zapisuję, żeby ich nie nadpisać. Odśwież stronę.', type: 'error', duration: 8000 })
+            return
+          }
           // If the parsed XP differs from the raw one, the value was corrupt and got fixed — write it back.
           const rawXP = (raw as { totalXP?: unknown }).totalXP
           if (!Number.isFinite(rawXP) || (rawXP as number) < 0) {
             setDoc(statsRef!, { totalXP: parsed.totalXP }, { merge: true })
           }
+          for (const id of parsed.unlockedAchievements) achievementsInFlight.delete(id)
           setStats(parsed)
           statsLoadedRef.current = true
-        } else {
-          setDoc(statsRef!, DEFAULT_STATS)
+          setStatsReady(true)
+          if (!snap.metadata.fromCache) setSynced(true)
+        } else if (!snap.metadata.fromCache) {
+          // Serwer potwierdził: dokumentu naprawdę nie ma (nowe konto) — zakładamy.
+          // merge, żeby w razie wyścigu nie skasować niczego, co już doszło.
+          setDoc(statsRef!, DEFAULT_STATS, { merge: true })
         }
+        // Brak dokumentu w PAMIĘCI urządzenia (apka otwarta bez zasięgu) to nie
+        // „nowe konto". Wcześniej w tym miejscu szedł zapis zerowych statystyk,
+        // który po powrocie sieci nadpisywał prawdziwe — cały postęp znikał.
+        // Teraz czekamy na serwer; do tego czasu akcje są wstrzymane.
       },
       (err) => { addToast({ message: 'Błąd ładowania statystyk. Odśwież stronę.', type: 'error' }); setLoading(false) }
     )
@@ -172,6 +198,7 @@ export function useGameData() {
             `DailyLog ${currentDateKey}`,
           )
           setTodayLog(parsed)
+          patchTimelineLog(user!.uid, currentDateKey, parsed)
           // Heal corrupt totalXP in-place so the bad value doesn't come back next read.
           const rawXP = (raw as { totalXP?: unknown }).totalXP
           if (!Number.isFinite(rawXP) || (rawXP as number) < 0) {
@@ -188,59 +215,6 @@ export function useGameData() {
     return () => { unsub1?.(); unsub2?.() }
   }, [user?.uid, currentDateKey])
 
-  // ── Jednorazowe wyrównanie XP questów (tylko w dniu wdrożenia) ─────────
-  // Dla questów odhaczonych jeszcze starym kodem (płaskie 50) dodaje różnicę
-  // do realnego q.xp. Idempotentne: flaga `questXpAdjusted` w logu dnia +
-  // ref blokujący ponowne wejście w tej samej sesji. Bramka na datę gwarantuje,
-  // że nie ruszy przeszłości ani questów liczonych już poprawnie w przyszłości.
-  useEffect(() => {
-    if (!user || !statsRef || !todayRef || !todayLog) return
-    if (!statsLoadedRef.current) return
-    if (currentDateKey !== QUEST_XP_FIX_DATE) return
-    if (todayLog.questXpAdjusted) return
-    if (questXpFixDoneRef.current === currentDateKey) return
-    questXpFixDoneRef.current = currentDateKey
-
-    const mult = todayLog.dayMode === 'minimum' ? 2 : 1
-    const pillarDelta: Partial<Record<Pillar, number>> = {}
-    let totalDelta = 0
-    for (const id of (todayLog.completedDailyQuests ?? [])) {
-      const q = SEASONAL_QUEST_XP[id]
-      if (!q) continue
-      const d = (q.xp - XP_VALUES.dailyQuest) * mult
-      if (d === 0) continue
-      totalDelta += d
-      pillarDelta[q.pillar] = (pillarDelta[q.pillar] ?? 0) + d
-    }
-
-    if (totalDelta === 0) {
-      // Nic do wyrównania — tylko oznacz dzień, by nie liczyć przy każdym ładowaniu.
-      setDoc(todayRef, { questXpAdjusted: true }, { merge: true }).catch(() => {
-        questXpFixDoneRef.current = null
-      })
-      return
-    }
-
-    const newPillarXP = { ...stats.pillarXP }
-    for (const [p, d] of Object.entries(pillarDelta)) {
-      newPillarXP[p as Pillar] = Math.max(0, (newPillarXP[p as Pillar] ?? 0) + (d as number))
-    }
-
-    Promise.all([
-      setDoc(todayRef, {
-        totalXP: Math.max(0, (todayLog.totalXP ?? 0) + totalDelta),
-        questXpAdjusted: true,
-      }, { merge: true }),
-      setDoc(statsRef, {
-        totalXP: Math.max(0, (stats.totalXP ?? 0) + totalDelta),
-        pillarXP: newPillarXP,
-      }, { merge: true }),
-    ]).catch(() => {
-      // Błąd zapisu — pozwól spróbować ponownie przy następnym ładowaniu.
-      questXpFixDoneRef.current = null
-    })
-  }, [user, statsRef, todayRef, todayLog, stats, currentDateKey])
-
   const checkLevelUp = useCallback((oldXP: number, newXP: number) => {
     const oldLevel = getLevelFromXP(oldXP).level
     const newLevel = getLevelFromXP(newXP).level
@@ -254,11 +228,17 @@ export function useGameData() {
   const checkAchievements = useCallback(async (newStats: UserStats) => {
     const newlyUnlocked: string[] = []
     for (const ach of ACHIEVEMENTS) {
+      if (achievementsInFlight.has(ach.id)) continue
       if (!newStats.unlockedAchievements.includes(ach.id) && ach.condition(newStats)) {
         newlyUnlocked.push(ach.id)
       }
     }
     if (newlyUnlocked.length > 0) {
+      for (const id of newlyUnlocked) {
+        achievementsInFlight.add(id)
+        // Bezpiecznik: gdyby zapis się nie udał, odznaka może wpaść przy kolejnej akcji.
+        setTimeout(() => achievementsInFlight.delete(id), 15000)
+      }
       const bonusXP = newlyUnlocked.reduce((acc, id) => {
         const a = ACHIEVEMENTS.find(a => a.id === id)
         return acc + (a?.xpReward ?? 0)
@@ -616,10 +596,15 @@ export function useGameData() {
 
   const setDayMode = useCallback(async (mode: 'normal' | 'minimum', reason?: import('@/types').MinimumDayReason) => {
     if (!user || !todayRef || !todayLog) return
-    const update: Partial<import('@/types').DailyLog> = { dayMode: mode }
-    if (mode === 'minimum' && reason) update.minimumReason = reason
-    if (mode === 'normal') update.minimumReason = undefined
-    await setDoc(todayRef, { ...update, date: currentDateKey }, { merge: true })
+    // Powrót do trybu normalnego KASUJE powód (deleteField). Wcześniej szło tu
+    // `minimumReason: undefined`, a Firestore odrzuca undefined — cały zapis
+    // się wywracał i przycisk „wróć" nie robił nic.
+    await setDoc(todayRef, {
+      dayMode: mode,
+      ...(mode === 'minimum' && reason ? { minimumReason: reason } : {}),
+      ...(mode === 'normal' ? { minimumReason: deleteField() } : {}),
+      date: currentDateKey,
+    }, { merge: true })
     if (mode === 'minimum' && statsRef) {
       await setDoc(statsRef, { consecutiveNormalDays: 0, lastNormalDay: currentDateKey }, { merge: true })
     }
@@ -698,7 +683,10 @@ export function useGameData() {
 
   const clearKeyMoment = useCallback(async () => {
     if (!user || !todayRef) return
-    await setDoc(todayRef, { keyMoment: null }, { merge: true })
+    // deleteField, nie null: `keyMoment: null` nie przechodziło walidacji logu
+    // dnia i CAŁY dzień wracał jako pusty (rutyna „nieodhaczona", XP 0) — a ponowne
+    // odhaczenie naliczało XP drugi raz.
+    await setDoc(todayRef, { keyMoment: deleteField() }, { merge: true })
   }, [user, todayRef])
 
   // Sprint nadrabiania (X–XI 2026): XP za dzień pod sufitem. Przyznawane tylko
@@ -1082,11 +1070,12 @@ export function useGameData() {
   const recoverStats = useCallback(async () => {
     if (!user || !statsRef) return null
 
-    const [currentStatsSnap, logsSnap, weeklySnap, monthlySnap, ghostV2Snap, failureSnap, cbtSnap] = await Promise.all([
+    const [currentStatsSnap, logsSnap, weeklySnap, monthlySnap, quarterlySnap, ghostV2Snap, failureSnap, cbtSnap] = await Promise.all([
       getDoc(statsRef),
       getDocs(collection(db, ...paths.logsCol(user.uid))),
       getDocs(collection(db, ...paths.reviewsCol(user.uid))),
       getDocs(collection(db, ...paths.monthlyReviewsCol(user.uid))),
+      getDocs(collection(db, ...paths.quarterlyReviewsCol(user.uid))),
       getDoc(doc(db, ...paths.dataDoc(user.uid, 'ghostLogV2'))),
       getDoc(doc(db, ...paths.dataDoc(user.uid, 'honestFailureLog'))),
       getDocs(collection(db, ...paths.cbtJournalCol(user.uid))),
@@ -1292,8 +1281,13 @@ export function useGameData() {
     // ── Reviews ──
     const reviewedWeeks = weeklySnap.docs.map(d => d.id)
     const reviewedMonths = monthlySnap.docs.map(d => d.id)
+    // Przeglądy kwartalne: odbudowa wcześniej ich nie widziała — po „Odzyskaj XP"
+    // znikało 400 XP za każdy, a lista zaliczonych kwartałów zerowała się
+    // (i kwartał dało się „zaliczyć" drugi raz).
+    const reviewedQuarters = quarterlySnap.docs.map(d => d.id)
     const fromWeeklyReviews = reviewedWeeks.length * XP_VALUES.weeklyReview
     const fromMonthlyReviews = reviewedMonths.length * XP_VALUES.monthlyReview
+    const fromQuarterlyReviews = reviewedQuarters.length * XP_VALUES.quarterlyReview
 
     // ── Dodatkowe źródła XP (pisane tylko do stats, nie do log.totalXP) ──
     const fromMoodCheckIns = totalMoodCheckIns * XP_VALUES.moodCheckIn
@@ -1346,7 +1340,7 @@ export function useGameData() {
     // ── Achievement evaluation ──
     // Używamy longestStreak/longestPerfectMornings/longestGhostDays do oceny
     // historycznych passy — żeby achievement złapał się nawet jeśli aktualna passa = 0.
-    const baseXP = fromLogs + fromWeeklyReviews + fromMonthlyReviews
+    const baseXP = fromLogs + fromWeeklyReviews + fromMonthlyReviews + fromQuarterlyReviews
                  + fromMoodCheckIns + fromHeartBlocks + fromPillarBalance
                  + fromGhostV2 + fromHonestFailure + fromCBT + fromSmokeCeiling
     const statsForEval: UserStats = {
@@ -1366,6 +1360,7 @@ export function useGameData() {
       consecutiveGhostDays: longestGhostDays,             // historyczny peak — dla ghost_streak_7
       reviewedWeeks,
       reviewedMonths,
+      reviewedQuarters,
       pillarXP,
     }
 
@@ -1416,6 +1411,7 @@ export function useGameData() {
         fromLogs,
         fromWeeklyReviews,
         fromMonthlyReviews,
+        fromQuarterlyReviews,
         fromAchievements,
         fromMoodCheckIns,
         fromHeartBlocks,
@@ -1432,6 +1428,7 @@ export function useGameData() {
         total: totalXP,
         weeklyCount: reviewedWeeks.length,
         monthlyCount: reviewedMonths.length,
+        quarterlyCount: reviewedQuarters.length,
         achievementsCount: unlockedAchievements.length,
         moodCheckInsCount:    totalMoodCheckIns,
         heartBlocksCount:     preservedHeartBlocks.length,
@@ -1454,7 +1451,7 @@ export function useGameData() {
   }, [user, statsRef])
 
   return {
-    stats, todayLog, loading,
+    stats, todayLog, loading, synced, statsReady,
     toggleRoutine, toggleDailyQuest, toggleSideQuest, toggleRule,
     submitWeeklyReview, submitMonthlyReview, submitQuarterlyReview, setDayMode,
     streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity, toggleSubStep,
@@ -1467,4 +1464,29 @@ export function useGameData() {
     claimReward,
     recoverStats, applyRecoveredStats,
   }
+}
+
+// ── Jedna instancja na całą apkę ───────────────────────────────────────
+// Wcześniej każdy komponent wołający useGameData() (na „Dziś" ponad dwadzieścia)
+// stawiał własne dwa nasłuchy Firestore, własny zegar zmiany dnia i własną kopię
+// stanu — każda zmiana logu przerysowywała je osobno, a komponenty przez chwilę
+// widziały różne wersje tych samych danych. Teraz stan żyje raz, w providerze
+// (app/layout.tsx), a useGameData() tylko go czyta.
+export type GameData = ReturnType<typeof useGameDataState>
+
+const GameDataContext = createContext<GameData | null>(null)
+
+export function GameDataProvider({ children }: { children: ReactNode }) {
+  const value = useGameDataState()
+  // Stabilna referencja, dopóki nic z zawartości się nie zmieni — konsumenci
+  // nie przerysowują się przy każdym renderze providera.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const memo = useMemo(() => value, Object.values(value))
+  return <GameDataContext.Provider value={memo}>{children}</GameDataContext.Provider>
+}
+
+export function useGameData(): GameData {
+  const ctx = useContext(GameDataContext)
+  if (!ctx) throw new Error('useGameData must be used within GameDataProvider')
+  return ctx
 }

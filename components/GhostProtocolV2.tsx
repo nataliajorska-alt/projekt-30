@@ -37,7 +37,7 @@ type ActiveFlow =
 
 function Frame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[120] bg-forest-deep grain-linen animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-[120] bg-forest-deep grain-linen animate-fade-in overflow-y-auto pt-[env(safe-area-inset-top)]">
       <div className="pointer-events-none absolute inset-6 border border-gold-light/40" />
       <div className="pointer-events-none absolute inset-9 border border-gold-light/15" />
       <div className="pointer-events-none absolute inset-12">
@@ -780,7 +780,7 @@ export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2P
                   ostatnio zaplanowałaś
                 </SmallCaps>
                 <p className="font-serif-body italic text-parchment text-[13px] leading-relaxed">
-                  „{lastPlanForCategory}"
+                  „{lastPlanForCategory}”
                 </p>
               </div>
             )}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { doc, onSnapshot, setDoc } from 'firebase/firestore'
+import { doc, onSnapshot, setDoc } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from '@/hooks/useAuth'
@@ -69,7 +69,9 @@ export function useRoutineConfig() {
   }, [config.customItems, saveConfig])
 
   const resetToDefaults = useCallback(() => {
-    saveConfig({ disabledItems: [], customItems: [], itemOrder: undefined })
+    // Bez `itemOrder: undefined` — Firestore odrzucał undefined i „Przywróć
+    // domyślne" po cichu nie zapisywało się (po odświeżeniu własne pozycje wracały).
+    saveConfig({ disabledItems: [], customItems: [] })
   }, [saveConfig])
 
   /** Returns the effective routine list for a given category and mode. */

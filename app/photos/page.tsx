@@ -134,8 +134,8 @@ function UploadModal({ onUpload, uploading, uploadError, onClose }: UploadModalP
         />
 
         {uploadError && (
-          <div className="mb-3 px-4 py-3 bg-red-50/50 border border-red-200">
-            <p className="font-serif-body italic text-red-700 text-[12.5px] leading-relaxed">{uploadError}</p>
+          <div className="mb-3 px-4 py-3 bg-rose/10 border border-rose/40">
+            <p className="font-serif-body italic text-wine text-[12.5px] leading-relaxed">{uploadError}</p>
             <SmallCaps tone="muted" tracking="luxury" size="xs" className="mt-1.5 block opacity-70">
               firebase console → build → storage → utwórz
             </SmallCaps>
@@ -267,7 +267,7 @@ function Lightbox({ items, index, onNav, onClose, onDelete }: {
           {confirmDelete ? (
             <span className="flex items-center gap-3">
               <button onClick={() => { onDelete(photo); onClose() }}
-                className="font-ui uppercase tracking-luxury text-[10px] text-red-400 hover:text-red-300 transition-colors">tak, usuń</button>
+                className="font-ui uppercase tracking-luxury text-[10px] text-rose hover:text-parchment transition-colors">tak, usuń</button>
               <button onClick={() => setConfirmDelete(false)}
                 className="font-ui uppercase tracking-luxury text-[10px] text-parchment/50 hover:text-parchment transition-colors">anuluj</button>
             </span>

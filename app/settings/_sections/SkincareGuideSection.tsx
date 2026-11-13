@@ -26,7 +26,7 @@ export default function SkincareGuideSection() {
       <h2 className="font-display text-dark text-[22px] tracking-tight mt-1">Twoja rutyna skincare</h2>
       <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5 leading-relaxed">
         opis dla przypomnienia — co i kiedy. te same kroki rozwijają się pod
-        pozycją „zadbanie o twarz" w rutynie.
+        pozycją „zadbanie o twarz” w rutynie.
       </p>
 
       {/* Rano */}

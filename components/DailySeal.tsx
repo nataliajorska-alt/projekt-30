@@ -89,7 +89,7 @@ export function SealView({ phase, xp, golden, joy, onBreak, onClose }: {
           <span className="block font-ui uppercase tracking-luxury text-[9.5px] text-gold-deep">Pieczęć dnia</span>
           <span className="block font-display text-dark text-[18px] leading-tight mt-0.5">Złam, żeby zobaczyć, co dziś czeka</span>
         </span>
-        <span className="font-ui uppercase tracking-luxury text-[9px] text-muted group-hover:text-dark shrink-0">dotknij ◆</span>
+        <span className="hidden sm:inline font-ui uppercase tracking-luxury text-[9px] text-muted group-hover:text-dark shrink-0">dotknij ◆</span>
       </button>
     )
   }

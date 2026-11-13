@@ -14,3 +14,4 @@ backups/
 .firebase/
 firebase-debug.log
 firestore-debug.log
+.next-sandbox/

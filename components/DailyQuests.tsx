@@ -102,9 +102,12 @@ function QuestRow({
   const xp = isMinimum && !done ? quest.xp * 2 : quest.xp
 
   return (
+    // Telefon: tekst na całą szerokość, pod nim rząd „XP — akcje". Wcześniej
+    // trzy przyciski stały OBOK tekstu i zostawiały mu ~150 px: tytuł łamał się
+    // na dwa–trzy wiersze, opis na cztery. Od `sm` w górę — dwie kolumny jak dotąd.
     <div
       className={clsx(
-        'grid grid-cols-[1fr_auto] gap-4 sm:gap-5 py-4 items-start',
+        'py-4 sm:grid sm:grid-cols-[1fr_auto] sm:gap-5 sm:items-start',
         !isLast && 'border-b border-border/60',
       )}
     >
@@ -112,9 +115,9 @@ function QuestRow({
       <div className="min-w-0">
         <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
           {overdue && (
-            <span className="inline-flex items-center gap-1 border border-amber-300/60 px-1.5 py-0.5">
-              <Clock size={9} className="text-amber-700" strokeWidth={2} />
-              <span className="font-ui uppercase tracking-luxury text-[9px] text-amber-700">
+            <span className="inline-flex items-center gap-1 border border-wine/30 px-1.5 py-0.5">
+              <Clock size={9} className="text-wine" strokeWidth={2} />
+              <span className="font-ui uppercase tracking-luxury text-[9px] text-wine">
                 zaległe · {quest.date.slice(5).replace('-', '.')}
               </span>
             </span>
@@ -162,8 +165,8 @@ function QuestRow({
         </p>
       </div>
 
-      {/* Right column — XP + actions or check-mark */}
-      <div className="flex flex-col items-end gap-2.5 text-right shrink-0">
+      {/* XP + akcje (albo „ukończone") — rząd pod tekstem na telefonie, prawa kolumna od sm */}
+      <div className="mt-3 flex items-center justify-between gap-3 shrink-0 sm:mt-0 sm:flex-col sm:items-end sm:justify-start sm:gap-2.5 sm:text-right">
         <div
           className={clsx(
             'font-display italic font-medium text-[18px] tracking-tight',
@@ -191,7 +194,7 @@ function QuestRow({
               onClick={onPostpone}
               title="Przenieś na inny dzień"
               aria-label="Przenieś na inny dzień"
-              className="inline-flex items-center justify-center border border-hairline text-gold-deep px-2 py-1.5 hover:border-gold hover:text-dark transition-colors"
+              className="inline-flex items-center justify-center border border-hairline text-gold-deep px-3 py-2.5 sm:px-2 sm:py-1.5 hover:border-gold hover:text-dark transition-colors"
             >
               <PostponeIcon />
             </button>
@@ -199,13 +202,13 @@ function QuestRow({
               onClick={onSkip}
               title="Pomiń"
               aria-label="Pomiń quest"
-              className="inline-flex items-center justify-center border border-hairline text-gold-deep px-2 py-1.5 hover:border-gold hover:text-dark transition-colors"
+              className="inline-flex items-center justify-center border border-hairline text-gold-deep px-3 py-2.5 sm:px-2 sm:py-1.5 hover:border-gold hover:text-dark transition-colors"
             >
               <SkipIcon />
             </button>
             <button
               onClick={onComplete}
-              className="inline-flex items-center gap-1.5 bg-dark text-ivory border border-dark hover:bg-gold-deep hover:border-gold-deep transition-colors px-3 py-1.5"
+              className="inline-flex items-center gap-1.5 bg-dark text-ivory border border-dark hover:bg-gold-deep hover:border-gold-deep transition-colors px-4 py-2.5 sm:px-3 sm:py-1.5"
             >
               <span className="text-gold text-[9px] leading-none">◆</span>
               <span className="font-ui uppercase tracking-luxury text-[10px]">Zrobione</span>

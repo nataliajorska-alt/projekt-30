@@ -33,6 +33,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Sandbox (`npm run dev:sandbox`): bez logowania, zmyślony użytkownik
+    // i przykładowe dane z lib/sandbox/seed. Nie dotyka prawdziwego konta.
+    // Warunek wprost na zmiennej (nie przez stałą z innego modułu) — w produkcji
+    // cała gałąź znika z bundla.
+    if (process.env.NEXT_PUBLIC_SANDBOX === '1') {
+      setUser({ uid: 'sandbox', email: 'sandbox@projekt30.local' } as User)
+      setLoading(false)
+      return
+    }
+
     let didResolve = false
 
     // Timeout — jeśli Firebase nie odpowie w 8s, pokaż błąd zamiast wisieć

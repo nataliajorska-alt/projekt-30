@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   collection, doc, getDoc, setDoc, getDocs, query, orderBy, serverTimestamp,
-} from 'firebase/firestore'
+} from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
@@ -51,17 +51,23 @@ export function useHeartBlock() {
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
-    const ref = doc(db, ...paths.heartBlockDoc(user.uid, weekKey))
-    const snap = await getDoc(ref)
-    setBlock(snap.exists()
-      ? parseSafe<HeartBlock>(HeartBlockSchema, snap.data(), emptyBlock(weekKey), `HeartBlock ${weekKey}`)
-      : emptyBlock(weekKey))
+    try {
+      const ref = doc(db, ...paths.heartBlockDoc(user.uid, weekKey))
+      const snap = await getDoc(ref)
+      setBlock(snap.exists()
+        ? parseSafe<HeartBlock>(HeartBlockSchema, snap.data(), emptyBlock(weekKey), `HeartBlock ${weekKey}`)
+        : emptyBlock(weekKey))
 
-    const histRef = collection(db, ...paths.heartBlocksCol(user.uid))
-    const q = query(histRef, orderBy('weekKey', 'desc'))
-    const histSnap = await getDocs(q)
-    setHistory(histSnap.docs.map(d => parseSafe<HeartBlock>(HeartBlockSchema, d.data(), emptyBlock(d.id), `HeartBlock ${d.id}`)))
-    setLoading(false)
+      const histRef = collection(db, ...paths.heartBlocksCol(user.uid))
+      const q = query(histRef, orderBy('weekKey', 'desc'))
+      const histSnap = await getDocs(q)
+      setHistory(histSnap.docs.map(d => parseSafe<HeartBlock>(HeartBlockSchema, d.data(), emptyBlock(d.id), `HeartBlock ${d.id}`)))
+    } catch (err) {
+      // Bez tego odrzucony odczyt (brak sieci) zostawiał loading=true na zawsze.
+      console.error('heartBlock fetch error:', err)
+    } finally {
+      setLoading(false)
+    }
   }, [user?.uid, weekKey])
 
   useEffect(() => { load() }, [load])

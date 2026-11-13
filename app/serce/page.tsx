@@ -266,7 +266,7 @@ export default function HeartBlockPage() {
               <b className="text-[11px] tracking-[0.25em]" style={{ color: ROSE }}>∴</b>
               <i className="block w-9 h-px" style={{ background: 'linear-gradient(90deg, #c9b27f, transparent)' }} />
             </div>
-            <p className="font-serif-body italic text-[16px] leading-[1.55]" style={{ color: '#4a4230' }}>„{CLOSING_PHRASE}"</p>
+            <p className="font-serif-body italic text-[16px] leading-[1.55]" style={{ color: '#4a4230' }}>„{CLOSING_PHRASE}”</p>
           </div>
         </Section>
 
@@ -306,7 +306,7 @@ export default function HeartBlockPage() {
         {isComplete && xpAlreadyAwarded && (
           <div className="mt-5 border border-gold-light/30 px-4 py-3 flex items-center justify-center gap-3">
             <Diamond size={6} className="text-gold-light" />
-            <SmallCaps tone="parchment" tracking="luxury" size="xs">+ {XP_VALUES.heartBlock} XP zapisane na filar „pozycja"</SmallCaps>
+            <SmallCaps tone="parchment" tracking="luxury" size="xs">+ {XP_VALUES.heartBlock} XP zapisane na filar „pozycja”</SmallCaps>
             <Diamond size={6} className="text-gold-light" />
           </div>
         )}

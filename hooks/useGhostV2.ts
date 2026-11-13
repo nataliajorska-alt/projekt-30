@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, arrayUnion } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
@@ -33,21 +33,18 @@ export function useGhostV2() {
   const saveImpulseEntry = useCallback(async (entry: GhostLogEntryV2) => {
     if (!user) return
     const ref = doc(db, ...paths.dataDoc(user.uid, 'ghostLogV2'))
-    const snap = await getDoc(ref)
-    const existing: GhostLogEntryV2[] = snap.exists() ? (snap.data().entries ?? []) : []
-    const updated = [...existing, entry]
-    await setDoc(ref, { entries: updated }, { merge: true })
-    setEntries(updated)
+    // arrayUnion: dopisuje wpis atomowo. Odczyt→zapis całej tablicy gubił wpis
+    // dodany równolegle na drugim urządzeniu, a bez zasięgu w ogóle nie działał
+    // (getDoc odrzucał) — impuls w trudnej chwili przepadał.
+    setEntries(prev => [...prev, entry])
+    await setDoc(ref, { entries: arrayUnion(entry) }, { merge: true })
   }, [user])
 
   const saveFailureEntry = useCallback(async (entry: HonestFailureEntry) => {
     if (!user) return
     const ref = doc(db, ...paths.dataDoc(user.uid, 'honestFailureLog'))
-    const snap = await getDoc(ref)
-    const existing: HonestFailureEntry[] = snap.exists() ? (snap.data().entries ?? []) : []
-    const updated = [...existing, entry]
-    await setDoc(ref, { entries: updated }, { merge: true })
-    setFailures(updated)
+    setFailures(prev => [...prev, entry])
+    await setDoc(ref, { entries: arrayUnion(entry) }, { merge: true })
   }, [user])
 
   return { entries, failures, loading, saveImpulseEntry, saveFailureEntry }

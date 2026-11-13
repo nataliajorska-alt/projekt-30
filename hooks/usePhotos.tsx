@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   collection, addDoc, getDocs, deleteDoc, doc,
   query, orderBy, serverTimestamp,
-} from 'firebase/firestore'
+} from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
