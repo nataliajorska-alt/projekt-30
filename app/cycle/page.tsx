@@ -543,7 +543,7 @@ function CycleHistory({ logs, onDelete }: {
               )}
               {docId && confirmId === docId && (
                 <span className="flex items-center gap-2">
-                  <button onClick={() => handleDelete(docId)} disabled={deleting} className="font-ui uppercase tracking-[0.3em] text-[9px] text-wine hover:text-red-700 disabled:opacity-50">{deleting ? '…' : 'tak'}</button>
+                  <button onClick={() => handleDelete(docId)} disabled={deleting} className="font-ui uppercase tracking-[0.3em] text-[9px] text-wine hover:text-dark disabled:opacity-50">{deleting ? '…' : 'tak'}</button>
                   <button onClick={() => setConfirmId(null)} className="font-ui uppercase tracking-[0.3em] text-[9px] text-muted hover:text-dark">anuluj</button>
                 </span>
               )}

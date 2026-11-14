@@ -96,7 +96,7 @@ const RITUAL_LABELS: Record<keyof HeartBlockRituals, string> = {
 const CLOSING_PHRASE = 'Nie muszę dziś rozwiązać całego życia. Mam tylko wrócić do siebie o jeden krok.'
 
 export default function HeartBlockPage() {
-  const { block, history, loading, weekKey, save, markComplete } = useHeartBlock()
+  const { block, history, loading, loadError, reload, weekKey, save, markComplete } = useHeartBlock()
   const { completeHeartBlock, stats } = useGameData()
   const xpAlreadyAwarded = (stats.completedHeartBlocks ?? []).includes(weekKey)
   const [pain, setPain] = useState('')
@@ -139,6 +139,32 @@ export default function HeartBlockPage() {
       <RitualSurface tone="forest-deep" frame="double">
         <div className="max-w-2xl mx-auto px-6 pt-16 pb-12">
           <div className="h-32 bg-forest/40 animate-pulse" />
+        </div>
+      </RitualSurface>
+    )
+  }
+
+  // Blok nie dał się wczytać — nie pokazujemy pustego formularza (wyglądałby,
+  // jakby tydzień był nietknięty, a wpisany tekst i tak by się nie zapisał).
+  if (loadError || !block) {
+    return (
+      <RitualSurface tone="forest-deep" frame="double">
+        <div className="max-w-md mx-auto px-6 pt-24 pb-16 text-center">
+          <p className="font-display text-ivory text-[24px] leading-snug">Nie udało się wczytać bloku serca</p>
+          <p className="font-serif-body italic text-parchment text-[15px] mt-3 leading-relaxed">
+            To, co już napisałaś, jest bezpieczne. Sprawdź połączenie i spróbuj jeszcze raz.
+          </p>
+          <button
+            onClick={() => reload()}
+            className="mt-7 inline-flex items-center gap-2 border border-gold px-6 py-3 font-ui uppercase tracking-luxury text-[10px] text-gold-light hover:text-ivory transition-colors"
+          >
+            spróbuj ponownie
+          </button>
+          <div className="mt-6">
+            <Link href="/" className="font-ui uppercase tracking-luxury text-[10px] text-parchment hover:text-gold-light transition-colors">
+              ‹ wróć na Dziś
+            </Link>
+          </div>
         </div>
       </RitualSurface>
     )
@@ -266,7 +292,7 @@ export default function HeartBlockPage() {
               <b className="text-[11px] tracking-[0.25em]" style={{ color: ROSE }}>∴</b>
               <i className="block w-9 h-px" style={{ background: 'linear-gradient(90deg, #c9b27f, transparent)' }} />
             </div>
-            <p className="font-serif-body italic text-[16px] leading-[1.55]" style={{ color: '#4a4230' }}>„{CLOSING_PHRASE}"</p>
+            <p className="font-serif-body italic text-[16px] leading-[1.55]" style={{ color: '#4a4230' }}>„{CLOSING_PHRASE}”</p>
           </div>
         </Section>
 
@@ -306,7 +332,7 @@ export default function HeartBlockPage() {
         {isComplete && xpAlreadyAwarded && (
           <div className="mt-5 border border-gold-light/30 px-4 py-3 flex items-center justify-center gap-3">
             <Diamond size={6} className="text-gold-light" />
-            <SmallCaps tone="parchment" tracking="luxury" size="xs">+ {XP_VALUES.heartBlock} XP zapisane na filar „pozycja"</SmallCaps>
+            <SmallCaps tone="parchment" tracking="luxury" size="xs">+ {XP_VALUES.heartBlock} XP zapisane na filar „pozycja”</SmallCaps>
             <Diamond size={6} className="text-gold-light" />
           </div>
         )}

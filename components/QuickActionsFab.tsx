@@ -22,6 +22,48 @@ export default function QuickActionsFab() {
   const [showSmoke, setShowSmoke] = useState(false)
   const fabRef = useRef<HTMLDivElement>(null)
   const { saveMoodCheckIn } = useGameData()
+  // „+" wisi nad prawą krawędzią treści — dokładnie tam, gdzie są wartości XP
+  // i przyciski „Zrobione". Dlatego ustępuje, gdy nie jest potrzebny:
+  //  • przy przewijaniu w dół (czytasz / odhaczasz listę) chowa się, przy
+  //    ruchu w górę wraca — jak pływające przyciski w apkach mobilnych,
+  //  • podczas pisania znika całkiem (klawiatura wypychała go na pole tekstu).
+  const [scrolledAway, setScrolledAway] = useState(false)
+  const [typing, setTyping] = useState(false)
+
+  useEffect(() => {
+    let lastY = window.scrollY
+    let queued = false
+    const onScroll = () => {
+      if (queued) return
+      queued = true
+      requestAnimationFrame(() => {
+        queued = false
+        const y = window.scrollY
+        const dy = y - lastY
+        // Próg tłumi drgania palca i „odbicie" przewijania na iOS.
+        if (Math.abs(dy) < 12) return
+        lastY = y
+        setScrolledAway(dy > 0 && y > 160)
+      })
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    const isField = (el: EventTarget | null) =>
+      el instanceof HTMLElement &&
+      (el.tagName === 'TEXTAREA' || el.isContentEditable ||
+        (el.tagName === 'INPUT' && !['checkbox', 'radio', 'range', 'button', 'submit'].includes((el as HTMLInputElement).type)))
+    const onIn = (e: FocusEvent) => { if (isField(e.target)) setTyping(true) }
+    const onOut = () => setTyping(false)
+    document.addEventListener('focusin', onIn)
+    document.addEventListener('focusout', onOut)
+    return () => {
+      document.removeEventListener('focusin', onIn)
+      document.removeEventListener('focusout', onOut)
+    }
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -32,7 +74,7 @@ export default function QuickActionsFab() {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  useEffect(() => { setOpen(false) }, [pathname])
+  useEffect(() => { setOpen(false); setScrolledAway(false) }, [pathname])
 
   if (HIDDEN_ON.includes(pathname)) return null
 
@@ -42,12 +84,22 @@ export default function QuickActionsFab() {
     await saveMoodCheckIn(data)
   }
   const handleSmoke = () => { setOpen(false); setShowSmoke(true) }
+  // Rozwinięte menu nigdy nie ucieka spod palca.
+  const tucked = !open && (scrolledAway || typing)
 
   return (
     <>
       <div
         ref={fabRef}
-        className="fixed right-5 bottom-24 md:bottom-5 z-30 flex flex-col items-end gap-2 print:hidden"
+        className={clsx(
+          'fixed right-5 bottom-[calc(6rem+env(safe-area-inset-bottom))] md:bottom-5 z-30 flex flex-col items-end gap-2 print:hidden',
+          'transition-[transform,opacity] duration-200 ease-out',
+          tucked ? 'translate-y-[160%] opacity-0 pointer-events-none' : 'translate-y-0 opacity-100',
+        )}
+        aria-hidden={tucked || undefined}
+        // Wejście klawiaturą (Tab) wyciąga schowany przycisk z powrotem —
+        // fokus nie może wylądować na czymś niewidocznym.
+        onFocusCapture={() => setScrolledAway(false)}
       >
         {/* Action items */}
         <div className={clsx(

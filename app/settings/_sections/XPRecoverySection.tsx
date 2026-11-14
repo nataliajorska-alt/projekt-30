@@ -6,6 +6,7 @@ import { SmallCaps, Diamond, Fleuron, GoldRule } from '@/components/ui'
 
 type RecoveryBreakdown = {
   fromLogs: number; fromWeeklyReviews: number; fromMonthlyReviews: number
+  fromQuarterlyReviews: number; quarterlyCount: number
   fromAchievements: number; total: number; weeklyCount: number; monthlyCount: number; achievementsCount: number
   fromMoodCheckIns: number; fromHeartBlocks: number; fromPillarBalance: number
   fromGhostV2: number; fromHonestFailure: number; fromCBT: number
@@ -100,6 +101,7 @@ export default function XPRecoverySection() {
             [`Mood check-iny (${breakdown.moodCheckInsCount} × 5)`, breakdown.fromMoodCheckIns],
             [`Przeglądy tygodniowe (${breakdown.weeklyCount} × 150)`, breakdown.fromWeeklyReviews],
             [`Przeglądy miesięczne (${breakdown.monthlyCount} × 300)`, breakdown.fromMonthlyReviews],
+            [`Przeglądy kwartalne (${breakdown.quarterlyCount} × 400)`, breakdown.fromQuarterlyReviews],
             [`Heart blocks (${breakdown.heartBlocksCount} × 200)`, breakdown.fromHeartBlocks],
             [`Pillar balance bonus (${breakdown.pillarBalanceCount} × 30)`, breakdown.fromPillarBalance],
             [`Ghost Protocol V2 (${breakdown.ghostV2Count})`, breakdown.fromGhostV2],
@@ -145,11 +147,11 @@ export default function XPRecoverySection() {
       )}
 
       {error && (
-        <div className="border border-red-200 bg-red-50/50 p-3 mb-4">
-          <SmallCaps tracking="luxury" size="xs" className="!text-red-700">
+        <div className="border border-rose/40 bg-rose/10 p-3 mb-4">
+          <SmallCaps tracking="luxury" size="xs" className="!text-wine">
             Coś poszło nie tak
           </SmallCaps>
-          <p className="font-serif-body italic text-red-800 text-[12.5px] mt-1 break-words">{error}</p>
+          <p className="font-serif-body italic text-wine text-[12.5px] mt-1 break-words">{error}</p>
         </div>
       )}
 

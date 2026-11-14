@@ -102,7 +102,7 @@ export default function WeeklyInsightCard({ moodDays }: { moodDays?: number }) {
       <div className="mt-5 pt-4 border-t border-border font-serif-body italic text-muted-light text-[13px] leading-relaxed">
         sygnały stopniowane: <span className="text-gold-deep not-italic">pewny</span> · wstępny · słaby
         <span className="text-gold mx-2">·</span>
-        „pewny" = twardy próg (n ≥ 10, |efekt| ≥ 0,2, istotne po korekcie FDR)
+        „pewny” = twardy próg (n ≥ 10, |efekt| ≥ 0,2, istotne po korekcie FDR)
         <span className="text-gold mx-2">·</span>
         aktualizują się automatycznie wraz z nowymi danymi.
       </div>

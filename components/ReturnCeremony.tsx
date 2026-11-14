@@ -129,7 +129,7 @@ export default function ReturnCeremony({ daysMissed, onComplete, onDismiss }: Pr
             <p className="font-serif-body italic text-ivory/85 text-[14px] leading-relaxed">
               „przerwa nie definiuje projektu. powrót go definiuje.
               ja — natalia, dzień trzysta sześćdziesiąt pięć — wróciłam po każdej przerwie.
-              właśnie dlatego tu jestem. teraz twoja kolej."
+              właśnie dlatego tu jestem. teraz twoja kolej.”
             </p>
             <div className="flex items-center justify-end gap-2 mt-3">
               <Diamond size={4} className="text-gold/60" />

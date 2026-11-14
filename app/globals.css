@@ -22,6 +22,37 @@
     max-width: 100%;
   }
 
+  /* ── Szlif „aplikacyjny" ─────────────────────────────────────────── */
+  /* Dotyk: bez szarego mignięcia pod palcem (iOS/Android) — odpowiedzią na
+     dotknięcie jest sama zmiana stanu (romb, „+XP"), nie prostokąt systemu. */
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* manipulation: przeglądarka nie czeka na „czy to podwójne stuknięcie",
+     więc odhaczenie reaguje od razu; szczypanie do powiększenia dalej działa. */
+  a, button, summary, label, [role='button'], [role='checkbox'], [role='tab'] {
+    touch-action: manipulation;
+  }
+  /* Zaznaczenie tekstu w kolorach apki zamiast systemowego błękitu. */
+  ::selection {
+    background: #F3E9C8;
+    color: #1D231F;
+  }
+  /* Fokus z klawiatury: złota obwódka w miejsce niebieskiej z przeglądarki.
+     Tylko :focus-visible, więc kliknięcie myszą jej nie pokazuje; pola z własnym
+     stylem fokusu (focus:outline-none + złota ramka) zostają przy swoim. */
+  :focus-visible {
+    outline: 1.5px solid #B29355;
+    outline-offset: 2px;
+  }
+  /* Pasek przewijania na komputerze — cienki, w złocie na przezroczystym tle. */
+  @media (pointer: fine) {
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: #C9B27F transparent;
+    }
+  }
+
   * {
     @apply border-border;
   }
@@ -232,6 +263,12 @@
   100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
 .banner-in { animation: bannerIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+/* Pasek połączenia: to samo wejście, ale bez przesunięcia -50% (centruje go flex). */
+@keyframes bannerInFlat {
+  0%   { opacity: 0; transform: translateY(-12px); }
+  100% { opacity: 1; transform: none; }
+}
+.banner-in-flat { animation: bannerInFlat 0.35s ease-out both; }
 
 @keyframes focusCardIn { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
 .focus-card-in { animation: focusCardIn 0.35s ease-out both; }

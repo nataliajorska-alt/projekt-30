@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, arrayUnion, arrayRemove } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
@@ -40,30 +40,34 @@ export function useHiddenSideQuests() {
     return () => { cancelled = true }
   }, [user?.uid])
 
-  const save = useCallback(async (updated: string[]) => {
+  // Zapis jednego id (arrayUnion / arrayRemove), nie całej listy ze stanu: gdy
+  // odczyt się nie udał, lista w stanie jest pusta i zapis „całości" przywracał
+  // do biblioteki wszystko, co było wcześniej ukryte.
+  const change = useCallback(async (id: string, hideIt: boolean) => {
     if (!user) return
     const prev = hidden
-    setHidden(updated) // optymistycznie — karta znika od razu, bez czekania na zapis
+    // optymistycznie — karta znika od razu, bez czekania na zapis
+    setHidden(hideIt ? (prev.includes(id) ? prev : [...prev, id]) : prev.filter(h => h !== id))
     try {
       await setDoc(
         doc(db, ...paths.dataDoc(user.uid, 'appSettings')),
-        { hiddenSideQuests: updated },
+        { hiddenSideQuests: hideIt ? arrayUnion(id) : arrayRemove(id) },
         { merge: true },
       )
     } catch (err) {
       console.error('hiddenSideQuests save error:', err)
-      setHidden(prev) // zapis padł (offline/reguły) — cofnij optymistyczną zmianę
+      setHidden(prev) // zapis odrzucony (reguły) — cofnij optymistyczną zmianę
     }
   }, [user, hidden])
 
   const hide = useCallback(async (id: string) => {
     if (hidden.includes(id)) return
-    await save([...hidden, id])
-  }, [hidden, save])
+    await change(id, true)
+  }, [hidden, change])
 
   const unhide = useCallback(async (id: string) => {
-    await save(hidden.filter(h => h !== id))
-  }, [hidden, save])
+    await change(id, false)
+  }, [change])
 
   return { hidden, loading, hide, unhide }
 }

@@ -181,7 +181,7 @@ export default function FocusFlow({ onClose, preview }: { onClose: () => void; p
   const ringC = 2 * Math.PI * ringR
 
   return (
-    <div className="fixed inset-0 z-[80] bg-dark text-ivory flex flex-col print:hidden" role="dialog" aria-modal="true" aria-label="Jedna rzecz">
+    <div className="fixed inset-0 z-[80] bg-dark text-ivory flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] print:hidden" role="dialog" aria-modal="true" aria-label="Jedna rzecz">
       {/* Pasek górny */}
       <div className="px-4 md:px-8 pt-[max(env(safe-area-inset-top),16px)] pb-3">
         <div className="max-w-xl mx-auto flex items-center gap-3">
@@ -268,7 +268,7 @@ export default function FocusFlow({ onClose, preview }: { onClose: () => void; p
                     <span className="font-ui uppercase tracking-[0.3em] text-[9px]" style={{ color: pillar.color }}>◆ {pillar.shortName}</span>
                   )}
                   {current.overdue && (
-                    <span className="border border-amber-300/70 px-1.5 py-0.5 font-ui uppercase tracking-luxury text-[8.5px] text-amber-700">zaległe</span>
+                    <span className="border border-wine/30 px-1.5 py-0.5 font-ui uppercase tracking-luxury text-[8.5px] text-wine">zaległe</span>
                   )}
                 </div>
                 <h2 className="font-display text-[clamp(1.6rem,6vw,2.1rem)] leading-[1.12] tracking-tight mt-3">

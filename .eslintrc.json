@@ -1,3 +1,17 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "no-restricted-imports": ["error", {
+      "paths": [{
+        "name": "firebase/firestore",
+        "message": "Importuj z '@/lib/db' — tam zapisy nie wiszą bez zasięgu (patrz komentarz w lib/db.ts)."
+      }]
+    }]
+  },
+  "overrides": [
+    {
+      "files": ["lib/db.ts", "lib/firebase.ts", "lib/sandbox/**"],
+      "rules": { "no-restricted-imports": "off" }
+    }
+  ]
 }

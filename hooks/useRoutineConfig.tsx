@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { doc, onSnapshot, setDoc } from 'firebase/firestore'
+import { doc, onSnapshot, setDoc, arrayUnion, arrayRemove } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from '@/hooks/useAuth'
@@ -39,20 +39,26 @@ export function useRoutineConfig() {
     return unsub
   }, [user])
 
-  const saveConfig = useCallback(async (updates: Partial<RoutineConfig>) => {
+  // Każda zmiana zapisuje WYŁĄCZNIE swój element (arrayUnion / arrayRemove), a nie
+  // całą konfigurację ze stanu Reacta. Stan bywa pusty — zanim dojdzie nasłuch,
+  // po błędzie odczytu albo gdy apka wstała bez zasięgu — i zapis „całości"
+  // kasował wtedy własne pozycje rutyny i listę wyłączonych.
+  // `local` to natychmiastowy podgląd w UI; prawdę i tak dosyła nasłuch.
+  const write = useCallback(async (local: Partial<RoutineConfig>, remote: Record<string, unknown>) => {
     if (!user) return
     const ref = doc(db, ...paths.configDoc(user.uid, 'routines'))
-    const next = { ...config, ...updates, updatedAt: new Date().toISOString() }
-    setConfig(next)
-    await setDoc(ref, next, { merge: true })
-  }, [user, config])
+    const updatedAt = new Date().toISOString()
+    setConfig(prev => ({ ...prev, ...local, updatedAt }))
+    await setDoc(ref, { ...remote, updatedAt }, { merge: true })
+  }, [user])
 
   const toggleItemEnabled = useCallback((itemId: string) => {
-    const disabled = config.disabledItems.includes(itemId)
-      ? config.disabledItems.filter((id) => id !== itemId)
-      : [...config.disabledItems, itemId]
-    saveConfig({ disabledItems: disabled })
-  }, [config.disabledItems, saveConfig])
+    const isDisabled = config.disabledItems.includes(itemId)
+    write(
+      { disabledItems: isDisabled ? config.disabledItems.filter((id) => id !== itemId) : [...config.disabledItems, itemId] },
+      { disabledItems: isDisabled ? arrayRemove(itemId) : arrayUnion(itemId) },
+    )
+  }, [config.disabledItems, write])
 
   const addCustomItem = useCallback((text: string, type: 'morning' | 'evening' | 'daily', xp: number) => {
     const item: RoutineItem = {
@@ -61,16 +67,22 @@ export function useRoutineConfig() {
       type,
       xp,
     }
-    saveConfig({ customItems: [...config.customItems, item] })
-  }, [config.customItems, saveConfig])
+    write({ customItems: [...config.customItems, item] }, { customItems: arrayUnion(item) })
+  }, [config.customItems, write])
 
   const removeCustomItem = useCallback((itemId: string) => {
-    saveConfig({ customItems: config.customItems.filter((i) => i.id !== itemId) })
-  }, [config.customItems, saveConfig])
+    const item = config.customItems.find((i) => i.id === itemId)
+    if (!item) return
+    write({ customItems: config.customItems.filter((i) => i.id !== itemId) }, { customItems: arrayRemove(item) })
+  }, [config.customItems, write])
 
   const resetToDefaults = useCallback(() => {
-    saveConfig({ disabledItems: [], customItems: [], itemOrder: undefined })
-  }, [saveConfig])
+    // Świadomy pełny reset — tu nadpisanie obu list jest celem. Bez
+    // `itemOrder: undefined`: Firestore odrzucał undefined i „Przywróć domyślne"
+    // po cichu się nie zapisywało (po odświeżeniu własne pozycje wracały).
+    const cleared = { disabledItems: [], customItems: [] }
+    write(cleared, cleared)
+  }, [write])
 
   /** Returns the effective routine list for a given category and mode. */
   const getEffectiveItems = useCallback((

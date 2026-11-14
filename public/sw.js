@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p30-v27-dopamina';
+const CACHE_NAME = 'p30-v28-offline';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {
@@ -106,23 +106,59 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// ── Fetch (cache strategy, bez zmian) ───────────────────────────
+// ── Nawigacja offline ────────────────────────────────────────────
+// Ile czekamy na sieć, gdy mamy już zapisaną wersję strony („niby jest zasięg,
+// a nic nie idzie"). Bez zapisanej wersji czekamy do skutku.
+const NAV_TIMEOUT_MS = 4000;
+
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), ms);
+    promise.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); }
+    );
+  });
+}
+
+async function handleNavigate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request, { ignoreSearch: true });
+  try {
+    const response = await (cached ? withTimeout(fetch(request), NAV_TIMEOUT_MS) : fetch(request));
+    if (response && response.ok) cache.put(request, response.clone());
+    return response;
+  } catch (err) {
+    if (cached) return cached;
+    // Strona nieodwiedzona wcześniej: zamiast ekranu awaryjnego wróć na „Dziś",
+    // jeśli jest zapisane (stamtąd działa reszta apki).
+    const home = await cache.match('/');
+    if (home && new URL(request.url).pathname !== '/') return Response.redirect('/', 302);
+    return (await caches.match(OFFLINE_URL)) || Response.error();
+  }
+}
+
+// ── Fetch ────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   // Skip non-GET, Firebase, and API requests
   if (request.method !== 'GET') return;
-  if (url.hostname.includes('firebaseio.com') ||
+  // Fonty Google (arkusz z fonts.googleapis.com) MUSZĄ przejść dalej do cache —
+  // wcześniej łapało je ogólne „googleapis.com" i offline apka traciła kroje.
+  const isFontHost = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
+  if (!isFontHost && (
+      url.hostname.includes('firebaseio.com') ||
       url.hostname.includes('googleapis.com') ||
-      url.hostname.includes('firestore.googleapis.com') ||
-      url.pathname.startsWith('/api/')) return;
+      url.hostname.includes('cloudinary.com') ||
+      url.pathname.startsWith('/api/'))) return;
 
-  // Navigation requests: network-first, fallback to offline page
+  // Nawigacja: najpierw sieć (świeża wersja apki), a bez zasięgu — ostatnia
+  // zapisana wersja TEJ strony. Dane dnia są w pamięci urządzenia (Firestore),
+  // więc apka otwiera się i pozwala odhaczać offline; zapisy doślą się same.
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(OFFLINE_URL))
-    );
+    event.respondWith(handleNavigate(request));
     return;
   }
 
@@ -135,8 +171,12 @@ self.addEventListener('fetch', (event) => {
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          // Tylko udane odpowiedzi — zapisany 404/500 dla pliku JS psułby apkę
+          // do następnej zmiany nazwy cache. (opaque = fonty z innej domeny)
+          if (response.ok || response.type === 'opaque') {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
           return response;
         });
       })
@@ -148,8 +188,10 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
         return response;
       })
       .catch(() => caches.match(request))

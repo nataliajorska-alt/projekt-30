@@ -159,13 +159,13 @@ export default function TomorrowBriefing({ variant = 'tomorrow' }: { variant?: '
           {isToday ? (
             <>
               nie zdążyłaś rozpisać dnia wieczorem? rutyna, questy, zasady, faza cyklu i twoja
-              energia z ostatnich dni — jeden gotowy prompt. wklej do Claude'a, dopisz rzeczy
+              energia z ostatnich dni — jeden gotowy prompt. wklej do Claude’a, dopisz rzeczy
               z kalendarza i poproś o plan reszty dnia od teraz.
             </>
           ) : (
             <>
               rutyna, questy, zasady, faza cyklu i twoja energia z ostatnich dni — jeden gotowy
-              prompt. wklej do Claude'a, dopisz rzeczy z kalendarza i poproś o plan dnia.
+              prompt. wklej do Claude’a, dopisz rzeczy z kalendarza i poproś o plan dnia.
             </>
           )}
         </p>
@@ -193,7 +193,7 @@ export default function TomorrowBriefing({ variant = 'tomorrow' }: { variant?: '
           <div className="mt-4 flex items-center gap-2">
             <Fleuron size={10} className="text-gold" />
             <p className="font-serif-body italic text-gold-deep text-[13px]">
-              brief w schowku — wklej do Claude'a i dopisz swoje plany.
+              brief w schowku — wklej do Claude’a i dopisz swoje plany.
             </p>
             <Diamond size={5} className="text-gold" />
           </div>

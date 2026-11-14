@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { useReviewHistory } from '@/hooks/useReviewHistory'
 import { useGhostV2 } from '@/hooks/useGhostV2'
-import { getDaysElapsed, getDaysRemaining } from '@/lib/gameLogic'
+import { getDayOfProject, getDaysRemaining } from '@/lib/gameLogic'
 import { toRoman } from '@/lib/romanNumerals'
 import { RitualSurface, SmallCaps, GoldRule, Fleuron, RomanNumeral, Diamond } from '@/components/ui'
 import WeeklyReviewForm from './_components/WeeklyReviewForm'
@@ -38,7 +38,7 @@ export default function ReviewPage() {
   } = useReviewHistory()
   const [mode, setMode] = useState<Mode>('weekly')
 
-  const dayElapsed = getDaysElapsed()
+  const dayOfProject = getDayOfProject()
   const daysLeft = getDaysRemaining()
 
   return (
@@ -109,7 +109,7 @@ export default function ReviewPage() {
         <div className="mt-10 grid grid-cols-3 gap-3 md:gap-4">
           <SpecimenCard
             label="Day of project"
-            primary={dayElapsed.toString().padStart(3, '0')}
+            primary={dayOfProject.toString().padStart(3, '0')}
             sub={`of ${toRoman(365)}`}
           />
           <SpecimenCard

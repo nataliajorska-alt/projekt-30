@@ -90,6 +90,20 @@ export default function CBTPage() {
         <div className="mt-7">
           {cbt.loading ? (
             <div className="cbt-card h-40 animate-pulse" />
+          ) : cbt.loadError ? (
+            // Nie pokazujemy pustych zakładek — wyglądałoby, że wpisy zniknęły.
+            <div className="text-center py-10">
+              <p className="font-display text-ivory text-[22px] leading-snug">Nie udało się wczytać dziennika</p>
+              <p className="font-serif-body italic text-parchment text-[15px] mt-3 leading-relaxed">
+                Twoje wpisy są bezpieczne. Sprawdź połączenie i spróbuj jeszcze raz.
+              </p>
+              <button
+                onClick={() => cbt.reload()}
+                className="mt-6 inline-flex items-center gap-2 border border-gold px-6 py-3 font-ui uppercase tracking-luxury text-[10px] text-gold-light hover:text-ivory transition-colors"
+              >
+                spróbuj ponownie
+              </button>
+            </div>
           ) : tab === 'mysli' ? (
             <ThoughtTab cbt={cbt} />
           ) : tab === 'emocje' ? (
@@ -377,7 +391,7 @@ function EmotionTab({ cbt }: { cbt: ReturnType<typeof useCBT> }) {
   return (
     <div>
       <p className="font-serif-body italic text-parchment text-[14px] leading-[1.8] text-center mb-7 max-w-lg mx-auto">
-        Gdy złapie Cię silna emocja, nadaj jej kształt. Zamieniasz mgliste „źle mi" w konkretny obiekt,
+        Gdy złapie Cię silna emocja, nadaj jej kształt. Zamieniasz mgliste „źle mi” w konkretny obiekt,
         który możesz obejrzeć z dystansu. Na końcu oceń natężenie ponownie — i zobacz różnicę.
       </p>
 
@@ -562,7 +576,7 @@ function BeliefTab({ cbt }: { cbt: ReturnType<typeof useCBT> }) {
     <div>
       <p className="font-serif-body italic text-parchment text-[14px] leading-[1.8] text-center mb-7 max-w-lg mx-auto">
         Weź myśl, która wróciła w silnej emocji, i schodź w dół — po każdej odpowiedzi pytaj
-        „jeśli to prawda, co to o mnie mówi?" — aż dojdziesz do prostego zdania. To Twoje przekonanie kluczowe.
+        „jeśli to prawda, co to o mnie mówi?” — aż dojdziesz do prostego zdania. To Twoje przekonanie kluczowe.
         Potem, spokojnie, ułóż w jego miejsce nowe, zdrowe.
       </p>
 
@@ -575,7 +589,7 @@ function BeliefTab({ cbt }: { cbt: ReturnType<typeof useCBT> }) {
         </div>
 
         <div className="mb-5">
-          <label className="cbt-lab">Strzałka w dół<span className="cbt-hint">Po każdej odpowiedzi: „a jeśli to prawda — co to o mnie mówi?"</span></label>
+          <label className="cbt-lab">Strzałka w dół<span className="cbt-hint">Po każdej odpowiedzi: „a jeśli to prawda — co to o mnie mówi?”</span></label>
           {ladder.map((r, i) => (
             <div key={i} className="mb-2">
               <div className="flex items-center gap-1.5 mb-1 text-[#8e7338]">
@@ -829,7 +843,7 @@ function BeliefWork({ entry, cbt }: { entry: CBTBeliefEntry; cbt: ReturnType<typ
         {entry.coreBelief.trim() && (
           <div className="mb-3 text-[13px]">
             <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8f4d63]">Przekonanie, które testuję</span>
-            <div className="font-serif-body italic text-[#2a2a26] mt-0.5">„{entry.coreBelief}"</div>
+            <div className="font-serif-body italic text-[#2a2a26] mt-0.5">„{entry.coreBelief}”</div>
           </div>
         )}
         {experiments.map((ex, i) => {
@@ -1162,7 +1176,7 @@ function ExposureTab({ cbt }: { cbt: ReturnType<typeof useCBT> }) {
       {/* Ćw. 1 — budowa drabiny lęków */}
       <div className="cbt-card px-6 md:px-8 py-7">
         <div className="mb-5">
-          <label className="cbt-lab">Obszar lęku<span className="cbt-hint">Jeden temat, np. „bliskość", „perfekcjonizm", „pająki".</span></label>
+          <label className="cbt-lab">Obszar lęku<span className="cbt-hint">Jeden temat, np. „bliskość”, „perfekcjonizm”, „pająki”.</span></label>
           <input className="cbt-input" value={area} onChange={e => setArea(e.target.value)} placeholder="perfekcjonizm" />
         </div>
 
@@ -1332,7 +1346,7 @@ function ExposureLadderCard({ entry, cbt, open, onToggle, onDelete }: {
                       <div className="mt-2 flex items-center gap-3 min-h-[16px]">
                         {awardedRungIds.has(r.id)
                           ? <span className="font-ui uppercase tracking-luxury text-[9px] text-[#8e7338]">◆ +{XP_VALUES.cbtExposure} XP za ekspozycję</span>
-                          : <span className="font-ui uppercase tracking-luxury text-[9px] text-[#7c7256] opacity-70">opanuj szczebel + „co mi się udało" → +{XP_VALUES.cbtExposure} XP</span>}
+                          : <span className="font-ui uppercase tracking-luxury text-[9px] text-[#7c7256] opacity-70">opanuj szczebel + „co mi się udało” → +{XP_VALUES.cbtExposure} XP</span>}
                         <button onClick={() => rmRung(r.id)} aria-label="usuń szczebel" className="ml-auto font-ui text-[10px] text-[#7c7256] underline underline-offset-2 hover:text-[#8A3A2C] transition-colors">usuń</button>
                       </div>
                     </div>

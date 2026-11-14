@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
@@ -13,7 +13,7 @@ export function useCycleSettings() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!user) return
+    if (!user) { setLoading(false); return }
     const ref = doc(db, ...paths.dataDoc(user.uid, 'cycleSettings'))
     getDoc(ref)
       .then(snap => {

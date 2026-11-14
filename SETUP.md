@@ -97,6 +97,19 @@ Otwórz w przeglądarce: **http://localhost:3000**
 
 Zarejestruj konto (przycisk "Nie mam jeszcze konta") i gotowe!
 
+### Tryb sandbox — apka na przykładowych danych
+
+```
+npm run dev:sandbox
+```
+
+Otwórz: **http://localhost:3030**
+
+Bez logowania i bez internetu, na zmyślonych danych (ok. 220 dni wpisów z
+`lib/sandbox/seed.ts`). Nic nie trafia do Twojego prawdziwego konta, a po
+odświeżeniu strony wszystko wraca do stanu początkowego. Do oglądania
+i testowania zmian w wyglądzie albo logice — można klikać bez obaw o XP i serię.
+
 ---
 
 ## Krok 6 — Deploy na Vercel (żeby działało z telefonu)

@@ -31,7 +31,10 @@ import {
   todayKey,
   tomorrowDate,
   getEffectiveNow,
-  getDaysElapsed,
+  getDayOfProject,
+  getDaysRemaining,
+  getProjectProgress,
+  getLevelFromXP,
   MAX_MOOD_CHECKINS_PER_DAY,
 } from '@/lib/gameLogic'
 import { toRoman } from '@/lib/romanNumerals'
@@ -39,12 +42,6 @@ import { SmallCaps, Fleuron } from '@/components/ui'
 import { ChevronDown } from 'lucide-react'
 import type { MoodState } from '@/types'
 
-// Dzień projektu liczony z getEffectiveNow() (granica doby o DAY_START_HOUR),
-// żeby nagłówek nie przeskakiwał na nowy dzień o północy, gdy rutyna i questy
-// są jeszcze w dniu poprzednim.
-function dayOfProject(): number {
-  return Math.max(1, getDaysElapsed() + 1)
-}
 
 function SectionLabel({ num, name, sub }: { num: number; name: string; sub?: string }) {
   return (
@@ -73,12 +70,15 @@ function CollapsibleSection({
   name,
   sub,
   storageKey,
+  summary,
   children,
 }: {
   num: number
   name: string
   sub?: string
   storageKey: string
+  /** Jedna linijka zostająca po zwinięciu — sedno sekcji bez jej wysokości. */
+  summary?: ReactNode
   children: ReactNode
 }) {
   const [collapsed, setCollapsed] = useState(false)
@@ -121,8 +121,26 @@ function CollapsibleSection({
           className={`self-center shrink-0 text-muted group-hover:text-gold-deep transition-transform ${collapsed ? '-rotate-90' : ''}`}
         />
       </button>
-      {!collapsed && children}
+      {collapsed ? summary : children}
     </>
+  )
+}
+
+// Zwinięte odliczanie: te same liczby co na tarczy, w jednym wierszu. Na
+// telefonie tarcza z hasłem miesiąca zajmuje cały ekran — kto chce od razu
+// przejść do rutyny, zwija ją i dalej widzi, gdzie jest w roku.
+function CountdownSummary({ totalXP }: { totalXP: number }) {
+  const level = getLevelFromXP(totalXP)
+  const num = 'font-display italic text-gold-deep text-[14px] tracking-normal normal-case'
+  // Każda z trzech informacji trzyma się w jednym kawałku — wąski ekran łamie
+  // wiersz MIĘDZY nimi, a nie w środku „level XXI / Premium".
+  const item = 'whitespace-nowrap inline-flex items-baseline gap-1.5'
+  return (
+    <p className="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1 font-ui uppercase tracking-luxury text-[10px] text-muted">
+      <span className={item}><span className={num}>{getProjectProgress()}%</span> roku</span>
+      <span className={item}><span className={num}>{getDaysRemaining()}</span> dni do urodzin</span>
+      <span className={item}>level <span className={num}>{toRoman(level.level)}</span> {level.name}</span>
+    </p>
   )
 }
 
@@ -143,7 +161,7 @@ function daysBetween(a: string, b: string): number {
 }
 
 export default function Dashboard() {
-  const { loading, todayLog, stats, saveMoodCheckIn, completeReturnCeremony } = useGameData()
+  const { loading, synced, todayLog, stats, saveMoodCheckIn, completeReturnCeremony } = useGameData()
   // Jedno wywołanie na dashboard — DashboardInsight dostaje dane propem,
   // a my tą samą regułą decydujemy, czy The Glance pokazuje fallbackowy
   // PatternOfTheWeek (tylko gdy silnik insightów nie ma nic do pokazania).
@@ -187,8 +205,11 @@ export default function Dashboard() {
   }, [loading, todayLog])
 
   // Detect gap > 2 days → show Return Ceremony (once per return)
+  // Czeka na statystyki potwierdzone przez serwer (synced): pamięć urządzenia
+  // nieużywanego od kilku dni nie wie o odhaczeniach z drugiego — bez tego telefon
+  // witałby ceremonią powrotu (+200 XP) kogoś, kto wczoraj był tu z laptopa.
   useEffect(() => {
-    if (loading || returnEvaluated.current) return
+    if (loading || !synced || returnEvaluated.current) return
     if (!stats.lastStreakDate || stats.totalDaysLogged === 0) return
     returnEvaluated.current = true
 
@@ -200,7 +221,7 @@ export default function Dashboard() {
       setDaysMissed(gap)
       setShowReturn(true)
     }
-  }, [loading, stats])
+  }, [loading, synced, stats])
 
   const handleMoodSave = async (data: { energy: number; mood: number; state: MoodState }) => {
     setShowMoodModal(false)
@@ -223,7 +244,10 @@ export default function Dashboard() {
   const todayLabel    = getEffectiveNow().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
   const tomorrowLabel = tomorrowDate().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
 
-  const day = dayOfProject()
+  // Liczony z getEffectiveNow() (granica doby o DAY_START_HOUR), żeby nagłówek
+  // nie przeskakiwał na nowy dzień o północy, gdy rutyna i questy są jeszcze
+  // w dniu poprzednim. Jutro = dzień o jeden dalej.
+  const day = Math.min(365, getDayOfProject() + (viewingTomorrow ? 1 : 0))
 
   return (
     <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 md:pt-10 pb-12 md:pb-20 reveal-stagger">
@@ -288,9 +312,16 @@ export default function Dashboard() {
         </>
       )}
 
-      {/* I — THE COUNTDOWN: today within the year */}
-      <SectionLabel num={1} name="The Countdown" sub="punkt w roku" />
-      <CountdownHero />
+      {/* I — THE COUNTDOWN: today within the year (zwijane jak The Glance) */}
+      <CollapsibleSection
+        num={1}
+        name="The Countdown"
+        sub="punkt w roku"
+        storageKey="dash.collapse.countdown"
+        summary={<CountdownSummary totalXP={stats.totalXP} />}
+      >
+        <CountdownHero />
+      </CollapsibleSection>
 
       {/* Wzorzec tygodnia — pokazuje się tylko gdy silnik insightów coś znalazł */}
       <ErrorBoundary label="Wzorzec tygodnia"><DashboardInsight data={weeklyInsight} /></ErrorBoundary>
