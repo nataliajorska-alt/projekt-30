@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { doc, getDoc, setDoc } from '@/lib/db'
+import { doc, getDoc, setDoc, arrayUnion, arrayRemove } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
@@ -31,14 +31,16 @@ export function useCustomQuestLibrary() {
 
   useEffect(() => { fetch() }, [fetch])
 
-  const saveQuests = useCallback(async (updated: CustomQuestIdea[]) => {
+  // Jeden pomysł na raz (arrayUnion / arrayRemove) zamiast całej listy ze stanu —
+  // po nieudanym odczycie lista w stanie jest pusta i zapis „całości" kasował resztę.
+  const change = useCallback(async (quest: CustomQuestIdea, add: boolean) => {
     if (!user) return
     await setDoc(
       doc(db, ...paths.dataDoc(user.uid, 'appSettings')),
-      { customQuestIdeas: updated },
+      { customQuestIdeas: add ? arrayUnion(quest) : arrayRemove(quest) },
       { merge: true }
     )
-    setQuests(updated)
+    setQuests(prev => (add ? [...prev, quest] : prev.filter(q => q.id !== quest.id)))
   }, [user])
 
   const addQuest = useCallback(async (title: string, description?: string) => {
@@ -51,14 +53,15 @@ export function useCustomQuestLibrary() {
       ...(desc ? { description: desc } : {}),
       createdAt: Date.now(),
     }
-    const updated = [...quests, newQuest]
-    await saveQuests(updated)
+    await change(newQuest, true)
     return newQuest
-  }, [quests, saveQuests])
+  }, [change])
 
   const removeQuest = useCallback(async (id: string) => {
-    await saveQuests(quests.filter(q => q.id !== id))
-  }, [quests, saveQuests])
+    // arrayRemove porównuje cały obiekt — bierzemy ten wczytany z bazy.
+    const quest = quests.find(q => q.id === id)
+    if (quest) await change(quest, false)
+  }, [quests, change])
 
   return { quests, loading, addQuest, removeQuest }
 }

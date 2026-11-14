@@ -165,6 +165,7 @@ export default function RoutineEditSection() {
               className="w-full border border-hairline bg-cream/40 px-4 py-2.5 font-serif-body text-[14px] text-dark focus:outline-none focus:border-gold transition-colors"
               placeholder="nazwa elementu…"
               autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
             />
             <div className="flex items-center gap-3">
               <SmallCaps tone="muted" tracking="luxury" size="xs">XP:</SmallCaps>

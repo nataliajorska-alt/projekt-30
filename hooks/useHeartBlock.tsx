@@ -47,10 +47,16 @@ export function useHeartBlock() {
   const [block, setBlock] = useState<HeartBlock | null>(null)
   const [history, setHistory] = useState<HeartBlock[]>([])
   const [loading, setLoading] = useState(true)
+  // Nie udało się wczytać bloku (np. brak sieci, a tego tygodnia nie ma w pamięci
+  // urządzenia). Wtedy NIE udajemy pustego bloku: zapis z pustego formularza
+  // nadpisałby to, co już napisałaś na innym urządzeniu. Strona pokazuje
+  // komunikat z „spróbuj ponownie" zamiast formularza.
+  const [loadError, setLoadError] = useState(false)
   const weekKey = getISOWeekKey(getEffectiveNow())
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
+    setLoadError(false)
     try {
       const ref = doc(db, ...paths.heartBlockDoc(user.uid, weekKey))
       const snap = await getDoc(ref)
@@ -65,6 +71,7 @@ export function useHeartBlock() {
     } catch (err) {
       // Bez tego odrzucony odczyt (brak sieci) zostawiał loading=true na zawsze.
       console.error('heartBlock fetch error:', err)
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -73,7 +80,7 @@ export function useHeartBlock() {
   useEffect(() => { load() }, [load])
 
   const save = useCallback(async (next: Partial<HeartBlock>) => {
-    if (!user) return
+    if (!user || loadError) return
     const merged: HeartBlock = {
       ...(block ?? emptyBlock(weekKey)),
       ...next,
@@ -83,7 +90,7 @@ export function useHeartBlock() {
     setBlock(merged)
     const ref = doc(db, ...paths.heartBlockDoc(user.uid, weekKey))
     await setDoc(ref, { ...merged, _serverUpdatedAt: serverTimestamp() }, { merge: true })
-  }, [user?.uid, weekKey, block])
+  }, [user?.uid, weekKey, block, loadError])
 
   const markComplete = useCallback(async () => {
     if (!user || !block) return
@@ -91,5 +98,5 @@ export function useHeartBlock() {
     await save({ completedAt })
   }, [user?.uid, block, save])
 
-  return { block, history, loading, weekKey, save, markComplete }
+  return { block, history, loading, loadError, reload: load, weekKey, save, markComplete }
 }

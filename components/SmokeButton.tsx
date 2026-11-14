@@ -143,7 +143,7 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-forest-deep/85 backdrop-blur-sm flex items-end md:items-center justify-center animate-fade-in"
+      className="fixed inset-0 z-50 bg-forest-deep/85 backdrop-blur-sm flex items-end md:items-center justify-center pb-[env(safe-area-inset-bottom)] animate-fade-in"
       onClick={onClose}
     >
       <div
@@ -334,7 +334,7 @@ export default function SmokeButton({ onClose }: SmokeButtonProps) {
                   {emergencyLeft > 0 ? (
                     <button onClick={() => toggleSmokeEmergencyDay()} className="text-muted-light hover:text-dark transition-colors">
                       <SmallCaps tone="muted" tracking="luxury" size="xs">
-                        zły dzień? oznacz awaryjny · zostały {emergencyLeft} z {EMERGENCY_DAYS_PER_MONTH}
+                        zły dzień? oznacz awaryjny · zostały{'\u00A0'}{emergencyLeft}{'\u00A0'}z{'\u00A0'}{EMERGENCY_DAYS_PER_MONTH}
                       </SmallCaps>
                     </button>
                   ) : (

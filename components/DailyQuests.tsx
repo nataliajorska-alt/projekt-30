@@ -86,6 +86,7 @@ function QuestRow({
   isMinimum,
   isLast,
   onComplete,
+  onUndo,
   onSkip,
   onPostpone,
 }: {
@@ -95,6 +96,8 @@ function QuestRow({
   isMinimum: boolean
   isLast: boolean
   onComplete: () => void
+  /** Cofnięcie zaliczenia — podawane tylko dla questów zaliczonych dziś. */
+  onUndo?: () => void
   onSkip: () => void
   onPostpone: () => void
 }) {
@@ -185,8 +188,19 @@ function QuestRow({
         </div>
 
         {done ? (
-          <span className="font-display italic text-gold text-[15px] leading-none">
-            ∴ ukończone
+          <span className="inline-flex items-baseline gap-3">
+            <span className="font-display italic text-gold text-[15px] leading-none">
+              ∴ ukończone
+            </span>
+            {onUndo && (
+              <button
+                onClick={onUndo}
+                title="Cofnij zaliczenie (odejmie XP za ten quest)"
+                className="font-ui uppercase tracking-luxury text-[9px] text-muted-light hover:text-dark underline underline-offset-[3px] decoration-hairline hover:decoration-gold transition-colors py-1.5"
+              >
+                cofnij
+              </button>
+            )}
           </span>
         ) : (
           <div className="flex gap-1.5">
@@ -221,7 +235,7 @@ function QuestRow({
 }
 
 export default function DailyQuests() {
-  const { log, skippedIds, loading, completeQuest, skipQuest, postponeQuest } = useAprilQuests()
+  const { log, skippedIds, loading, completeQuest, uncompleteQuest, skipQuest, postponeQuest } = useAprilQuests()
   const { todayLog } = useGameData()
   const { book, loading: bookLoading } = useQuestBook()
   const isMinimum = (todayLog?.dayMode ?? 'normal') === 'minimum'
@@ -317,6 +331,11 @@ export default function DailyQuests() {
               isMinimum={isMinimum}
               isLast={i === allQuests.length - 1}
               onComplete={() => completeQuest(quest.id, quest.pillar, quest.xp)}
+              onUndo={
+                todayLog?.completedDailyQuests?.includes(quest.id)
+                  ? () => uncompleteQuest(quest.id, quest.pillar, quest.xp)
+                  : undefined
+              }
               onSkip={() => setSkipTarget(quest)}
               onPostpone={() => setPostponeTarget(quest)}
             />

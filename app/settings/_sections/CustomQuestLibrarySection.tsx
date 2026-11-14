@@ -12,13 +12,17 @@ export default function CustomQuestLibrarySection() {
   const [saving, setSaving] = useState(false)
 
   const handleAdd = async () => {
-    if (!newTitle.trim()) return
+    if (!newTitle.trim() || saving) return
     setSaving(true)
-    await addQuest(newTitle, newDesc)
-    setNewTitle('')
-    setNewDesc('')
-    setAdding(false)
-    setSaving(false)
+    try {
+      await addQuest(newTitle, newDesc)
+      setNewTitle('')
+      setNewDesc('')
+      setAdding(false)
+    } finally {
+      // Bez finally nieudany zapis zostawiał przycisk „dodaj" wyszarzony na stałe.
+      setSaving(false)
+    }
   }
 
   if (loading) return null
@@ -77,6 +81,7 @@ export default function CustomQuestLibrarySection() {
             placeholder="nazwa questa…"
             maxLength={80}
             autoFocus
+            onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
             className="w-full border border-hairline bg-cream/40 px-4 py-2.5 font-serif-body text-[14px] text-dark focus:outline-none focus:border-gold transition-colors"
           />
           <textarea

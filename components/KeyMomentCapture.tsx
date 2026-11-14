@@ -83,7 +83,7 @@ export default function KeyMomentCapture() {
 
       {/* Modal */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pb-[env(safe-area-inset-bottom)]">
           <div
             className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm"
             onClick={() => setOpen(false)}

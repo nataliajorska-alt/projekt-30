@@ -80,7 +80,7 @@ function UploadModal({ onUpload, uploading, uploadError, onClose }: UploadModalP
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pb-[env(safe-area-inset-bottom)]">
       <div className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full sm:max-w-md mx-4 mb-4 sm:mb-0 bg-ivory border border-gold-light/40 p-7 animate-slide-up">
         <div className="flex items-start justify-between mb-5">

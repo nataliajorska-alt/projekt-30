@@ -95,6 +95,25 @@ export function useAprilQuests() {
     }
   }, [user, logRef, log, todayLog, toggleDailyQuest])
 
+  // Cofnięcie omyłkowego „Zrobione". Rutynę i zasady da się odhaczyć z powrotem,
+  // a quest po jednym stuknięciu był zaliczony na stałe — z XP, którego nie dało
+  // się oddać. XP wraca tylko wtedy, gdy quest został zaliczony DZIŚ (siedzi
+  // w dzisiejszym logu); dawniejszego zaliczenia nie rozliczamy z dzisiejszych punktów.
+  const uncompleteQuest = useCallback(async (questId: string, pillar: Pillar, xp: number) => {
+    if (!user || !logRef || !log.completed.includes(questId) || inFlightRef.current.has(questId)) return
+    inFlightRef.current.add(questId)
+    const inTodayLog = todayLog?.completedDailyQuests?.includes(questId) ?? false
+    try {
+      await Promise.all([
+        setDoc(logRef, { completed: arrayRemove(questId) }, { merge: true }),
+        // toggleDailyQuest na queście z dzisiejszego logu = zdjęcie go i odjęcie XP.
+        inTodayLog ? toggleDailyQuest(questId, pillar, xp) : Promise.resolve(),
+      ])
+    } finally {
+      inFlightRef.current.delete(questId)
+    }
+  }, [user, logRef, log.completed, todayLog, toggleDailyQuest])
+
   // Pominięcie i przeniesienie zapisują WYŁĄCZNIE swoje pole (arrayUnion /
   // arrayRemove). Wcześniej szedł tu cały `log` ze stanu Reacta — gdy stan był
   // pusty (nasłuch jeszcze nie doszedł, błąd odczytu, apka otwarta bez zasięgu),
@@ -125,5 +144,5 @@ export function useAprilQuests() {
 
   const skippedIds = log.skips.map(s => s.questId)
 
-  return { log, skippedIds, loading, completeQuest, skipQuest, postponeQuest }
+  return { log, skippedIds, loading, completeQuest, uncompleteQuest, skipQuest, postponeQuest }
 }

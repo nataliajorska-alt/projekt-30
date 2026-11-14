@@ -34,6 +34,10 @@ export function useCBT() {
   const [entries, setEntries] = useState<CBTEntry[]>([])
   const [shield, setShield] = useState<CBTShield>(emptyShield())
   const [loading, setLoading] = useState(true)
+  // Dziennika nie dało się wczytać. Strona pokazuje wtedy „spróbuj ponownie"
+  // zamiast pustych zakładek (wyglądałoby, że wpisy zniknęły), a zapis Tarczy
+  // jest wstrzymany — z pustego stanu nadpisałby tę prawdziwą.
+  const [loadError, setLoadError] = useState(false)
   // Zapobiega podwójnemu przyznaniu bonusu za reframe w oknie między startem
   // przyznania a odświeżeniem stanu (autozapis potrafi strzelić parę razy).
   const reframingRef = useRef<Set<string>>(new Set())
@@ -48,18 +52,51 @@ export function useCBT() {
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
-    const q = query(collection(db, ...paths.cbtJournalCol(user.uid)), orderBy('timestamp', 'desc'))
-    const [snap, shieldSnap] = await Promise.all([
-      getDocs(q),
-      getDoc(doc(db, ...paths.dataDoc(user.uid, 'cbtShield'))),
-    ])
-    setEntries(snap.docs.map(d =>
-      parseSafe<CBTEntry>(CBTEntrySchema, d.data(), emptyThought(d.id, ''), `CBTEntry ${d.id}`)))
-    setShield(shieldSnap.exists()
-      ? parseSafe<CBTShield>(CBTShieldSchema, shieldSnap.data(), emptyShield(), 'CBTShield')
-      : emptyShield())
-    setLoading(false)
+    setLoadError(false)
+    try {
+      const q = query(collection(db, ...paths.cbtJournalCol(user.uid)), orderBy('timestamp', 'desc'))
+      const [snap, shieldSnap] = await Promise.all([
+        getDocs(q),
+        getDoc(doc(db, ...paths.dataDoc(user.uid, 'cbtShield'))),
+      ])
+      // Wpis, którego nie umiemy odczytać (np. nowy rodzaj zapisany nowszą wersją
+      // apki), POMIJAMY. Wcześniej stawał się w to miejsce pusty wpis-myśl —
+      // a jego autozapis nadpisałby prawdziwą treść pustymi polami.
+      setEntries(snap.docs.flatMap(d => {
+        const parsed = CBTEntrySchema.safeParse(d.data())
+        if (parsed.success) return [parsed.data as CBTEntry]
+        console.warn(`[schema] CBTEntry ${d.id} pominięty — nieznany format`, parsed.error.flatten())
+        return []
+      }))
+      setShield(shieldSnap.exists()
+        ? parseSafe<CBTShield>(CBTShieldSchema, shieldSnap.data(), emptyShield(), 'CBTShield')
+        : emptyShield())
+    } catch (err) {
+      // Bez tego odrzucony odczyt zostawiał stronę na wiecznym „ładowaniu".
+      console.error('cbt fetch error:', err)
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [user?.uid])
+
+  // Nowy wpis: NAJPIERW treść, potem punkty. Wcześniej zapis czekał na naliczenie
+  // dziennego XP — przy słabej sieci to były sekundy, a zamknięcie apki w tym
+  // czasie oznaczało XP bez wpisu, czyli utratę tego, co właśnie napisałaś.
+  const saveNew = useCallback(async <T extends CBTEntry>(entry: T): Promise<T> => {
+    const ref = doc(db, ...paths.cbtJournalDoc(user!.uid, entry.id))
+    setEntries(prev => [entry, ...prev])
+    const saved = setDoc(ref, { ...entry, _serverUpdatedAt: serverTimestamp() }, { merge: true })
+    const earned = await awardCBTCapture() // +10 raz dziennie (0, jeśli już dziś było)
+    let final = entry
+    if (earned > 0) {
+      final = { ...entry, xpEarned: earned }
+      setEntries(prev => prev.map(e => (e.id === entry.id ? final : e)))
+      await setDoc(ref, { xpEarned: earned }, { merge: true })
+    }
+    await saved
+    return final
+  }, [user?.uid, awardCBTCapture])
 
   useEffect(() => { load() }, [load])
 
@@ -67,21 +104,15 @@ export function useCBT() {
 
   const createThought = useCallback(async (data: NewThought): Promise<CBTThoughtEntry | null> => {
     if (!user) return null
-    const earned = await awardCBTCapture() // +10 raz dziennie (0 jeśli już dziś było)
-    const entry: CBTThoughtEntry = {
+    return saveNew<CBTThoughtEntry>({
       ...emptyThought(cbtUid(), todayKey()),
       situation: data.situation,
       emotions: data.emotions,
       thoughts: data.thoughts,
       alt: data.alt,
       altPct: data.altPct,
-      xpEarned: earned,
-    }
-    setEntries(prev => [entry, ...prev])
-    await setDoc(doc(db, ...paths.cbtJournalDoc(user.uid, entry.id)),
-      { ...entry, _serverUpdatedAt: serverTimestamp() }, { merge: true })
-    return entry
-  }, [user?.uid, awardCBTCapture])
+    })
+  }, [user?.uid, saveNew])
 
   // Autozapis wywiadu z gorącą myślą. Gdy hot + reframe wypełnione PIERWSZY raz —
   // przyznaje bonus +20 i stempluje xpEarned (spójnie z recoverStats).
@@ -111,35 +142,20 @@ export function useCBT() {
 
   const createEmotion = useCallback(async (data: NewEmotion): Promise<CBTEmotionEntry | null> => {
     if (!user) return null
-    const earned = await awardCBTCapture() // dzielona dzienna flaga capture +10
-    const entry: CBTEmotionEntry = {
-      ...emptyEmotion(cbtUid(), todayKey()),
-      ...data,
-      xpEarned: earned,
-    }
-    setEntries(prev => [entry, ...prev])
-    await setDoc(doc(db, ...paths.cbtJournalDoc(user.uid, entry.id)),
-      { ...entry, _serverUpdatedAt: serverTimestamp() }, { merge: true })
-    return entry
-  }, [user?.uid, awardCBTCapture])
+    return saveNew<CBTEmotionEntry>({ ...emptyEmotion(cbtUid(), todayKey()), ...data })
+  }, [user?.uid, saveNew])
 
   // ── Przekonania (strzałka w dół) ────────────────────────────────────────────
 
   const createBelief = useCallback(async (data: NewBelief): Promise<CBTBeliefEntry | null> => {
     if (!user) return null
-    const earned = await awardCBTCapture() // dzielona dzienna flaga capture +10
-    const entry: CBTBeliefEntry = {
+    return saveNew<CBTBeliefEntry>({
       ...emptyBelief(cbtUid(), todayKey()),
       trigger: data.trigger,
       ladder: data.ladder,
       coreBelief: data.coreBelief,
-      xpEarned: earned,
-    }
-    setEntries(prev => [entry, ...prev])
-    await setDoc(doc(db, ...paths.cbtJournalDoc(user.uid, entry.id)),
-      { ...entry, _serverUpdatedAt: serverTimestamp() }, { merge: true })
-    return entry
-  }, [user?.uid, awardCBTCapture])
+    })
+  }, [user?.uid, saveNew])
 
   // Autozapis pogłębienia + restrukturyzacji + eksperymentów behawioralnych.
   // Bonusy (stemplowane na xpEarned, spójnie z recoverStats): +25 za restrukturyzację
@@ -205,19 +221,13 @@ export function useCBT() {
 
   const createCoping = useCallback(async (data: NewCoping): Promise<CBTCopingEntry | null> => {
     if (!user) return null
-    const earned = await awardCBTCapture() // dzielona dzienna flaga capture +10
-    const entry: CBTCopingEntry = {
+    return saveNew<CBTCopingEntry>({
       ...emptyCoping(cbtUid(), todayKey()),
       style: data.style,
       what: data.what,
       ways: data.ways,
-      xpEarned: earned,
-    }
-    setEntries(prev => [entry, ...prev])
-    await setDoc(doc(db, ...paths.cbtJournalDoc(user.uid, entry.id)),
-      { ...entry, _serverUpdatedAt: serverTimestamp() }, { merge: true })
-    return entry
-  }, [user?.uid, awardCBTCapture])
+    })
+  }, [user?.uid, saveNew])
 
   // Autozapis pytań z ćwiczenia. Gdy konfrontacja + zdrowa alternatywa wypełnione
   // PIERWSZY raz — bonus +20 i stempel xpEarned (spójnie z recoverStats).
@@ -247,18 +257,12 @@ export function useCBT() {
 
   const createExposure = useCallback(async (data: NewExposure): Promise<CBTExposureLadder | null> => {
     if (!user) return null
-    const earned = await awardCBTCapture() // dzielona dzienna flaga capture +10
-    const entry: CBTExposureLadder = {
+    return saveNew<CBTExposureLadder>({
       ...emptyExposure(cbtUid(), todayKey()),
       area: data.area,
       rungs: data.rungs,
-      xpEarned: earned,
-    }
-    setEntries(prev => [entry, ...prev])
-    await setDoc(doc(db, ...paths.cbtJournalDoc(user.uid, entry.id)),
-      { ...entry, _serverUpdatedAt: serverTimestamp() }, { merge: true })
-    return entry
-  }, [user?.uid, awardCBTCapture])
+    })
+  }, [user?.uid, saveNew])
 
   // Autozapis planowania i logu ekspozycji. Za KAŻDY nowo opanowany szczebel
   // (done + „co mi się udało") bonus +15, stemplowany na xpEarned. Te same dwie
@@ -309,12 +313,12 @@ export function useCBT() {
 
   // ── Tarcza (bez XP) ───────────────────────────────────────────────────────
   const saveShield = useCallback(async (next: CBTShield) => {
-    if (!user) return
+    if (!user || loadError) return
     const merged = { ...next, updatedAt: new Date().toISOString() }
     setShield(merged)
     await setDoc(doc(db, ...paths.dataDoc(user.uid, 'cbtShield')),
       { ...merged, _serverUpdatedAt: serverTimestamp() }, { merge: true })
-  }, [user?.uid])
+  }, [user?.uid, loadError])
 
   const thoughts = entries.filter((e): e is CBTThoughtEntry => e.kind === 'thought')
   const emotionEntries = entries.filter((e): e is CBTEmotionEntry => e.kind === 'emotion')
@@ -324,7 +328,7 @@ export function useCBT() {
   const todayCount = entries.filter(e => e.dateKey === todayKey()).length
 
   return {
-    loading, entries, thoughts, emotionEntries, beliefs, copings, exposures, shield, todayCount,
+    loading, loadError, reload: load, entries, thoughts, emotionEntries, beliefs, copings, exposures, shield, todayCount,
     createThought, updateThought, createEmotion, createBelief, updateBelief, createCoping, updateCoping,
     createExposure, updateExposure, deleteEntry, saveShield,
   }

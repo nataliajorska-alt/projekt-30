@@ -90,6 +90,20 @@ export default function CBTPage() {
         <div className="mt-7">
           {cbt.loading ? (
             <div className="cbt-card h-40 animate-pulse" />
+          ) : cbt.loadError ? (
+            // Nie pokazujemy pustych zakładek — wyglądałoby, że wpisy zniknęły.
+            <div className="text-center py-10">
+              <p className="font-display text-ivory text-[22px] leading-snug">Nie udało się wczytać dziennika</p>
+              <p className="font-serif-body italic text-parchment text-[15px] mt-3 leading-relaxed">
+                Twoje wpisy są bezpieczne. Sprawdź połączenie i spróbuj jeszcze raz.
+              </p>
+              <button
+                onClick={() => cbt.reload()}
+                className="mt-6 inline-flex items-center gap-2 border border-gold px-6 py-3 font-ui uppercase tracking-luxury text-[10px] text-gold-light hover:text-ivory transition-colors"
+              >
+                spróbuj ponownie
+              </button>
+            </div>
           ) : tab === 'mysli' ? (
             <ThoughtTab cbt={cbt} />
           ) : tab === 'emocje' ? (

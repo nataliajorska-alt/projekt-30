@@ -364,9 +364,11 @@ export default function ReportPage() {
     <div className="bg-cream grain-parchment min-h-screen">
       <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 pb-24 animate-fade-in">
         {/* Header + print */}
-        <header className="flex items-start justify-between gap-6 print:hidden">
+        {/* Telefon: przycisk druku pod tytułem — obok niego tytuł i zakres dat
+            łamały się w pół słowa („Rok / Natalii", „5 / kwietnia 2027"). */}
+        <header className="flex flex-col items-start gap-5 sm:flex-row sm:justify-between sm:gap-6 print:hidden">
           <div className="min-w-0">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 whitespace-nowrap">
               <SmallCaps tone="muted" tracking="editorial" size="xs">Annual Report</SmallCaps>
               <span className="text-gold text-[10px]">∴</span>
               <SmallCaps tone="muted" tracking="editorial" size="xs">Podgląd</SmallCaps>
@@ -374,7 +376,7 @@ export default function ReportPage() {
             <h1 className="font-display text-dark text-[clamp(2rem,5vw,2.5rem)] leading-none tracking-tight mt-3">
               Rok Natalii
             </h1>
-            <p className="font-serif-body italic text-muted text-[15px] mt-3">
+            <p className="font-serif-body italic text-muted text-[15px] mt-3 whitespace-nowrap">
               5 kwietnia 2026 <span className="not-italic text-gold-deep mx-1.5">→</span> 5 kwietnia 2027
             </p>
           </div>
