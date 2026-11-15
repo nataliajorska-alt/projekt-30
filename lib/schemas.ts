@@ -474,3 +474,14 @@ export function parseSafe<T>(
   }
   return fallback
 }
+
+// ── Plan dnia od asystentki (users/{uid}/dayPlans/{dateKey}) ─────────────────
+export const DayPlanSchema = z.object({
+  dateKey:   z.string().catch(''),
+  text:      z.string().catch(''),
+  createdAt: z.string().catch(''),
+  model:     z.string().catch(''),
+  demo:      opt(z.boolean()),
+  truncated: opt(z.boolean()),
+})
+export type DayPlan = z.infer<typeof DayPlanSchema>

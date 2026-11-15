@@ -229,11 +229,19 @@ export interface PromptInput {
   phaseFor: (dateKey: string) => DayPhase | null
   /** Sekcja „Co mówią moje dane" z planInsights. */
   dataSection?: string
+  /** Kontekst miesiąca wpisany w apce (praca, wyjazdy, ludzie…). Bez niego — miejsce do uzupełnienia. */
+  context?: string
+  /** Pierwszy dzień do rozpisania (zwykle dziś) — minionych dni nie ma sensu planować. */
+  fromDate?: string
 }
 
-export function buildClaudePrompt({ monthKey, name, motto, question, phaseFor, dataSection }: PromptInput): string {
+export function buildClaudePrompt({ monthKey, name, motto, question, phaseFor, dataSection, context, fromDate }: PromptInput): string {
   const [y, m] = monthKey.split('-').map(Number)
-  const lines = monthDays(monthKey).map(d => {
+  const all = monthDays(monthKey)
+  const days = fromDate ? all.filter(d => d >= fromDate) : all
+  const partial = days.length < all.length
+  const ctx = context?.trim()
+  const lines = days.map(d => {
     const ph = phaseFor(d)
     const phase = ph ? ` · ${PHASE_LABEL[ph.phase]}, dzień cyklu ${ph.cycleDay}${ph.projected ? ' (prognoza)' : ''}` : ''
     return `${d} (${weekdayLabel(d)})${phase}`
@@ -246,7 +254,9 @@ export function buildClaudePrompt({ monthKey, name, motto, question, phaseFor, d
     `Motto: ${motto}`,
     question ? `Pytanie miesiąca: ${question}` : '',
     ``,
-    `Mój kontekst na ten miesiąc (uzupełnij przed wysłaniem): praca / terapia / wyjazdy / ludzie / pętle do zamknięcia / czego chcę od tego miesiąca.`,
+    ctx
+      ? `Mój kontekst na ten miesiąc: ${ctx}`
+      : `Mój kontekst na ten miesiąc (uzupełnij przed wysłaniem): praca / terapia / wyjazdy / ludzie / pętle do zamknięcia / czego chcę od tego miesiąca.`,
     ``,
     dataSection ?? '',
     dataSection ? `` : '',
@@ -256,7 +266,7 @@ export function buildClaudePrompt({ monthKey, name, motto, question, phaseFor, d
     `- konkretnie, z formatem „jeśli jest wtorek rano, to…", nie intencje; ton ciepły, bez presji`,
     `- XP: 50–60 lekkie, 80 średnie, 100 projekt, 150 domknięcie`,
     ``,
-    `Dni i fazy cyklu:`,
+    partial ? `Dni i fazy cyklu (od dziś do końca miesiąca — wcześniejsze dni już minęły, nie rozpisuj ich):` : `Dni i fazy cyklu:`,
     ...lines,
     ``,
     `Filary (użyj id): ${pillars}`,

@@ -123,6 +123,31 @@ i testowania zmian w wyglądzie albo logice — można klikać bez obaw o XP i s
 
 ---
 
+## Krok 7 — Asystentka w apce (Claude)
+
+Asystentka układa plan dnia z briefu (ekran „Dziś” i widok „Jutro”) i rozpisuje
+miesiąc w **Planie**. Dopóki jej nie włączysz, apka działa jak wcześniej:
+brief i prompt do skopiowania.
+
+W Vercel → projekt → **Settings → Environment Variables** dodaj:
+
+| Zmienna | Skąd |
+|---|---|
+| `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys → Create Key |
+| `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY` | Firebase Console → Ustawienia projektu → Konta usługi → „Wygeneruj nowy klucz prywatny” (te same, których używa Learning Vault) |
+| `P30_OWNER_UID` | identyfikator Twojego konta — apka pokazuje go w **Ustawienia → Konto → Asystentka** |
+
+Potem **Deployments → Redeploy**. Stan i dzisiejsze zużycie widać w Ustawieniach.
+
+- Model: Claude Opus 5.5. Gdy odmówi odpowiedzi ze względów bezpieczeństwa,
+  serwer sam ponawia zapytanie na modelu zapasowym zalecanym przez Anthropic.
+- Każde zapytanie jest płatne z Twojego konta API; bezpiecznik to 40 zapytań dziennie.
+- Brief wychodzi do Anthropic tylko po stuknięciu „ułóż plan” / „rozpisz miesiąc”.
+- W sandboxie (`npm run dev:sandbox`) asystentka odpowiada przykładowym planem — bez
+  klucza, bez kosztów, nic nie wychodzi z komputera.
+
+---
+
 ## Struktura aplikacji
 
 | Strona | Opis |

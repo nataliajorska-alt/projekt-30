@@ -18,7 +18,9 @@
   body {
     /* bg-cream = design --paper #F4EFE3 ; font-serif = Cormorant Garamond */
     @apply bg-cream text-dark font-serif;
-    overflow-x: hidden;
+    /* clip, nie hidden: „hidden" robi z body osobny kontener przewijania
+       i position: sticky (zakładki na „Dziś") przestaje trzymać się ekranu. */
+    overflow-x: clip;
     max-width: 100%;
   }
 

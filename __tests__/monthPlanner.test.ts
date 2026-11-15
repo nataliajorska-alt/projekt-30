@@ -85,6 +85,19 @@ describe('prompt i wklejka', () => {
     expect(p).toContain('RRRR-MM-DD | filar | xp | tytuł | opis')
   })
 
+  it('prompt z apki: wpisany kontekst zamiast miejsca do uzupełnienia, bez minionych dni', () => {
+    const p = buildClaudePrompt({
+      monthKey: '2026-11', name: 'Hart', motto: 'm', phaseFor,
+      context: 'praca zdalna, wyjazd 20–22.11', fromDate: '2026-11-15',
+    })
+    expect(p).toContain('Mój kontekst na ten miesiąc: praca zdalna, wyjazd 20–22.11')
+    expect(p).not.toContain('uzupełnij przed wysłaniem')
+    expect(p).toContain('od dziś do końca miesiąca')
+    expect(p).not.toMatch(/^2026-11-14 /m)
+    expect(p).toMatch(/^2026-11-15 /m)
+    expect(p).toMatch(/^2026-11-30 /m)
+  })
+
   it('parser łyka punktory, tabele, sam numer dnia i aliasy filarów', () => {
     const text = [
       'Oto plan:',

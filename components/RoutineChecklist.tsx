@@ -10,7 +10,9 @@ import {
   MORNING_SUPPLEMENTS, EVENING_SUPPLEMENTS,
   MORNING_TEETH_STEPS, MORNING_MEDITATION_STEPS,
 } from '@/lib/routineData'
-import { getEffectiveNow, DAY_START_HOUR } from '@/lib/gameLogic'
+import { getEffectiveNow, DAY_START_HOUR, todayKey } from '@/lib/gameLogic'
+import { getDailySpark } from '@/lib/questData'
+import { useSparkSchedule } from '@/hooks/useSparkSchedule'
 import { buildTodayRoutine } from '@/lib/todayPlan'
 import { MINIMUM_DAY_REASONS } from '@/types'
 import { BatteryLow, ChevronDown, Check } from 'lucide-react'
@@ -364,6 +366,11 @@ export default function RoutineChecklist() {
   const { todayLog, toggleRoutine, toggleSubStep, setDayMode, postponeRoutineToTomorrow } = useGameData()
   const checkedSubSteps = todayLog?.checkedSubSteps ?? []
   const { getEffectiveItems } = useRoutineConfig()
+  // Iskra dnia pokazana od razu przy pozycji „Iskra" — tam, gdzie się ją czyta
+  // i odhacza (własna z ustawień ma pierwszeństwo, jak na tarczy odliczania).
+  const { sparks: scheduledSparks } = useSparkSchedule()
+  const sparkKey = todayKey()
+  const spark = scheduledSparks[sparkKey] || getDailySpark(sparkKey)
   const [tab, setTab] = useState<Tab>(getDefaultTab)
   const [showMinimumModal, setShowMinimumModal] = useState(false)
   const [showOptional, setShowOptional] = useState<Record<Tab, boolean>>({
@@ -601,6 +608,11 @@ export default function RoutineChecklist() {
                     ) : undefined
                   }
                 />
+                {item.id === 'm6' && (
+                  <p className="ml-[26px] -mt-1 mb-2 pr-10 font-serif-body italic text-[14.5px] leading-snug text-gold-deep">
+                    „{spark}”
+                  </p>
+                )}
                 {item.id === 'm5' && (
                   <MeditationGuide
                     checkedSteps={checkedSubSteps}

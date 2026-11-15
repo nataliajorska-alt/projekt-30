@@ -234,8 +234,9 @@ function ExpressScreen({
 // ─── Component ───────────────────────────────────────────────────
 
 interface GhostProtocolV2Props {
-  /** Odpal od razu konkretny flow (np. z FAB-a) i ukryj wiersz triggerów. */
-  autoLaunch?: 'impulse'
+  /** Odpal od razu konkretny flow (np. z FAB-a albo paska szybkich akcji)
+   *  i ukryj wiersz triggerów. 'menu' = ekran wyboru narzędzia. */
+  autoLaunch?: 'impulse' | 'menu'
   /** Wołane przy zamknięciu, gdy komponent jest sterowany z zewnątrz. */
   onExit?: () => void
 }
@@ -246,7 +247,9 @@ export default function GhostProtocolV2({ autoLaunch, onExit }: GhostProtocolV2P
   const { contacts } = useNominatedContacts()
 
   const [flow, setFlow] = useState<ActiveFlow | null>(
-    autoLaunch === 'impulse' ? { type: 'impulse', phase: 'category' } : null
+    autoLaunch === 'impulse' ? { type: 'impulse', phase: 'category' }
+      : autoLaunch === 'menu' ? { type: 'menu' }
+      : null
   )
   const [showEmergencyLock, setShowEmergencyLock] = useState(false)
   const [showTouchstone, setShowTouchstone] = useState(false)

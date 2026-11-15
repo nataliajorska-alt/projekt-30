@@ -30,6 +30,7 @@
 import { NextResponse } from 'next/server'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdmin } from '@/lib/firebase-admin'
+import { warsawDayKey } from '@/lib/warsawDay'
 import { createHash, timingSafeEqual } from 'node:crypto'
 
 export const runtime = 'nodejs'
@@ -73,26 +74,8 @@ function rateLimited(): boolean {
   return false
 }
 
-// Klucz dnia MUSI pasować do klienta (lib/gameLogic.todayKey): strefa
-// Europe/Warsaw + przesunięcie o DAY_START_HOUR=3 (dzień „zaczyna się" o 3:00).
-// Serwer Vercela chodzi w UTC, więc bare new Date() zapisywał XP z Vaulta do
-// złego dnia — liczymy datę warszawską przez Intl.
-const DAY_START_HOUR = 3
-function todayKey(): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Warsaw',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', hourCycle: 'h23',
-  }).formatToParts(new Date())
-  const get = (t: string): number => Number(parts.find((p) => p.type === t)?.value)
-  let y = get('year'), m = get('month'), d = get('day')
-  if (get('hour') < DAY_START_HOUR) {
-    const shifted = new Date(Date.UTC(y, m - 1, d))
-    shifted.setUTCDate(shifted.getUTCDate() - 1)
-    y = shifted.getUTCFullYear(); m = shifted.getUTCMonth() + 1; d = shifted.getUTCDate()
-  }
-  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-}
+// Klucz dnia liczony po warszawsku, z dniem od 3:00 — patrz lib/warsawDay.ts.
+const todayKey = warsawDayKey
 
 export async function POST(req: Request) {
   // 1. Auth — shared secret

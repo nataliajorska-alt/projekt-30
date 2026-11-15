@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
@@ -9,32 +9,33 @@ import { useLearningVaultBadge } from '@/hooks/useLearningVaultBadge'
 import {
   Home, Sword, Trophy, BookOpen, CalendarDays,
   LogOut, Settings, Lock, Camera, Scroll,
-  Archive, Moon, Heart, Brain,
-  Sprout, TreePine, Columns3, Sparkles,
+  Moon, Heart, Brain, Feather, Wind,
+  Sprout, TreePine, Columns3, Sparkles, LayoutGrid,
   GraduationCap, ArrowUpRight, CalendarRange,
 } from 'lucide-react'
 import { SmallCaps, Diamond } from '@/components/ui'
 
-// ── Nav structure ────────────────────────────────────────────────
+// ── Struktura ────────────────────────────────────────────────────
+// Pięć miejsc zamiast siedmiu ikon bez podpisów:
+//   Dziś · Questy · Wzrost (gdzie rosnę) · Spokój (narzędzia na trudniejszą
+//   chwilę i rytm ciała) · Więcej (archiwum i ustawienia).
+// Każda grupa otwiera listę stron z jednym zdaniem „co tam jest".
 
-type SingleItem = {
-  kind: 'single'
+type Leaf = {
   href: string
   icon: React.ElementType
   label: string
-  shortLabel?: string
+  hint: string
   external?: boolean
+  /** Druga zakładka tej samej strony — nie podświetla grupy sama z siebie. */
+  secondary?: boolean
 }
 
-type GroupItem = {
-  kind: 'group'
-  icon: React.ElementType
-  label: string
-  shortLabel?: string
-  children: { href: string; icon: React.ElementType; label: string }[]
-}
-
+type SingleItem = { kind: 'single'; href: string; icon: React.ElementType; label: string }
+type GroupItem = { kind: 'group'; icon: React.ElementType; label: string; children: Leaf[] }
 type NavItem = SingleItem | GroupItem
+
+const LEARNING_VAULT = 'https://the-learning-vault.vercel.app'
 
 const NAV: NavItem[] = [
   { kind: 'single', href: '/', icon: Home, label: 'Dziś' },
@@ -42,82 +43,77 @@ const NAV: NavItem[] = [
   {
     kind: 'group', icon: Sprout, label: 'Wzrost',
     children: [
-      { href: '/progress',              icon: TreePine,     label: 'Drzewko' },
-      { href: '/timeline?tab=patterns', icon: CalendarDays, label: 'Wzorce' },
-      { href: '/pillars',               icon: Columns3,     label: 'Filary' },
-      { href: '/achievements',          icon: Trophy,       label: 'Osiągnięcia' },
+      { href: '/progress',              icon: TreePine,      label: 'Drzewko',       hint: 'ogród i trzydzieści poziomów' },
+      { href: '/timeline?tab=patterns', icon: CalendarDays,  label: 'Wzorce',        hint: 'historia, nawyki, nastrój' },
+      { href: '/pillars',               icon: Columns3,      label: 'Filary',        hint: 'gdzie idzie Twoja energia' },
+      { href: '/achievements',          icon: Trophy,        label: 'Osiągnięcia',   hint: 'kolekcja odznak' },
+      { href: '/review',                icon: BookOpen,      label: 'Przegląd',      hint: 'tydzień, miesiąc, kwartał' },
+      { href: '/plan',                  icon: CalendarRange, label: 'Plan miesiąca', hint: 'questy na kolejny miesiąc' },
     ],
   },
   {
-    kind: 'group', icon: Moon, label: 'Rytm',
+    kind: 'group', icon: Feather, label: 'Spokój',
     children: [
-      { href: '/cycle',  icon: Moon,     label: 'Cykl' },
-      { href: '/serce',  icon: Heart,    label: 'Serce' },
-      { href: '/mysli',  icon: Brain,    label: 'Myśli' },
-      { href: '/plan',   icon: CalendarRange, label: 'Plan miesiąca' },
-      { href: '/review', icon: BookOpen, label: 'Przegląd' },
+      { href: '/mostek',              icon: Feather, label: 'Mostek', hint: 'oddech, gdy ściska' },
+      { href: '/mysli',               icon: Brain,   label: 'Myśli',  hint: 'złap myśl, rozbrój ją' },
+      { href: '/serce',               icon: Heart,   label: 'Serce',  hint: 'blok serca — raz w tygodniu' },
+      { href: '/cycle',               icon: Moon,    label: 'Cykl',   hint: 'faza i rytm ciała' },
+      { href: '/timeline?tab=oddech', icon: Wind,    label: 'Oddech', hint: 'papierosy — dane, nie ocena', secondary: true },
     ],
   },
   {
-    kind: 'group', icon: Archive, label: 'Archiwum',
+    kind: 'group', icon: LayoutGrid, label: 'Więcej',
     children: [
-      { href: '/vault',  icon: Lock,     label: 'Skarbiec' },
-      { href: '/photos', icon: Camera,   label: 'Zdjęcia' },
-      { href: '/report', icon: Scroll,   label: 'Raport' },
-      { href: '/30',     icon: Sparkles, label: 'Urodziny' },
+      { href: '/vault',        icon: Lock,          label: 'Skarbiec',       hint: 'listy do siebie' },
+      { href: '/photos',       icon: Camera,        label: 'Zdjęcia',        hint: 'rok w kadrach' },
+      { href: '/report',       icon: Scroll,        label: 'Raport',         hint: 'cały rok w jednym dokumencie' },
+      { href: '/30',           icon: Sparkles,      label: 'Urodziny',       hint: '5 kwietnia 2027' },
+      { href: LEARNING_VAULT,  icon: GraduationCap, label: 'Learning Vault', hint: 'nauka — osobna apka', external: true },
+      { href: '/settings',     icon: Settings,      label: 'Ustawienia',     hint: 'rutyna, powiadomienia, eksport' },
     ],
   },
-  {
-    kind: 'single',
-    href: 'https://the-learning-vault.vercel.app',
-    icon: GraduationCap,
-    label: 'Learning Vault',
-    external: true,
-  },
-  { kind: 'single', href: '/settings', icon: Settings, label: 'Ustawienia' },
 ]
 
-function pathOnly(href: string) {
-  return href.split('?')[0]
-}
-function groupPaths(item: GroupItem) {
-  return item.children.map(c => pathOnly(c.href))
-}
+const pathOnly = (href: string) => href.split('?')[0]
+
 function isGroupActive(item: GroupItem, pathname: string) {
-  return groupPaths(item).some(p => pathname === p || pathname.startsWith(p + '/'))
+  return item.children.some(c => {
+    if (c.external || c.secondary) return false
+    const p = pathOnly(c.href)
+    return pathname === p || pathname.startsWith(p + '/')
+  })
 }
 
-// ── Desktop sidebar ──────────────────────────────────────────────
+function Dot({ tone, label, className }: { tone: 'gold' | 'soft'; label: string; className?: string }) {
+  return (
+    <span
+      aria-label={label}
+      className={clsx('w-1.5 h-1.5 rounded-full', tone === 'gold' ? 'bg-gold' : 'bg-gold-light', className)}
+    />
+  )
+}
 
-function DesktopNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: boolean }) {
+// ── Desktop: boczny pasek ────────────────────────────────────────
+
+function DesktopNav({ pathname, vaultBadge, insightBadge }: { pathname: string; vaultBadge: boolean; insightBadge: boolean }) {
   const { logOut } = useAuth()
-  const insightBadge = useWeeklyInsightBadge()
-  const [openGroup, setOpenGroup] = useState<string | null>(() => {
-    for (const item of NAV) {
-      if (item.kind === 'group' && isGroupActive(item, pathname)) return item.label
-    }
-    return null
-  })
+  const activeGroupLabel = () =>
+    NAV.find((i): i is GroupItem => i.kind === 'group' && isGroupActive(i, pathname))?.label ?? null
+  const [openGroup, setOpenGroup] = useState<string | null>(activeGroupLabel)
 
-  // Po nawigacji zwiń ręcznie rozwiniętą grupę — niech otwarta zostaje tylko
-  // ta, w której faktycznie jesteś (a na Dziś/Questy/Ustawieniach: żadna).
-  useEffect(() => {
-    const activeGroup = NAV.find(
-      (item): item is GroupItem => item.kind === 'group' && isGroupActive(item, pathname),
-    )
-    setOpenGroup(activeGroup ? activeGroup.label : null)
-  }, [pathname])
+  // Po nawigacji zostaje rozwinięta tylko grupa, w której faktycznie jesteś.
+  useEffect(() => { setOpenGroup(activeGroupLabel()) }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const top = 'font-ui uppercase tracking-[0.3em] text-[12px] transition-colors'
 
   return (
     <aside className="hidden md:flex flex-col w-[280px] min-h-screen bg-dark fixed left-0 top-0 z-40 py-9 pb-6 print:hidden">
-      {/* Subtle gold right edge thread */}
       <span className="pointer-events-none absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gold/25 to-transparent" />
 
-      {/* Brand */}
       <div className="relative px-6 pb-7 text-center">
-        <h1 className="font-display italic text-gold-pale text-[28px] leading-none tracking-wide">
+        <Link href="/" className="block font-display italic text-gold-pale text-[28px] leading-none tracking-wide">
           Projekt 30
-        </h1>
+        </Link>
         <div className="relative w-11 h-px bg-gold mx-auto mt-2.5 mb-2">
           <span
             className="absolute left-1/2 top-1/2 bg-dark text-gold text-[10px] px-1.5 leading-none"
@@ -131,47 +127,17 @@ function DesktopNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: bo
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="relative flex-1 overflow-y-auto">
+      <nav className="relative flex-1 overflow-y-auto" aria-label="Główna nawigacja">
         {NAV.map(item => {
           if (item.kind === 'single') {
-            if (item.external) {
-              return (
-                <div key={item.href} className="relative">
-                  <a
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setOpenGroup(null)}
-                    className="px-8 py-3 flex items-center gap-2 font-ui uppercase tracking-[0.3em] text-[12px] text-parchment/80 hover:text-gold-pale transition-colors"
-                  >
-                    <span className="relative flex-1">
-                      {item.label}
-                      {vaultBadge && (
-                        <span
-                          className="absolute -top-1 -right-2.5 w-1.5 h-1.5 rounded-full bg-gold-light ring-2 ring-dark"
-                          aria-label="Dziś nic z Learning Vault"
-                        />
-                      )}
-                    </span>
-                    <ArrowUpRight size={12} strokeWidth={1.5} className="opacity-50" />
-                  </a>
-                </div>
-              )
-            }
             const active = pathname === item.href
             return (
               <div key={item.href} className="relative">
-                {active && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-gold" />
-                )}
+                {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-gold" />}
                 <Link
                   href={item.href}
-                  onClick={() => setOpenGroup(null)}
-                  className={clsx(
-                    'block px-8 py-3 font-ui uppercase tracking-[0.3em] text-[12px] transition-colors',
-                    active ? 'text-gold-pale' : 'text-parchment/80 hover:text-gold-pale',
-                  )}
+                  aria-current={active ? 'page' : undefined}
+                  className={clsx('block px-8 py-3', top, active ? 'text-gold-pale' : 'text-parchment/80 hover:text-gold-pale')}
                 >
                   {item.label}
                 </Link>
@@ -181,48 +147,45 @@ function DesktopNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: bo
 
           const active = isGroupActive(item, pathname)
           const open = openGroup === item.label || active
+          const badge =
+            (item.label === 'Wzrost' && insightBadge) ? <Dot tone="gold" label="Nowy wzorzec tygodnia" className="absolute -top-1 -right-2.5 ring-2 ring-dark" />
+            : (item.label === 'Więcej' && vaultBadge) ? <Dot tone="soft" label="Dziś nic z Learning Vault" className="absolute -top-1 -right-2.5 ring-2 ring-dark" />
+            : null
 
           return (
             <div key={item.label} className="relative">
-              {active && (
-                <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-gold" />
-              )}
+              {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-gold" />}
               <button
                 onClick={() => setOpenGroup(open && !active ? null : item.label)}
-                className={clsx(
-                  'w-full px-8 py-3 flex items-center font-ui uppercase tracking-[0.3em] text-[12px] transition-colors',
-                  active ? 'text-gold-pale' : 'text-parchment/80 hover:text-gold-pale',
-                )}
+                aria-expanded={open}
+                className={clsx('w-full px-8 py-3 flex items-center', top, active ? 'text-gold-pale' : 'text-parchment/80 hover:text-gold-pale')}
               >
-                <span className="flex-1 text-left relative">
-                  {item.label}
-                  {item.label === 'Wzrost' && insightBadge && (
-                    <span
-                      className="absolute -top-1 -right-2.5 w-1.5 h-1.5 rounded-full bg-gold ring-2 ring-dark"
-                      aria-label="Nowy insight"
-                    />
-                  )}
+                <span className="flex-1 text-left">
+                  <span className="relative">{item.label}{badge}</span>
                 </span>
                 <span className="opacity-50 text-[10px]">{open ? '∨' : '›'}</span>
               </button>
 
               {open && (
-                <ul className="pl-16 pr-4 pt-1 pb-3 space-y-0">
+                <ul className="pl-16 pr-4 pt-1 pb-3">
                   {item.children.map(child => {
-                    const childActive = pathname === pathOnly(child.href)
+                    const childActive = !child.external && !child.secondary && pathname === pathOnly(child.href)
+                    const cls = clsx(
+                      'flex items-center gap-1.5 py-[7px] font-serif-body italic text-[14px] transition-colors',
+                      childActive ? 'text-gold-pale' : 'text-parchment/70 hover:text-gold-pale',
+                    )
                     return (
                       <li key={child.href}>
-                        <Link
-                          href={child.href}
-                          className={clsx(
-                            'block py-[7px] font-serif-body italic text-[14px] transition-colors',
-                            childActive
-                              ? 'text-gold-pale'
-                              : 'text-parchment/70 hover:text-gold-pale',
-                          )}
-                        >
-                          {child.label}
-                        </Link>
+                        {child.external ? (
+                          <a href={child.href} target="_blank" rel="noopener noreferrer" title={child.hint} className={cls}>
+                            {child.label}
+                            <ArrowUpRight size={11} strokeWidth={1.5} className="opacity-60 not-italic" />
+                          </a>
+                        ) : (
+                          <Link href={child.href} title={child.hint} className={cls}>
+                            {child.label}
+                          </Link>
+                        )}
                       </li>
                     )
                   })}
@@ -233,185 +196,157 @@ function DesktopNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: bo
         })}
       </nav>
 
-      {/* Logout */}
       <div className="relative px-8 pt-5 mt-2 border-t border-gold/20">
-        <button
-          onClick={logOut}
-          className="flex items-center gap-3 text-parchment/80 hover:text-gold-pale transition-colors"
-        >
+        <button onClick={logOut} className="flex items-center gap-3 text-parchment/80 hover:text-gold-pale transition-colors">
           <LogOut size={13} strokeWidth={1.5} className="opacity-70" />
-          <span className="font-ui uppercase tracking-[0.32em] text-[11px]">
-            Wyloguj
-          </span>
+          <span className="font-ui uppercase tracking-[0.32em] text-[11px]">Wyloguj</span>
         </button>
       </div>
     </aside>
   )
 }
 
-// ── Mobile bottom nav ────────────────────────────────────────────
+// ── Telefon: dolny pasek z podpisami + arkusz grupy ──────────────
 
-function MobileNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: boolean }) {
-  const insightBadge = useWeeklyInsightBadge()
+function MobileNav({ pathname, vaultBadge, insightBadge }: { pathname: string; vaultBadge: boolean; insightBadge: boolean }) {
   const [openGroup, setOpenGroup] = useState<string | null>(null)
-  const sheetRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!openGroup) return
-    const handler = (e: MouseEvent) => {
-      if (sheetRef.current && !sheetRef.current.contains(e.target as Node)) {
-        setOpenGroup(null)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [openGroup])
+  const group = NAV.find((i): i is GroupItem => i.kind === 'group' && i.label === openGroup) ?? null
 
   useEffect(() => { setOpenGroup(null) }, [pathname])
 
+  useEffect(() => {
+    if (!openGroup) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenGroup(null) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [openGroup])
+
+  const tab = 'relative flex flex-col items-center justify-center gap-1 flex-1 min-w-0 min-h-[50px] px-1 transition-colors'
+  const tabLabel = 'font-ui uppercase tracking-[0.12em] text-[9px] leading-none'
+
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 print:hidden" ref={sheetRef}>
-      {/* Group popover */}
-      {openGroup && (() => {
-        const group = NAV.find(i => i.kind === 'group' && i.label === openGroup) as GroupItem
-        if (!group) return null
-        return (
-          <div className="bg-forest-deep grain-linen border-t border-gold-light/30 px-4 pt-3 pb-3 animate-slide-up">
-            <div className="flex items-center gap-2 mb-2 px-1">
+    <div className="md:hidden print:hidden">
+      {/* Tło arkusza — stuknięcie obok zamyka */}
+      {group && (
+        <button
+          aria-label="Zamknij menu"
+          onClick={() => setOpenGroup(null)}
+          className="fixed inset-0 z-40 bg-dark/45 animate-fade-in"
+        />
+      )}
+
+      <div className="fixed bottom-0 left-0 right-0 z-40">
+        {group && (
+          <div
+            role="dialog"
+            aria-label={group.label}
+            className="bg-forest-deep grain-linen border-t border-gold-light/30 px-4 pt-4 pb-4 animate-slide-up"
+          >
+            <div className="flex items-center gap-2 mb-3 px-1">
               <Diamond size={5} className="text-gold" />
-              <SmallCaps tone="gold-light" tracking="luxury" size="xs">
-                {group.label}
-              </SmallCaps>
+              <SmallCaps tone="gold-light" tracking="luxury" size="sm">{group.label}</SmallCaps>
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {group.children.map(child => {
-                const active = pathname === pathOnly(child.href)
-                return (
-                  <Link
-                    key={child.href}
-                    href={child.href}
-                    className={clsx(
-                      'flex-1 flex flex-col items-center gap-1 py-2.5 transition-all border',
-                      active
-                        ? 'bg-forest text-gold-light border-gold-light/40'
-                        : 'text-parchment border-transparent hover:text-ivory hover:bg-forest/30'
-                    )}
-                  >
-                    <child.icon size={15} strokeWidth={1.5} />
-                    <span className="font-ui uppercase tracking-luxury text-[9px]">
-                      {child.label}
+                const active = !child.external && !child.secondary && pathname === pathOnly(child.href)
+                const cls = clsx(
+                  'flex items-center gap-3 min-h-[60px] px-3 py-2.5 border transition-colors text-left',
+                  active ? 'bg-forest border-gold-light/50' : 'border-gold-light/15 active:bg-forest/60',
+                )
+                const body = (
+                  <>
+                    <span className={clsx('shrink-0 w-9 h-9 flex items-center justify-center border', active ? 'border-gold text-gold-light' : 'border-gold-light/30 text-gold-light')}>
+                      <child.icon size={16} strokeWidth={1.5} />
                     </span>
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-1.5 font-display text-ivory text-[16px] leading-tight">
+                        {child.label}
+                        {child.external && <ArrowUpRight size={11} strokeWidth={1.5} className="text-gold-light/80" />}
+                        {child.external && vaultBadge && <Dot tone="soft" label="Dziś nic z Learning Vault" />}
+                      </span>
+                      <span className="block font-serif-body italic text-parchment/75 text-[12.5px] leading-snug mt-0.5">
+                        {child.hint}
+                      </span>
+                    </span>
+                  </>
+                )
+                return child.external ? (
+                  <a key={child.href} href={child.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpenGroup(null)} className={cls}>
+                    {body}
+                  </a>
+                ) : (
+                  <Link key={child.href} href={child.href} onClick={() => setOpenGroup(null)} className={cls}>
+                    {body}
                   </Link>
                 )
               })}
             </div>
           </div>
-        )
-      })()}
+        )}
 
-      {/* Bottom bar — icons only */}
-      {/* pb z safe-area: ikony nie siedzą na belce gestów iPhone'a, a tło paska dochodzi do krawędzi. */}
-      <nav className="bg-forest-deep grain-linen border-t border-gold-light/30 px-2 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-around">
-        {NAV.map(item => {
-          if (item.kind === 'single') {
-            if (item.external) {
+        {/* pb z safe-area: podpisy nie siedzą na belce gestów iPhone'a, a tło paska dochodzi do krawędzi. */}
+        <nav
+          aria-label="Główna nawigacja"
+          className="bg-forest-deep grain-linen border-t border-gold-light/30 px-1.5 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-stretch"
+        >
+          {NAV.map(item => {
+            if (item.kind === 'single') {
+              const active = pathname === item.href && !openGroup
               return (
-                <a
+                <Link
                   key={item.href}
                   href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   onClick={() => setOpenGroup(null)}
-                  aria-label={item.label}
-                  title={item.label}
-                  className="flex flex-col items-center justify-center gap-1.5 px-1 py-2 min-h-[44px] flex-1 min-w-0 transition-all"
+                  aria-current={active ? 'page' : undefined}
+                  className={clsx(tab, active ? 'text-gold-light' : 'text-parchment/65')}
                 >
-                  <span className="relative flex items-center">
-                    <item.icon size={20} strokeWidth={1.5} className="text-parchment/70" />
-                    <ArrowUpRight size={9} strokeWidth={2} className="absolute -top-1 -right-1.5 text-gold-light/80" />
-                    {vaultBadge && (
-                      <span
-                        className="absolute -top-1 -left-1.5 w-1.5 h-1.5 rounded-full bg-gold-light ring-2 ring-forest-deep"
-                        aria-label="Dziś nic z Learning Vault"
-                      />
-                    )}
-                  </span>
-                  <span className="h-px w-5 bg-transparent" />
-                </a>
+                  {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-px bg-gold" />}
+                  <item.icon size={20} strokeWidth={1.5} />
+                  <span className={tabLabel}>{item.label}</span>
+                </Link>
               )
             }
-            const active = pathname === item.href
+
+            const isOpen = openGroup === item.label
+            const active = isOpen || (isGroupActive(item, pathname) && !openGroup)
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpenGroup(null)}
-                aria-label={item.label}
-                title={item.label}
-                className="flex flex-col items-center justify-center gap-1.5 px-1 py-2 min-h-[44px] flex-1 min-w-0 transition-all"
+              <button
+                key={item.label}
+                onClick={() => setOpenGroup(isOpen ? null : item.label)}
+                aria-expanded={isOpen}
+                aria-haspopup="dialog"
+                className={clsx(tab, active ? 'text-gold-light' : 'text-parchment/65')}
               >
-                <item.icon
-                  size={20}
-                  strokeWidth={1.5}
-                  className={active ? 'text-gold-light' : 'text-parchment/70'}
-                />
-                <span
-                  className={clsx(
-                    'h-px w-5 transition-colors',
-                    active ? 'bg-gold' : 'bg-transparent'
+                {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-px bg-gold" />}
+                <span className="relative">
+                  <item.icon size={20} strokeWidth={1.5} />
+                  {item.label === 'Wzrost' && insightBadge && (
+                    <Dot tone="gold" label="Nowy wzorzec tygodnia" className="absolute -top-0.5 -right-1.5 ring-2 ring-forest-deep" />
                   )}
-                />
-              </Link>
+                  {item.label === 'Więcej' && vaultBadge && (
+                    <Dot tone="soft" label="Dziś nic z Learning Vault" className="absolute -top-0.5 -right-1.5 ring-2 ring-forest-deep" />
+                  )}
+                </span>
+                <span className={tabLabel}>{item.label}</span>
+              </button>
             )
-          }
-
-          const groupActive = isGroupActive(item, pathname)
-          const groupOpen = openGroup === item.label
-
-          return (
-            <button
-              key={item.label}
-              onClick={() => setOpenGroup(groupOpen ? null : item.label)}
-              aria-label={item.label}
-              title={item.label}
-              className="flex flex-col items-center justify-center gap-1.5 px-1 py-2 min-h-[44px] flex-1 min-w-0 transition-all"
-            >
-              <span className="relative flex items-center">
-                <item.icon
-                  size={20}
-                  strokeWidth={1.5}
-                  className={groupActive || groupOpen ? 'text-gold-light' : 'text-parchment/70'}
-                />
-                {item.label === 'Wzrost' && insightBadge && (
-                  <span
-                    className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-gold ring-2 ring-forest-deep"
-                    aria-label="Nowy insight"
-                  />
-                )}
-              </span>
-              <span
-                className={clsx(
-                  'h-px w-5 transition-colors',
-                  groupActive || groupOpen ? 'bg-gold' : 'bg-transparent'
-                )}
-              />
-            </button>
-          )
-        })}
-      </nav>
+          })}
+        </nav>
+      </div>
     </div>
   )
 }
 
 export default function Navigation() {
   const pathname = usePathname()
-  // Jeden listener na dzisiejszy log — współdzielony przez oba subnavy (oba są
-  // zawsze zamontowane, różni je tylko CSS), zamiast dwóch osobnych.
+  // Jeden nasłuch i jeden odczyt na oba warianty (oba są zawsze zamontowane,
+  // różni je tylko CSS).
   const vaultBadge = useLearningVaultBadge()
+  const insightBadge = useWeeklyInsightBadge()
   return (
     <>
-      <DesktopNav pathname={pathname} vaultBadge={vaultBadge} />
-      <MobileNav pathname={pathname} vaultBadge={vaultBadge} />
+      <DesktopNav pathname={pathname} vaultBadge={vaultBadge} insightBadge={insightBadge} />
+      <MobileNav pathname={pathname} vaultBadge={vaultBadge} insightBadge={insightBadge} />
     </>
   )
 }

@@ -13,7 +13,8 @@ import { SmallCaps } from '@/components/ui'
 
 // /mostek to pełny rytuał wyciszenia (oddech z zamkniętymi oczami) — pływający
 // „+" z akcją „Papieros" jest tam nie na miejscu; /report to podgląd dokumentu.
-const HIDDEN_ON = ['/settings', '/mostek', '/report']
+// Na „Dziś" te same akcje są w pasku pod kartą dnia (QuickDock) — bez „+".
+const HIDDEN_ON = ['/', '/settings', '/mostek', '/report']
 
 export default function QuickActionsFab() {
   const pathname = usePathname()

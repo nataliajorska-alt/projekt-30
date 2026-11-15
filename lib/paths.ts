@@ -106,3 +106,12 @@ export const monthPlanDoc = (uid: Uid, monthKey: string): [string, string, strin
 export const cycleCol = (uid: Uid): [string, string, string] => ['users', uid, 'cycle']
 export const cycleDoc = (uid: Uid, id: string): [string, string, string, string] =>
   ['users', uid, 'cycle', id]
+
+// users/{uid}/dayPlans/{YYYY-MM-DD}  (plan dnia ułożony przez asystentkę)
+export const dayPlansCol = (uid: Uid): [string, string, string] => ['users', uid, 'dayPlans']
+export const dayPlanDoc = (uid: Uid, dateKey: string): [string, string, string, string] =>
+  ['users', uid, 'dayPlans', dateKey]
+
+// users/{uid}/coachUsage/{YYYY-MM-DD}  (licznik zapytań do asystentki — pisze go tylko serwer)
+export const coachUsageDoc = (uid: Uid, dateKey: string): [string, string, string, string] =>
+  ['users', uid, 'coachUsage', dateKey]
