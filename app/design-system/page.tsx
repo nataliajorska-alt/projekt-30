@@ -238,9 +238,9 @@ export default function DesignSystemPage() {
               <p className="type-display mt-8 text-ivory">Weekly Review</p>
               <GoldRule variant="fleuron" className="mt-8 max-w-xs mx-auto" tone="gold" />
               <p className="font-serif-body italic text-parchment text-xl mt-8">
-                "the days are kept like letters,
+                “the days are kept like letters,
                 <br />
-                folded and pressed quietly between covers."
+                folded and pressed quietly between covers.”
               </p>
               <SmallCaps tone="gold-light" className="mt-10 block">
                 ex libris · natalia · mmxxvi

@@ -83,7 +83,7 @@ export default function KeyMomentCapture() {
 
       {/* Modal */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pb-[env(safe-area-inset-bottom)]">
           <div
             className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm"
             onClick={() => setOpen(false)}
@@ -130,7 +130,7 @@ export default function KeyMomentCapture() {
             />
 
             {error && (
-              <p className="font-serif-body italic text-red-700 bg-red-50 border border-red-100 px-3 py-2 mb-4 text-[13px]">
+              <p className="font-serif-body italic text-wine bg-rose/10 border border-rose/40 px-3 py-2 mb-4 text-[13px]">
                 {error}
               </p>
             )}

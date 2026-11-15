@@ -81,18 +81,18 @@ export default function NotificationsSection() {
       <h2 className="font-display text-dark text-[22px] tracking-tight mb-4">Powiadomienia</h2>
 
       {isUnsupported && (
-        <div className="flex items-start gap-2 border border-amber-300 bg-amber-50/40 px-4 py-3 mb-4">
-          <Diamond size={5} className="text-amber-700 mt-1.5 shrink-0" />
-          <p className="font-serif-body italic text-amber-900 text-[13px] leading-snug">
+        <div className="flex items-start gap-2 border border-wine/30 bg-wine/5 px-4 py-3 mb-4">
+          <Diamond size={5} className="text-wine mt-1.5 shrink-0" />
+          <p className="font-serif-body italic text-dark text-[13px] leading-snug">
             twoja przeglądarka nie obsługuje powiadomień. spróbuj w chrome lub edge.
           </p>
         </div>
       )}
 
       {isDenied && (
-        <div className="flex items-start gap-2 border border-amber-300 bg-amber-50/40 px-4 py-3 mb-4">
-          <Diamond size={5} className="text-amber-700 mt-1.5 shrink-0" />
-          <p className="font-serif-body italic text-amber-900 text-[13px] leading-snug">
+        <div className="flex items-start gap-2 border border-wine/30 bg-wine/5 px-4 py-3 mb-4">
+          <Diamond size={5} className="text-wine mt-1.5 shrink-0" />
+          <p className="font-serif-body italic text-dark text-[13px] leading-snug">
             powiadomienia są zablokowane. zmień ustawienia w przeglądarce (ikona kłódki przy adresie).
           </p>
         </div>

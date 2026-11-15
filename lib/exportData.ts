@@ -1,4 +1,4 @@
-import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, doc, getDoc } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import type { DailyLog, WeeklyReview, MonthlyReview, UserStats } from '@/types'

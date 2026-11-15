@@ -145,7 +145,7 @@ export default function PlanPage() {
       monthKey,
       phaseFor,
       question: draft.question?.trim() || undefined,
-      nextMonthName: MONTHLY_DATA[next]?.name ?? plans.find(p => p.monthKey === next)?.name,
+      nextMonthName: plans.find(p => p.monthKey === next)?.name?.trim() || MONTHLY_DATA[next]?.name,
       adapt: insights.adapt,
     })
     if (replaceFromToday(quests, 'Szkic')) {
@@ -233,7 +233,9 @@ export default function PlanPage() {
                 {monthLabel(k)}
               </span>
               <span className="flex items-center gap-1.5 font-display text-[14px] leading-tight mt-0.5">
-                {MONTHLY_DATA[k]?.name ?? plans.find(p => p.monthKey === k)?.name ?? '—'}
+                {/* Hasło z Twojego planu ma pierwszeństwo przed szkicem z kodu —
+                    inaczej zakładka mówiła co innego niż pole „Hasło miesiąca" pod nią. */}
+                {plans.find(p => p.monthKey === k)?.name?.trim() || MONTHLY_DATA[k]?.name || '—'}
                 {has && <Check size={12} className={k === monthKey ? 'text-gold' : 'text-gold-deep'} />}
               </span>
             </button>
@@ -325,7 +327,7 @@ export default function PlanPage() {
                 {pasteResult && pasteResult.errors.length > 0 && (
                   <ul className="mt-2 space-y-1">
                     {pasteResult.errors.slice(0, 8).map(e => (
-                      <li key={e.line} className="font-mono text-[11px] text-amber-700 truncate">
+                      <li key={e.line} className="font-mono text-[11px] text-wine truncate">
                         l.{e.line} · {e.reason} · {e.text}
                       </li>
                     ))}
@@ -414,12 +416,12 @@ export default function PlanPage() {
               <div className="min-w-0 font-serif-body italic text-[13px] text-muted truncate">
                 <Diamond size={6} className="inline-block text-gold mr-2 align-middle" />
                 {draft.quests.length} questów ·{' '}
-                {dirty ? <span className="text-amber-700">niezapisane zmiany</span>
+                {dirty ? <span className="text-wine">niezapisane zmiany</span>
                   : saved && saved.quests.length > 0 ? 'aktywny na dashboardzie' : 'nie zapisany'}
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 {saved && (
-                  <button onClick={handleDelete} className="font-ui uppercase tracking-luxury text-[9px] text-muted-light hover:text-amber-700">
+                  <button onClick={handleDelete} className="font-ui uppercase tracking-luxury text-[9px] text-muted-light hover:text-wine">
                     Usuń
                   </button>
                 )}
@@ -448,7 +450,7 @@ function QuestLine({ quest, onEdit, onRemove }: { quest: AprilQuest; onEdit: () 
         <span className="ml-2 font-display italic text-gold-deep text-[12px]">+{quest.xp}</span>
       </button>
       <button onClick={onRemove} aria-label="Usuń quest"
-        className="text-muted-light hover:text-amber-700 sm:opacity-0 group-hover:opacity-100 transition-opacity p-0.5">
+        className="text-muted-light hover:text-wine sm:opacity-0 group-hover:opacity-100 transition-opacity p-0.5">
         <X size={13} />
       </button>
     </div>
@@ -476,7 +478,7 @@ function QuestEditor({ quest, onChange, onDone, onRemove }: {
           onChange={e => onChange({ xp: Math.max(0, parseInt(e.target.value, 10) || 0) })} aria-label="XP" />
         <span className="font-ui uppercase tracking-luxury text-[9px] text-muted">XP</span>
         <span className="flex-1" />
-        <button onClick={onRemove} className="font-ui uppercase tracking-luxury text-[9px] text-muted-light hover:text-amber-700">Usuń</button>
+        <button onClick={onRemove} className="font-ui uppercase tracking-luxury text-[9px] text-muted-light hover:text-wine">Usuń</button>
         <button onClick={onDone} className="bg-dark text-ivory px-3 py-1.5 font-ui uppercase tracking-luxury text-[10px]">Gotowe</button>
       </div>
     </div>

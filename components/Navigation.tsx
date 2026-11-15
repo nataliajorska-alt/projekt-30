@@ -149,7 +149,7 @@ function DesktopNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: bo
                       {item.label}
                       {vaultBadge && (
                         <span
-                          className="absolute -top-1 -right-2.5 w-1.5 h-1.5 rounded-full bg-yellow-400 ring-2 ring-dark"
+                          className="absolute -top-1 -right-2.5 w-1.5 h-1.5 rounded-full bg-gold-light ring-2 ring-dark"
                           aria-label="Dziś nic z Learning Vault"
                         />
                       )}
@@ -310,7 +310,8 @@ function MobileNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: boo
       })()}
 
       {/* Bottom bar — icons only */}
-      <nav className="bg-forest-deep grain-linen border-t border-gold-light/30 px-2 py-3 flex items-center justify-around">
+      {/* pb z safe-area: ikony nie siedzą na belce gestów iPhone'a, a tło paska dochodzi do krawędzi. */}
+      <nav className="bg-forest-deep grain-linen border-t border-gold-light/30 px-2 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-around">
         {NAV.map(item => {
           if (item.kind === 'single') {
             if (item.external) {
@@ -330,7 +331,7 @@ function MobileNav({ pathname, vaultBadge }: { pathname: string; vaultBadge: boo
                     <ArrowUpRight size={9} strokeWidth={2} className="absolute -top-1 -right-1.5 text-gold-light/80" />
                     {vaultBadge && (
                       <span
-                        className="absolute -top-1 -left-1.5 w-1.5 h-1.5 rounded-full bg-yellow-400 ring-2 ring-forest-deep"
+                        className="absolute -top-1 -left-1.5 w-1.5 h-1.5 rounded-full bg-gold-light ring-2 ring-forest-deep"
                         aria-label="Dziś nic z Learning Vault"
                       />
                     )}

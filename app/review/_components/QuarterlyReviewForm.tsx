@@ -7,7 +7,7 @@ import type { MonthlyReview, QuarterlyReview, GhostLogEntryV2, HonestFailureEntr
 import { SMOKING_PHASE_META } from '@/types'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
-import { doc, setDoc } from 'firebase/firestore'
+import { doc, setDoc } from '@/lib/db'
 import { dateKey, XP_VALUES } from '@/lib/gameLogic'
 import { getMonthAggregate, computeStreaks, type LogMap } from '@/lib/analytics'
 import { dailyCigaretteCounts, computeBaseline, phase2TargetRange, ceilingFor } from '@/lib/smokeStats'
@@ -419,7 +419,7 @@ export default function QuarterlyReviewForm({
                 // Dla papierosów zero czerwieni: postęp = złoto, wzrost = spokojny parchment.
                 const colorClass = lowerIsBetter
                   ? (good ? '!text-gold-light' : '!text-parchment/50')
-                  : (diff >= 0 ? '!text-gold-light' : '!text-red-300')
+                  : (diff >= 0 ? '!text-gold-light' : '!text-rose')
                 return (
                   <div key={label} className="flex items-center justify-between">
                     <SmallCaps tone="parchment" tracking="luxury" size="xs">{label}</SmallCaps>

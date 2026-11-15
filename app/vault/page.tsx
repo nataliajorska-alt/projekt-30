@@ -63,7 +63,7 @@ function maturation(entry: VaultEntry, unlockDate: Date | undefined, now = new D
 
 function RitualFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[130] bg-forest-deep grain-linen animate-fade-in flex flex-col">
+    <div className="fixed inset-0 z-[130] bg-forest-deep grain-linen animate-fade-in flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div className="pointer-events-none absolute inset-6 border border-gold-light/40" />
       <div className="pointer-events-none absolute inset-9 border border-gold-light/15" />
       <div className="pointer-events-none absolute inset-12">
@@ -140,7 +140,7 @@ function VaultCountdown({ entries, unlockedCount }: { entries: VaultEntry[]; unl
             <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-dark px-2 text-gold text-[8px]">◆</span>
           </div>
           <p className="font-serif-body italic text-[14px] text-parchment/70 max-w-[420px] mx-auto">
-            „piszesz jako natalia 30 — ona już wie, jak się skończyło."
+            „piszesz jako natalia 30 — ona już wie, jak się skończyło.”
           </p>
         </div>
         {longest
@@ -380,7 +380,7 @@ function WriteModal({ letterType, onSave, onBack, onClose }: {
           {usePrompt && prompt ? (
             <>
               <p className="font-serif-body italic text-parchment text-[13.5px] leading-relaxed">
-                „{prompt}"
+                „{prompt}”
               </p>
               <div className="flex items-center gap-4 mt-3">
                 <button
@@ -566,7 +566,7 @@ function ReplyCard({ reply, onDelete }: { reply: VaultReply; onDelete: () => voi
         </div>
         {confirm ? (
           <div className="flex items-center gap-2">
-            <button onClick={onDelete} className="font-ui uppercase tracking-luxury text-[10px] text-red-500 hover:text-red-700">
+            <button onClick={onDelete} className="font-ui uppercase tracking-luxury text-[10px] text-wine hover:text-dark">
               usuń
             </button>
             <button onClick={() => setConfirm(false)} className="font-ui uppercase tracking-luxury text-[10px] text-muted-light hover:text-dark">
@@ -758,7 +758,7 @@ function ExpandedEntry({ entry, onClose, onDelete, onAddReply, onDeleteReply }: 
           )}
           {entry.promptUsed && (
             <p className="font-serif-body italic text-parchment/70 text-[12.5px] leading-relaxed pt-1">
-              „{entry.promptUsed}"
+              „{entry.promptUsed}”
             </p>
           )}
         </div>
@@ -832,7 +832,7 @@ function ExpandedEntry({ entry, onClose, onDelete, onAddReply, onDeleteReply }: 
             <SmallCaps tone="parchment" tracking="luxury" size="xs">na pewno usunąć?</SmallCaps>
             <button
               onClick={() => { onDelete(entry.id); onClose() }}
-              className="font-ui uppercase tracking-luxury text-[10px] text-red-400 hover:text-red-300 transition-colors"
+              className="font-ui uppercase tracking-luxury text-[10px] text-rose hover:text-parchment transition-colors"
             >
               usuń
             </button>

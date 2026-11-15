@@ -498,7 +498,7 @@ export default function SideQuestPicker() {
                         if (activeQuest.id.startsWith('sq_')) unmarkDone(activeQuest.id)
                         setCompleted(false)
                       }}
-                      className="inline-flex items-center gap-2 border border-hairline text-muted px-4 py-2 hover:border-red-300 hover:text-red-600 transition-colors"
+                      className="inline-flex items-center gap-2 border border-hairline text-muted px-4 py-2 hover:border-rose hover:text-wine transition-colors"
                     >
                       <Undo2 size={11} strokeWidth={1.5} />
                       <SmallCaps tone="muted" tracking="luxury" size="xs">

@@ -215,9 +215,9 @@ export default function ExportSection({ uid }: { uid: string }) {
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 border border-red-200 bg-red-50/50 px-3 py-2 mt-3">
-          <Diamond size={5} className="text-red-700 mt-1.5 shrink-0" />
-          <p className="font-serif-body italic text-red-800 text-[13px] leading-snug">{error}</p>
+        <div className="flex items-start gap-2 border border-rose/40 bg-rose/10 px-3 py-2 mt-3">
+          <Diamond size={5} className="text-wine mt-1.5 shrink-0" />
+          <p className="font-serif-body italic text-wine text-[13px] leading-snug">{error}</p>
         </div>
       )}
     </section>

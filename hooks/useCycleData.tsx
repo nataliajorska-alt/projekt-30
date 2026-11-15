@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
@@ -19,6 +19,8 @@ export function useCycleData() {
         query(collection(db, ...paths.cycleCol(user.uid)), orderBy('startDate', 'desc'))
       )
       setLogs(snap.docs.map(d => ({ ...d.data(), docId: d.id } as CycleLog)))
+    } catch (err) {
+      console.error('cycle fetch error:', err)
     } finally {
       setLoading(false)
     }

@@ -36,7 +36,7 @@ export default function MinimumDayModal({ onConfirm, onClose }: Props) {
   }, [cycleLogs, cycleSettings])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-0">
       <div
         className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm"
         onClick={onClose}

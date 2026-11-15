@@ -122,6 +122,15 @@ export function getDaysElapsed(): number {
   return Math.max(0, Math.round(diff / 86400000))
 }
 
+/**
+ * Numer dnia projektu: 5 kwietnia 2026 to dzień 1, ostatni dzień to 365.
+ * Jedno źródło dla nagłówka „Dziś", tarczy odliczania i stempli w Skarbcu —
+ * wcześniej tarcza pokazywała dni MINIONE (o jeden mniej niż nagłówek nad nią).
+ */
+export function getDayOfProject(): number {
+  return Math.min(TOTAL_DAYS, getDaysElapsed() + 1)
+}
+
 export function getDaysRemaining(): number {
   const now = getEffectiveNow()
   const diff = Date.UTC(PROJECT_END.getFullYear(), PROJECT_END.getMonth(), PROJECT_END.getDate()) -

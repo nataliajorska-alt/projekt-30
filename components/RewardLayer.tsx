@@ -260,7 +260,7 @@ export default function RewardLayer() {
       {/* Rozpęd i znalezisko — jeden stos nad dolną nawigacją, licznik nad kartą,
           żeby karta go nie zasłaniała. Klikalna jest tylko karta, nie cały pas. */}
       {(showCombo || currentLoot) && (
-        <div className="fixed inset-x-0 bottom-24 md:bottom-6 md:left-[280px] z-[95] px-4 md:px-6 flex flex-col items-center gap-2 pointer-events-none print:hidden">
+        <div className="fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] md:bottom-6 md:left-[280px] z-[95] px-4 md:px-6 flex flex-col items-center gap-2 pointer-events-none print:hidden">
           {showCombo && (
             <div key={combo.lastAt} className="self-start" role="status">
               <div className="reward-pop bg-dark text-ivory border border-gold/60 px-3.5 py-2 shadow-lg min-w-[132px]">

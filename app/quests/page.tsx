@@ -13,6 +13,11 @@ import { SmallCaps, Fleuron } from '@/components/ui'
 import PageHeader from '@/components/PageHeader'
 import { toRoman } from '@/lib/romanNumerals'
 
+// Ile kart naraz. Biblioteka ma ~140 questów — wszystkie od razu dawały na
+// telefonie stronę o wysokości ponad 40 ekranów i setki elementów do narysowania,
+// zanim cokolwiek dało się dotknąć. Kolejne dochodzą same przy przewijaniu.
+const PAGE_SIZE = 24
+
 const DIFFICULTY_LABELS = { easy: 'Łatwy', medium: 'Średni', hard: 'Wymagający' }
 const DIFFICULTY_FILLED = { easy: 1, medium: 2, hard: 3 }
 type Filter = Pillar | 'all'
@@ -200,6 +205,23 @@ export default function QuestsPage() {
 
   const completedInView = filtered.filter(q => everDone.includes(q.id)).length
 
+  // Stronicowanie: zmiana filtra zaczyna od pierwszej porcji.
+  const [limit, setLimit] = useState(PAGE_SIZE)
+  useEffect(() => { setLimit(PAGE_SIZE) }, [filter, tagFilter, diffFilter, statusFilter, sortByReward])
+  const shown = filtered.slice(0, limit)
+  const remaining = filtered.length - shown.length
+  const moreRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = moreRef.current
+    if (!el || remaining <= 0 || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(
+      entries => { if (entries.some(e => e.isIntersecting)) setLimit(l => l + PAGE_SIZE) },
+      { rootMargin: '600px 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [remaining])
+
   // Liczniki fasetowane: każda opcja pokazuje, ile zobaczysz po jej wyborze przy
   // POZOSTAŁYCH aktywnych filtrach. Każdy licznik fasetuje po trzech innych wymiarach.
   const pillarCounts: Record<string, number> = {}
@@ -359,7 +381,7 @@ export default function QuestsPage() {
 
       {/* ── Quest grid ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-[18px]">
-        {filtered.map(quest => {
+        {shown.map(quest => {
           const done = everDone.includes(quest.id) // status trwały, nie tylko dziś
           const pillar = getPillar(quest.pillar)
           const isCompleting = completing === quest.id
@@ -479,6 +501,19 @@ export default function QuestsPage() {
         })}
       </div>
 
+      {/* ── Kolejna porcja: sama przy przewijaniu, przycisk jako pewne wyjście ── */}
+      {remaining > 0 && (
+        <div ref={moreRef} className="text-center pt-8 pb-2">
+          <button
+            onClick={() => setLimit(l => l + PAGE_SIZE)}
+            className="inline-flex items-center gap-2 border border-hairline hover:border-gold px-5 py-3 font-ui uppercase tracking-luxury text-[10px] text-gold-deep hover:text-dark transition-colors"
+          >
+            <Fleuron size={10} className="text-gold" />
+            pokaż kolejne · zostało {toRoman(remaining)}
+          </button>
+        </div>
+      )}
+
       {/* ── Empty state (filtry nic nie zwracają / wszystko ukryte) ── */}
       {filtered.length === 0 && (
         <div className="text-center py-12">
@@ -508,7 +543,7 @@ export default function QuestsPage() {
           <span className="w-[180px] max-w-[30%] h-px bg-hairline" />
         </div>
         <blockquote className="font-serif-body italic text-[16px] text-muted leading-[1.55] max-w-[540px] mx-auto">
-          „questy poboczne to nie obowiązek — to miejsca, w których stajesz się sobą poza planem."
+          „questy poboczne to nie obowiązek — to miejsca, w których stajesz się sobą poza planem.”
         </blockquote>
         <div className="mt-6">
           <SmallCaps tone="gold-deep" tracking="editorial" size="xs">

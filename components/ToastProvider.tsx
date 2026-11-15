@@ -24,12 +24,16 @@ export function useToast() {
   return ctx ?? NOOP_TOAST
 }
 
+// Licznik zamiast samego Date.now(): dwa toasty w tej samej milisekundzie
+// dostawały ten sam id (ten sam klucz Reacta, zamknięcie jednego zamykało oba).
+let toastSeq = 0
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const addToast = useCallback(
     ({ message, type, duration = 4000 }: { message: string; type: Toast['type']; duration?: number }) => {
-      const id = `toast_${Date.now()}`
+      const id = `toast_${Date.now()}_${++toastSeq}`
       setToasts((prev) => [...prev.slice(-2), { id, message, type, duration }])
     },
     []
@@ -44,7 +48,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {/* z-[100]: nad trybem „Jedna rzecz" (z-80) i nagrodami — błąd zapisu
           czy „seria uratowana" nie mogą zniknąć pod nakładką. */}
-      <div className="fixed bottom-20 left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-80 z-[100] flex flex-col gap-2 pointer-events-none">
+      <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-80 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onDismiss={removeToast} />
         ))}
@@ -63,7 +67,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
     toast.type === 'success'
       ? 'text-forest'
       : toast.type === 'error'
-        ? 'text-red-600'
+        ? 'text-wine'
         : 'text-gold'
 
   return (

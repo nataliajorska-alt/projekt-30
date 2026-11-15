@@ -37,7 +37,7 @@ function formatTime(s: number) {
 
 function Frame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[130] bg-forest-deep grain-linen animate-fade-in">
+    <div className="fixed inset-0 z-[130] bg-forest-deep grain-linen animate-fade-in pt-[env(safe-area-inset-top)]">
       <div className="pointer-events-none absolute inset-6 border border-gold-light/40" />
       <div className="pointer-events-none absolute inset-9 border border-gold-light/15" />
       <div className="pointer-events-none absolute inset-12">
@@ -233,7 +233,7 @@ export default function EmergencyLock({ onClose }: { onClose: () => void }) {
                 {ROTATING_PHRASES[phraseIdx]}
               </p>
               <span className="absolute -right-1 bottom-0 text-gold-light text-2xl font-display leading-none opacity-40">
-                "
+                „
               </span>
             </div>
           </div>

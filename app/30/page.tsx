@@ -5,6 +5,7 @@ import clsx from 'clsx'
 import { useGameData } from '@/hooks/useGameData'
 import {
   getDaysElapsed,
+  getDayOfProject,
   getDaysRemaining,
   getLevelFromXP,
   LEVELS,
@@ -69,6 +70,7 @@ export default function BirthdayPage() {
 
   const daysLeft = getDaysRemaining()
   const daysElapsed = getDaysElapsed()
+  const dayOfProject = getDayOfProject()
   const phase = phaseOf(daysLeft, daysElapsed)
   const level = getLevelFromXP(stats.totalXP)
   const phaseCopy = PHASE_COPY[phase]
@@ -89,7 +91,7 @@ export default function BirthdayPage() {
 
   // ── Reckoning cells ──
   const reckoning: ReckoningCellProps[] = [
-    { label: 'Day', primary: daysElapsed.toString().padStart(3, '0'), sub: `of ${toRoman(365)}`, bar: Math.min(100, (daysElapsed / 365) * 100) },
+    { label: 'Day', primary: dayOfProject.toString().padStart(3, '0'), sub: `of ${toRoman(365)}`, bar: Math.min(100, (daysElapsed / 365) * 100) },
     { label: 'Total XP', primary: stats.totalXP.toLocaleString('pl-PL'), sub: 'recorded', wide: true },
     { label: 'Level', primary: toRoman(level.level), sub: level.name, bar: levelPct },
     { label: 'Longest streak', primary: stats.longestStreak.toString(), sub: stats.longestStreak === 1 ? 'day held' : 'days held' },
@@ -153,7 +155,7 @@ export default function BirthdayPage() {
           <div className="mt-12 inline-flex items-center gap-4 font-ui uppercase tracking-editorial text-[10px] text-gold-light whitespace-nowrap">
             <span className="text-gold text-[8px]">◆</span>
             {phase === 'before'
-              ? `${daysLeft} days remain · day ${daysElapsed} of ${toRoman(365)}`
+              ? `${daysLeft} days remain · day ${dayOfProject} of ${toRoman(365)}`
               : phase === 'arrived'
                 ? 'the day · arrived'
                 : 'recorded · returned to'}

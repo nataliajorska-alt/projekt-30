@@ -5,7 +5,7 @@ import { useGameData } from '@/hooks/useGameData'
 import { XP_VALUES } from '@/lib/gameLogic'
 
 export default function HeartBlockCard() {
-  const { block, loading, weekKey } = useHeartBlock()
+  const { block, loading, loadError, weekKey } = useHeartBlock()
   const { stats } = useGameData()
 
   if (loading) return null
@@ -44,7 +44,7 @@ export default function HeartBlockCard() {
           Blok serca
         </h4>
         <p className="font-serif-body italic text-muted text-[13.5px] mt-1 leading-snug">
-          {statusText[status]}
+          {loadError ? 'nie udało się wczytać — dotknij, by spróbować' : statusText[status]}
         </p>
       </div>
 

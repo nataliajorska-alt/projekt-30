@@ -7,7 +7,8 @@ import {
   signOut,
   User,
 } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { auth, db } from '@/lib/firebase'
+import { waitForPendingWrites, terminate, clearIndexedDbPersistence } from '@/lib/db'
 
 interface AuthContextType {
   user: User | null
@@ -33,6 +34,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Sandbox (`npm run dev:sandbox`): bez logowania, zmyślony użytkownik
+    // i przykładowe dane z lib/sandbox/seed. Nie dotyka prawdziwego konta.
+    // Warunek wprost na zmiennej (nie przez stałą z innego modułu) — w produkcji
+    // cała gałąź znika z bundla.
+    if (process.env.NEXT_PUBLIC_SANDBOX === '1') {
+      setUser({ uid: 'sandbox', email: 'sandbox@projekt30.local' } as User)
+      setLoading(false)
+      return
+    }
+
     let didResolve = false
 
     // Timeout — jeśli Firebase nie odpowie w 8s, pokaż błąd zamiast wisieć
@@ -81,8 +92,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await createUserWithEmailAndPassword(auth, email, password)
   }
 
+  // Wylogowanie sprząta też pamięć urządzenia. Odkąd dane leżą lokalnie (tryb
+  // offline), samo signOut zostawiałoby na dysku dzienniki, listy ze Skarbca
+  // i całą historię — do odczytania przez każdego, kto usiądzie do tego
+  // komputera. Wyjątek: gdy są zapisy, które jeszcze nie doszły do serwera
+  // (brak sieci), pamięć zostaje — Firestore dośle je po Twoim następnym
+  // zalogowaniu, a wyczyszczenie by je skasowało.
   const logOut = async () => {
+    const synced = await Promise.race([
+      waitForPendingWrites(db).then(() => true, () => false),
+      new Promise<boolean>(resolve => setTimeout(() => resolve(false), 2500)),
+    ])
     await signOut(auth)
+    if (!synced) return
+    try {
+      await terminate(db)
+      await clearIndexedDbPersistence(db)
+    } catch (err) {
+      // Np. apka otwarta w drugiej karcie — pamięć jest wtedy zajęta. Trudno.
+      console.warn('[Auth] nie udało się wyczyścić pamięci urządzenia:', err)
+    }
+    // Zamknięta instancja Firestore nie nadaje się do użytku — świeży start.
+    window.location.reload()
   }
 
   return (

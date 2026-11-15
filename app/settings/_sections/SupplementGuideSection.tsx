@@ -34,7 +34,7 @@ export default function SupplementGuideSection() {
       <h2 className="font-display text-dark text-[22px] tracking-tight mt-1">Twój plan suplementacji</h2>
       <p className="font-serif-body italic text-muted text-[13px] mt-1 mb-5 leading-relaxed">
         opis dla przypomnienia — dawki rozwijają się też pod pozycjami
-        „witaminy" i „magnez + duloksetyna" w rutynie. kawa dopiero po porannych
+        „witaminy” i „magnez + duloksetyna” w rutynie. kawa dopiero po porannych
         tabletkach; D3 / K2 / omega zawsze z tłuszczem.
       </p>
 

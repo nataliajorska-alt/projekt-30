@@ -11,6 +11,30 @@
  */
 import { z } from 'zod'
 
+// ── Odporność na pojedyncze zepsute pole ─────────────────────────────────────
+// Dokument Firestore to 20–30 pól zbieranych miesiącami przez różne wersje apki.
+// Jedno nieprawidłowe pole OPCJONALNE (np. `keyMoment: null` po skasowaniu
+// kluczowego momentu) nie może unieważnić całego dokumentu — a tak było: parseSafe
+// zwracał wtedy pusty fallback, dzień wyglądał na nieodhaczony i ponowne
+// odhaczenie naliczało XP drugi raz. Dlatego:
+//  • opt()   — pole opcjonalne; null albo śmieć ⇒ po prostu brak pola,
+//  • items() — tablica obiektów; zepsuty ELEMENT wypada, reszta zostaje.
+
+/** Pole opcjonalne odporne na null i zły typ (traktowane jak brak pola). */
+function opt<T extends z.ZodTypeAny>(schema: T) {
+  return schema.optional().catch(undefined)
+}
+
+/** Tablica, w której nieprawidłowe elementy są pomijane zamiast psuć całość. */
+function items<T extends z.ZodTypeAny>(schema: T) {
+  return z.array(z.unknown()).transform((arr): z.output<T>[] =>
+    arr.flatMap(x => {
+      const r = schema.safeParse(x)
+      return r.success ? [r.data as z.output<T>] : []
+    }),
+  )
+}
+
 // ── Enums ────────────────────────────────────────────────────────────────────
 
 export const PillarSchema = z.enum([
@@ -47,8 +71,8 @@ export const CigaretteEntrySchema = z.object({
   timestamp: z.number().nonnegative().catch(() => Date.now()),
   hour:      z.number().int().min(0).max(23).catch(0),
   weekday:   z.number().int().min(0).max(6).catch(0),
-  context:   CigaretteContextSchema.optional(),
-  intensity: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
+  context:   opt(CigaretteContextSchema),
+  intensity: opt(z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)])),
 })
 
 export const CustomSideQuestEntrySchema = z.object({
@@ -72,47 +96,49 @@ export const DailyLogSchema = z.object({
   completedRoutine: z.array(z.string()).catch([]),
   completedDailyQuests: z.array(z.string()).catch([]),
   completedSideQuests: z.array(z.string()).catch([]),
-  customSideQuests: z.array(CustomSideQuestEntrySchema).optional(),
-  carriedRoutine: z.array(CarriedRoutineItemSchema).optional(),
-  postponedRoutine: z.array(z.string()).optional(),
+  customSideQuests: opt(items(CustomSideQuestEntrySchema)),
+  carriedRoutine: opt(items(CarriedRoutineItemSchema)),
+  postponedRoutine: opt(z.array(z.string())),
   keptRules: z.array(z.string()).catch([]),
   totalXP: z.number().nonnegative().catch(0),
   dayMode: z.enum(['normal', 'minimum']).catch('normal'),
-  minimumReason: MinimumDayReasonSchema.optional(),
-  notes: z.string().optional(),
-  socialPresence: z.boolean().optional(),
-  physicalActivity: z.boolean().optional(),
-  ghostProtocolCompleted: z.boolean().optional(),
-  moodCheckIns: z.array(MoodCheckInSchema).optional(),
-  keyMoment: KeyMomentSchema.optional(),
-  cigarettes: z.array(CigaretteEntrySchema).optional(),
+  minimumReason: opt(MinimumDayReasonSchema),
+  notes: opt(z.string()),
+  socialPresence: opt(z.boolean()),
+  physicalActivity: opt(z.boolean()),
+  ghostProtocolCompleted: opt(z.boolean()),
+  moodCheckIns: opt(items(MoodCheckInSchema)),
+  keyMoment: opt(KeyMomentSchema),
+  cigarettes: opt(items(CigaretteEntrySchema)),
   // Odhaczone pojedyncze kroki przewodników (pielęgnacja/suplementy), bez XP.
-  checkedSubSteps: z.array(z.string()).optional(),
+  checkedSubSteps: opt(z.array(z.string())),
   // Jednorazowa korekta: questy tego dnia wyrównane do realnej wartości (q.xp
   // zamiast płaskich 50). Gdy true — korekta już zastosowana, nie powtarzaj.
-  questXpAdjusted: z.boolean().optional(),
+  questXpAdjusted: opt(z.boolean()),
   // Dzienny „capture" CBT: pierwszy wpis (myśl LUB emocja) tego dnia przyznał +10.
   // Gdy true — dzienny bonus już zaliczony, kolejne wpisy nie naliczają capture.
-  cbtCaptureAwarded: z.boolean().optional(),
+  cbtCaptureAwarded: opt(z.boolean()),
   // Deklaracja „ostatni papieros dnia" (wieczorne domknięcie): timestamp, null = cofnięta.
-  smokeLastOfDayAt: z.number().nullable().optional(),
+  smokeLastOfDayAt: z.number().nullable().optional().catch(undefined),
   // XP za dzień pod sufitem (sprint X–XI 2026): stempel przyznanej kwoty.
-  smokeCeilingXP: z.number().nonnegative().optional(),
+  smokeCeilingXP: opt(z.number().nonnegative()),
   // Nagrody silnika dopaminowego (pieczęć dnia, rozpęd, znaleziska) — id przyznanych dziś.
-  rewardsClaimed: z.array(z.string()).optional(),
+  rewardsClaimed: opt(z.array(z.string())),
   // XP z zewnętrznych aplikacji (na razie The Learning Vault), per filar.
-  externalXP: z.object({
-    pozycja:   z.number().nonnegative().optional(),
-    cialo:     z.number().nonnegative().optional(),
-    styl:      z.number().nonnegative().optional(),
-    kapital:   z.number().nonnegative().optional(),
-    kariera:   z.number().nonnegative().optional(),
-    tozsamosc: z.number().nonnegative().optional(),
-    milosc:    z.number().nonnegative().optional(),
-  }).optional(),
+  externalXP: opt(z.object({
+    pozycja:   opt(z.number().nonnegative()),
+    cialo:     opt(z.number().nonnegative()),
+    styl:      opt(z.number().nonnegative()),
+    kapital:   opt(z.number().nonnegative()),
+    kariera:   opt(z.number().nonnegative()),
+    tozsamosc: opt(z.number().nonnegative()),
+    milosc:    opt(z.number().nonnegative()),
+  })),
 })
 
 // ── UserStats ────────────────────────────────────────────────────────────────
+
+const ZERO_PILLAR_XP = { pozycja: 0, cialo: 0, styl: 0, kapital: 0, kariera: 0, tozsamosc: 0, milosc: 0 }
 
 const PillarXPSchema = z.object({
   pozycja:   z.number().catch(0),
@@ -122,8 +148,14 @@ const PillarXPSchema = z.object({
   kariera:   z.number().catch(0),
   tozsamosc: z.number().catch(0),
   milosc:    z.number().catch(0),
-})
+}).catch(ZERO_PILLAR_XP)
 
+// KAŻDE pole z własnym zabezpieczeniem. Gdyby cały dokument statystyk nie
+// przeszedł walidacji, apka widziałaby zera — a pierwsza akcja zapisałaby serię,
+// dni i odznaki policzone od zera, nadpisując prawdziwe.
+// Nowe pole w UserStats (types) MUSI trafić też tutaj: zod wycina nieznane
+// klucze, więc pole pominięte w schemacie jest dla apki zawsze puste (tak przez
+// kilka miesięcy „znikała" lista zaliczonych kwartałów). Pilnuje tego test.
 export const UserStatsSchema = z.object({
   totalXP:                    z.number().nonnegative().catch(0),
   currentStreak:              z.number().nonnegative().catch(0),
@@ -135,32 +167,33 @@ export const UserStatsSchema = z.object({
   totalRulesKept:             z.number().nonnegative().catch(0),
   pillarXP:                   PillarXPSchema,
   unlockedAchievements:       z.array(z.string()).catch([]),
-  lastStreakDate:             z.string().nullable().optional(),
-  streakFreezeUsedMonths:     z.array(z.string()).optional(),
-  reviewedWeeks:              z.array(z.string()).optional(),
-  reviewedMonths:             z.array(z.string()).optional(),
-  completedHeartBlocks:       z.array(z.string()).optional(),
-  pillarBalanceWeeks:         z.array(z.string()).optional(),
-  currentWeekPillars:         z.object({
+  lastStreakDate:             z.string().nullable().optional().catch(undefined),
+  streakFreezeUsedMonths:     opt(z.array(z.string())),
+  reviewedWeeks:              opt(z.array(z.string())),
+  reviewedMonths:             opt(z.array(z.string())),
+  reviewedQuarters:           opt(z.array(z.string())),
+  completedHeartBlocks:       opt(z.array(z.string())),
+  pillarBalanceWeeks:         opt(z.array(z.string())),
+  currentWeekPillars:         opt(z.object({
     weekKey: z.string(),
     pillars: z.array(PillarSchema),
-  }).optional(),
-  totalGhostProtocols:        z.number().optional(),
-  consecutiveGhostDays:       z.number().optional(),
-  lastGhostDate:              z.string().nullable().optional(),
-  highestDayXP:               z.number().optional(),
-  consecutiveNormalDays:      z.number().optional(),
-  lastNormalDay:              z.string().nullable().optional(),
-  consecutivePerfectMornings: z.number().optional(),
-  lastPerfectMorningDate:     z.string().nullable().optional(),
-  lastReturnCeremonyDate:     z.string().nullable().optional(),
+  })),
+  totalGhostProtocols:        opt(z.number()),
+  consecutiveGhostDays:       opt(z.number()),
+  lastGhostDate:              z.string().nullable().optional().catch(undefined),
+  highestDayXP:               opt(z.number()),
+  consecutiveNormalDays:      opt(z.number()),
+  lastNormalDay:              z.string().nullable().optional().catch(undefined),
+  consecutivePerfectMornings: opt(z.number()),
+  lastPerfectMorningDate:     z.string().nullable().optional().catch(undefined),
+  lastReturnCeremonyDate:     z.string().nullable().optional().catch(undefined),
   // Papierosy — patrz PLAN_PALENIE.md
-  smokingTrackingEnabled:     z.boolean().optional(),
-  cigarettesBaseline:         z.number().nonnegative().optional(),
-  cigarettesPhase:            z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
-  cigarettesPhaseStartDate:   z.string().nullable().optional(),
-  cigarettesAlarmTriggered:   z.string().nullable().optional(),
-  smokeEmergencyDays:         z.array(z.string()).optional(),
+  smokingTrackingEnabled:     opt(z.boolean()),
+  cigarettesBaseline:         opt(z.number().nonnegative()),
+  cigarettesPhase:            opt(z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)])),
+  cigarettesPhaseStartDate:   z.string().nullable().optional().catch(undefined),
+  cigarettesAlarmTriggered:   z.string().nullable().optional().catch(undefined),
+  smokeEmergencyDays:         opt(z.array(z.string())),
 })
 
 // ── Vault ────────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { doc, setDoc, onSnapshot, increment, arrayUnion, arrayRemove } from 'firebase/firestore'
+import { doc, setDoc, onSnapshot, increment, arrayUnion, arrayRemove } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'

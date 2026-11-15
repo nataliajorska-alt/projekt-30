@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { collection, query, orderBy, limit, getDocs, where, doc, getDoc } from 'firebase/firestore'
+import { collection, query, orderBy, limit, getDocs, where, doc, getDoc } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from '@/hooks/useAuth'

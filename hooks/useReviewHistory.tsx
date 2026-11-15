@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
-import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy } from '@/lib/db'
 import { db } from '@/lib/firebase'
 import * as paths from '@/lib/paths'
 import { useAuth } from './useAuth'
@@ -48,6 +48,8 @@ export function useReviewHistory() {
           { quarter: d.id, lessons: '', openFronts: '', bridgeToNext: '', whatChanged: '', xpEarned: 0, savedAt: new Date().toISOString() },
           `QuarterlyReview ${d.id}`,
         )))
+      } catch (err) {
+        console.error('review history fetch error:', err)
       } finally {
         setLoading(false)
       }

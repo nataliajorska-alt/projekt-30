@@ -53,7 +53,7 @@ export default function NominatedContactsSection() {
               </div>
               <button
                 onClick={() => handleRemove(c.phone)}
-                className="text-muted hover:text-red-500 transition-colors"
+                className="text-muted hover:text-wine transition-colors"
               >
                 <X size={12} strokeWidth={1.5} />
               </button>

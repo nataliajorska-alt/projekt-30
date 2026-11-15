@@ -40,7 +40,7 @@ export default function ContinuityBanner({ show, onToggle, label, focusLabel, fo
                 {focusLabel}
               </SmallCaps>
               <p className="font-serif-body italic text-dark text-[14px] leading-relaxed">
-                „{focusText}"
+                „{focusText}”
               </p>
             </div>
           )}

@@ -3,6 +3,8 @@ import { useMemo } from 'react'
 import {
   getDaysRemaining,
   getDaysElapsed,
+  getDayOfProject,
+  getEffectiveNow,
   getProjectProgress,
   getLevelFromXP,
   getNextLevel,
@@ -31,7 +33,8 @@ function pad3(n: number): string {
 
 /** Project month index 0..11 (April = 0, March 2027 = 11). Clamped to [0,11]. */
 function currentProjectMonthIndex(): number {
-  const now = new Date()
+  // Dzień „efektywny" (do 3:00 trwa jeszcze wczoraj) — jak reszta ekranu.
+  const now = getEffectiveNow()
   const diff =
     (now.getFullYear() - PROJECT_START.getFullYear()) * 12 +
     (now.getMonth() - PROJECT_START.getMonth())
@@ -44,6 +47,7 @@ export default function CountdownHero() {
   const { book } = useQuestBook()
   const daysLeft = getDaysRemaining()
   const daysElapsed = getDaysElapsed()
+  const dayOfProject = getDayOfProject()
   const projectProgress = getProjectProgress()
   const level = getLevelFromXP(stats.totalXP)
   const nextLevel = getNextLevel(stats.totalXP)
@@ -144,12 +148,12 @@ export default function CountdownHero() {
             <div className="inline-flex items-center gap-2.5">
               <span className="h-px w-4 bg-gold/50" />
               <span className="font-ui uppercase text-gold text-[10px] tracking-[0.42em]">
-                Day {toRoman(daysElapsed)}
+                Day {toRoman(dayOfProject)}
               </span>
               <span className="h-px w-4 bg-gold/50" />
             </div>
             <div className="font-display text-[42px] sm:text-[48px] leading-[0.9] text-gold-pale mt-1.5 tracking-tight">
-              {pad3(daysElapsed)}
+              {pad3(dayOfProject)}
             </div>
             <div className="mt-1 inline-flex items-center gap-2 font-serif-body italic text-gold-light text-[11px]">
               <span className="h-px w-3 bg-gold/40" />

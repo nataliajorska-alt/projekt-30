@@ -333,7 +333,7 @@ function ProtocolPanel({ focus }: { focus: string | null }) {
       {/* Zamienniki funkcji */}
       <div className="grid sm:grid-cols-2 gap-5 mt-6">
         <div>
-          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-2.5">Za nagrodę · inny znacznik „zrobione"</SmallCaps>
+          <SmallCaps tone="gold-deep" tracking="luxury" size="xs" as="div" className="mb-2.5">Za nagrodę · inny znacznik „zrobione”</SmallCaps>
           <ul className="space-y-1.5">
             {REWARD_REPLACEMENTS.map(t => (
               <li key={t} className="font-serif-body text-[13px] text-dark pl-4 relative leading-snug">
@@ -555,12 +555,12 @@ export default function OddechTab({ logs, loading }: OddechTabProps) {
               <div className="p-6 text-center">
                 <div className="font-display font-medium text-gold-deep text-[36px] leading-[0.9] tracking-tight tabular-nums">{ceiling ? `≤${ceiling.ceiling}` : targetRange ? `${targetRange.lo}–${targetRange.hi}` : '—'}</div>
                 <SmallCaps tone="gold-deep" tracking="luxury" size="xs" className="mt-3 block">Sufit pierwszego miesiąca</SmallCaps>
-                <p className="font-serif-body italic text-muted text-[12px] mt-1.5">nie więcej niż tyle, nie „dobić do"</p>
+                <p className="font-serif-body italic text-muted text-[12px] mt-1.5">nie więcej niż tyle, nie „dobić do”</p>
               </div>
             </div>
 
             <p className="font-serif-body italic text-muted text-[13.5px] mt-5 pt-4 border-t border-border leading-relaxed">
-              faza II <b className="font-display not-italic font-medium text-gold-deep">(„{SMOKING_PHASE_META[2].label}", {SMOKING_PHASE_META[2].period})</b>:
+              faza II <b className="font-display not-italic font-medium text-gold-deep">(„{SMOKING_PHASE_META[2].label}”, {SMOKING_PHASE_META[2].period})</b>:
               mikro-eliminacje pojedynczo, kontekst po kontekście. papieros zostaje w grze, ale przestaje być jedyną kartą.
             </p>
 

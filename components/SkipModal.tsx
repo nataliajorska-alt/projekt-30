@@ -19,7 +19,7 @@ export default function SkipModal({
   const [reason, setReason] = useState('')
   const dialogRef = useModalDismiss<HTMLDivElement>(onClose)
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-6 md:pb-0">
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-0">
       <div className="absolute inset-0 bg-forest-deep/85 backdrop-blur-sm" onClick={onClose} />
       <div ref={dialogRef} role="dialog" aria-modal="true" className="relative bg-ivory border border-gold-light/40 w-full max-w-sm p-6 animate-slide-up">
         <div className="flex items-start justify-between mb-4">

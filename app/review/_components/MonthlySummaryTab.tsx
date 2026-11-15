@@ -399,7 +399,7 @@ export default function MonthlySummaryTab({ logs }: SummaryProps) {
                         <SmallCaps
                           tracking="luxury"
                           size="xs"
-                          className={positive ? '!text-gold-light' : '!text-red-300'}
+                          className={positive ? '!text-gold-light' : '!text-rose'}
                         >
                           {positive ? '+' : ''}{fmt(diff)}
                         </SmallCaps>
