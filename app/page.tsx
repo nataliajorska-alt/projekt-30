@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import CountdownHero from '@/components/CountdownHero'
 import RoutineChecklist from '@/components/RoutineChecklist'
 import TomorrowChecklist from '@/components/TomorrowChecklist'
@@ -19,6 +19,8 @@ import DashboardNudges from '@/components/DashboardNudges'
 import DashboardInsight, { selectTopSignal } from '@/components/DashboardInsight'
 import DashboardNow from '@/components/DashboardNow'
 import DailySeal from '@/components/DailySeal'
+import QuickDock from '@/components/QuickDock'
+import PlanNow from '@/components/coach/PlanNow'
 import SafeHoursBanner from '@/components/SafeHoursBanner'
 import CyclePhaseWidget from '@/components/CyclePhaseWidget'
 import MiniGardenWidget from '@/components/MiniGardenWidget'
@@ -32,115 +34,60 @@ import {
   tomorrowDate,
   getEffectiveNow,
   getDayOfProject,
-  getDaysRemaining,
-  getProjectProgress,
-  getLevelFromXP,
   MAX_MOOD_CHECKINS_PER_DAY,
 } from '@/lib/gameLogic'
 import { toRoman } from '@/lib/romanNumerals'
 import { SmallCaps, Fleuron } from '@/components/ui'
-import { ChevronDown } from 'lucide-react'
 import type { MoodState } from '@/types'
 
 
-function SectionLabel({ num, name, sub }: { num: number; name: string; sub?: string }) {
+// ── Trzy widoki ekranu „Dziś" ──────────────────────────────────────────
+// Wcześniej wszystko leżało na jednej, bardzo długiej stronie: do pierwszej
+// rzeczy do odhaczenia były dwa ekrany przewijania, a refleksja ginęła na dnie.
+// Teraz: karta dnia + szybkie akcje u góry, a pod nimi jeden z trzech widoków.
+type HomeTab = 'praktyka' | 'margines' | 'stan'
+
+const HOME_TABS: { id: HomeTab; label: string; sub: string }[] = [
+  { id: 'praktyka', label: 'Praktyka', sub: 'rutyna i questy' },
+  { id: 'margines', label: 'Margines', sub: 'refleksja' },
+  { id: 'stan',     label: 'Stan',     sub: 'rok i wzorce' },
+]
+const HOME_TAB_KEY = 'dash.tab'
+
+function HomeTabs({ value, onChange }: { value: HomeTab; onChange: (t: HomeTab) => void }) {
   return (
-    <div className="mt-8 mb-4 flex items-baseline gap-4 pb-2.5 border-b border-hairline">
-      <span className="font-display italic text-wine text-lg leading-none w-[22px] shrink-0">
-        {toRoman(num)}
-      </span>
-      <div className="flex items-baseline gap-3 flex-wrap">
-        <span className="font-ui uppercase tracking-[0.36em] text-[11px] text-dark">
-          {name}
-        </span>
-        {sub && (
-          <span className="font-serif-body italic text-muted text-[14px]">
-            {sub}
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Sekcja z nagłówkiem, którą można zwinąć. Stan zwinięcia trzymamy w localStorage,
-// żeby decyzja "schowaj orientację, chcę od razu ćwiczenie" trzymała się między porankami.
-function CollapsibleSection({
-  num,
-  name,
-  sub,
-  storageKey,
-  summary,
-  children,
-}: {
-  num: number
-  name: string
-  sub?: string
-  storageKey: string
-  /** Jedna linijka zostająca po zwinięciu — sedno sekcji bez jej wysokości. */
-  summary?: ReactNode
-  children: ReactNode
-}) {
-  const [collapsed, setCollapsed] = useState(false)
-
-  useEffect(() => {
-    if (localStorage.getItem(storageKey) === '1') setCollapsed(true)
-  }, [storageKey])
-
-  const toggle = () => {
-    setCollapsed(prev => {
-      const next = !prev
-      localStorage.setItem(storageKey, next ? '1' : '0')
-      return next
-    })
-  }
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={toggle}
-        aria-expanded={!collapsed}
-        className="group w-full mt-8 mb-4 flex items-baseline gap-4 pb-2.5 border-b border-hairline text-left"
-      >
-        <span className="font-display italic text-wine text-lg leading-none w-[22px] shrink-0">
-          {toRoman(num)}
-        </span>
-        <div className="flex items-baseline gap-3 flex-wrap flex-1">
-          <span className="font-ui uppercase tracking-[0.36em] text-[11px] text-dark">
-            {name}
-          </span>
-          {sub && (
-            <span className="font-serif-body italic text-muted text-[14px]">
-              {collapsed ? 'zwinięte — dotknij, by pokazać' : sub}
+    <div
+      role="tablist"
+      aria-label="Widok dnia"
+      // sticky: zakładki zostają pod ręką przy przewijaniu długiej listy.
+      className="sticky top-[env(safe-area-inset-top)] z-20 -mx-4 px-4 md:-mx-10 md:px-10 mb-5 flex bg-ivory/95 backdrop-blur-sm border-b border-hairline"
+    >
+      {HOME_TABS.map(({ id, label, sub }, i) => {
+        const active = value === id
+        return (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(id)}
+            className="group relative flex-1 pt-3 pb-2.5 text-center"
+          >
+            <span className="flex items-baseline justify-center gap-2">
+              <span className={`font-display italic text-[15px] leading-none ${active ? 'text-wine' : 'text-muted-light'}`}>
+                {toRoman(i + 1)}
+              </span>
+              <span className={`font-ui uppercase tracking-[0.26em] text-[11px] transition-colors ${active ? 'text-dark' : 'text-muted group-hover:text-dark'}`}>
+                {label}
+              </span>
             </span>
-          )}
-        </div>
-        <ChevronDown
-          size={16}
-          className={`self-center shrink-0 text-muted group-hover:text-gold-deep transition-transform ${collapsed ? '-rotate-90' : ''}`}
-        />
-      </button>
-      {collapsed ? summary : children}
-    </>
-  )
-}
-
-// Zwinięte odliczanie: te same liczby co na tarczy, w jednym wierszu. Na
-// telefonie tarcza z hasłem miesiąca zajmuje cały ekran — kto chce od razu
-// przejść do rutyny, zwija ją i dalej widzi, gdzie jest w roku.
-function CountdownSummary({ totalXP }: { totalXP: number }) {
-  const level = getLevelFromXP(totalXP)
-  const num = 'font-display italic text-gold-deep text-[14px] tracking-normal normal-case'
-  // Każda z trzech informacji trzyma się w jednym kawałku — wąski ekran łamie
-  // wiersz MIĘDZY nimi, a nie w środku „level XXI / Premium".
-  const item = 'whitespace-nowrap inline-flex items-baseline gap-1.5'
-  return (
-    <p className="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1 font-ui uppercase tracking-luxury text-[10px] text-muted">
-      <span className={item}><span className={num}>{getProjectProgress()}%</span> roku</span>
-      <span className={item}><span className={num}>{getDaysRemaining()}</span> dni do urodzin</span>
-      <span className={item}>level <span className={num}>{toRoman(level.level)}</span> {level.name}</span>
-    </p>
+            <span className={`block mt-1 font-serif-body italic text-[12.5px] leading-none transition-colors ${active ? 'text-gold-deep' : 'text-muted-light'}`}>
+              {sub}
+            </span>
+            {active && <span className="absolute left-1/2 -bottom-px h-[2px] w-10 -translate-x-1/2 bg-gold" />}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -171,6 +118,19 @@ export default function Dashboard() {
   const [showReturn, setShowReturn] = useState(false)
   const [daysMissed, setDaysMissed] = useState(0)
   const [viewingTomorrow, setViewingTomorrow] = useState(false)
+  // Ostatnio otwarty widok wraca po przejściu na inną stronę i z powrotem
+  // (w obrębie sesji); nowe otwarcie apki zaczyna od Praktyki.
+  const [tab, setTab] = useState<HomeTab>('praktyka')
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(HOME_TAB_KEY)
+      if (saved === 'praktyka' || saved === 'margines' || saved === 'stan') setTab(saved)
+    } catch { /* prywatne okno */ }
+  }, [])
+  const changeTab = (t: HomeTab) => {
+    setTab(t)
+    try { sessionStorage.setItem(HOME_TAB_KEY, t) } catch { /* prywatne okno */ }
+  }
   const evaluated = useRef(false)
   const returnEvaluated = useRef(false)
 
@@ -250,126 +210,109 @@ export default function Dashboard() {
   const day = Math.min(365, getDayOfProject() + (viewingTomorrow ? 1 : 0))
 
   return (
-    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-8 md:pt-10 pb-12 md:pb-20 reveal-stagger">
-      {/* Editorial date header */}
-      <header className="mb-8">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <SmallCaps tone="muted" tracking="editorial" size="xs">
-              {viewingTomorrow ? 'Jutro' : 'Dziś'}
+    <div className="max-w-2xl md:max-w-5xl mx-auto px-4 md:px-10 pt-6 md:pt-10 pb-12 md:pb-20 reveal-stagger">
+      {/* Nagłówek: numer dnia i przełącznik w jednym wierszu, pod nimi data —
+          na telefonie mieści się teraz w jednej linii zamiast łamać na dwie. */}
+      <header className="mb-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <SmallCaps tone="gold-deep" size="sm" tracking="luxury">
+              Day {toRoman(day)}
             </SmallCaps>
-            <h1 className="font-display text-dark text-[clamp(1.75rem,5vw,2.5rem)] leading-tight capitalize mt-1">
-              {viewingTomorrow ? tomorrowLabel : todayLabel}
-            </h1>
-            <div className="mt-2 flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-2 whitespace-nowrap">
-                <SmallCaps tone="gold-deep" size="xs" tracking="luxury">
-                  Day {toRoman(day)}
-                </SmallCaps>
-                <Fleuron size={10} className="text-gold-deep" />
-              </span>
-              <SmallCaps tone="muted" size="xs">
-                the year of becoming
-              </SmallCaps>
-            </div>
+            <Fleuron size={10} className="text-gold-deep shrink-0" />
+            <SmallCaps tone="muted" size="xs" className="hidden sm:inline">
+              the year of becoming
+            </SmallCaps>
           </div>
-          <div className="flex items-center gap-2 mb-1 shrink-0">
+          <div role="group" aria-label="Który dzień pokazać" className="flex shrink-0 border border-hairline">
             <button
               onClick={() => setViewingTomorrow(false)}
-              className={`font-ui uppercase tracking-luxury text-[10px] px-3 py-1.5 transition-all border ${
-                !viewingTomorrow
-                  ? 'bg-dark text-ivory border-dark'
-                  : 'text-muted hover:text-dark border-hairline hover:border-gold'
+              aria-pressed={!viewingTomorrow}
+              className={`font-ui uppercase tracking-luxury text-[10px] px-3.5 py-2 transition-colors ${
+                !viewingTomorrow ? 'bg-dark text-ivory' : 'text-muted hover:text-dark'
               }`}
             >
               Dziś
             </button>
             <button
               onClick={() => setViewingTomorrow(true)}
-              className={`font-ui uppercase tracking-luxury text-[10px] px-3 py-1.5 transition-all border ${
-                viewingTomorrow
-                  ? 'bg-dark text-ivory border-dark'
-                  : 'text-muted hover:text-dark border-hairline hover:border-gold'
+              aria-pressed={viewingTomorrow}
+              className={`font-ui uppercase tracking-luxury text-[10px] px-3.5 py-2 transition-colors ${
+                viewingTomorrow ? 'bg-dark text-ivory' : 'text-muted hover:text-dark'
               }`}
             >
               Jutro
             </button>
           </div>
         </div>
-        {/* Ornament — ─ ∴ ─ */}
-        <div className="mt-6 flex items-center gap-3.5">
-          <span className="flex-1 h-px bg-hairline" />
-          <span className="text-gold text-sm leading-none">∴</span>
-          <span className="flex-1 h-px bg-hairline" />
-        </div>
+        <h1 className="font-display text-dark text-[clamp(1.8rem,7.2vw,2.6rem)] leading-[1.08] capitalize mt-3">
+          {viewingTomorrow ? tomorrowLabel : todayLabel}
+        </h1>
       </header>
 
-      {/* Pasek „Teraz" — pojedyncza odpowiedź „co teraz zrobić" (tylko widok Dziś) */}
-      {!viewingTomorrow && (
-        <>
-          <ErrorBoundary label="Pieczęć dnia"><DailySeal /></ErrorBoundary>
-          <ErrorBoundary label="Teraz"><DashboardNow /></ErrorBoundary>
-        </>
-      )}
-
-      {/* I — THE COUNTDOWN: today within the year (zwijane jak The Glance) */}
-      <CollapsibleSection
-        num={1}
-        name="The Countdown"
-        sub="punkt w roku"
-        storageKey="dash.collapse.countdown"
-        summary={<CountdownSummary totalXP={stats.totalXP} />}
-      >
-        <CountdownHero />
-      </CollapsibleSection>
-
-      {/* Wzorzec tygodnia — pokazuje się tylko gdy silnik insightów coś znalazł */}
-      <ErrorBoundary label="Wzorzec tygodnia"><DashboardInsight data={weeklyInsight} /></ErrorBoundary>
-
-      {/* II — THE GLANCE: orientation widgets (zwijane, by szybciej dojść do ćwiczenia) */}
-      <CollapsibleSection num={2} name="The Glance" sub="stan rzeczy" storageKey="dash.collapse.glance">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
-          <ErrorBoundary label="Drzewko"><MiniGardenWidget /></ErrorBoundary>
-          <ErrorBoundary label="Cykl"><CyclePhaseWidget /></ErrorBoundary>
-          {/* Fallback: prosty „najlepszy dzień" tylko, gdy insight milczy —
-              dwa widgety wzorca naraz to był ten sam komunikat dwa razy. */}
-          {!weeklyInsight.loading && !insightVisible && (
-            <ErrorBoundary label="Wzorzec tygodnia"><PatternOfTheWeek /></ErrorBoundary>
-          )}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-6 md:gap-8">
-          <ErrorBoundary label="Magnetyzm"><MagnetismMeter /></ErrorBoundary>
-          <ErrorBoundary label="Podsumowanie XP"><DailyXPSummary /></ErrorBoundary>
-        </div>
-      </CollapsibleSection>
-      <SafeHoursBanner />
-      <DashboardNudges />
-
-      {/* III — TODAY'S PRACTICE: routine + quests */}
-      <SectionLabel
-        num={3}
-        name={viewingTomorrow ? "Tomorrow's Practice" : "Today's Practice"}
-        sub="ćwiczenie dnia"
-      />
       {viewingTomorrow ? (
         <>
+          <p className="mb-5 pb-3 border-b border-hairline font-serif-body italic text-muted text-[15px]">
+            przygotuj jutro dziś — to, co odhaczysz „na zapas”, jutro będzie już czekać zrobione.
+          </p>
           <ErrorBoundary label="Jutrzejsza rutyna"><TomorrowChecklist /></ErrorBoundary>
           <ErrorBoundary label="Jutrzejsze questy"><TomorrowQuests /></ErrorBoundary>
           <ErrorBoundary label="Brief na jutro"><TomorrowBriefing /></ErrorBoundary>
         </>
       ) : (
         <>
-          <ErrorBoundary label="Rutyna"><RoutineChecklist /></ErrorBoundary>
-          <ErrorBoundary label="Daily questy"><DailyQuests /></ErrorBoundary>
-          <ErrorBoundary label="Side quest"><SideQuestPicker /></ErrorBoundary>
+          {/* Dzień w jednym kadrze: pieczęć, karta „Teraz" z ogrodem, plan dnia, szybkie akcje. */}
+          <ErrorBoundary label="Pieczęć dnia"><DailySeal /></ErrorBoundary>
+          <ErrorBoundary label="Teraz"><DashboardNow /></ErrorBoundary>
+          <ErrorBoundary label="Plan dnia"><PlanNow /></ErrorBoundary>
+          <ErrorBoundary label="Szybkie akcje"><QuickDock /></ErrorBoundary>
 
-          {/* IV — THE MARGIN: reflection */}
-          <SectionLabel num={4} name="The Margin" sub="na marginesie" />
-          <ErrorBoundary label="Moment dnia"><KeyMomentCapture /></ErrorBoundary>
-          <ErrorBoundary label="Negative checklist"><NegativeChecklist /></ErrorBoundary>
-          <ErrorBoundary label="Heart Block"><HeartBlockCard /></ErrorBoundary>
-          <ErrorBoundary label="Pozwolenie"><PozwolenieCard /></ErrorBoundary>
-          <ErrorBoundary label="Brief na dziś"><TomorrowBriefing variant="today" /></ErrorBoundary>
+          <SafeHoursBanner />
+          <DashboardNudges />
+
+          <HomeTabs value={tab} onChange={changeTab} />
+
+          {/* I — PRAKTYKA: to, co się dziś robi */}
+          {tab === 'praktyka' && (
+            <>
+              <ErrorBoundary label="Rutyna"><RoutineChecklist /></ErrorBoundary>
+              <ErrorBoundary label="Daily questy"><DailyQuests /></ErrorBoundary>
+              <ErrorBoundary label="Side quest"><SideQuestPicker /></ErrorBoundary>
+            </>
+          )}
+
+          {/* II — MARGINES: to, nad czym się dziś zatrzymuje */}
+          {tab === 'margines' && (
+            <>
+              <ErrorBoundary label="Moment dnia"><KeyMomentCapture /></ErrorBoundary>
+              <ErrorBoundary label="Negative checklist"><NegativeChecklist /></ErrorBoundary>
+              <ErrorBoundary label="Heart Block"><HeartBlockCard /></ErrorBoundary>
+              <ErrorBoundary label="Pozwolenie"><PozwolenieCard /></ErrorBoundary>
+              <ErrorBoundary label="Brief na dziś"><TomorrowBriefing variant="today" /></ErrorBoundary>
+            </>
+          )}
+
+          {/* III — STAN: gdzie jestem w roku i co mówią wzorce */}
+          {tab === 'stan' && (
+            <>
+              <CountdownHero />
+              {/* Wzorzec tygodnia — pokazuje się tylko gdy silnik insightów coś znalazł */}
+              <ErrorBoundary label="Wzorzec tygodnia"><DashboardInsight data={weeklyInsight} /></ErrorBoundary>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-5 mb-5">
+                <ErrorBoundary label="Drzewko"><MiniGardenWidget /></ErrorBoundary>
+                <ErrorBoundary label="Cykl"><CyclePhaseWidget /></ErrorBoundary>
+                {/* Fallback: prosty „najlepszy dzień" tylko, gdy insight milczy —
+                    dwa widgety wzorca naraz to był ten sam komunikat dwa razy. */}
+                {!weeklyInsight.loading && !insightVisible && (
+                  <ErrorBoundary label="Wzorzec tygodnia"><PatternOfTheWeek /></ErrorBoundary>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-6 md:gap-8">
+                <ErrorBoundary label="Magnetyzm"><MagnetismMeter /></ErrorBoundary>
+                <ErrorBoundary label="Podsumowanie XP"><DailyXPSummary /></ErrorBoundary>
+              </div>
+            </>
+          )}
         </>
       )}
 

@@ -60,8 +60,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   wydruk raportu byłby zwężony o 280px / obcięty do jednej strony */}
               <div className="flex min-h-screen print:block print:min-h-0">
                 <Navigation />
-                {/* Main content — offset for sidebar on desktop, padding for bottom nav on mobile */}
-                <main className="flex-1 md:ml-[280px] pt-[env(safe-area-inset-top)] pb-[calc(6rem+env(safe-area-inset-bottom))] md:pt-0 md:pb-0 min-h-screen overflow-x-hidden print:ml-0 print:pt-0 print:pb-0 print:min-h-0 print:overflow-visible">
+                {/* Main content — offset for sidebar on desktop, padding for bottom nav on mobile.
+                    min-w-0: overflow-x-clip (w odróżnieniu od hidden) nie zeruje minimalnej szerokości
+                    elementu flex — bez tego jeden długi tekst bez zawijania rozpychał całą kolumnę. */}
+                <main className="flex-1 min-w-0 md:ml-[280px] pt-[env(safe-area-inset-top)] pb-[calc(6rem+env(safe-area-inset-bottom))] md:pt-0 md:pb-0 min-h-screen overflow-x-clip print:ml-0 print:pt-0 print:pb-0 print:min-h-0 print:overflow-visible">
                   {children}
                 </main>
                 <QuickActionsFab />

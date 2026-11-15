@@ -49,13 +49,15 @@ export default function RewardPreviews() {
         <NowCard
           pct={42} label="dokończ poranny rytuał"
           next={{ title: 'Wypicie ciepłej wody', xp: 10 }}
-          done={5} total={12} streakNote="seria 12 dni · podtrzymaj ją" lootToday={2}
+          done={5} total={12} streak={12} streakHint="podtrzymaj serię — wystarczy jedna rzecz" lootToday={2}
+          xpToday={120} level={{ num: 9, name: 'Focused', pct: 42 }}
           eveningWindow={false} onFocus={openPreviewFocus} onClosing={() => {}}
         />
         <NowCard
           pct={100} label="dzień domknięty — możesz odpocząć"
           next={null}
-          done={12} total={12} streakNote="seria 13 dni" lootToday={5}
+          done={12} total={12} streak={13} lootToday={5}
+          xpToday={460} level={{ num: 21, name: 'Premium', pct: 88 }}
           eveningWindow onFocus={openPreviewFocus} onClosing={() => {}}
         />
       </div>

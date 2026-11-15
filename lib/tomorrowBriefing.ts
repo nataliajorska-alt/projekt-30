@@ -48,6 +48,12 @@ export interface BriefingInput {
   mood: BriefingMood
   currentStreak: number
   smoking: BriefingSmoking | null
+  /**
+   * Stałe punkty z kalendarza. `undefined` — brief do skopiowania: zostają puste
+   * punkty do uzupełnienia ręcznie. Tablica (także pusta) — brief idzie od razu
+   * do asystentki w apce, więc nie może zawierać miejsc „do dopisania".
+   */
+  calendar?: string[]
 }
 
 const fmt1 = (v: number | null) => (v === null ? '—' : v.toFixed(1).replace('.', ','))
@@ -133,9 +139,18 @@ export function buildTomorrowBriefing(input: BriefingInput): string {
     lines.push('')
   }
 
-  lines.push('## Moje rzeczy z kalendarza (dopisuję sama poniżej)')
-  lines.push('- ')
-  lines.push('- ')
+  const calendar = input.calendar?.map(c => c.trim()).filter(Boolean)
+  if (calendar === undefined) {
+    lines.push('## Moje rzeczy z kalendarza (dopisuję sama poniżej)')
+    lines.push('- ')
+    lines.push('- ')
+  } else if (calendar.length === 0) {
+    lines.push('## Moje rzeczy z kalendarza')
+    lines.push(`- Brak stałych punktów — ${when} układasz w całości.`)
+  } else {
+    lines.push('## Moje rzeczy z kalendarza (stałe punkty — resztę dnia ułóż wokół nich)')
+    for (const c of calendar) lines.push(`- ${c}`)
+  }
   lines.push('')
 
   lines.push('## Czego oczekuję')

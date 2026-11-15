@@ -15,6 +15,7 @@ import XPRecoverySection from './_sections/XPRecoverySection'
 import SkincareGuideSection from './_sections/SkincareGuideSection'
 import SupplementGuideSection from './_sections/SupplementGuideSection'
 import RewardsSection from './_sections/RewardsSection'
+import CoachSection from './_sections/CoachSection'
 
 type SettingsTab = 'account' | 'personal' | 'skincare' | 'vitamins' | 'notify' | 'export' | 'safety'
 
@@ -85,7 +86,10 @@ export default function SettingsPage() {
 
       <div className="space-y-6">
         {tab === 'account' && (
-          <AccountSection email={user?.email ?? ''} user={user} logOut={logOut} />
+          <>
+            <AccountSection email={user?.email ?? ''} user={user} logOut={logOut} />
+            <CoachSection />
+          </>
         )}
         {tab === 'personal' && (
           <>

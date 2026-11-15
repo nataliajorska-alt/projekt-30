@@ -31,5 +31,59 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Plan dnia",
+      "short_name": "Plan",
+      "description": "Co teraz wg planu — albo ułóż plan z asystentką",
+      "url": "/?akcja=plan",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Nastrój",
+      "short_name": "Nastrój",
+      "description": "Szybki check-in energii i nastroju",
+      "url": "/?akcja=nastroj",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Papieros",
+      "short_name": "Papieros",
+      "description": "Zapisz papierosa i kontekst",
+      "url": "/?akcja=papieros",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Protokół",
+      "short_name": "Protokół",
+      "description": "Ghost Protocol — gdy ciągnie do starego wzorca",
+      "url": "/?akcja=protokol",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

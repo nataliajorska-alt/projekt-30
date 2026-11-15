@@ -21,6 +21,7 @@ import {
   monthDays, weekdayLabel, weekdayOf, nextMonthKey, PHASE_LABEL, type ParseResult,
 } from '@/lib/monthPlanner'
 import { CYCLE_PHASES } from '@/lib/cycle-data'
+import MonthAssistant from '@/components/coach/MonthAssistant'
 import { PILLARS, getPillar } from '@/lib/pillars'
 import { todayKey } from '@/lib/gameLogic'
 import type { Pillar } from '@/types'
@@ -156,7 +157,7 @@ export default function PlanPage() {
   const handleCopyPrompt = async () => {
     const prompt = buildClaudePrompt({
       monthKey, name: draft.name, motto: draft.motto, question: draft.question?.trim() || undefined, phaseFor,
-      dataSection: insights.promptSection || undefined,
+      dataSection: insights.promptSection || undefined, fromDate: today,
     })
     try {
       await navigator.clipboard.writeText(prompt)
@@ -165,6 +166,23 @@ export default function PlanPage() {
     } catch {
       addToast({ message: 'Nie udało się skopiować — przeglądarka zablokowała schowek.', type: 'error' })
     }
+  }
+
+  // Asystentka w apce: ten sam prompt co do skopiowania, plus kontekst wpisany w panelu.
+  const assistantPrompt = (context: string) => buildClaudePrompt({
+    monthKey, name: draft.name, motto: draft.motto, question: draft.question?.trim() || undefined, phaseFor,
+    dataSection: insights.promptSection || undefined, context, fromDate: today,
+  })
+
+  const handleAssistantPlan = (res: ParseResult): boolean => {
+    const ok = replaceFromToday(res.quests, `Plan od asystentki (${res.quests.length} questów)`)
+    if (ok) {
+      addToast({
+        message: `Asystentka rozpisała ${res.quests.length} questów${res.errors.length ? `, ${res.errors.length} linii pominęła` : ''}. Przejrzyj i zapisz.`,
+        type: 'success',
+      })
+    }
+    return ok
   }
 
   const handleParse = () => {
@@ -287,6 +305,12 @@ export default function PlanPage() {
                 )}
               </div>
             )}
+            <MonthAssistant
+              monthKey={monthKey}
+              daysToPlan={days.filter(d => d >= today).length}
+              buildPrompt={assistantPrompt}
+              onPlan={handleAssistantPlan}
+            />
             <div className="flex flex-wrap gap-2 mt-3">
               <button onClick={handleDraft}
                 className="inline-flex items-center gap-2 bg-dark text-ivory border border-dark hover:bg-gold-deep hover:border-gold-deep transition-colors px-4 py-2">
