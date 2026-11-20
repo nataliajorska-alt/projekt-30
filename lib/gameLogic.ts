@@ -55,6 +55,12 @@ export const XP_VALUES = {
 
 export const MAX_MOOD_CHECKINS_PER_DAY = 3
 
+// Meta projektu: poziom 30 „Natalia 30” w urodziny (5.04.2027).
+// Do 11.2026 meta wynosiła 200 000 XP; obniżona do 160 000, żeby tempo
+// odpowiadało realnej średniej roku (~440 XP/dzień). Poziomy 1–22 bez zmian,
+// 23–30 rozłożone proporcjonalnie do dawnych odstępów między XXII a XP_GOAL.
+export const XP_GOAL = 160_000
+
 export const LEVELS: { level: number; name: string; xpRequired: number }[] = [
   { level: 1,  name: 'Seed',          xpRequired: 0 },
   { level: 2,  name: 'Bud',           xpRequired: 700 },
@@ -78,14 +84,14 @@ export const LEVELS: { level: number; name: string; xpRequired: number }[] = [
   { level: 20, name: 'Of Worth',      xpRequired: 74300 },
   { level: 21, name: 'Premium',       xpRequired: 83600 },
   { level: 22, name: 'Irresistible',  xpRequired: 93600 },
-  { level: 23, name: 'Legendary',     xpRequired: 104300 },
-  { level: 24, name: 'Distinguished', xpRequired: 115700 },
-  { level: 25, name: 'Exceptional',   xpRequired: 127900 },
-  { level: 26, name: 'Singular',      xpRequired: 140700 },
-  { level: 27, name: 'Icon',          xpRequired: 154300 },
-  { level: 28, name: 'Master',        xpRequired: 168600 },
-  { level: 29, name: 'Queen',         xpRequired: 184300 },
-  { level: 30, name: 'Natalia 30',    xpRequired: 200000 },
+  { level: 23, name: 'Legendary',     xpRequired: 100300 },
+  { level: 24, name: 'Distinguished', xpRequired: 107400 },
+  { level: 25, name: 'Exceptional',   xpRequired: 115000 },
+  { level: 26, name: 'Singular',      xpRequired: 123000 },
+  { level: 27, name: 'Icon',          xpRequired: 131500 },
+  { level: 28, name: 'Master',        xpRequired: 140400 },
+  { level: 29, name: 'Queen',         xpRequired: 150200 },
+  { level: 30, name: 'Natalia 30',    xpRequired: 160000 },
 ]
 
 export function getLevelFromXP(xp: number): typeof LEVELS[0] {
@@ -245,7 +251,7 @@ export function getNextGardenStage(level: number): GardenStage | null {
 // Zwraca % postępu (0-100) do XP wymaganego na PIERWSZY level kolejnego stage'a.
 // Liczone od XP poprzedniego "progu stage'a" (czyli pierwszego levelu obecnego stage'a).
 // ── Pace vs harmonogram ────────────────────────────────────────────
-// Liniowe tempo: 200 000 XP / 365 dni ≈ 548 XP/dzień.
+// Liniowe tempo: XP_GOAL (160 000) / 365 dni ≈ 438 XP/dzień.
 // Pozwala odpowiedzieć na pytanie "czy jestem na track, do tyłu, czy przed planem?"
 export interface PaceInfo {
   expectedXP: number
@@ -256,7 +262,7 @@ export interface PaceInfo {
   pctOfExpected: number  // 0-… ile % oczekiwanego ma zebrane (bez sufitu)
 }
 
-const XP_PER_DAY = 200_000 / TOTAL_DAYS
+const XP_PER_DAY = XP_GOAL / TOTAL_DAYS
 
 export function getPace(actualXP: number): PaceInfo {
   const elapsed = getDaysElapsed()
@@ -282,7 +288,7 @@ export function getStageProgress(xp: number): number {
   const nextStageStartLevel = stage.maxLevel + 1
 
   const stageStartXP = LEVELS.find(l => l.level === stageStartLevel)?.xpRequired ?? 0
-  const nextStageStartXP = LEVELS.find(l => l.level === nextStageStartLevel)?.xpRequired ?? 200000
+  const nextStageStartXP = LEVELS.find(l => l.level === nextStageStartLevel)?.xpRequired ?? XP_GOAL
 
   const range = nextStageStartXP - stageStartXP
   const earned = xp - stageStartXP

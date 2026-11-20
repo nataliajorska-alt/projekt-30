@@ -9,6 +9,7 @@ import {
   getGardenStage,
   getNextGardenStage,
   getPace,
+  XP_GOAL,
 } from '@/lib/gameLogic'
 import { Check } from 'lucide-react'
 import { SmallCaps, Diamond, Fleuron, GoldRule } from '@/components/ui'
@@ -31,7 +32,7 @@ const STAGE_GROUPS = GARDEN_STAGES.map((gs, i) => {
 })
 const TOTAL_ROWS = GARDEN_STAGES.length + LEVELS.length
 
-const TOTAL_XP = 200_000
+const TOTAL_XP = XP_GOAL
 
 // ── Page ─────────────────────────────────────────────────────────
 
@@ -243,7 +244,7 @@ export default function ProgressPage() {
               {totalXP.toLocaleString('pl-PL')} XP zebrane
             </SmallCaps>
             <SmallCaps tone="muted" size="xs">
-              cel · 200 000 XP
+              cel · {XP_GOAL.toLocaleString('pl-PL')} XP
             </SmallCaps>
           </div>
 

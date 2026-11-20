@@ -17,6 +17,7 @@ import {
   getStageProgress,
   getPace,
   LEVELS,
+  XP_GOAL,
   TOTAL_DAYS,
   DAY_START_HOUR,
 } from '@/lib/gameLogic'
@@ -36,9 +37,10 @@ describe('getLevelFromXP', () => {
     expect(getLevelFromXP(700).name).toBe(LEVELS[1].name)
   })
 
-  it('returns level 30 at 200 000 XP', () => {
-    expect(getLevelFromXP(200000).level).toBe(30)
-    expect(getLevelFromXP(200000).name).toBe(LEVELS[29].name)
+  it('returns level 30 at 160 000 XP', () => {
+    expect(getLevelFromXP(160000).level).toBe(30)
+    expect(getLevelFromXP(159999).level).toBe(29)
+    expect(getLevelFromXP(160000).name).toBe(LEVELS[29].name)
   })
 
   it('caps at level 30 even with absurd XP', () => {
@@ -98,9 +100,10 @@ describe('LEVELS structure', () => {
     }
   })
 
-  it('starts level 1 at 0 XP and ends level 30 at 200 000 XP', () => {
+  it('starts level 1 at 0 XP and ends level 30 at XP_GOAL (160 000)', () => {
     expect(LEVELS[0]).toMatchObject({ level: 1, xpRequired: 0 })
-    expect(LEVELS[29]).toMatchObject({ level: 30, xpRequired: 200000 })
+    expect(LEVELS[29]).toMatchObject({ level: 30, xpRequired: 160000 })
+    expect(LEVELS[29].xpRequired).toBe(XP_GOAL)
   })
 
   it('has unique level numbers and unique names', () => {
@@ -315,7 +318,7 @@ describe('getPace', () => {
 
   it('returns ahead when XP exceeds expected by ≥ 1 day', () => {
     vi.setSystemTime(new Date(2026, 4, 5, 12, 0))   // 30 dni in
-    // Oczekiwane: ~16 438 XP (548 * 30). Symulujemy 20 000.
+    // Oczekiwane: ~13 151 XP (160 000 / 365 * 30). Symulujemy 20 000.
     const p = getPace(20000)
     expect(p.status).toBe('ahead')
     expect(p.diffDays).toBeGreaterThanOrEqual(1)
@@ -330,8 +333,8 @@ describe('getPace', () => {
 
   it('returns on-track for tiny deviation under 1 day', () => {
     vi.setSystemTime(new Date(2026, 4, 5, 12, 0))
-    // ~16 438 oczekiwane, daj prawie tyle
-    const p = getPace(16438)
+    // ~13 151 oczekiwane, daj prawie tyle
+    const p = getPace(13151)
     expect(p.status).toBe('on-track')
   })
 
