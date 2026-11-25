@@ -1,11 +1,15 @@
 'use client'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import clsx from 'clsx'
+import { ChevronDown } from 'lucide-react'
 import {
   computeCorrelations, MIN_LIFT_GROUP,
   type ComparisonInsight, type DayOfWeekInsight, type LiftInsight, type CarryoverInsight,
   type CyclePhaseInsight,
 } from '@/lib/correlations'
+import {
+  type Directional, dirDiff, dirVerdict, groupLevers, leverLabel, leverSentence, fmtPts,
+} from '@/lib/patternVerdicts'
 import type { CyclePhaseId } from '@/lib/weeklyHypotheses'
 import type { DailyLog } from '@/types'
 import WeeklyInsightCard from '@/components/WeeklyInsightCard'
@@ -15,8 +19,11 @@ import { SmallCaps, Fleuron, CornerBrackets } from '@/components/ui'
 
 function fmt(v: number | null): string {
   if (v === null) return '—'
-  return v.toFixed(1)
+  return v.toFixed(1).replace('.', ',')
 }
+
+// „w środę", „we wtorek" — indeks jak Date.getDay() (0 = niedziela).
+const DOW_LOC = ['w niedzielę', 'w poniedziałek', 'we wtorek', 'w środę', 'w czwartek', 'w piątek', 'w sobotę']
 function pctDiff(a: number | null, b: number | null): { text: string; positive: boolean } | null {
   if (a === null || b === null || b === 0) return null
   const diff = Math.round(((a - b) / b) * 100)
@@ -94,8 +101,10 @@ function dowNarrative(ins: DayOfWeekInsight): string {
   const sorted = [...withData].sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
   const best  = sorted[0]
   const worst = sorted[sorted.length - 1]
-  const metricPL = ins.metric === 'energy' ? 'energia' : 'nastrój'
-  return `twoja ${metricPL} jest najwyższa w ${best.full.toLowerCase()} (śr. ${fmt(best.value)}/5), najniższa w ${worst.full.toLowerCase()} (śr. ${fmt(worst.value)}/5).`
+  if (ins.metric === 'energy') {
+    return `energii masz najwięcej ${DOW_LOC[best.dow]} (śr. ${fmt(best.value)}/5), najmniej ${DOW_LOC[worst.dow]} (śr. ${fmt(worst.value)}/5).`
+  }
+  return `nastrój jest najlepszy ${DOW_LOC[best.dow]} (śr. ${fmt(best.value)}/5), najsłabszy ${DOW_LOC[worst.dow]} (śr. ${fmt(worst.value)}/5).`
 }
 function liftNarrative(ins: LiftInsight): string {
   const { withLift, withoutLift, metric } = ins
@@ -103,15 +112,15 @@ function liftNarrative(ins: LiftInsight): string {
   const m = metric === 'mood' ? 'nastrój' : 'energia'
   const diff = withLift - withoutLift
   if (withLift > 0.2 && withoutLift <= 0) {
-    return `${m === 'nastrój' ? 'nastrój' : 'energia'} rośnie w ciągu dnia o ${fmtSigned(withLift)} kiedy działasz, a spada o ${fmtSigned(withoutLift)} kiedy nie. mocny dowód: to wpływa w obie strony.`
+    return `kiedy to robisz, ${m} rośnie w ciągu dnia o ${fmtPts(withLift)} pkt; kiedy nie — ${withoutLift < -0.05 ? `spada o ${fmtPts(withoutLift)} pkt` : 'stoi w miejscu'}. wyraźny sygnał w obie strony.`
   }
   if (Math.abs(diff) < 0.2) {
-    return `nie wykryto różnicy w zmianie ${m === 'nastrój' ? 'nastroju' : 'energii'} — efekt może być słaby lub potrzeba więcej dni.`
+    return `nie widać różnicy — ${m} zmienia się w ciągu dnia podobnie. efekt jest słaby albo potrzeba więcej dni.`
   }
   if (diff > 0) {
-    return `${m === 'nastrój' ? 'nastrój' : 'energia'} rośnie o ${fmtSigned(diff)} więcej w dni, kiedy działasz. to sugeruje realny wpływ — nie tylko korelację.`
+    return `kiedy to robisz, ${m} rośnie w ciągu dnia o ${fmtPts(diff)} pkt bardziej. to sugeruje realny wpływ, nie tylko zbieg okoliczności.`
   }
-  return `wzrost ${m === 'nastrój' ? 'nastroju' : 'energii'} jest o ${fmtSigned(Math.abs(diff))} mniejszy gdy działasz — warto sprawdzić co innego dzieje się w te dni.`
+  return `kiedy to robisz, ${m} rośnie w ciągu dnia o ${fmtPts(diff)} pkt mniej. to nie musi znaczyć, że szkodzi — sprawdź, co jeszcze dzieje się w takie dni.`
 }
 function carryoverNarrative(ins: CarryoverInsight): string {
   const { withMorning, withoutMorning } = ins
@@ -120,51 +129,18 @@ function carryoverNarrative(ins: CarryoverInsight): string {
   if (Math.abs(diff) < 0.15) return 'wieczór nie wpływa wyraźnie na poranek następnego dnia.'
   const absPct = Math.round((Math.abs(diff) / Math.max(withoutMorning, 0.1)) * 100)
   if (diff > 0) {
-    return `po wieczorach z rutyną budzisz się w lepszym nastroju o ${absPct}% (${fmtSigned(diff)} pkt). wieczór dnia X kształtuje poranek X+1.`
+    return `po wieczorach z rutyną poranek jest średnio o ${fmtPts(diff)} pkt lepszy (${absPct}%). wieczór kształtuje następny ranek.`
   }
-  return `po wieczorach z rutyną poranek bywa o ${absPct}% gorszy. może rutyna wieczorna jest zbyt późno?`
+  return `po wieczorach z rutyną poranek bywa o ${fmtPts(diff)} pkt gorszy (${absPct}%). może rutyna wieczorna kończy się zbyt późno?`
 }
 
-// ── Directional verdict (siła i kierunek dźwigni) ────────────────
+// ── Werdykty (lib/patternVerdicts) ────────────────────────────────
 
-type Directional = LiftInsight | CarryoverInsight
-type Verdict = 'works' | 'weak' | 'reverse' | 'nodata'
-
-const LEVER_LABEL: Record<string, string> = {
-  lift_morning_mood: 'Rutyna poranna',
-  lift_low_start_routine: 'Rutyna po gorszym poranku',
-  lift_activity_energy: 'Ruch',
-  lift_social_mood: 'Kontakt z ludźmi',
-  lift_sidequest_mood: 'Side quest',
-  lift_rules_mood: 'Trzymanie zasad',
-  lift_dailyquest_mood: 'Quest dnia',
-  lift_cbt_mood: 'Praca z myślami',
-  carryover_evening_morning: 'Wieczór z rutyną → poranek',
-  carryover_evening_energy: 'Wieczór z rutyną → energia rano',
-  carryover_activity_energy: 'Ruch wczoraj → energia rano',
-  carryover_xp_energy: 'Mocny dzień → energia rano',
-}
-
-function dirDiff(ins: Directional): number | null {
-  const w  = ins.type === 'lift' ? ins.withLift    : ins.withMorning
-  const wo = ins.type === 'lift' ? ins.withoutLift : ins.withoutMorning
-  if (w === null || wo === null) return null
-  return w - wo
-}
-
-function dirVerdict(ins: Directional): Verdict {
-  if (!ins.hasEnoughData) return 'nodata'
-  const d = dirDiff(ins)
-  if (d === null) return 'nodata'
-  const thr = ins.type === 'carryover' ? 0.15 : 0.2
-  if (d > thr) return 'works'
-  if (d < -thr) return 'reverse'
-  return 'weak'
-}
+type Verdict = ReturnType<typeof dirVerdict>
 
 const BADGE_LABEL: Record<Exclude<Verdict, 'nodata'> | 'obs', string> = {
-  works:   'Działa',
-  weak:    'Słaby sygnał',
+  works:   'Pomaga',
+  weak:    'Bez wyraźnego wpływu',
   reverse: 'Odwrotnie',
   obs:     'Obserwacja',
 }
@@ -210,63 +186,101 @@ function SecLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-// ── Levers (Twoje dźwignie) ──────────────────────────────────────
+// ── W skrócie: co pomaga, a co nie ────────────────────────────────
 
-function LeversPanel({ items }: { items: Directional[] }) {
+function LeverRow({ ins }: { ins: Directional }) {
+  const d = dirDiff(ins) ?? 0
+  const neg = d < 0
+  const width = Math.min(100, (Math.abs(d) / 0.8) * 100)
   return (
-    <Panel
-      eyebrow="Wpływ kierunkowy"
-      title="Twoje dźwignie"
-      note="co realnie rusza Twój nastrój i energię — od najmocniejszej. mierzone wzrostem w ciągu dnia, nie samym współwystępowaniem."
-    >
-      <div className="mt-5">
-        {items.map(ins => {
-          const d = dirDiff(ins) ?? 0
-          const neg = d < 0
-          const width = Math.min(50, Math.abs(d) / 0.6 * 50)
-          return (
-            <div
-              key={ins.id}
-              className="grid items-center gap-3 sm:gap-4 py-2.5 border-t border-border first:border-t-0"
-              style={{ gridTemplateColumns: '12px minmax(0,1fr) 64px 1fr 56px' }}
-            >
-              <span className={clsx('text-[8px] text-center', neg ? 'text-wine' : 'text-gold')}>◆</span>
-              <span className="font-serif-body text-[14px] text-dark leading-snug min-w-0">
-                {LEVER_LABEL[ins.id] ?? ins.title}
-              </span>
-              <SmallCaps tone="muted" tracking="luxury" size="xs" className="whitespace-nowrap">
-                {ins.metric === 'mood' ? 'nastrój' : 'energia'}
-              </SmallCaps>
-              <span className="relative h-[7px]" style={{ background: TRACK }}>
-                <span className="absolute -top-[3px] -bottom-[3px] left-1/2 w-px bg-hairline" />
-                <span
-                  className={clsx('absolute top-0 h-full transition-all duration-700', neg ? 'bg-wine' : 'bg-gold')}
-                  style={neg ? { right: '50%', width: `${width}%` } : { left: '50%', width: `${width}%` }}
-                />
-              </span>
-              <span className={clsx('font-display text-[15px] text-right tracking-tight tabular-nums', neg ? 'text-wine' : 'text-gold-deep')}>
-                {fmtSigned(d)}
-              </span>
-            </div>
-          )
-        })}
+    <li className="py-3.5 border-t border-border first:border-t-0">
+      <div className="flex items-baseline gap-3">
+        <span className="flex-1 min-w-0 font-display text-dark text-[17px] leading-tight">{leverLabel(ins)}</span>
+        <span className={clsx('font-display text-[22px] leading-none tracking-tight tabular-nums', neg ? 'text-wine' : 'text-gold-deep')}>
+          {neg ? '−' : '+'}{fmtPts(d)}
+          <span className="font-serif-body italic text-muted text-[13px] ml-1">pkt</span>
+        </span>
       </div>
-    </Panel>
+      <p className="font-serif-body text-dark/80 text-[15px] leading-snug mt-1">{leverSentence(ins)}</p>
+      <div className="relative h-1.5 mt-2.5" style={{ background: TRACK }}>
+        <span className={clsx('absolute top-0 left-0 h-full transition-all duration-700', neg ? 'bg-wine/80' : 'bg-gold')} style={{ width: `${width}%` }} />
+      </div>
+    </li>
   )
 }
 
-function LeverQuiet({ items }: { items: Directional[] }) {
+function GroupHead({ tone, title, count }: { tone: 'pos' | 'neg' | 'quiet'; title: string; count: number }) {
   return (
-    <p className="font-serif-body italic text-muted-light text-[12.5px] leading-relaxed px-1 -mt-1">
-      <span className="not-italic text-[9px] mr-2">◇</span>
-      bez wyraźnego efektu:{' '}
-      {items.map((i, idx) => (
-        <span key={i.id} className="text-muted">
-          {idx > 0 && ' · '}
-          <b className="font-serif-body not-italic font-medium">{LEVER_LABEL[i.id] ?? i.title}</b>
-        </span>
-      ))}
-    </p>
+    <div className="flex items-center gap-2.5 mt-6 first:mt-4">
+      <span className={clsx('w-2 h-2 rotate-45', tone === 'pos' ? 'bg-forest' : tone === 'neg' ? 'bg-wine' : 'border border-muted-light')} />
+      <SmallCaps tone={tone === 'quiet' ? 'muted' : 'dark'} tracking="luxury" size="sm">{title}</SmallCaps>
+      <span className="font-ui text-[11px] text-muted-light tabular-nums">{count}</span>
+      <span className="flex-1 h-px bg-hairline" />
+    </div>
+  )
+}
+
+function VerdictSummary({ works, reverse, weak, noData }: {
+  works: Directional[]; reverse: Directional[]; weak: Directional[]; noData: Directional[]
+}) {
+  return (
+    <Panel
+      eyebrow="W skrócie"
+      title="Co pomaga, a co nie"
+      note="porównuję, jak zmienia się nastrój i energia w dni, kiedy coś robisz, i w dni, kiedy nie. skala 1–5, więc 0,5 pkt to już wyraźna różnica."
+    >
+      {works.length > 0 && (
+        <>
+          <GroupHead tone="pos" title="Pomaga" count={works.length} />
+          <ul>{works.map(i => <LeverRow key={i.id} ins={i} />)}</ul>
+        </>
+      )}
+
+      {reverse.length > 0 && (
+        <>
+          <GroupHead tone="neg" title="Odwrotnie, niż można by sądzić" count={reverse.length} />
+          <ul>{reverse.map(i => <LeverRow key={i.id} ins={i} />)}</ul>
+          <p className="font-serif-body italic text-muted text-[14px] leading-snug mt-1">
+            to nie musi znaczyć, że szkodzi. mierzę wzrost w ciągu dnia — jeśli coś podnosi Ci
+            nastrój już przed pierwszym check-inem, na dalszy wzrost zostaje mniej miejsca.
+          </p>
+        </>
+      )}
+
+      {works.length === 0 && reverse.length === 0 && weak.length > 0 && (
+        <p className="font-serif-body text-dark/80 text-[15px] leading-snug mt-4">
+          na razie nic nie odróżnia się wyraźnie. to częste, gdy nawyki robisz prawie codziennie —
+          brakuje dni „bez”, z którymi można porównać.
+        </p>
+      )}
+
+      {weak.length > 0 && (
+        <>
+          <GroupHead tone="quiet" title="Bez wyraźnego wpływu" count={weak.length} />
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {weak.map(i => (
+              <span key={i.id} className="font-serif-body text-[14px] text-dark/80 border border-hairline bg-cream/50 px-2.5 py-1">
+                {leverLabel(i)}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+
+      {noData.length > 0 && (
+        <>
+          <GroupHead tone="quiet" title="Za mało danych" count={noData.length} />
+          <ul className="mt-2.5 space-y-1.5">
+            {noData.map(i => (
+              <li key={i.id} className="flex flex-wrap items-baseline gap-x-2 leading-snug">
+                <span className="font-serif-body text-[15px] text-dark">{leverLabel(i)}</span>
+                <span className="font-serif-body italic text-muted text-[14px]">— {noDataReason(i)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Panel>
   )
 }
 
@@ -305,7 +319,7 @@ function WzCardShell({ id, title, sub, badge, badgeKind, children, axis, insight
         </div>
         <span
           className={clsx(
-            'font-ui uppercase tracking-luxury text-[7px] border px-2 py-1 whitespace-nowrap',
+            'font-ui uppercase tracking-[0.14em] text-[9.5px] border px-2 py-1 whitespace-nowrap',
             badgeKind === 'works' ? 'text-forest border-forest/40 bg-forest/5' :
             badgeKind === 'reverse' ? 'text-wine border-wine/35 bg-wine/5' :
             badgeKind === 'obs' ? 'text-muted border-hairline' :
@@ -318,13 +332,13 @@ function WzCardShell({ id, title, sub, badge, badgeKind, children, axis, insight
 
       <div className="mt-5 flex flex-col gap-3.5">{children}</div>
 
-      <div className="flex justify-between mt-3 mb-4 font-ui uppercase tracking-luxury text-[7px] text-muted-light">
+      <div className="flex justify-between mt-3 mb-4 font-ui uppercase tracking-[0.14em] text-[9px] text-muted">
         {axis}
       </div>
 
       <div
         className={clsx(
-          'mt-auto px-4 py-2.5 border font-serif-body italic text-[13px] leading-snug',
+          'mt-auto px-4 py-2.5 border font-serif-body italic text-[14px] leading-snug',
           insTone === 'pos' ? 'bg-cream border-border text-dark' :
           insTone === 'neg' ? 'bg-wine/5 border-wine/20 text-dark' :
           'bg-transparent border-dashed border-hairline text-muted'
@@ -478,15 +492,15 @@ function WeekdayBlock({ ins }: { ins: DayOfWeekInsight }) {
                   title={has ? `${d.full}: ${fmt(d.value)}/5` : d.full}
                 />
               </div>
-              <div className={clsx('font-ui uppercase tracking-luxury text-[8px] mt-2', isBest ? 'text-gold-deep' : isWorst ? 'text-wine' : 'text-muted-light')}>
+              <div className={clsx('font-ui uppercase tracking-[0.12em] text-[10px] mt-2', isBest ? 'text-gold-deep' : isWorst ? 'text-wine' : 'text-muted')}>
                 {d.short}
               </div>
-              <div className="font-display text-[13px] text-dark tracking-tight mt-1">{fmt(d.value)}</div>
+              <div className="font-display text-[14px] text-dark tracking-tight mt-1">{fmt(d.value)}</div>
             </div>
           )
         })}
       </div>
-      <p className="font-serif-body italic text-muted text-[13px] mt-4 pt-3.5 border-t border-border leading-snug">
+      <p className="font-serif-body italic text-muted text-[14px] mt-4 pt-3.5 border-t border-border leading-snug">
         {dowNarrative(ins)}
       </p>
     </div>
@@ -530,17 +544,17 @@ function CyclePhaseBlock({ ins }: { ins: CyclePhaseInsight }) {
                   title={has ? `${p.label}: ${fmt(p.value)}/5 (${p.count} dni)` : p.label}
                 />
               </div>
-              <div className="font-ui uppercase tracking-luxury text-[8px] mt-2" style={{ color: has ? acc : undefined }}>
+              <div className="font-ui uppercase tracking-[0.12em] text-[10px] mt-2" style={{ color: has ? acc : undefined }}>
                 {PHASE_SHORT[p.id]}
               </div>
-              <div className="font-display text-[13px] text-dark tracking-tight mt-1">{fmt(p.value)}</div>
+              <div className="font-display text-[14px] text-dark tracking-tight mt-1">{fmt(p.value)}</div>
             </div>
           )
         })}
       </div>
-      <p className="font-serif-body italic text-muted text-[13px] mt-4 pt-3.5 border-t border-border leading-snug">
+      <p className="font-serif-body italic text-muted text-[14px] mt-4 pt-3.5 border-t border-border leading-snug">
         {spread
-          ? `twoja ${metricPL.toLowerCase()} jest najwyższa w fazie ${best!.label} (śr. ${fmt(best!.value)}/5), najniższa w ${worst!.label} (śr. ${fmt(worst!.value)}/5). to rytm, nie ocena — mapa, którą można zaplanować.`
+          ? `${metricPL.toLowerCase()} — najwyżej w fazie: ${best!.label.toLowerCase()} (śr. ${fmt(best!.value)}/5), najniżej: ${worst!.label.toLowerCase()} (śr. ${fmt(worst!.value)}/5). to rytm, nie ocena — mapa, którą można zaplanować.`
           : 'za mało kontrastu między fazami — dołóż check-inów w różnych fazach cyklu.'}
       </p>
     </div>
@@ -559,6 +573,7 @@ export default function PatternsTab({ logs, cigarettesPhase, cyclePhaseOf }: {
     [logs, cigarettesPhase, cyclePhaseOf],
   )
   const logsWithMood = Object.values(logs).filter(l => l.moodCheckIns && l.moodCheckIns.length > 0)
+  const [showTests, setShowTests] = useState(false)
 
   if (logsWithMood.length === 0) {
     return (
@@ -575,15 +590,7 @@ export default function PatternsTab({ logs, cigarettesPhase, cyclePhaseOf }: {
   }
 
   // ── Grupowanie wniosków ──────────────────────────────────────────
-  const directional = insights.filter(
-    (i): i is Directional => i.type === 'lift' || i.type === 'carryover'
-  )
-  const ranked = directional
-    .filter(i => dirVerdict(i) !== 'nodata')
-    .sort((a, b) => Math.abs(dirDiff(b) ?? 0) - Math.abs(dirDiff(a) ?? 0))
-  const levers  = ranked.filter(i => dirVerdict(i) === 'works' || dirVerdict(i) === 'reverse')
-  const weak    = ranked.filter(i => dirVerdict(i) === 'weak')
-  const noData  = directional.filter(i => dirVerdict(i) === 'nodata')
+  const { ranked, works, reverse, weak, noData } = groupLevers(insights)
 
   const dowInsights = insights.filter((i): i is DayOfWeekInsight => i.type === 'dow')
   const cycleInsights = insights.filter(
@@ -596,52 +603,46 @@ export default function PatternsTab({ logs, cigarettesPhase, cyclePhaseOf }: {
 
   return (
     <div className="space-y-5">
-      {/* Wzorzec tygodnia — werdykt */}
-      <WeeklyInsightCard moodDays={logsWithMood.length} />
-
-      {/* Twoje dźwignie */}
-      {ranked.length > 0 ? (
-        <>
-          {levers.length > 0 && <LeversPanel items={levers} />}
-          {weak.length > 0 && <LeverQuiet items={weak} />}
-        </>
+      {/* 1. Najpierw odpowiedź: co pomaga, a co nie */}
+      {ranked.length > 0 || noData.length > 0 ? (
+        <VerdictSummary works={works} reverse={reverse} weak={weak} noData={noData} />
       ) : (
-        <Panel eyebrow="Wpływ kierunkowy" title="Twoje dźwignie">
-          <p className="font-serif-body italic text-muted text-[13px] mt-3 leading-relaxed">
-            jeszcze za mało danych, żeby wskazać dźwignie — rób check-iny nastroju
+        <Panel eyebrow="W skrócie" title="Co pomaga, a co nie">
+          <p className="font-serif-body italic text-muted text-[14px] mt-3 leading-relaxed">
+            jeszcze za mało danych, żeby to ocenić — rób check-iny nastroju
             (najlepiej 2 w ciągu dnia), a wnioski pojawią się same.
           </p>
         </Panel>
       )}
 
-      {/* Testy hipotez */}
-      {ranked.length > 0 && (
-        <div className="space-y-4">
-          <SecLabel>Testy hipotez</SecLabel>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {ranked.map(ins =>
-              ins.type === 'lift'
-                ? <LiftCard key={ins.id} ins={ins} />
-                : <CarryoverCard key={ins.id} ins={ins} />
-            )}
-          </div>
-        </div>
-      )}
+      {/* 2. Wzorzec tygodnia — test statystyczny na świeżych danych */}
+      <WeeklyInsightCard moodDays={logsWithMood.length} />
 
-      {noData.length > 0 && (
-        <div className="border border-dashed border-hairline bg-cream/50 px-5 py-3.5">
-          <SmallCaps tone="muted" tracking="luxury" size="xs">Jeszcze zbiera dane</SmallCaps>
-          <ul className="mt-2.5 space-y-1.5">
-            {noData.map(i => (
-              <li key={i.id} className="flex flex-wrap items-baseline gap-x-2 leading-snug">
-                <span className="font-serif-body text-[14px] text-dark">{LEVER_LABEL[i.id] ?? i.title}</span>
-                <span className="font-serif-body italic text-muted-light text-[13px]">— {noDataReason(i)}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="font-serif-body italic text-muted-light text-[12px] mt-2.5 pt-2.5 border-t border-hairline">
-            każda grupa potrzebuje min. {MIN_LIFT_GROUP} dni z check-inem, żeby było co porównać.
-          </p>
+      {/* 3. Szczegóły porównań — dla ciekawych, domyślnie schowane */}
+      {ranked.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowTests(v => !v)}
+            aria-expanded={showTests}
+            className="w-full flex items-center gap-3 bg-ivory border border-gold-light/40 hover:border-gold px-5 py-4 text-left transition-colors"
+          >
+            <span className="flex-1 min-w-0">
+              <span className="block font-display text-dark text-[17px] leading-tight">Szczegóły porównań</span>
+              <span className="block font-serif-body italic text-muted text-[14px] mt-0.5">
+                {ranked.length} {ranked.length === 1 ? 'porównanie' : ranked.length < 5 ? 'porównania' : 'porównań'} dzień po dniu — liczby dni i wykresy
+              </span>
+            </span>
+            <ChevronDown size={18} strokeWidth={1.5} className={clsx('text-gold-deep transition-transform', showTests && 'rotate-180')} />
+          </button>
+          {showTests && (
+            <div className="grid sm:grid-cols-2 gap-4 mt-4">
+              {ranked.map(ins =>
+                ins.type === 'lift'
+                  ? <LiftCard key={ins.id} ins={ins} />
+                  : <CarryoverCard key={ins.id} ins={ins} />
+              )}
+            </div>
+          )}
         </div>
       )}
 

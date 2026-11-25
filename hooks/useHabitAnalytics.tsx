@@ -2,12 +2,9 @@
 import { useMemo } from 'react'
 import type { DailyLog } from '@/types'
 import { getISOWeekKey, getMonthKey } from '@/lib/gameLogic'
+import { routineCompletionRate } from '@/lib/periodSummary'
 
 type LogMap = Record<string, DailyLog>
-
-// Bazowa liczba elementów rutyny (bez custom items i daily habits weekday-only)
-const NORMAL_ROUTINE_MAX = 16  // 9 morning + 7 evening
-const MINIMUM_ROUTINE_MAX = 6  // 3 morning + 3 evening
 
 export interface WeekHabitData {
   weekKey: string
@@ -68,10 +65,7 @@ export function useHabitAnalytics(logs: LogMap): HabitAnalytics {
 
     for (const key of sortedKeys) {
       const log = logs[key]
-      const mode = log.dayMode ?? 'normal'
-      const max = mode === 'minimum' ? MINIMUM_ROUTINE_MAX : NORMAL_ROUTINE_MAX
-      const completed = log.completedRoutine?.length ?? 0
-      const rate = Math.min(100, Math.round((completed / max) * 100))
+      const rate = routineCompletionRate(log)
       const rulesKept = log.keptRules?.length ?? 0
       const isActive = (log.totalXP ?? 0) > 0
       const hasActivity = log.physicalActivity === true

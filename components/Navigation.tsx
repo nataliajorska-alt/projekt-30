@@ -44,7 +44,7 @@ const NAV: NavItem[] = [
     kind: 'group', icon: Sprout, label: 'Wzrost',
     children: [
       { href: '/progress',              icon: TreePine,      label: 'Drzewko',       hint: 'ogród i trzydzieści poziomów' },
-      { href: '/timeline?tab=patterns', icon: CalendarDays,  label: 'Wzorce',        hint: 'historia, nawyki, nastrój' },
+      { href: '/timeline',              icon: CalendarDays,  label: 'Analizy',       hint: 'jak Ci idzie: liczby i wzorce' },
       { href: '/pillars',               icon: Columns3,      label: 'Filary',        hint: 'gdzie idzie Twoja energia' },
       { href: '/achievements',          icon: Trophy,        label: 'Osiągnięcia',   hint: 'kolekcja odznak' },
       { href: '/review',                icon: BookOpen,      label: 'Przegląd',      hint: 'tydzień, miesiąc, kwartał' },
