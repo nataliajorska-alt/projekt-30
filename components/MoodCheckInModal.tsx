@@ -6,6 +6,8 @@ import { X } from 'lucide-react'
 import type { MoodState } from '@/types'
 import { MOOD_STATES } from '@/types'
 import { SmallCaps, Diamond, GoldRule } from '@/components/ui'
+import { useGameData } from '@/hooks/useGameData'
+import DayFlags from '@/components/DayFlags'
 
 interface Props {
   onSave: (data: { energy: number; mood: number; state: MoodState }) => void
@@ -64,6 +66,12 @@ export default function MoodCheckInModal({ onSave, onDismiss }: Props) {
   const [energy, setEnergy] = useState<number | null>(null)
   const [mood, setMood] = useState<number | null>(null)
   const [state, setState] = useState<MoodState | null>(null)
+  const { todayLog } = useGameData()
+  // Od popołudnia (albo gdy coś już zaznaczone) check-in pyta też o ruch
+  // i ludzi — wieczorny check-in i tak wyskakuje sam, więc to najprostszy moment.
+  const [showFlags] = useState(
+    () => new Date().getHours() >= 14 || !!todayLog?.physicalActivity || !!todayLog?.socialPresence,
+  )
 
   const canSave = energy !== null && mood !== null && state !== null
 
@@ -81,7 +89,7 @@ export default function MoodCheckInModal({ onSave, onDismiss }: Props) {
       />
 
       {/* Card */}
-      <div ref={dialogRef} role="dialog" aria-modal="true" className="relative w-full sm:max-w-sm mx-4 mb-4 sm:mb-0 bg-ivory border border-gold-light/40 p-7 animate-slide-up">
+      <div ref={dialogRef} role="dialog" aria-modal="true" className="relative w-full sm:max-w-sm mx-4 mb-4 sm:mb-0 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-ivory border border-gold-light/40 p-7 animate-slide-up">
         <button
           onClick={onDismiss}
           className="absolute top-4 right-4 text-muted-light hover:text-dark transition-colors"
@@ -139,6 +147,8 @@ export default function MoodCheckInModal({ onSave, onDismiss }: Props) {
             })}
           </div>
         </div>
+
+        {showFlags && <DayFlags variant="compact" className="mb-6" />}
 
         <div className="flex gap-3">
           <button

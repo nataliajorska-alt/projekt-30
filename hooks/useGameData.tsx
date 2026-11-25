@@ -26,7 +26,7 @@ import { useToast } from '@/components/ToastProvider'
 import { useAchievementUnlock } from '@/components/AchievementUnlockModal'
 import { useLevelUp } from '@/components/LevelUpModal'
 import { emit } from '@/lib/rewards'
-import { patchTimelineLog } from './useTimelineData'
+import { patchTimelineLog, patchTimelineFields } from './useTimelineData'
 
 const DEFAULT_STATS: UserStats = {
   totalXP: 0,
@@ -619,6 +619,21 @@ function useGameDataState() {
     if (!user || !todayRef || !todayLog) return
     await setDoc(todayRef, { physicalActivity: !todayLog.physicalActivity }, { merge: true })
   }, [user, todayRef, todayLog])
+
+  // Ruch / ludzie dla wskazanego dnia — dziś albo wstecz (np. rano za wczoraj).
+  // Tylko dla dnia, który już ma log: nie tworzymy pustych dokumentów dni,
+  // których w apce nie było (liczyłyby się jako „zalogowane”).
+  const setDayFlag = useCallback(async (key: string, field: 'physicalActivity' | 'socialPresence', value: boolean) => {
+    if (!user) return
+    if (key === currentDateKey) {
+      if (!todayRef || !todayLog) return
+      await setDoc(todayRef, { [field]: value }, { merge: true })
+      return
+    }
+    await setDoc(doc(db, ...paths.logDoc(user.uid, key)), { [field]: value }, { merge: true })
+    // Analizy otwarte później widzą poprawkę bez ponownego pobierania historii.
+    patchTimelineFields(user.uid, key, { [field]: value })
+  }, [user, todayRef, todayLog, currentDateKey])
 
   // Odhaczanie pojedynczych kroków w przewodnikach (pielęgnacja, suplementy).
   // Lekkie — bez XP i statystyk; tylko pomocnicze „co już zrobione" na dziś.
@@ -1454,7 +1469,7 @@ function useGameDataState() {
     stats, todayLog, loading, synced, statsReady,
     toggleRoutine, toggleDailyQuest, toggleSideQuest, toggleRule,
     submitWeeklyReview, submitMonthlyReview, submitQuarterlyReview, setDayMode,
-    streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity, toggleSubStep,
+    streakFreezeAvailable, toggleSocialPresence, togglePhysicalActivity, setDayFlag, toggleSubStep,
     postponeRoutineToTomorrow,
     saveMoodCheckIn, saveKeyMoment, clearKeyMoment, completeReturnCeremony,
     logCigarette, removeLastCigarette, startSmokingPhase, toggleSmokeEmergencyDay, setLastCigaretteOfDay,

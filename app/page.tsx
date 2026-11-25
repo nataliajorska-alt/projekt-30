@@ -20,6 +20,7 @@ import DashboardInsight, { selectTopSignal } from '@/components/DashboardInsight
 import DashboardNow from '@/components/DashboardNow'
 import DailySeal from '@/components/DailySeal'
 import QuickDock from '@/components/QuickDock'
+import DayFlags from '@/components/DayFlags'
 import PlanNow from '@/components/coach/PlanNow'
 import SafeHoursBanner from '@/components/SafeHoursBanner'
 import CyclePhaseWidget from '@/components/CyclePhaseWidget'
@@ -266,6 +267,7 @@ export default function Dashboard() {
           <ErrorBoundary label="Teraz"><DashboardNow /></ErrorBoundary>
           <ErrorBoundary label="Plan dnia"><PlanNow /></ErrorBoundary>
           <ErrorBoundary label="Szybkie akcje"><QuickDock /></ErrorBoundary>
+          <ErrorBoundary label="Ruch i ludzie"><DayFlags /></ErrorBoundary>
 
           <SafeHoursBanner />
           <DashboardNudges />
