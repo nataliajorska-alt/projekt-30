@@ -7,6 +7,7 @@ import { useRoutineConfig } from '@/hooks/useRoutineConfig'
 import { filterItemsForMinimumDay } from '@/lib/minimumDayLogic'
 import { SmallCaps, Diamond, Fleuron, GoldRule, CornerBrackets } from '@/components/ui'
 import { smokeCeilingXP } from '@/lib/smokeStats'
+import DayFlags from '@/components/DayFlags'
 
 // Wieczorne domknięcie dnia — jeden ceremonialny ekran spinający istniejącą
 // rutynę wieczorną (te same id i toggleRoutine co checklista — zero drugiego
@@ -119,6 +120,9 @@ export default function EveningClosing({ onClose }: EveningClosingProps) {
               )
             })}
           </div>
+
+          {/* Ruch i ludzie — do Analiz; jedno stuknięcie przy zamykaniu dnia */}
+          <DayFlags variant="dark" className="mb-7" />
 
           {/* Ostatni papieros dnia — deklaracja, nie blokada */}
           <div className="border border-ivory/15 px-4 py-4 mb-7">

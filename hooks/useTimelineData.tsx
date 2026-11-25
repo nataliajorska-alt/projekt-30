@@ -68,6 +68,12 @@ export function patchTimelineLog(uid: string, dateKey: string, log: DailyLog) {
   cache = { ...cache, logs: { ...cache.logs, [dateKey]: { ...log, date: dateKey } } }
 }
 
+/** Dopisuje pola do logu dnia, który już jest w pamięci (np. ruch zaznaczony za wczoraj). */
+export function patchTimelineFields(uid: string, dateKey: string, fields: Partial<DailyLog>) {
+  if (!cache || cache.uid !== uid || !cache.logs[dateKey]) return
+  cache = { ...cache, logs: { ...cache.logs, [dateKey]: { ...cache.logs[dateKey], ...fields } } }
+}
+
 export function useTimelineData() {
   const { user } = useAuth()
   const uid = user?.uid
