@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { plainInsight } from '@/lib/plainInsight'
 import { useEffect, useMemo } from 'react'
 import { useWeeklyInsight } from '@/hooks/useWeeklyInsight'
 import type { WeeklyInsight } from '@/lib/weeklyInsight'
@@ -81,7 +82,7 @@ export default function DashboardInsight({ data }: { data: ReturnType<typeof use
           </span>
         </span>
         <p className="font-serif-body italic text-muted text-[13px] leading-snug flex-1 min-w-[220px] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
-          {firstSentence(top.text!)}{' '}
+          {firstSentence(plainInsight(top.text!))}{' '}
           <Link
             href="/timeline?tab=patterns"
             className="not-italic font-ui uppercase tracking-luxury text-[9px] text-gold-deep hover:opacity-70 transition-opacity whitespace-nowrap"

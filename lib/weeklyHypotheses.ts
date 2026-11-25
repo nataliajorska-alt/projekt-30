@@ -305,7 +305,7 @@ export const HYPOTHESES: Hypothesis[] = [
     template: (r) => {
       const diff = Math.abs(r.facts.primary.value - r.facts.secondary!.value)
       const which = r.facts.primary.value > r.facts.secondary!.value ? 'wyższy' : 'niższy'
-      return `W dniach z obecnością społeczną mood był średnio o ${fmt(diff)} pkt ${which} (n=${r.n}, ${effectStrength(Math.abs(r.effectSize))} siła). Niektóre kobiety ładują się sama, inne ludźmi — co Ci dane mówią o Tobie?`
+      return `W dniach z obecnością społeczną mood był średnio o ${fmt(diff)} pkt ${which} (n=${r.n}, ${effectStrength(Math.abs(r.effectSize))} siła). Jedne ładują się w samotności, inne przy ludziach — co dane mówią o Tobie?`
     },
     reflectionQuestions: [
       'Czy dane mówią o Tobie to, co czujesz?',

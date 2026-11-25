@@ -1,7 +1,8 @@
 'use client'
 import { useMemo, useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import clsx from 'clsx'
+import { Compass, CalendarDays, Repeat, Waves, Lightbulb, ShieldCheck, Wind } from 'lucide-react'
 import { useTimelineData } from '@/hooks/useTimelineData'
 import { useGameData } from '@/hooks/useGameData'
 import { useCycleData } from '@/hooks/useCycleData'
@@ -18,11 +19,12 @@ import MoodTab from './_tabs/MoodTab'
 import ProtocolTab from './_tabs/ProtocolTab'
 import PatternsTab from './_tabs/PatternsTab'
 import OddechTab from './_tabs/OddechTab'
-import { SmallCaps, GoldRule, RomanNumeral, Fleuron, CornerBrackets } from '@/components/ui'
+import OverviewTab from './_tabs/OverviewTab'
+import { SmallCaps, Fleuron, CornerBrackets } from '@/components/ui'
 import PageHeader from '@/components/PageHeader'
 
 // Filary celowo NIE jest zakładką Historii — pełny widok balansu filarów ma osobna strona /pillars.
-type TimelineMode = 'calendar' | 'habits' | 'mood' | 'patterns' | 'protokol' | 'oddech'
+type TimelineMode = 'overview' | 'calendar' | 'habits' | 'mood' | 'patterns' | 'protokol' | 'oddech'
 
 // Licznik „nabijający" wartość jak stary hodometr — animuje od poprzedniej
 // wartości (start: 0), więc dociągnięcie danych z Firestore płynnie doliczy.
@@ -70,24 +72,27 @@ function formatMonthPL(key: string): string {
   return PL_MONTH_NAMES[m - 1] ?? key
 }
 
-const VALID_TABS: TimelineMode[] = ['calendar', 'habits', 'mood', 'patterns', 'protokol', 'oddech']
+const VALID_TABS: TimelineMode[] = ['overview', 'calendar', 'habits', 'mood', 'patterns', 'protokol', 'oddech']
 
+// Podtytuł mówi wprost, na jakie pytanie odpowiada zakładka.
 const SUB_COPY: Record<TimelineMode, string> = {
+  overview: 'jak Ci idzie — najważniejsze liczby i wnioski w jednym miejscu.',
   calendar: 'cały projekt w jednym kadrze — każdy dzień się liczy.',
-  habits:   'konsekwencja buduje tożsamość — śledź swoje nawyki.',
-  mood:     'co czujesz na co dzień. twój emocjonalny puls projektu.',
-  patterns: 'korelacje, najlepsze dni, ukryte zależności.',
-  protokol: 'kiedy konkretnie jesteś najbardziej narażona. dane operacyjne.',
+  habits:   'jak równo idzie rutyna, zasady i ruch.',
+  mood:     'co czujesz na co dzień — nastrój, energia i stany.',
+  patterns: 'co realnie pomaga, a co nie — sprawdzone na Twoich dniach.',
+  protokol: 'kiedy konkretnie jesteś najbardziej narażona na impuls.',
   oddech:   'spokojny licznik kilometrów. wzorce, nie wyroki.',
 }
 
-const TABS: { key: TimelineMode; label: string; roman: number }[] = [
-  { key: 'calendar', label: 'Kalendarz', roman: 1 },
-  { key: 'habits',   label: 'Nawyki',    roman: 2 },
-  { key: 'mood',     label: 'Nastrój',   roman: 3 },
-  { key: 'patterns', label: 'Wzorce',    roman: 4 },
-  { key: 'protokol', label: 'Protokół',  roman: 5 },
-  { key: 'oddech',   label: 'Oddech',    roman: 6 },
+const TABS: { key: TimelineMode; label: string; icon: React.ElementType }[] = [
+  { key: 'overview', label: 'Przegląd',  icon: Compass },
+  { key: 'calendar', label: 'Kalendarz', icon: CalendarDays },
+  { key: 'habits',   label: 'Nawyki',    icon: Repeat },
+  { key: 'mood',     label: 'Nastrój',   icon: Waves },
+  { key: 'patterns', label: 'Wzorce',    icon: Lightbulb },
+  { key: 'protokol', label: 'Protokół',  icon: ShieldCheck },
+  { key: 'oddech',   label: 'Oddech',    icon: Wind },
 ]
 
 export default function TimelinePage() {
@@ -106,16 +111,25 @@ export default function TimelinePage() {
     [cycleLogs, cycleSettings],
   )
   const searchParams = useSearchParams()
+  const router = useRouter()
   const initialTab = (() => {
     const t = searchParams.get('tab') as TimelineMode | null
-    return t && VALID_TABS.includes(t) ? t : 'calendar'
+    return t && VALID_TABS.includes(t) ? t : 'overview'
   })()
   const [mode, setMode] = useState<TimelineMode>(initialTab)
 
   useEffect(() => {
     const t = searchParams.get('tab') as TimelineMode | null
-    if (t && VALID_TABS.includes(t)) setMode(t)
+    setMode(t && VALID_TABS.includes(t) ? t : 'overview')
   }, [searchParams])
+
+  // Zakładka trafia do adresu: odświeżenie i „wstecz" wracają tam, gdzie byłaś.
+  const openTab = (t: TimelineMode) => {
+    setMode(t)
+    router.replace(t === 'overview' ? '/timeline' : `/timeline?tab=${t}`, { scroll: false })
+  }
+  const showOddech = stats.smokingTrackingEnabled !== false
+  const visibleTabs = TABS.filter(t => t.key !== 'oddech' || showOddech)
 
   const habitAnalytics = useHabitAnalytics(logs)
 
@@ -136,51 +150,36 @@ export default function TimelinePage() {
       <PageHeader
         chapter="III"
         eyebrow="Twój rok"
-        title="Historia"
+        title="Analizy"
         subtitle={SUB_COPY[mode]}
-        rule
+        className="mb-6"
       />
 
-      {/* Tabs — editorial */}
-      <nav className="mb-8">
-        <div className="flex gap-5 sm:gap-2 md:gap-4 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-2">
-          {/* Oddech znika gdy tracking palenia wyłączony — bez wstydu (PLAN_PALENIE.md 3.9) */}
-          {TABS.filter(t => t.key !== 'oddech' || stats.smokingTrackingEnabled !== false).map(({ key, label, roman }) => {
+      {/* Zakładki — wszystkie widoczne naraz (na telefonie siatka 4 × 2,
+          bez chowania połowy za krawędzią ekranu). */}
+      <nav aria-label="Widoki analiz" className="mb-7">
+        <div role="tablist" className="grid grid-cols-4 md:flex gap-1.5 md:gap-2">
+          {visibleTabs.map(({ key, label, icon: Icon }) => {
             const active = mode === key
             return (
               <button
                 key={key}
-                onClick={() => setMode(key)}
-                className="flex-shrink-0 sm:flex-1 group flex flex-col items-center gap-1.5"
+                role="tab"
+                aria-selected={active}
+                onClick={() => openTab(key)}
+                className={clsx(
+                  'md:flex-1 flex flex-col md:flex-row items-center justify-center gap-1.5 md:gap-2 min-h-[58px] md:min-h-[46px] px-1 border transition-colors',
+                  active
+                    ? 'bg-dark border-dark text-gold-pale'
+                    : 'bg-ivory border-hairline text-muted hover:text-gold-deep hover:border-gold-light',
+                )}
               >
-                <span className="flex items-baseline gap-2 whitespace-nowrap">
-                  <RomanNumeral
-                    value={roman}
-                    className={clsx(
-                      'text-sm transition-colors',
-                      active ? 'text-gold' : 'text-muted-light group-hover:text-gold-light'
-                    )}
-                  />
-                  <SmallCaps
-                    tone={active ? 'gold' : 'muted'}
-                    tracking="luxury"
-                    size="sm"
-                    className={clsx('transition-colors', !active && 'group-hover:text-gold-deep')}
-                  >
-                    {label}
-                  </SmallCaps>
-                </span>
-                <span
-                  className={clsx(
-                    'h-px w-10 transition-colors',
-                    active ? 'bg-gold' : 'bg-transparent'
-                  )}
-                />
+                <Icon size={18} strokeWidth={1.5} className={active ? 'text-gold-light' : 'text-gold-deep'} />
+                <span className="font-ui uppercase tracking-[0.14em] text-[10px] md:text-[11px] leading-none">{label}</span>
               </button>
             )
           })}
         </div>
-        <GoldRule variant="plain" tone="gold-deep" className="opacity-30" />
       </nav>
 
       {loading ? (
@@ -190,6 +189,15 @@ export default function TimelinePage() {
             Wczytuję dane
           </SmallCaps>
         </div>
+      ) : mode === 'overview' ? (
+        <OverviewTab
+          logs={logs}
+          cigarettesPhase={stats.cigarettesPhase}
+          cyclePhaseOf={cyclePhaseOf}
+          routineAvgAllTime={habitAnalytics.overallAvgCompletion}
+          onOpen={openTab}
+          showOddech={showOddech}
+        />
       ) : mode === 'calendar' ? (
         <div className="space-y-5">
           {/* Rozeta roku — 365 promieni, rok w jednym okręgu */}
@@ -365,7 +373,7 @@ export default function TimelinePage() {
                   <div className="font-display text-gold-pale text-[22px] leading-none tracking-tight tabular-nums">
                     <CountUpNumber value={s.n} />
                   </div>
-                  <div className="font-ui uppercase text-gold-light text-[7px] tracking-[0.26em] mt-2">
+                  <div className="font-ui uppercase text-gold-light text-[10px] tracking-[0.2em] mt-2">
                     {s.k}
                   </div>
                 </div>
